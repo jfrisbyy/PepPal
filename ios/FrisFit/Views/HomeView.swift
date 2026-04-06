@@ -11,6 +11,7 @@ struct HomeView: View {
     @State private var showNutrition: Bool = false
     @State private var showDailyTasks: Bool = false
     @State private var showStepDetail: Bool = false
+    @State private var showProtocolDetail: Bool = false
     @State private var bodyGoalViewModel = BodyGoalViewModel()
     @State private var dateSelectorHeight: CGFloat = 0
 
@@ -125,94 +126,95 @@ struct HomeView: View {
     }
 
     private func activeProtocolCard(_ proto: PeptideProtocol) -> some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "pill.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(PepTheme.teal)
-                            Text("Active Protocol")
-                                .font(.system(.caption, weight: .semibold))
-                                .foregroundStyle(PepTheme.textSecondary)
-                        }
-                        Text(proto.name)
-                            .font(.system(.headline, design: .rounded, weight: .bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("Day \(proto.currentDay)")
-                            .font(.system(.title3, design: .rounded, weight: .bold))
-                            .foregroundStyle(PepTheme.teal)
-                        Text(proto.currentPhase.rawValue)
-                            .font(.system(.caption2, weight: .semibold))
-                            .foregroundStyle(proto.currentPhase.color)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(proto.currentPhase.color.opacity(0.12))
-                            .clipShape(.capsule)
-                    }
-                }
-
-                if let nextDose = proto.nextDose {
-                    HStack(spacing: 10) {
-                        Image(systemName: "clock.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(PepTheme.amber)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Next Dose")
-                                .font(.caption2)
-                                .foregroundStyle(PepTheme.textSecondary)
-                            Text("\(Int(nextDose.doseMcg))mcg \(nextDose.compoundName)")
-                                .font(.system(.subheadline, weight: .semibold))
+        Button {
+            showProtocolDetail = true
+        } label: {
+            GlassCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "pill.fill")
+                                    .font(.subheadline)
+                                    .foregroundStyle(PepTheme.teal)
+                                Text("Active Protocol")
+                                    .font(.system(.caption, weight: .semibold))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                            Text(proto.name)
+                                .font(.system(.headline, design: .rounded, weight: .bold))
                                 .foregroundStyle(PepTheme.textPrimary)
                         }
                         Spacer()
-                        Button {
-                        } label: {
-                            Text("Log Dose")
-                                .font(.system(.caption, weight: .bold))
-                                .foregroundStyle(PepTheme.invertedText)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .background(PepTheme.teal, in: .capsule)
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("Day \(proto.currentDay)")
+                                .font(.system(.title3, design: .rounded, weight: .bold))
+                                .foregroundStyle(PepTheme.teal)
+                            Text(proto.currentPhase.rawValue)
+                                .font(.system(.caption2, weight: .semibold))
+                                .foregroundStyle(proto.currentPhase.color)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(proto.currentPhase.color.opacity(0.12))
+                                .clipShape(.capsule)
                         }
-                        .buttonStyle(.scale)
                     }
-                    .padding(10)
-                    .background(PepTheme.elevated.opacity(0.5))
-                    .clipShape(.rect(cornerRadius: 10))
-                }
 
-                let total = max(1, proto.loadingWeeks + proto.maintenanceWeeks + proto.taperingWeeks + proto.offCycleWeeks)
-                GeometryReader { geo in
-                    HStack(spacing: 2) {
-                        if proto.loadingWeeks > 0 {
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(CyclePhase.loading.color)
-                                .frame(width: geo.size.width * CGFloat(proto.loadingWeeks) / CGFloat(total))
+                    if let nextDose = proto.nextDose {
+                        HStack(spacing: 10) {
+                            Image(systemName: "clock.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(PepTheme.amber)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Next Dose")
+                                    .font(.caption2)
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                Text("\(Int(nextDose.doseMcg))mcg \(nextDose.compoundName)")
+                                    .font(.system(.subheadline, weight: .semibold))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                         }
-                        if proto.maintenanceWeeks > 0 {
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(CyclePhase.maintenance.color)
-                                .frame(width: geo.size.width * CGFloat(proto.maintenanceWeeks) / CGFloat(total))
-                        }
-                        if proto.taperingWeeks > 0 {
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(CyclePhase.tapering.color)
-                                .frame(width: geo.size.width * CGFloat(proto.taperingWeeks) / CGFloat(total))
-                        }
-                        if proto.offCycleWeeks > 0 {
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(CyclePhase.offCycle.color)
-                                .frame(width: geo.size.width * CGFloat(proto.offCycleWeeks) / CGFloat(total))
+                        .padding(10)
+                        .background(PepTheme.elevated.opacity(0.5))
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+
+                    let total = max(1, proto.loadingWeeks + proto.maintenanceWeeks + proto.taperingWeeks + proto.offCycleWeeks)
+                    GeometryReader { geo in
+                        HStack(spacing: 2) {
+                            if proto.loadingWeeks > 0 {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(CyclePhase.loading.color)
+                                    .frame(width: geo.size.width * CGFloat(proto.loadingWeeks) / CGFloat(total))
+                            }
+                            if proto.maintenanceWeeks > 0 {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(CyclePhase.maintenance.color)
+                                    .frame(width: geo.size.width * CGFloat(proto.maintenanceWeeks) / CGFloat(total))
+                            }
+                            if proto.taperingWeeks > 0 {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(CyclePhase.tapering.color)
+                                    .frame(width: geo.size.width * CGFloat(proto.taperingWeeks) / CGFloat(total))
+                            }
+                            if proto.offCycleWeeks > 0 {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(CyclePhase.offCycle.color)
+                                    .frame(width: geo.size.width * CGFloat(proto.offCycleWeeks) / CGFloat(total))
+                            }
                         }
                     }
+                    .frame(height: 6)
                 }
-                .frame(height: 6)
             }
+        }
+        .buttonStyle(.scale)
+        .navigationDestination(isPresented: $showProtocolDetail) {
+            ProtocolDetailView(protocolData: proto)
         }
     }
 

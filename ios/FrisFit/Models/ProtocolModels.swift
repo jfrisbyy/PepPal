@@ -227,9 +227,9 @@ nonisolated struct SideEffectEntry: Identifiable, Sendable {
 
 nonisolated struct SupplementEntry: Identifiable, Sendable {
     let id: UUID
-    let name: String
-    let dose: String
-    let frequency: String
+    var name: String
+    var dose: String
+    var frequency: String
 
     init(name: String, dose: String = "", frequency: String = "Daily") {
         self.id = UUID()
@@ -237,4 +237,94 @@ nonisolated struct SupplementEntry: Identifiable, Sendable {
         self.dose = dose
         self.frequency = frequency
     }
+}
+
+nonisolated struct TitrationStep: Identifiable, Sendable {
+    let id: UUID
+    let weekNumber: Int
+    let doseMcg: Double
+    let label: String
+    var isCompleted: Bool
+
+    init(weekNumber: Int, doseMcg: Double, label: String = "", isCompleted: Bool = false) {
+        self.id = UUID()
+        self.weekNumber = weekNumber
+        self.doseMcg = doseMcg
+        self.label = label
+        self.isCompleted = isCompleted
+    }
+}
+
+nonisolated struct ProtocolNote: Identifiable, Sendable {
+    let id: UUID
+    let timestamp: Date
+    var text: String
+    let doseLogId: UUID?
+
+    init(timestamp: Date = Date(), text: String, doseLogId: UUID? = nil) {
+        self.id = UUID()
+        self.timestamp = timestamp
+        self.text = text
+        self.doseLogId = doseLogId
+    }
+}
+
+nonisolated struct DailyRating: Identifiable, Sendable {
+    let id: UUID
+    let date: Date
+    let category: String
+    let value: Int
+    let label: String
+
+    init(date: Date = Date(), category: String, value: Int, label: String = "") {
+        self.id = UUID()
+        self.date = date
+        self.category = category
+        self.value = value
+        self.label = label
+    }
+}
+
+nonisolated struct RecoveryMilestone: Identifiable, Sendable {
+    let id: UUID
+    let title: String
+    var isAchieved: Bool
+    var achievedDate: Date?
+
+    init(title: String, isAchieved: Bool = false, achievedDate: Date? = nil) {
+        self.id = UUID()
+        self.title = title
+        self.isAchieved = isAchieved
+        self.achievedDate = achievedDate
+    }
+}
+
+nonisolated struct ProtocolBodyMeasurement: Identifiable, Sendable {
+    let id: UUID
+    let date: Date
+    let area: String
+    let value: Double
+    let unit: String
+
+    init(date: Date = Date(), area: String, value: Double, unit: String = "in") {
+        self.id = UUID()
+        self.date = date
+        self.area = area
+        self.value = value
+        self.unit = unit
+    }
+}
+
+nonisolated enum AdministrationRoute: String, CaseIterable, Sendable {
+    case subcutaneous = "Subcutaneous"
+    case intramuscular = "Intramuscular"
+    case intranasal = "Intranasal"
+    case oral = "Oral"
+    case topical = "Topical"
+}
+
+nonisolated enum NasalSide: String, CaseIterable, Sendable {
+    case left = "Left Nostril"
+    case right = "Right Nostril"
+    case both = "Both"
 }
