@@ -1,0 +1,823 @@
+import SwiftUI
+
+struct SportModeContentView: View {
+    let mode: TrainMode
+    @Bindable var viewModel: TrainViewModel
+    let onLogSession: () -> Void
+
+    private var sport: Sport? { mode.type.sport }
+    private var sessions: [SportSession] {
+        guard let sport else { return viewModel.sportSessions }
+        return viewModel.sessionsForSport(sport)
+    }
+    private var recentSessions: [SportSession] {
+        guard let sport else { return Array(viewModel.sportSessions.prefix(5)) }
+        return viewModel.recentSessionsForSport(sport)
+    }
+    private var accentColor: Color { mode.type.color }
+
+    var body: some View {
+        VStack(spacing: 20) {
+            modeHeader
+
+            ForEach(mode.cards) { card in
+                cardView(for: card)
+            }
+
+            logSessionButton
+        }
+    }
+
+    // MARK: - Header
+
+    private var modeHeader: some View {
+        GlassCard {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [accentColor.opacity(0.3), accentColor.opacity(0.05)],
+                                center: .center,
+                                startRadius: 0,
+                                endRadius: 32
+                            )
+                        )
+                        .frame(width: 56, height: 56)
+                    Image(systemName: mode.type.icon)
+                        .font(.system(size: 24))
+                        .foregroundStyle(accentColor)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(mode.name)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(FrisTheme.textPrimary)
+
+                    let weekSessions = sport.map { viewModel.sportThisWeek($0).count } ?? 0
+                    Text("\(weekSessions) session\(weekSessions == 1 ? "" : "s") this week")
+                        .font(.caption)
+                        .foregroundStyle(FrisTheme.textSecondary)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(sessions.count)")
+                        .font(.system(.title2, design: .rounded, weight: .bold))
+                        .foregroundStyle(accentColor)
+                    Text("total")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(FrisTheme.textSecondary)
+                }
+            }
+        }
+    }
+
+    // MARK: - Card Router
+
+    @ViewBuilder
+    private func cardView(for card: TrainCardType) -> some View {
+        switch card {
+        case .sportSessions: sessionsOverviewCard
+        case .sportStats: statsCard
+        case .weeklyDistance: weeklyDistanceCard
+        case .paceChart: paceCard
+        case .gameLog: gameLogCard
+        case .shootingStats: shootingStatsCard
+        case .lapTracker: lapTrackerCard
+        case .goals: goalsCard
+        case .sportHistory: sportHistoryCard
+        default: EmptyView()
+        }
+    }
+
+    // MARK: - Sessions Overview
+
+    private var sessionsOverviewCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.bar.fill")
+                    .foregroundStyle(accentColor)
+                HeadlineText(text: "Overview")
+                Spacer()
+            }
+
+            let totalTime = sport.map { viewModel.sportTotalTime($0) } ?? viewModel.sportSessions.reduce(0) { $0 + $1.durationMinutes }
+            let avgIntensity = sport.map { viewModel.sportAvgIntensity($0) } ?? 0
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                overviewStat(value: "\(sessions.count)", label: "Sessions", icon: "list.bullet")
+                overviewStat(value: totalTime >= 60 ? "\(totalTime / 60)h" : "\(totalTime)m", label: "Total Time", icon: "clock.fill")
+                overviewStat(value: String(format: "%.1f", avgIntensity), label: "Avg RPE", icon: "flame.fill")
+            }
+
+            let totalFP = sessions.reduce(0) { $0 + $1.fpEarned }
+            HStack {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(FrisTheme.amber)
+                Text("\(totalFP) FP earned from \(mode.name)")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(FrisTheme.amber)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+        }
+        .padding(16)
+        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [accentColor.opacity(0.12), FrisTheme.glassBorderBottom],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    private func overviewStat(value: String, label: String, icon: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundStyle(accentColor.opacity(0.7))
+            Text(value)
+                .font(.system(.title3, design: .rounded, weight: .bold))
+                .foregroundStyle(FrisTheme.textPrimary)
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(FrisTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(FrisTheme.elevated.opacity(0.5))
+        .clipShape(.rect(cornerRadius: 10))
+    }
+
+    // MARK: - Stats Card
+
+    private var statsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.xyaxis.line")
+                    .foregroundStyle(accentColor)
+                HeadlineText(text: "Sport Stats")
+                Spacer()
+            }
+
+            if let sport, !sessions.isEmpty {
+                sportSpecificStats(sport: sport)
+            } else {
+                noDataPlaceholder("Log sessions to see stats")
+            }
+        }
+        .padding(16)
+        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    @ViewBuilder
+    private func sportSpecificStats(sport: Sport) -> some View {
+        switch sport {
+        case .basketball:
+            basketballStatsContent
+        case .running:
+            runningStatsContent
+        case .swimming:
+            swimmingStatsContent
+        case .cycling:
+            cyclingStatsContent
+        case .soccer:
+            soccerStatsContent
+        case .tennis:
+            tennisStatsContent
+        default:
+            generalStatsContent
+        }
+    }
+
+    private var basketballStatsContent: some View {
+        let basketballSessions = sessions.compactMap { session -> BasketballStats? in
+            if case .basketball(let stats) = session.specificStats { return stats }
+            return nil
+        }
+        let avgPts = basketballSessions.isEmpty ? 0 : basketballSessions.reduce(0) { $0 + $1.points } / basketballSessions.count
+        let avgAst = basketballSessions.isEmpty ? 0 : basketballSessions.reduce(0) { $0 + $1.assists } / basketballSessions.count
+        let avgReb = basketballSessions.isEmpty ? 0 : basketballSessions.reduce(0) { $0 + $1.rebounds } / basketballSessions.count
+
+        return HStack(spacing: 10) {
+            statBubble(value: "\(avgPts)", label: "Avg PTS", color: accentColor)
+            statBubble(value: "\(avgAst)", label: "Avg AST", color: .green)
+            statBubble(value: "\(avgReb)", label: "Avg REB", color: FrisTheme.violet)
+        }
+    }
+
+    private var runningStatsContent: some View {
+        let runningSessions = sessions.compactMap { session -> RunningStats? in
+            if case .running(let stats) = session.specificStats { return stats }
+            return nil
+        }
+        let totalDist = runningSessions.reduce(0.0) { $0 + $1.distanceMiles }
+        let avgPace = runningSessions.isEmpty ? 0 : runningSessions.reduce(0.0) { $0 + $1.paceMinutesPerMile } / Double(runningSessions.count)
+
+        return HStack(spacing: 10) {
+            statBubble(value: String(format: "%.1f", totalDist), label: "Total Mi", color: accentColor)
+            statBubble(value: String(format: "%.1f", avgPace), label: "Avg Pace", color: .green)
+            statBubble(value: "\(runningSessions.count)", label: "Runs", color: FrisTheme.violet)
+        }
+    }
+
+    private var swimmingStatsContent: some View {
+        let swimmingSessions = sessions.compactMap { session -> SwimmingStats? in
+            if case .swimming(let stats) = session.specificStats { return stats }
+            return nil
+        }
+        let totalLaps = swimmingSessions.reduce(0) { $0 + $1.laps }
+        let avgLaps = swimmingSessions.isEmpty ? 0 : totalLaps / swimmingSessions.count
+
+        return HStack(spacing: 10) {
+            statBubble(value: "\(totalLaps)", label: "Total Laps", color: accentColor)
+            statBubble(value: "\(avgLaps)", label: "Avg/Session", color: .green)
+            statBubble(value: "\(swimmingSessions.count)", label: "Swims", color: FrisTheme.violet)
+        }
+    }
+
+    private var soccerStatsContent: some View {
+        let soccerSessions = sessions.compactMap { session -> SoccerSessionStats? in
+            if case .soccer(let stats) = session.specificStats { return stats }
+            return nil
+        }
+        let totalGoals = soccerSessions.reduce(0) { $0 + $1.goals }
+        let totalAssists = soccerSessions.reduce(0) { $0 + $1.assists }
+        let avgDist = soccerSessions.isEmpty ? 0 : soccerSessions.reduce(0.0) { $0 + $1.distanceKm } / Double(soccerSessions.count)
+
+        return HStack(spacing: 10) {
+            statBubble(value: "\(totalGoals)", label: "Goals", color: accentColor)
+            statBubble(value: "\(totalAssists)", label: "Assists", color: .blue)
+            statBubble(value: String(format: "%.1f km", avgDist), label: "Avg Dist", color: .orange)
+        }
+    }
+
+    private var tennisStatsContent: some View {
+        let tennisSessions = sessions.compactMap { session -> TennisSessionStats? in
+            if case .tennis(let stats) = session.specificStats { return stats }
+            return nil
+        }
+        let totalAces = tennisSessions.reduce(0) { $0 + $1.aces }
+        let totalWinners = tennisSessions.reduce(0) { $0 + $1.winners }
+        let avgServe = tennisSessions.filter({ $0.firstServePercentage > 0 }).isEmpty ? 0 : tennisSessions.filter({ $0.firstServePercentage > 0 }).reduce(0.0) { $0 + $1.firstServePercentage } / Double(tennisSessions.filter({ $0.firstServePercentage > 0 }).count)
+
+        return HStack(spacing: 10) {
+            statBubble(value: "\(totalAces)", label: "Aces", color: accentColor)
+            statBubble(value: "\(totalWinners)", label: "Winners", color: .green)
+            statBubble(value: String(format: "%.0f%%", avgServe), label: "1st Srv%", color: .blue)
+        }
+    }
+
+    private var generalStatsContent: some View {
+        let avgDur = sessions.isEmpty ? 0 : sessions.reduce(0) { $0 + $1.durationMinutes } / sessions.count
+        let avgInt = sessions.isEmpty ? 0.0 : Double(sessions.reduce(0) { $0 + $1.intensity }) / Double(sessions.count)
+        let games = sessions.filter { $0.sessionType == .game }.count
+
+        return HStack(spacing: 10) {
+            statBubble(value: "\(avgDur)m", label: "Avg Time", color: accentColor)
+            statBubble(value: String(format: "%.1f", avgInt), label: "Avg RPE", color: .orange)
+            statBubble(value: "\(games)", label: "Games", color: .green)
+        }
+    }
+
+    private func statBubble(value: String, label: String, color: Color) -> some View {
+        VStack(spacing: 6) {
+            Text(value)
+                .font(.system(.title3, design: .rounded, weight: .bold))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(FrisTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(color.opacity(0.08))
+        .clipShape(.rect(cornerRadius: 12))
+    }
+
+    // MARK: - Weekly Distance
+
+    private var weeklyDistanceCard: some View {
+        let weekDays = (0..<7).map { offset in
+            Calendar.current.date(byAdding: .day, value: -(6 - offset), to: Date())!
+        }
+        let runningSessions = sessions.compactMap { session -> (Date, Double)? in
+            if case .running(let stats) = session.specificStats {
+                return (session.date, stats.distanceMiles)
+            }
+            return nil
+        }
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "map.fill")
+                    .foregroundStyle(accentColor)
+                HeadlineText(text: "Weekly Distance")
+                Spacer()
+            }
+
+            HStack(alignment: .bottom, spacing: 6) {
+                ForEach(0..<7, id: \.self) { dayIndex in
+                    let dayDate = weekDays[dayIndex]
+                    let distance = runningSessions
+                        .filter { Calendar.current.isDate($0.0, inSameDayAs: dayDate) }
+                        .reduce(0.0) { $0 + $1.1 }
+                    let maxDist = max(runningSessions.map(\.1).max() ?? 1, 1)
+
+                    VStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(distance > 0 ? accentColor : FrisTheme.elevated)
+                            .frame(height: max(CGFloat(distance / maxDist) * 60, 4))
+
+                        Text(dayLabel(dayDate))
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(FrisTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 80)
+        }
+        .padding(16)
+        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    // MARK: - Pace Card
+
+    private var paceCard: some View {
+        let paces = sessions.compactMap { session -> (Date, Double)? in
+            if case .running(let stats) = session.specificStats, stats.paceMinutesPerMile > 0 {
+                return (session.date, stats.paceMinutesPerMile)
+            }
+            return nil
+        }.sorted { $0.0 < $1.0 }
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "speedometer")
+                    .foregroundStyle(accentColor)
+                HeadlineText(text: "Pace Tracking")
+                Spacer()
+            }
+
+            if paces.isEmpty {
+                noDataPlaceholder("Log runs to track pace")
+            } else {
+                HStack(spacing: 10) {
+                    let best = paces.min(by: { $0.1 < $1.1 })?.1 ?? 0
+                    let avg = paces.reduce(0.0) { $0 + $1.1 } / Double(paces.count)
+
+                    statBubble(value: String(format: "%.1f", best), label: "Best Pace", color: .green)
+                    statBubble(value: String(format: "%.1f", avg), label: "Avg Pace", color: accentColor)
+                    statBubble(value: "\(paces.count)", label: "Runs", color: FrisTheme.violet)
+                }
+            }
+        }
+        .padding(16)
+        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    // MARK: - Game Log
+
+    private var gameLogCard: some View {
+        let games = sessions.filter { $0.sessionType == .game }.sorted { $0.date > $1.date }
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "sportscourt.fill")
+                    .foregroundStyle(accentColor)
+                HeadlineText(text: "Game Log")
+                Spacer()
+                Text("\(games.count) game\(games.count == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(FrisTheme.textSecondary)
+            }
+
+            if games.isEmpty {
+                noDataPlaceholder("No games logged yet")
+            } else {
+                ForEach(games.prefix(4)) { game in
+                    gameRow(game)
+                }
+            }
+        }
+        .padding(16)
+        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    private func gameRow(_ session: SportSession) -> some View {
+        HStack(spacing: 12) {
+            VStack(spacing: 2) {
+                Text(dayLabel(session.date).uppercased())
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(FrisTheme.textSecondary)
+                Text("\(Calendar.current.component(.day, from: session.date))")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(FrisTheme.textPrimary)
+            }
+            .frame(width: 36)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(session.displayName)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(FrisTheme.textPrimary)
+
+                HStack(spacing: 8) {
+                    Label("\(session.durationMinutes)m", systemImage: "clock")
+                    Label("\(session.intensity)/10", systemImage: "flame")
+                }
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(FrisTheme.textSecondary)
+            }
+
+            Spacer()
+
+            specificStatsLabel(session)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var cyclingStatsContent: some View {
+        let cyclingSessions = sessions.compactMap { session -> CyclingStats? in
+            if case .cycling(let stats) = session.specificStats { return stats }
+            return nil
+        }
+        let totalDist = cyclingSessions.reduce(0.0) { $0 + $1.distanceMiles }
+        let avgSpeed = cyclingSessions.isEmpty ? 0 : cyclingSessions.reduce(0.0) { $0 + $1.averageSpeed } / Double(cyclingSessions.count)
+        let totalElev = cyclingSessions.reduce(0.0) { $0 + $1.elevationGain }
+
+        return VStack(spacing: 8) {
+            HStack(spacing: 10) {
+                statBubble(value: String(format: "%.1f", totalDist), label: "Total Mi", color: accentColor)
+                statBubble(value: String(format: "%.1f", avgSpeed), label: "Avg MPH", color: .green)
+                statBubble(value: String(format: "%.0f", totalElev), label: "Elev ft", color: .orange)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func specificStatsLabel(_ session: SportSession) -> some View {
+        switch session.specificStats {
+        case .basketball(let stats):
+            Text("\(stats.points) pts")
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(accentColor)
+        case .running(let stats):
+            Text(String(format: "%.1f mi", stats.distanceMiles))
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(accentColor)
+        case .swimming(let stats):
+            Text("\(stats.laps) laps")
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(accentColor)
+        case .cycling(let stats):
+            Text(String(format: "%.1f mi", stats.distanceMiles))
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(accentColor)
+        case .soccer(let stats):
+            HStack(spacing: 4) {
+                if stats.goals > 0 {
+                    Text("\(stats.goals)G")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(accentColor)
+                }
+                if stats.assists > 0 {
+                    Text("\(stats.assists)A")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(.blue)
+                }
+                if stats.goals == 0 && stats.assists == 0 {
+                    Text("\(session.fpEarned) FP")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(FrisTheme.amber)
+                }
+            }
+        case .tennis(let stats):
+            HStack(spacing: 4) {
+                if stats.aces > 0 {
+                    Text("\(stats.aces) aces")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(accentColor)
+                } else {
+                    Text("\(session.fpEarned) FP")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(FrisTheme.amber)
+                }
+            }
+        case .none:
+            Text("\(session.fpEarned) FP")
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(FrisTheme.amber)
+        }
+    }
+
+    // MARK: - Shooting Stats
+
+    private var shootingStatsCard: some View {
+        let basketballSessions = sessions.compactMap { session -> BasketballStats? in
+            if case .basketball(let stats) = session.specificStats { return stats }
+            return nil
+        }
+        let totalPts = basketballSessions.reduce(0) { $0 + $1.points }
+        let totalAst = basketballSessions.reduce(0) { $0 + $1.assists }
+        let totalReb = basketballSessions.reduce(0) { $0 + $1.rebounds }
+        let highPts = basketballSessions.map(\.points).max() ?? 0
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "scope")
+                    .foregroundStyle(accentColor)
+                HeadlineText(text: "Career Stats")
+                Spacer()
+            }
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                careerStatCell(value: "\(totalPts)", label: "Total Points", color: accentColor)
+                careerStatCell(value: "\(highPts)", label: "Season High", color: FrisTheme.amber)
+                careerStatCell(value: "\(totalAst)", label: "Total Assists", color: .green)
+                careerStatCell(value: "\(totalReb)", label: "Total Rebounds", color: FrisTheme.violet)
+            }
+        }
+        .padding(16)
+        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    private func careerStatCell(value: String, label: String, color: Color) -> some View {
+        HStack(spacing: 10) {
+            Text(value)
+                .font(.system(.title3, design: .rounded, weight: .bold))
+                .foregroundStyle(color)
+            Spacer()
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(FrisTheme.textSecondary)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(12)
+        .background(FrisTheme.elevated.opacity(0.5))
+        .clipShape(.rect(cornerRadius: 10))
+    }
+
+    // MARK: - Lap Tracker
+
+    private var lapTrackerCard: some View {
+        let swimmingSessions = sessions.compactMap { session -> (SwimmingStats, Date)? in
+            if case .swimming(let stats) = session.specificStats { return (stats, session.date) }
+            return nil
+        }.sorted { $0.1 > $1.1 }
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "stopwatch.fill")
+                    .foregroundStyle(accentColor)
+                HeadlineText(text: "Lap Tracker")
+                Spacer()
+            }
+
+            if swimmingSessions.isEmpty {
+                noDataPlaceholder("Log swims to track laps")
+            } else {
+                let totalLaps = swimmingSessions.reduce(0) { $0 + $1.0.laps }
+                let bestLaps = swimmingSessions.map(\.0.laps).max() ?? 0
+
+                HStack(spacing: 10) {
+                    statBubble(value: "\(totalLaps)", label: "Total Laps", color: accentColor)
+                    statBubble(value: "\(bestLaps)", label: "Best Session", color: .green)
+                }
+            }
+        }
+        .padding(16)
+        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    // MARK: - Goals
+
+    private var goalsCard: some View {
+        let weekSessions = sport.map { viewModel.sportThisWeek($0).count } ?? 0
+        let weeklyGoal = 3
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "flag.checkered")
+                    .foregroundStyle(accentColor)
+                HeadlineText(text: "Goals")
+                Spacer()
+            }
+
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .stroke(FrisTheme.elevated, lineWidth: 6)
+                        .frame(width: 56, height: 56)
+                    Circle()
+                        .trim(from: 0, to: min(CGFloat(weekSessions) / CGFloat(weeklyGoal), 1.0))
+                        .stroke(accentColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .frame(width: 56, height: 56)
+                        .rotationEffect(.degrees(-90))
+                    Text("\(weekSessions)/\(weeklyGoal)")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(accentColor)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Weekly Sessions")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(FrisTheme.textPrimary)
+
+                    if weekSessions >= weeklyGoal {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 11))
+                            Text("Goal reached!")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(.green)
+                    } else {
+                        Text("\(weeklyGoal - weekSessions) more to hit your goal")
+                            .font(.caption)
+                            .foregroundStyle(FrisTheme.textSecondary)
+                    }
+                }
+
+                Spacer()
+            }
+        }
+        .padding(16)
+        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    // MARK: - Sport History
+
+    private var sportHistoryCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "clock.arrow.circlepath")
+                    .foregroundStyle(accentColor)
+                HeadlineText(text: "Recent Sessions")
+                Spacer()
+            }
+
+            if recentSessions.isEmpty {
+                noDataPlaceholder("No sessions logged yet")
+            } else {
+                ForEach(recentSessions) { session in
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(session.sport.color.opacity(0.12))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: session.sport.icon)
+                                .font(.system(size: 14))
+                                .foregroundStyle(session.sport.color)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text(session.displayName)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(FrisTheme.textPrimary)
+                                Text(session.sessionType.rawValue)
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(session.sport.color)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(session.sport.color.opacity(0.12))
+                                    .clipShape(Capsule())
+                            }
+                            Text(session.date.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
+                                .font(.system(size: 10))
+                                .foregroundStyle(FrisTheme.textSecondary)
+                        }
+
+                        Spacer()
+
+                        Text("\(session.fpEarned) FP")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundStyle(FrisTheme.amber)
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+        }
+        .padding(16)
+        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    // MARK: - Log Button
+
+    private var logSessionButton: some View {
+        Button {
+            onLogSession()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.title3)
+                Text("Log \(mode.name) Session")
+                    .font(.subheadline.weight(.bold))
+            }
+            .foregroundStyle(.black)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(accentColor)
+            .clipShape(.rect(cornerRadius: 14))
+        }
+        .buttonStyle(.scalePrimary)
+    }
+
+    // MARK: - Helpers
+
+    private func noDataPlaceholder(_ message: String) -> some View {
+        HStack {
+            Spacer()
+            VStack(spacing: 8) {
+                Image(systemName: "chart.line.downtrend.xyaxis")
+                    .font(.title2)
+                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(FrisTheme.textSecondary)
+            }
+            .padding(.vertical, 16)
+            Spacer()
+        }
+    }
+
+    private func dayLabel(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE"
+        return formatter.string(from: date)
+    }
+}

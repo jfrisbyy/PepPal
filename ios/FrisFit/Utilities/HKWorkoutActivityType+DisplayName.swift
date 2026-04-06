@@ -1,0 +1,46 @@
+import HealthKit
+
+extension HKWorkoutActivityType {
+    var displayName: String {
+        switch self {
+        case .running: return "Running"
+        case .cycling: return "Cycling"
+        case .walking: return "Walking"
+        case .swimming: return "Swimming"
+        case .hiking: return "Hiking"
+        case .yoga: return "Yoga"
+        case .functionalStrengthTraining: return "Strength Training"
+        case .traditionalStrengthTraining: return "Weight Training"
+        case .coreTraining: return "Core Training"
+        case .crossTraining: return "Cross Training"
+        case .elliptical: return "Elliptical"
+        case .rowing: return "Rowing"
+        case .stairClimbing: return "Stair Climbing"
+        case .highIntensityIntervalTraining: return "HIIT"
+        case .jumpRope: return "Jump Rope"
+        case .kickboxing: return "Kickboxing"
+        case .pilates: return "Pilates"
+        case .dance: return "Dance"
+        case .cooldown: return "Cooldown"
+        case .flexibility: return "Flexibility"
+        case .mixedCardio: return "Mixed Cardio"
+        case .basketball: return "Basketball"
+        case .soccer: return "Soccer"
+        case .tennis: return "Tennis"
+        case .volleyball: return "Volleyball"
+        case .golf: return "Golf"
+        case .baseball: return "Baseball"
+        case .martialArts: return "Martial Arts"
+        case .boxing: return "Boxing"
+        case .skatingSports: return "Skating"
+        case .surfingSports: return "Surfing"
+        case .snowSports: return "Snow Sports"
+        case .climbing: return "Climbing"
+        case .badminton: return "Badminton"
+        case .tableTennis: return "Table Tennis"
+        case .pickleball: return "Pickleball"
+        case .other: return "Other"
+        default: return "Workout"
+        }
+    }
+}

@@ -1,0 +1,463 @@
+import SwiftUI
+
+struct SettingsView: View {
+    @Bindable var viewModel: ProfileViewModel
+    @State private var showDeleteConfirm: Bool = false
+    @State private var appearanceManager = AppearanceManager.shared
+    @State private var healthKit = HealthKitService.shared
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                unitsSection
+                timerSection
+                healthKitSection
+                notificationsSection
+                notificationTypesSection
+                streakSection
+                appearanceSection
+                accountSection
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 32)
+        }
+        .background(FrisTheme.background.ignoresSafeArea())
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.large)
+        
+        .alert("Delete Account", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) { }
+        } message: {
+            Text("This will permanently delete your account and all data. This action cannot be undone.")
+        }
+    }
+
+    private var unitsSection: some View {
+        SettingsCard(title: "Units") {
+            HStack {
+                Label("Weight Unit", systemImage: "scalemass")
+                    .font(.body)
+                    .foregroundStyle(FrisTheme.textPrimary)
+                Spacer()
+                Picker("", selection: $viewModel.weightUnit) {
+                    ForEach(WeightUnit.allCases, id: \.self) { unit in
+                        Text(unit.rawValue).tag(unit)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 120)
+            }
+        }
+    }
+
+    private var timerSection: some View {
+        SettingsCard(title: "Workout") {
+            HStack {
+                Label("Default Rest Timer", systemImage: "timer")
+                    .font(.body)
+                    .foregroundStyle(FrisTheme.textPrimary)
+                Spacer()
+                Menu {
+                    ForEach([30, 60, 90, 120, 180], id: \.self) { seconds in
+                        Button("\(seconds)s") {
+                            viewModel.defaultRestSeconds = seconds
+                        }
+                    }
+                } label: {
+                    Text("\(viewModel.defaultRestSeconds)s")
+                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .foregroundStyle(FrisTheme.cyan)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(FrisTheme.cyan.opacity(0.1))
+                        .clipShape(.rect(cornerRadius: 8))
+                }
+            }
+        }
+    }
+
+    private var notificationsSection: some View {
+        SettingsCard(title: "Notifications") {
+            VStack(spacing: 0) {
+                Toggle(isOn: $viewModel.notificationsEnabled) {
+                    Label("Push Notifications", systemImage: "bell.fill")
+                        .font(.body)
+                        .foregroundStyle(FrisTheme.textPrimary)
+                }
+                .tint(FrisTheme.cyan)
+                .onChange(of: viewModel.notificationsEnabled) { _, newValue in
+                    viewModel.notificationService.preferences.enabled = newValue
+                    if newValue {
+                        Task {
+                            _ = await viewModel.notificationService.requestAuthorization()
+                        }
+                    } else {
+                        viewModel.notificationService.scheduleAllNotifications()
+                    }
+                }
+
+                if viewModel.notificationsEnabled {
+                    Divider().overlay(FrisTheme.glassBorderTop).padding(.vertical, 8)
+
+                    HStack {
+                        Label("Reminder Time", systemImage: "alarm")
+                            .font(.body)
+                            .foregroundStyle(FrisTheme.textPrimary)
+                        Spacer()
+                        DatePicker("", selection: $viewModel.reminderTime, displayedComponents: .hourAndMinute)
+                            .labelsHidden()
+                            .tint(FrisTheme.cyan)
+                            .onChange(of: viewModel.reminderTime) { _, newValue in
+                                viewModel.updateReminderTime(newValue)
+                            }
+                    }
+                }
+            }
+        }
+    }
+
+    private var notificationTypesSection: some View {
+        Group {
+            if viewModel.notificationsEnabled {
+                SettingsCard(title: "Notification Types") {
+                    VStack(spacing: 0) {
+                        NotificationToggleRow(
+                            type: .workoutReminder,
+                            isOn: $viewModel.workoutReminders,
+                            viewModel: viewModel
+                        )
+
+                        NotificationDivider()
+
+                        NotificationToggleRow(
+                            type: .friendWorkout,
+                            isOn: $viewModel.friendWorkoutNotifs,
+                            viewModel: viewModel
+                        )
+
+                        NotificationDivider()
+
+                        NotificationToggleRow(
+                            type: .friendHighFive,
+                            isOn: $viewModel.highFiveNotifs,
+                            viewModel: viewModel
+                        )
+
+                        NotificationDivider()
+
+                        NotificationToggleRow(
+                            type: .streakMilestone,
+                            isOn: $viewModel.streakMilestoneNotifs,
+                            viewModel: viewModel
+                        )
+
+                        NotificationDivider()
+
+                        NotificationToggleRow(
+                            type: .weeklyProgress,
+                            isOn: $viewModel.weeklyProgressNotifs,
+                            viewModel: viewModel
+                        )
+
+                        NotificationDivider()
+
+                        NotificationToggleRow(
+                            type: .restDayRecovery,
+                            isOn: $viewModel.restDayRecoveryNotifs,
+                            viewModel: viewModel
+                        )
+
+                        NotificationDivider()
+
+                        NotificationToggleRow(
+                            type: .streakWarning,
+                            isOn: $viewModel.streakWarningNotifs,
+                            viewModel: viewModel
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private var streakSection: some View {
+        SettingsCard(title: "Streak") {
+            VStack(spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Streak Freeze")
+                            .font(.body)
+                            .foregroundStyle(FrisTheme.textPrimary)
+                        Text("Allows 1 missed day per week without breaking your streak")
+                            .font(.caption)
+                            .foregroundStyle(FrisTheme.textSecondary)
+                    }
+                    Spacer()
+                    if viewModel.streakManager.streakData.streakFreezeUsedThisWeek {
+                        Text("Used")
+                            .font(.system(.caption, weight: .medium))
+                            .foregroundStyle(FrisTheme.textSecondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(FrisTheme.elevated)
+                            .clipShape(.rect(cornerRadius: 6))
+                    } else {
+                        HStack(spacing: 4) {
+                            Image(systemName: "snowflake")
+                                .font(.caption)
+                            Text("Available")
+                                .font(.system(.caption, weight: .medium))
+                        }
+                        .foregroundStyle(FrisTheme.cyan)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(FrisTheme.cyan.opacity(0.1))
+                        .clipShape(.rect(cornerRadius: 6))
+                    }
+                }
+
+                Divider().overlay(FrisTheme.glassBorderTop)
+
+                HStack {
+                    Label("Current Streak", systemImage: "flame.fill")
+                        .font(.body)
+                        .foregroundStyle(FrisTheme.textPrimary)
+                    Spacer()
+                    Text("\(viewModel.streakManager.streakData.currentStreak) days")
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                        .foregroundStyle(FrisTheme.amber)
+                }
+
+                HStack {
+                    Label("Longest Streak", systemImage: "trophy.fill")
+                        .font(.body)
+                        .foregroundStyle(FrisTheme.textPrimary)
+                    Spacer()
+                    Text("\(viewModel.streakManager.streakData.longestStreak) days")
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                        .foregroundStyle(FrisTheme.textSecondary)
+                }
+            }
+        }
+    }
+
+    private var healthKitSection: some View {
+        SettingsCard(title: "Apple Health") {
+            VStack(spacing: 12) {
+                Toggle(isOn: Binding(
+                    get: { healthKit.isHealthKitEnabled },
+                    set: { healthKit.isHealthKitEnabled = $0 }
+                )) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "heart.fill")
+                            .font(.body)
+                            .foregroundStyle(.red)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Connect Apple Health")
+                                .font(.body)
+                                .foregroundStyle(FrisTheme.textPrimary)
+                            Text("Sync steps, calories, heart rate, workouts & more")
+                                .font(.caption)
+                                .foregroundStyle(FrisTheme.textSecondary)
+                        }
+                    }
+                }
+                .tint(FrisTheme.cyan)
+
+                if healthKit.isAuthorized {
+                    Divider().overlay(FrisTheme.glassBorderTop)
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.green)
+                        Text("Connected to Apple Health")
+                            .font(.system(.subheadline, weight: .medium))
+                            .foregroundStyle(FrisTheme.textPrimary)
+                        Spacer()
+                    }
+
+                    VStack(spacing: 8) {
+                        healthDataRow(icon: "figure.walk", label: "Steps", value: "\(healthKit.steps)")
+                        healthDataRow(icon: "flame.fill", label: "Active Calories", value: "\(Int(healthKit.activeCalories)) kcal")
+                        healthDataRow(icon: "heart.fill", label: "Heart Rate", value: healthKit.heartRate > 0 ? "\(Int(healthKit.heartRate)) BPM" : "--")
+                        healthDataRow(icon: "figure.run", label: "Distance", value: String(format: "%.2f mi", healthKit.distanceMiles))
+                        healthDataRow(icon: "timer", label: "Exercise", value: "\(Int(healthKit.exerciseMinutes)) min")
+                        healthDataRow(icon: "bed.double.fill", label: "Sleep", value: healthKit.sleepHours > 0 ? String(format: "%.1f hrs", healthKit.sleepHours) : "--")
+                    }
+                } else if healthKit.isHealthKitEnabled && !healthKit.isAvailable {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(FrisTheme.amber)
+                        Text("HealthKit not available on this device")
+                            .font(.caption)
+                            .foregroundStyle(FrisTheme.textSecondary)
+                        Spacer()
+                    }
+                }
+            }
+        }
+    }
+
+    private func healthDataRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13))
+                .foregroundStyle(FrisTheme.cyan)
+                .frame(width: 20)
+            Text(label)
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(FrisTheme.textSecondary)
+            Spacer()
+            Text(value)
+                .font(.system(.caption, design: .rounded, weight: .semibold))
+                .foregroundStyle(FrisTheme.textPrimary)
+        }
+    }
+
+    private var appearanceSection: some View {
+        SettingsCard(title: "Appearance") {
+            VStack(spacing: 12) {
+                HStack {
+                    Label("Theme", systemImage: appearanceManager.mode.icon)
+                        .font(.body)
+                        .foregroundStyle(FrisTheme.textPrimary)
+                    Spacer()
+                }
+
+                HStack(spacing: 8) {
+                    ForEach(AppearanceMode.allCases, id: \.rawValue) { mode in
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                appearanceManager.mode = mode
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: mode.icon)
+                                    .font(.system(size: 13, weight: .medium))
+                                Text(mode.title)
+                                    .font(.system(.subheadline, weight: .medium))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .foregroundStyle(appearanceManager.mode == mode ? FrisTheme.invertedText : FrisTheme.textSecondary)
+                            .background(appearanceManager.mode == mode ? FrisTheme.cyan : FrisTheme.elevated)
+                            .clipShape(.rect(cornerRadius: 10))
+                        }
+                        .buttonStyle(.plain)
+                        .sensoryFeedback(.impact(weight: .light), trigger: appearanceManager.mode == mode)
+                    }
+                }
+            }
+        }
+    }
+
+    private var accountSection: some View {
+        SettingsCard(title: "Account") {
+            VStack(spacing: 0) {
+                SettingsButton(icon: "envelope.fill", title: "Change Email") { }
+                Divider().overlay(FrisTheme.glassBorderTop).padding(.vertical, 6)
+                SettingsButton(icon: "lock.fill", title: "Change Password") { }
+                Divider().overlay(FrisTheme.glassBorderTop).padding(.vertical, 6)
+                SettingsButton(icon: "rectangle.portrait.and.arrow.right", title: "Log Out", color: FrisTheme.textSecondary) { }
+                Divider().overlay(FrisTheme.glassBorderTop).padding(.vertical, 6)
+                SettingsButton(icon: "trash.fill", title: "Delete Account", color: .red) {
+                    showDeleteConfirm = true
+                }
+            }
+        }
+    }
+}
+
+private struct NotificationToggleRow: View {
+    let type: NotificationType
+    @Binding var isOn: Bool
+    let viewModel: ProfileViewModel
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            HStack(spacing: 10) {
+                Image(systemName: type.icon)
+                    .font(.subheadline)
+                    .foregroundStyle(FrisTheme.cyan)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(type.title)
+                        .font(.system(.subheadline, weight: .medium))
+                        .foregroundStyle(FrisTheme.textPrimary)
+                    Text(type.subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(FrisTheme.textSecondary)
+                }
+            }
+        }
+        .tint(FrisTheme.cyan)
+        .onChange(of: isOn) { _, newValue in
+            viewModel.updateNotificationPreference(type, enabled: newValue)
+        }
+    }
+}
+
+private struct NotificationDivider: View {
+    var body: some View {
+        Divider()
+            .overlay(FrisTheme.glassBorderTop)
+            .padding(.vertical, 6)
+    }
+}
+
+private struct SettingsCard<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(title.uppercased())
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(FrisTheme.textSecondary)
+                .tracking(0.8)
+
+            content()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.5
+                )
+        )
+    }
+}
+
+private struct SettingsButton: View {
+    let icon: String
+    let title: String
+    var color: Color = FrisTheme.textPrimary
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.body)
+                    .foregroundStyle(color)
+                    .frame(width: 24)
+                Text(title)
+                    .font(.body)
+                    .foregroundStyle(color)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(FrisTheme.textSecondary)
+            }
+        }
+        .buttonStyle(.scale)
+        .sensoryFeedback(.impact(weight: .light), trigger: false)
+    }
+}

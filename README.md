@@ -1,2 +1,0 @@
-# PepPal
-Created by Rork

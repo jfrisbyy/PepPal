@@ -1,0 +1,135 @@
+import SwiftUI
+
+nonisolated enum FeedFilter: String, CaseIterable, Sendable {
+    case all = "All"
+    case following = "Following"
+    case tags = "Tags"
+}
+
+nonisolated enum FeedTag: String, CaseIterable, Identifiable, Sendable {
+    case basketball = "Basketball"
+    case running = "Running"
+    case cycling = "Cycling"
+    case swimming = "Swimming"
+    case soccer = "Soccer"
+    case tennis = "Tennis"
+    case bodybuilding = "Bodybuilding"
+    case progress = "Progress"
+    case nutrition = "Nutrition"
+    case prAlert = "PR Alert"
+    case motivation = "Motivation"
+    case program = "Program"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .basketball: return "basketball.fill"
+        case .running: return "figure.run"
+        case .cycling: return "bicycle"
+        case .swimming: return "figure.pool.swim"
+        case .soccer: return "soccerball"
+        case .tennis: return "tennis.racket"
+        case .bodybuilding: return "figure.strengthtraining.traditional"
+        case .progress: return "chart.line.uptrend.xyaxis"
+        case .nutrition: return "fork.knife"
+        case .prAlert: return "trophy.fill"
+        case .motivation: return "flame.fill"
+        case .program: return "list.clipboard.fill"
+        }
+    }
+}
+
+nonisolated enum FeedPostMediaType: String, Sendable {
+    case text
+    case photo
+    case video
+    case voice
+    case marketLink
+    case workoutLog
+}
+
+nonisolated struct FeedMediaItem: Identifiable, Sendable {
+    let id: UUID
+    let type: FeedPostMediaType
+    let imageURL: String?
+    let videoURL: String?
+    let voiceDuration: TimeInterval?
+    let marketProgram: MarketProgram?
+    let workoutLog: WorkoutLogAttachment?
+
+    init(
+        id: UUID = UUID(),
+        type: FeedPostMediaType,
+        imageURL: String? = nil,
+        videoURL: String? = nil,
+        voiceDuration: TimeInterval? = nil,
+        marketProgram: MarketProgram? = nil,
+        workoutLog: WorkoutLogAttachment? = nil
+    ) {
+        self.id = id
+        self.type = type
+        self.imageURL = imageURL
+        self.videoURL = videoURL
+        self.voiceDuration = voiceDuration
+        self.marketProgram = marketProgram
+        self.workoutLog = workoutLog
+    }
+}
+
+nonisolated struct WorkoutLogAttachment: Sendable {
+    let workoutName: String
+    let duration: Int
+    let exerciseCount: Int
+    let totalVolume: Int
+    let fpEarned: Int
+    let date: Date
+}
+
+nonisolated struct FeedPost: Identifiable, Sendable {
+    let id: UUID
+    let user: SocialUser
+    let timestamp: Date
+    let textContent: String
+    let media: [FeedMediaItem]
+    var highFiveCount: Int
+    var isHighFived: Bool
+    var comments: [PostComment]
+    var repostCount: Int
+
+    let tags: [FeedTag]
+    let isFollowing: Bool
+
+    init(
+        id: UUID = UUID(),
+        user: SocialUser,
+        timestamp: Date = Date(),
+        textContent: String = "",
+        media: [FeedMediaItem] = [],
+        highFiveCount: Int = 0,
+        isHighFived: Bool = false,
+        comments: [PostComment] = [],
+        repostCount: Int = 0,
+        tags: [FeedTag] = [],
+        isFollowing: Bool = false
+    ) {
+        self.id = id
+        self.user = user
+        self.timestamp = timestamp
+        self.textContent = textContent
+        self.media = media
+        self.highFiveCount = highFiveCount
+        self.isHighFived = isHighFived
+        self.comments = comments
+        self.repostCount = repostCount
+        self.tags = tags
+        self.isFollowing = isFollowing
+    }
+
+    var hasMedia: Bool { !media.isEmpty }
+    var photoMedia: [FeedMediaItem] { media.filter { $0.type == .photo } }
+    var videoMedia: [FeedMediaItem] { media.filter { $0.type == .video } }
+    var voiceMedia: FeedMediaItem? { media.first { $0.type == .voice } }
+    var marketLink: FeedMediaItem? { media.first { $0.type == .marketLink } }
+    var workoutAttachment: FeedMediaItem? { media.first { $0.type == .workoutLog } }
+}

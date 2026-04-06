@@ -1,0 +1,159 @@
+import Foundation
+import SwiftUI
+
+nonisolated struct UserProfile: Sendable {
+    let id: UUID
+    let displayName: String
+    let username: String
+    let initials: String
+    let bio: String
+    let avatarColor: Color
+    let activeProgram: String?
+    let totalFP: Int
+    let currentStreak: Int
+    let totalWorkouts: Int
+    let memberSince: Date
+    let followerCount: Int
+    let followingCount: Int
+    let friendCount: Int
+    var isFollowing: Bool
+    var friendRequestStatus: FriendRequestStatus
+    let isCurrentUser: Bool
+
+    init(
+        id: UUID = UUID(),
+        displayName: String,
+        username: String,
+        initials: String,
+        bio: String = "",
+        avatarColor: Color = Color(red: 0, green: 229/255, blue: 255/255),
+        activeProgram: String? = nil,
+        totalFP: Int = 0,
+        currentStreak: Int = 0,
+        totalWorkouts: Int = 0,
+        memberSince: Date = Date(),
+        followerCount: Int = 0,
+        followingCount: Int = 0,
+        friendCount: Int = 0,
+        isFollowing: Bool = false,
+        friendRequestStatus: FriendRequestStatus = .none,
+        isCurrentUser: Bool = false
+    ) {
+        self.id = id
+        self.displayName = displayName
+        self.username = username
+        self.initials = initials
+        self.bio = bio
+        self.avatarColor = avatarColor
+        self.activeProgram = activeProgram
+        self.totalFP = totalFP
+        self.currentStreak = currentStreak
+        self.totalWorkouts = totalWorkouts
+        self.memberSince = memberSince
+        self.followerCount = followerCount
+        self.followingCount = followingCount
+        self.friendCount = friendCount
+        self.isFollowing = isFollowing
+        self.friendRequestStatus = friendRequestStatus
+        self.isCurrentUser = isCurrentUser
+    }
+}
+
+nonisolated struct UserPost: Identifiable, Sendable {
+    let id: UUID
+    let authorId: UUID
+    let content: String
+    let timestamp: Date
+    var likeCount: Int
+    var isLiked: Bool
+    var commentCount: Int
+    let workoutAttachment: WorkoutPostAttachment?
+
+    init(
+        id: UUID = UUID(),
+        authorId: UUID,
+        content: String,
+        timestamp: Date = Date(),
+        likeCount: Int = 0,
+        isLiked: Bool = false,
+        commentCount: Int = 0,
+        workoutAttachment: WorkoutPostAttachment? = nil
+    ) {
+        self.id = id
+        self.authorId = authorId
+        self.content = content
+        self.timestamp = timestamp
+        self.likeCount = likeCount
+        self.isLiked = isLiked
+        self.commentCount = commentCount
+        self.workoutAttachment = workoutAttachment
+    }
+}
+
+nonisolated struct WorkoutPostAttachment: Sendable {
+    let workoutName: String
+    let duration: Int
+    let exerciseCount: Int
+    let fpEarned: Int
+}
+
+nonisolated struct WeeklyVolume: Identifiable, Sendable {
+    let id = UUID()
+    let weekLabel: String
+    let volume: Double
+}
+
+nonisolated struct MuscleHeatData: Identifiable, Sendable {
+    let id = UUID()
+    let muscle: MuscleGroup
+    let intensity: Double
+}
+
+nonisolated struct PersonalRecordEntry: Identifiable, Sendable {
+    let id = UUID()
+    let exerciseName: String
+    let bestWeight: Double
+    let dateAchieved: Date
+}
+
+nonisolated struct Achievement: Identifiable, Sendable {
+    let id = UUID()
+    let name: String
+    let icon: String
+    let description: String
+    let isUnlocked: Bool
+    let unlockedDate: Date?
+    let accentColor: AchievementColor
+}
+
+nonisolated enum AchievementColor: String, Sendable {
+    case cyan, amber, violet, green
+}
+
+nonisolated enum WeightUnit: String, CaseIterable, Sendable {
+    case lbs = "lbs"
+    case kg = "kg"
+}
+
+nonisolated struct WorkoutHistoryDetail: Identifiable, Sendable {
+    let id = UUID()
+    let name: String
+    let date: Date
+    let durationMinutes: Int
+    let totalVolume: Int
+    let fpEarned: Int
+    let exercises: [WorkoutHistoryExerciseDetail]
+}
+
+nonisolated struct WorkoutHistoryExerciseDetail: Identifiable, Sendable {
+    let id = UUID()
+    let exerciseName: String
+    let sets: [WorkoutHistorySetDetail]
+}
+
+nonisolated struct WorkoutHistorySetDetail: Identifiable, Sendable {
+    let id = UUID()
+    let setNumber: Int
+    let weight: Double
+    let reps: Int
+}

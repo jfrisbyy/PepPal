@@ -1,0 +1,265 @@
+import SwiftUI
+
+struct MonthlySummaryView: View {
+    let summary: MonthlySummaryData
+    let bodyGoalViewModel: BodyGoalViewModel
+    var selectedMonthDate: Date = Date()
+
+    var body: some View {
+        VStack(spacing: 20) {
+            monthOverviewCard
+            weightTrendCard
+            workoutTrendCard
+            nutritionTrendCard
+            stepsTrendCard
+            monthlyStatsGrid
+        }
+    }
+
+    private var monthOverviewCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.subheadline)
+                        .foregroundStyle(FrisTheme.cyan)
+                    SubheadText(text: monthLabel)
+                    Spacer()
+                    Text("30 days")
+                        .font(.system(.caption2, weight: .medium))
+                        .foregroundStyle(FrisTheme.textSecondary)
+                }
+
+                HStack(spacing: 0) {
+                    overviewStat(value: "\(summary.totalWorkouts)", label: "Workouts", icon: "figure.strengthtraining.traditional", color: FrisTheme.cyan)
+                    overviewDivider
+                    overviewStat(value: formattedNumber(summary.totalCaloriesBurned), label: "Cal Burned", icon: "flame.fill", color: .orange)
+                    overviewDivider
+                    overviewStat(value: "\(summary.totalExerciseMinutes / 60)h", label: "Active", icon: "timer", color: FrisTheme.amber)
+                }
+            }
+        }
+    }
+
+    private var weightTrendCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "scalemass.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(weightChangeColor)
+                    SubheadText(text: "Weight Trend")
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Image(systemName: summary.weightChange < 0 ? "arrow.down.right" : (summary.weightChange > 0 ? "arrow.up.right" : "equal"))
+                            .font(.system(size: 10, weight: .bold))
+                        Text(String(format: "%+.1f lbs", summary.weightChange))
+                            .font(.system(.caption, design: .rounded, weight: .bold))
+                    }
+                    .foregroundStyle(weightChangeColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(weightChangeColor.opacity(0.12))
+                    .clipShape(.capsule)
+                }
+
+                MiniLineChart(data: summary.weeklyWeight, lineColor: weightChangeColor, height: 90)
+
+                HStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Start of Month")
+                            .font(.system(.caption2, weight: .medium))
+                            .foregroundStyle(FrisTheme.textSecondary)
+                        Text(String(format: "%.1f lbs", summary.weightStart))
+                            .font(.system(.subheadline, design: .rounded, weight: .bold))
+                            .foregroundStyle(FrisTheme.textPrimary)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Current")
+                            .font(.system(.caption2, weight: .medium))
+                            .foregroundStyle(FrisTheme.textSecondary)
+                        Text(String(format: "%.1f lbs", summary.weightEnd))
+                            .font(.system(.subheadline, design: .rounded, weight: .bold))
+                            .foregroundStyle(FrisTheme.cyan)
+                    }
+                }
+            }
+        }
+    }
+
+    private var workoutTrendCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "figure.strengthtraining.traditional")
+                        .font(.subheadline)
+                        .foregroundStyle(FrisTheme.cyan)
+                    SubheadText(text: "Exercise Frequency")
+                    Spacer()
+                    Text("\(summary.totalWorkouts) total")
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                        .foregroundStyle(FrisTheme.cyan)
+                }
+
+                MiniBarChart(data: summary.weeklyWorkouts, barColor: FrisTheme.cyan, height: 80)
+
+                HStack {
+                    Text("Avg \(summary.totalWorkouts / max(summary.weeklyWorkouts.count, 1))/week")
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundStyle(FrisTheme.textSecondary)
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    private var nutritionTrendCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "fork.knife")
+                        .font(.subheadline)
+                        .foregroundStyle(FrisTheme.amber)
+                    SubheadText(text: "Nutrition Trend")
+                    Spacer()
+                    Text("avg \(summary.avgCaloriesConsumed) cal/day")
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                        .foregroundStyle(FrisTheme.amber)
+                }
+
+                MiniLineChart(data: summary.weeklyCalories, lineColor: FrisTheme.amber, height: 80)
+
+                Divider().overlay(FrisTheme.shimmerHighlight)
+
+                HStack(spacing: 16) {
+                    Label {
+                        Text("Avg Protein: \(summary.avgProtein)g/day")
+                            .font(.system(.caption, weight: .medium))
+                    } icon: {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 10))
+                    }
+                    .foregroundStyle(FrisTheme.violet)
+
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    private var stepsTrendCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "figure.walk")
+                        .font(.subheadline)
+                        .foregroundStyle(.green)
+                    SubheadText(text: "Steps Trend")
+                    Spacer()
+                    Text("avg \(formattedNumber(summary.avgStepsPerDay))/day")
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.green)
+                }
+
+                MiniLineChart(data: summary.weeklySteps, lineColor: .green, height: 80)
+            }
+        }
+    }
+
+    private var monthlyStatsGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            summaryStatCard(icon: "bed.double.fill", value: String(format: "%.1f hrs", summary.avgSleepHours), label: "Avg Sleep", color: FrisTheme.violet)
+            summaryStatCard(icon: "figure.walk", value: formattedNumber(summary.avgStepsPerDay), label: "Avg Steps/Day", color: .green)
+            summaryStatCard(icon: "flame.fill", value: formattedNumber(summary.totalCaloriesBurned), label: "Total Cal Burned", color: .orange)
+            summaryStatCard(icon: "clock.fill", value: "\(summary.totalExerciseMinutes) min", label: "Total Active", color: FrisTheme.amber)
+        }
+    }
+
+    // MARK: - Helpers
+
+    private var monthLabel: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: selectedMonthDate)
+    }
+
+    private var weightChangeColor: Color {
+        let goal = bodyGoalViewModel.currentGoal
+        if goal == .weightLoss || goal == .cutting {
+            return summary.weightChange <= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255)
+        } else if goal == .weightGain || goal == .bulking {
+            return summary.weightChange >= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255)
+        }
+        return FrisTheme.cyan
+    }
+
+    private func overviewStat(value: String, label: String, icon: String, color: Color) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(color)
+            Text(value)
+                .font(.system(.title3, design: .rounded, weight: .bold))
+                .foregroundStyle(FrisTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(FrisTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var overviewDivider: some View {
+        Rectangle()
+            .fill(FrisTheme.shimmerHighlight)
+            .frame(width: 1, height: 44)
+    }
+
+    private func summaryStatCard(icon: String, value: String, label: String, color: Color) -> some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(color)
+                Spacer()
+            }
+            HStack {
+                Text(value)
+                    .font(.system(.headline, design: .rounded, weight: .bold))
+                    .foregroundStyle(FrisTheme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Spacer()
+            }
+            HStack {
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(FrisTheme.textSecondary)
+                Spacer()
+            }
+        }
+        .padding(14)
+        .background(FrisTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.5
+                )
+        )
+        .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 3)
+    }
+
+    private func formattedNumber(_ number: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: number)) ?? "\(number)"
+    }
+}

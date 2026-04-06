@@ -1,0 +1,12 @@
+{
+  "apps": [
+    {
+      "name": "FrisFit",
+      "path": "ios",
+      "framework": "swift",
+      "capabilities": [
+        "healthkit"
+      ]
+    }
+  ]
+}
