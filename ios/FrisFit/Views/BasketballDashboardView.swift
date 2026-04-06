@@ -234,9 +234,9 @@ struct BasketballDashboardView: View {
                         .foregroundStyle(PepTheme.textSecondary)
                 }
             } else {
-                Text("\(game.fpEarned) FP")
+                Text("\(game.durationMinutes)m")
                     .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(PepTheme.amber)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Image(systemName: "chevron.right")

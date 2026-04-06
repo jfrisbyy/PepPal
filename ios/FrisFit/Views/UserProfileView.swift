@@ -243,7 +243,6 @@ struct UserProfileView: View {
 
     private var quickStats: some View {
         HStack(spacing: 0) {
-            ProfileQuickStat(value: formatNumber(user.totalFP), label: "Total FP", icon: "bolt.fill", color: PepTheme.teal)
             ProfileQuickStat(value: "\(user.streak)", label: "Day Streak", icon: "flame.fill", color: PepTheme.amber)
         }
         .padding(.vertical, 14)
@@ -367,14 +366,6 @@ struct UserProfileView: View {
                                 Text("\(attachment.exerciseCount)")
                                     .font(.caption2)
                             }
-                            HStack(spacing: 3) {
-                                Image(systemName: "bolt.fill")
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(PepTheme.teal)
-                                Text("\(attachment.fpEarned) FP")
-                                    .font(.system(.caption2, weight: .semibold))
-                                    .foregroundStyle(PepTheme.teal)
-                            }
                         }
                         .foregroundStyle(PepTheme.textSecondary)
                     }
@@ -426,7 +417,6 @@ struct UserProfileView: View {
             if let program = user.activeProgramName {
                 aboutRow(icon: "figure.run", label: "Active Program", value: program)
             }
-            aboutRow(icon: "bolt.fill", label: "Total FP", value: formatNumber(user.totalFP))
             aboutRow(icon: "flame.fill", label: "Current Streak", value: "\(user.streak) days")
         }
         .padding(.horizontal, 16)

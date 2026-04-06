@@ -95,12 +95,12 @@ struct RideDetailView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("+\(ride.fpEarned)")
+                    Text(String(format: "%.1f mi", ride.distanceMiles))
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.amber)
-                    Text("FP")
+                        .foregroundStyle(PepTheme.teal)
+                    Text("distance")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(PepTheme.amber.opacity(0.7))
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }

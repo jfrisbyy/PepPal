@@ -578,41 +578,7 @@ struct BasketballGameLogSheet: View {
     }
 
     private var fpPreview: some View {
-        let estimatedFP = bbVM.selectedSessionType.isGame
-            ? Int((Double(bbVM.currentStats.points) + Double(bbVM.currentStats.totalRebounds) * 1.2 + Double(bbVM.currentStats.assists) * 1.5 - Double(bbVM.currentStats.turnovers) * 0.8 + Double(bbVM.gameDuration) * 2.0) * (bbVM.gameResult == .win ? 1.2 : 1.0))
-            : Int(Double(bbVM.gameDuration) * 2.5 * 1.1)
-
-        return HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("ESTIMATED FP")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .tracking(1)
-                Text("Based on stats & duration")
-                    .font(.system(size: 11))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-            }
-            Spacer()
-            HStack(spacing: 4) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(PepTheme.teal)
-                Text("\(estimatedFP)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(PepTheme.teal)
-                    .contentTransition(.numericText())
-                Text("FP")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.teal.opacity(0.7))
-            }
-        }
-        .padding(16)
-        .background(PepTheme.teal.opacity(0.08))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(PepTheme.teal.opacity(0.2), lineWidth: 0.5)
-        )
+        EmptyView()
     }
 
     // MARK: - Bottom Bar

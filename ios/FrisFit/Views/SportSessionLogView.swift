@@ -434,39 +434,7 @@ struct SportSessionLogView: View {
     }
 
     private var fpPreview: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("ESTIMATED FP")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .tracking(1)
-                Text("Based on duration & intensity")
-                    .font(.system(size: 11))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-            }
-            Spacer()
-            HStack(spacing: 4) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(PepTheme.teal)
-                Text("\(viewModel.estimatedFP)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(PepTheme.teal)
-                    .contentTransition(.numericText())
-                Text("FP")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.teal.opacity(0.7))
-            }
-        }
-        .padding(16)
-        .background(
-            PepTheme.teal.opacity(0.08)
-        )
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(PepTheme.teal.opacity(0.2), lineWidth: 0.5)
-        )
+        EmptyView()
     }
 }
 

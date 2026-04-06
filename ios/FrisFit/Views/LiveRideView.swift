@@ -479,9 +479,7 @@ struct RideSummarySheet: View {
                     .clipShape(Capsule())
             }
 
-            Text("+\(ride.fpEarned) FP")
-                .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(PepTheme.amber)
+
         }
         .padding(.top, 12)
     }

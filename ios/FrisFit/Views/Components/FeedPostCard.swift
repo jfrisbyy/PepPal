@@ -219,18 +219,7 @@ struct FeedPostCard: View {
                 workoutStat(icon: "scalemass", value: formatVolume(log.totalVolume), label: "Volume")
             }
 
-            HStack(spacing: 0) {
-                Image(systemName: "bolt.fill")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.teal)
-                Text(" \(log.fpEarned) FP earned")
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(PepTheme.teal)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(PepTheme.teal.opacity(0.08))
-            .clipShape(.capsule)
+
         }
         .padding(12)
         .background(PepTheme.elevated)

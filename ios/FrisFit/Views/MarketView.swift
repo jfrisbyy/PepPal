@@ -111,7 +111,7 @@ struct MarketView: View {
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.6))
                     Spacer()
-                    Text("\(program.totalFP) FP")
+                    Text("\(program.daysPerWeek)x/week")
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(PepTheme.teal)
                 }
@@ -199,11 +199,7 @@ struct MarketView: View {
                 HStack(spacing: 4) {
                     ratingStars(program.rating, size: .caption2)
                     Spacer()
-                    if program.totalFP > 0 {
-                        Text("\(program.totalFP) FP")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(PepTheme.teal)
-                    }
+
                 }
             }
             .padding(10)

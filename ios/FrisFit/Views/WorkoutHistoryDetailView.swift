@@ -32,7 +32,6 @@ struct WorkoutHistoryDetailView: View {
             HStack(spacing: 0) {
                 SummaryStatItem(value: "\(workout.durationMinutes)", unit: "min", label: "Duration")
                 SummaryStatItem(value: formatVolume(workout.totalVolume), unit: "lbs", label: "Volume")
-                SummaryStatItem(value: "\(workout.fpEarned)", unit: "FP", label: "Earned", valueColor: PepTheme.teal)
                 SummaryStatItem(value: "\(workout.exercises.count)", unit: "", label: "Exercises")
             }
             .padding(.vertical, 14)

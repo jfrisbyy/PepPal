@@ -582,47 +582,7 @@ struct SoccerGameLogSheet: View {
     }
 
     private var fpPreview: some View {
-        let estimatedFP: Int
-        if soccerVM.selectedSessionType.isGame {
-            let statScore = Double(soccerVM.currentStats.goals) * 6.0 + Double(soccerVM.currentStats.assists) * 4.0 +
-                Double(soccerVM.currentStats.keyPasses) * 1.5 + Double(soccerVM.currentStats.tacklesWon) * 2.0 +
-                Double(soccerVM.currentStats.interceptions) * 1.5
-            let durationBonus = Double(soccerVM.matchDuration) * 1.5
-            let resultMult: Double
-            switch soccerVM.matchResult {
-            case .win: resultMult = 1.3
-            case .draw: resultMult = 1.1
-            default: resultMult = 1.0
-            }
-            estimatedFP = Int((statScore + durationBonus) * resultMult)
-        } else {
-            estimatedFP = Int(Double(soccerVM.matchDuration) * 2.5 * 1.1)
-        }
-
-        return HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("ESTIMATED FP")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .tracking(1)
-                Text("Based on stats & duration")
-                    .font(.system(size: 11))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-            }
-            Spacer()
-            HStack(spacing: 4) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(PepTheme.teal)
-                Text("\(estimatedFP)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(PepTheme.teal)
-                    .contentTransition(.numericText())
-                Text("FP")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.teal.opacity(0.7))
-            }
-        }
+        EmptyView()
         .padding(16)
         .background(PepTheme.teal.opacity(0.08))
         .clipShape(.rect(cornerRadius: 16))

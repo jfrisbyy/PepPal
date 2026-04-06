@@ -244,9 +244,9 @@ struct TennisDashboardView: View {
                         .foregroundStyle(PepTheme.textSecondary)
                 }
             } else {
-                Text("\(match.fpEarned) FP")
+                Text("\(match.durationMinutes)m")
                     .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(PepTheme.amber)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Image(systemName: "chevron.right")

@@ -14,7 +14,6 @@ struct SocialView: View {
     private enum SocialSection: String, CaseIterable {
         case circles = "Circles"
         case feed = "Feed"
-        case leaderboard = "Leaderboard"
     }
 
     var body: some View {
@@ -36,18 +35,6 @@ struct SocialView: View {
                         CirclesView(viewModel: circlesViewModel)
                     case .feed:
                         feedView
-                    case .leaderboard:
-                        ScrollView {
-                            LeaderboardView(
-                                entries: viewModel.leaderboardEntries,
-                                selectedPeriod: $viewModel.selectedPeriod
-                            )
-                            .padding(.bottom, 24)
-                        }
-                        .refreshable {
-                            try? await Task.sleep(for: .seconds(1))
-                            viewModel.updateLeaderboard()
-                        }
                     }
                 }
 
@@ -95,9 +82,6 @@ struct SocialView: View {
             }
             .fullScreenCover(isPresented: $showCircleDetail) {
                 CircleDetailView(viewModel: circlesViewModel)
-            }
-            .onChange(of: viewModel.selectedPeriod) { _, _ in
-                viewModel.updateLeaderboard()
             }
             .onChange(of: circlesViewModel.selectedCircle) { _, newValue in
                 showCircleDetail = newValue != nil

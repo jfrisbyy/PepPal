@@ -112,17 +112,7 @@ struct SportModeContentView: View {
                 overviewStat(value: String(format: "%.1f", avgIntensity), label: "Avg RPE", icon: "flame.fill")
             }
 
-            let totalFP = sessions.reduce(0) { $0 + $1.fpEarned }
-            HStack {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(PepTheme.amber)
-                Text("\(totalFP) FP earned from \(mode.name)")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.amber)
-                Spacer()
-            }
-            .padding(.horizontal, 4)
+
         }
         .padding(16)
         .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
@@ -528,9 +518,9 @@ struct SportModeContentView: View {
                         .foregroundStyle(.blue)
                 }
                 if stats.goals == 0 && stats.assists == 0 {
-                    Text("\(session.fpEarned) FP")
+                    Text("\(session.durationMinutes)m")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundStyle(PepTheme.amber)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         case .tennis(let stats):
@@ -540,15 +530,15 @@ struct SportModeContentView: View {
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundStyle(accentColor)
                 } else {
-                    Text("\(session.fpEarned) FP")
+                    Text("\(session.durationMinutes)m")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundStyle(PepTheme.amber)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         case .none:
-            Text("\(session.fpEarned) FP")
+            Text("\(session.durationMinutes)m")
                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(PepTheme.amber)
+                .foregroundStyle(PepTheme.textSecondary)
         }
     }
 
@@ -756,9 +746,9 @@ struct SportModeContentView: View {
 
                         Spacer()
 
-                        Text("\(session.fpEarned) FP")
+                        Text("\(session.durationMinutes)m")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundStyle(PepTheme.amber)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .padding(.vertical, 2)
                 }

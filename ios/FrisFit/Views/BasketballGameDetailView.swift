@@ -350,39 +350,8 @@ struct BasketballGameDetailView: View {
         .overlay(cardBorder())
     }
 
-    // MARK: - FP
-
     private var fpCard: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("FP EARNED")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .tracking(1)
-                Text("\(game.durationMinutes) min · \(game.sessionType.rawValue)")
-                    .font(.system(size: 11))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-            }
-            Spacer()
-            HStack(spacing: 4) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(PepTheme.teal)
-                Text("\(game.fpEarned)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(PepTheme.teal)
-                Text("FP")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.teal.opacity(0.7))
-            }
-        }
-        .padding(16)
-        .background(PepTheme.teal.opacity(0.08))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(PepTheme.teal.opacity(0.2), lineWidth: 0.5)
-        )
+        EmptyView()
     }
 
     private func cardBorder() -> some View {

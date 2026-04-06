@@ -55,7 +55,7 @@ private struct WorkoutHistoryRow: View {
             HStack(spacing: 16) {
                 HistoryStatPill(icon: "clock", value: "\(workout.durationMinutes)m")
                 HistoryStatPill(icon: "scalemass", value: "\(formatVolume(workout.totalVolume)) lbs")
-                HistoryStatPill(icon: "bolt.fill", value: "\(workout.fpEarned) FP", color: PepTheme.teal)
+
             }
         }
         .padding(14)

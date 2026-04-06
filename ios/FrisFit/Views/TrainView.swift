@@ -582,16 +582,7 @@ struct TrainView: View {
                 insightTile(icon: "flame.fill", label: "Calories", value: "\(insight.totalCaloriesBurned)", color: .orange)
             }
 
-            HStack {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(PepTheme.amber)
-                Text("\(insight.totalFP) FP earned this week")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.amber)
-                Spacer()
-            }
-            .padding(.horizontal, 4)
+
         }
     }
 
@@ -1211,18 +1202,6 @@ struct TrainView: View {
                     }
 
                     Spacer()
-
-                    HStack(spacing: 4) {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 10))
-                            .foregroundStyle(accentColor)
-                        Text("\(item.fpEarned)")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(accentColor)
-                        Text("FP")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(accentColor.opacity(0.7))
-                    }
 
                     Image(systemName: "chevron.down")
                         .font(.system(size: 10, weight: .semibold))

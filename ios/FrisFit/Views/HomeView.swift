@@ -82,7 +82,6 @@ struct HomeView: View {
                     stepsModuleCard
                     healthStatsCard
                 }
-                dailyPointsCard
                 if let encouragement = viewModel.streakEncouragement {
                     streakEncouragementCard(message: encouragement)
                 }
@@ -683,73 +682,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Daily Points Card
 
-    private var dailyPointsCard: some View {
-        Button {
-            showDailyTasks = true
-        } label: {
-            GlassCard {
-                HStack(spacing: 16) {
-                    FPProgressRing(
-                        currentFP: viewModel.earnedPoints,
-                        targetFP: viewModel.totalPoints,
-                        progress: viewModel.pointsProgress,
-                        size: 110,
-                        lineWidth: 10,
-                        fontSize: 24,
-                        showSubtitle: false
-                    )
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 6) {
-                            Text("Daily Points")
-                                .font(.system(.subheadline, weight: .semibold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                        }
-
-                        Text("\(viewModel.completedCount) of \(viewModel.dailyTasks.count) tasks")
-                            .font(.system(.caption, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
-
-                        if viewModel.recentlyCompleted.isEmpty {
-                            Text("Tap to start completing tasks")
-                                .font(.caption)
-                                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
-                                .padding(.top, 2)
-                        } else {
-                            VStack(alignment: .leading, spacing: 6) {
-                                ForEach(viewModel.recentlyCompleted) { task in
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 12))
-                                            .foregroundStyle(task.category.color)
-                                        Text(task.name)
-                                            .font(.system(.caption, weight: .medium))
-                                            .foregroundStyle(PepTheme.textPrimary.opacity(0.8))
-                                            .lineLimit(1)
-                                        Spacer()
-                                        Text("+\(task.points)")
-                                            .font(.system(.caption2, design: .rounded, weight: .bold))
-                                            .foregroundStyle(PepTheme.teal)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .buttonStyle(.scale)
-        .sensoryFeedback(.impact(weight: .light), trigger: showDailyTasks)
-        .navigationDestination(isPresented: $showDailyTasks) {
-            DailyTasksDetailView(viewModel: viewModel)
-        }
-    }
 
     // MARK: - Today's Plan
 
@@ -1192,9 +1125,9 @@ struct HomeView: View {
             quickStatDivider
 
             QuickStatItem(
-                icon: "trophy.fill",
-                value: "#\(viewModel.quickStats.leaderboardRank)",
-                label: "Rank",
+                icon: "flame.fill",
+                value: "\(viewModel.quickStats.streakDays)",
+                label: "Streak",
                 iconColor: PepTheme.amber
             )
         }
@@ -1555,11 +1488,6 @@ struct ActivityFeedRow: View {
                     .font(.caption)
                     .foregroundStyle(PepTheme.textSecondary)
                 HStack(spacing: 6) {
-                    Text("+\(activity.fpEarned) FP")
-                        .font(.system(.caption2, weight: .bold))
-                        .foregroundStyle(PepTheme.teal)
-                    Text("·")
-                        .foregroundStyle(PepTheme.textSecondary)
                     Text(activity.timeAgo)
                         .font(.caption2)
                         .foregroundStyle(PepTheme.textSecondary)

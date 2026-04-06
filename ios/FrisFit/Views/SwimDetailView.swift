@@ -56,10 +56,10 @@ struct SwimDetailView: View {
                     Spacer()
 
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("\(swim.fpEarned)")
+                        Text("\(swim.laps)")
                             .font(.system(.title2, design: .rounded, weight: .bold))
-                            .foregroundStyle(PepTheme.amber)
-                        Text("FP earned")
+                            .foregroundStyle(PepTheme.teal)
+                        Text("laps")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(PepTheme.textSecondary)
                     }

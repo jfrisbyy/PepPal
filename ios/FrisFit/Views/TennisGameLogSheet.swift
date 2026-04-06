@@ -465,41 +465,7 @@ struct TennisGameLogSheet: View {
     }
 
     private var fpPreview: some View {
-        let estimatedFP = tennisVM.selectedSessionType.isMatch
-            ? Int((Double(tennisVM.currentStats.aces) * 3.0 + Double(tennisVM.currentStats.winners) * 2.0 + Double(tennisVM.matchDuration) * 1.8) * (tennisVM.matchResult == .win ? 1.3 : 1.0))
-            : Int(Double(tennisVM.matchDuration) * 2.5 * 1.1)
-
-        return HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("ESTIMATED FP")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .tracking(1)
-                Text("Based on stats & duration")
-                    .font(.system(size: 11))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-            }
-            Spacer()
-            HStack(spacing: 4) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(PepTheme.teal)
-                Text("\(estimatedFP)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(PepTheme.teal)
-                    .contentTransition(.numericText())
-                Text("FP")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.teal.opacity(0.7))
-            }
-        }
-        .padding(16)
-        .background(PepTheme.teal.opacity(0.08))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(PepTheme.teal.opacity(0.2), lineWidth: 0.5)
-        )
+        EmptyView()
     }
 
     private func counterRow(label: String, value: Binding<Int>, icon: String, color: Color) -> some View {

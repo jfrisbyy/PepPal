@@ -4,8 +4,6 @@ import SwiftUI
 final class SocialViewModel {
     var posts: [WorkoutPost] = []
     var feedPosts: [FeedPost] = []
-    var leaderboardEntries: [LeaderboardEntry] = []
-    var selectedPeriod: LeaderboardPeriod = .thisWeek
     var searchResults: [FriendSearchResult] = []
     var searchQuery: String = ""
     var isSearching: Bool = false
@@ -74,27 +72,6 @@ final class SocialViewModel {
         posts[index].comments.append(comment)
     }
 
-    func updateLeaderboard() {
-        let sorted: [SocialUser]
-        switch selectedPeriod {
-        case .thisWeek:
-            sorted = sampleUsers.sorted { $0.totalFP > $1.totalFP }
-        case .thisMonth:
-            sorted = sampleUsers.shuffled()
-        case .allTime:
-            sorted = sampleUsers.sorted { $0.streak > $1.streak }
-        }
-        leaderboardEntries = sorted.enumerated().map { index, user in
-            let fp: Int
-            switch selectedPeriod {
-            case .thisWeek: fp = Int.random(in: 800...2400)
-            case .thisMonth: fp = Int.random(in: 3000...9000)
-            case .allTime: fp = user.totalFP
-            }
-            return LeaderboardEntry(id: user.id, user: user, fp: fp, rank: index + 1)
-        }
-    }
-
     func searchUsers(query: String) {
         guard !query.isEmpty else {
             searchResults = []
@@ -153,7 +130,6 @@ final class SocialViewModel {
                 workoutName: "Upper Body Hypertrophy", duration: 68, totalVolume: 16400, fpEarned: 198,
                 exercisesCompleted: 8, highFiveCount: 15, isHighFived: true, comments: []),
         ]
-        updateLeaderboard()
     }
 
     private func loadMockFeedPosts() {

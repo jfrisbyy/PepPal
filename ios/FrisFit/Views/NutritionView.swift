@@ -11,7 +11,6 @@ struct NutritionView: View {
             VStack(spacing: 20) {
                 calorieRing
                 macroBreakdown
-                fpBonusCard
                 mealLog
             }
             .padding(.horizontal)
@@ -186,42 +185,7 @@ struct NutritionView: View {
         }
     }
 
-    private var fpBonusCard: some View {
-        GlassCard {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(PepTheme.amber.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(PepTheme.amber)
-                }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Nutrition FP Bonus")
-                        .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-
-                    if viewModel.fpBonus > 0 {
-                        Text("+\(viewModel.fpBonus) FP earned from hitting targets")
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.amber)
-                    } else {
-                        Text("Hit your macro targets to earn bonus FP")
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                }
-
-                Spacer()
-
-                Text("+\(viewModel.fpBonus)")
-                    .font(.system(.title2, design: .rounded, weight: .bold))
-                    .foregroundStyle(viewModel.fpBonus > 0 ? PepTheme.amber : PepTheme.textSecondary.opacity(0.5))
-            }
-        }
-    }
 
     private var mealLog: some View {
         VStack(alignment: .leading, spacing: 16) {

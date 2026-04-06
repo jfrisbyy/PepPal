@@ -112,7 +112,7 @@ struct MarketProgramDetailView: View {
             statDivider
             statItem(value: program.equipment, label: "Equipment")
             statDivider
-            statItem(value: "\(program.totalFP)", label: "Total FP", valueColor: PepTheme.teal)
+            statItem(value: "\(program.daysPerWeek)x", label: "Per Week", valueColor: PepTheme.teal)
         }
         .padding(.vertical, 14)
         .background(PepTheme.cardSurface)

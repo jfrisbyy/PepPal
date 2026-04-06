@@ -425,9 +425,7 @@ struct RunSummarySheet: View {
                 .font(.title2.weight(.bold))
                 .foregroundStyle(PepTheme.textPrimary)
 
-            Text("+\(run.fpEarned) FP")
-                .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(PepTheme.amber)
+
         }
         .padding(.top, 12)
     }

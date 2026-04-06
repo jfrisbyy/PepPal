@@ -192,7 +192,6 @@ struct ProfileView: View {
 
     private var statsBar: some View {
         HStack(spacing: 0) {
-            ProfileQuickStat(value: formatNumber(viewModel.profile.totalFP), label: "Total FP", icon: "bolt.fill", color: PepTheme.teal)
             ProfileQuickStat(value: "\(viewModel.streakManager.streakData.currentStreak)", label: "Day Streak", icon: "flame.fill", color: PepTheme.amber)
             ProfileQuickStat(value: "\(viewModel.profile.totalWorkouts)", label: "Workouts", icon: "dumbbell.fill", color: PepTheme.violet)
         }
@@ -486,14 +485,6 @@ struct ProfilePostRow: View {
                         .font(.system(size: 10))
                     Text("\(attachment.exerciseCount)")
                         .font(.caption2)
-                }
-                HStack(spacing: 3) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(PepTheme.teal)
-                    Text("\(attachment.fpEarned) FP")
-                        .font(.system(.caption2, weight: .semibold))
-                        .foregroundStyle(PepTheme.teal)
                 }
             }
             .foregroundStyle(PepTheme.textSecondary)

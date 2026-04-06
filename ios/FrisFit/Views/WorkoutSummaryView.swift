@@ -4,7 +4,6 @@ struct WorkoutSummaryView: View {
     let summary: WorkoutSummary
     let onDone: () -> Void
 
-    @State private var displayedFP: Int = 0
     @State private var showStats: Bool = false
     @State private var showPRs: Bool = false
 
@@ -26,19 +25,6 @@ struct WorkoutSummaryView: View {
                     Text(summary.workoutName)
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(PepTheme.textSecondary)
-                }
-
-                VStack(spacing: 6) {
-                    Text("\(displayedFP)")
-                        .font(.system(size: 64, weight: .bold, design: .rounded))
-                        .foregroundStyle(PepTheme.teal)
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-
-                    Text("FIT POINTS EARNED")
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(1.5)
-                        .foregroundStyle(PepTheme.teal.opacity(0.7))
                 }
 
                 if showStats {
@@ -191,19 +177,6 @@ struct WorkoutSummaryView: View {
     }
 
     private func animateIn() {
-        let target = summary.fpEarned
-        let steps = 40
-        let interval = 0.03
-
-        for i in 0...steps {
-            let delay = interval * Double(i)
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                withAnimation(.easeOut(duration: 0.05)) {
-                    displayedFP = Int(Double(target) * Double(i) / Double(steps))
-                }
-            }
-        }
-
         withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.3)) {
             showStats = true
         }

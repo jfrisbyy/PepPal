@@ -23,7 +23,7 @@ struct DailyTasksDetailView: View {
         }
         .scrollIndicators(.hidden)
         .background(PepTheme.background.ignoresSafeArea())
-        .navigationTitle("Daily Points")
+        .navigationTitle("Daily Tasks")
         .navigationBarTitleDisplayMode(.inline)
         
         .sensoryFeedback(.impact(weight: .medium), trigger: toggleTrigger)
@@ -31,14 +31,23 @@ struct DailyTasksDetailView: View {
 
     private var ringSection: some View {
         VStack(spacing: 12) {
-            FPProgressRing(
-                currentFP: viewModel.earnedPoints,
-                targetFP: viewModel.totalPoints,
-                progress: viewModel.pointsProgress,
-                size: 180,
-                lineWidth: 14,
-                fontSize: 42
-            )
+            ZStack {
+                Circle()
+                    .stroke(PepTheme.teal.opacity(0.15), lineWidth: 14)
+                Circle()
+                    .trim(from: 0, to: viewModel.dailyTasks.isEmpty ? 0 : Double(viewModel.completedCount) / Double(viewModel.dailyTasks.count))
+                    .stroke(PepTheme.teal, style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                VStack(spacing: 2) {
+                    Text("\(viewModel.completedCount)")
+                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                        .foregroundStyle(PepTheme.teal)
+                    Text("/ \(viewModel.dailyTasks.count)")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+            .frame(width: 180, height: 180)
 
             Text("\(viewModel.completedCount) of \(viewModel.dailyTasks.count) tasks completed")
                 .font(.system(.subheadline, weight: .medium))

@@ -113,7 +113,7 @@ struct SoccerSettingsView: View {
                     summaryRow(label: "Total Assists", value: "\(soccerVM.totalAssists)")
                     summaryRow(label: "Goal Contributions", value: "\(soccerVM.totalGoalContributions)")
                     summaryRow(label: "Avg Rating", value: String(format: "%.1f/10", soccerVM.averageRating))
-                    summaryRow(label: "Total FP", value: "\(soccerVM.totalFPEarned)")
+
                 }
             }
         }

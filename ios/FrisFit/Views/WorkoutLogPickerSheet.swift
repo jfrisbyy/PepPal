@@ -61,7 +61,7 @@ struct WorkoutLogPickerSheet: View {
                 HStack(spacing: 8) {
                     Label("\(workout.duration)m", systemImage: "clock")
                     Label("\(workout.exerciseCount) ex", systemImage: "dumbbell")
-                    Label("\(workout.fpEarned) FP", systemImage: "bolt.fill")
+                    Label("\(workout.exerciseCount) exercises", systemImage: "dumbbell")
                 }
                 .font(.caption)
                 .foregroundStyle(PepTheme.textSecondary)

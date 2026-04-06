@@ -296,7 +296,6 @@ final class CirclesViewModel {
 
 nonisolated enum CircleDetailTab: String, CaseIterable, Sendable {
     case tasks = "Tasks"
-    case leaderboard = "Ranks"
     case posts = "Posts"
     case chat = "Chat"
     case compete = "Compete"
@@ -305,7 +304,6 @@ nonisolated enum CircleDetailTab: String, CaseIterable, Sendable {
     var icon: String {
         switch self {
         case .tasks: return "checkmark.circle"
-        case .leaderboard: return "trophy"
         case .posts: return "text.bubble"
         case .chat: return "bubble.left.and.bubble.right"
         case .compete: return "flag.2.crossed"
