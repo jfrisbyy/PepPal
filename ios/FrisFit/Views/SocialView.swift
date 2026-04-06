@@ -3,6 +3,7 @@ import SwiftUI
 struct SocialView: View {
     @State private var viewModel = SocialViewModel()
     @State private var messagesViewModel = MessagesViewModel()
+    @State private var groupsViewModel = GroupsViewModel()
     @State private var profileViewModel = ProfileViewModel()
     @State private var commentPost: WorkoutPost?
     @State private var commentFeedPost: FeedPost?
@@ -20,22 +21,32 @@ struct SocialView: View {
             .navigationTitle("Community")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        DirectMessagesView(viewModel: messagesViewModel)
-                    } label: {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "bubble.left.and.bubble.right.fill")
-                                .font(.system(size: 18))
+                    HStack(spacing: 14) {
+                        NavigationLink {
+                            GroupsListView(viewModel: groupsViewModel)
+                        } label: {
+                            Image(systemName: "person.3.fill")
+                                .font(.system(size: 16))
                                 .foregroundStyle(PepTheme.teal)
+                        }
 
-                            if messagesViewModel.totalUnread > 0 {
-                                Text("\(messagesViewModel.totalUnread)")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundStyle(.white)
-                                    .frame(minWidth: 16, minHeight: 16)
-                                    .background(Color.red)
-                                    .clipShape(.circle)
-                                    .offset(x: 6, y: -6)
+                        NavigationLink {
+                            DirectMessagesView(viewModel: messagesViewModel)
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "bubble.left.and.bubble.right.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(PepTheme.teal)
+
+                                if messagesViewModel.totalUnread > 0 {
+                                    Text("\(messagesViewModel.totalUnread)")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .frame(minWidth: 16, minHeight: 16)
+                                        .background(Color.red)
+                                        .clipShape(.circle)
+                                        .offset(x: 6, y: -6)
+                                }
                             }
                         }
                     }
