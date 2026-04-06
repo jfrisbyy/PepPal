@@ -16,8 +16,11 @@ final class SocialViewModel {
     var expandedCategories: Set<TagCategory> = []
 
     private let socialService = SocialService.shared
+    private let messagingService = MessagingService.shared
     private var likedPostIds: Set<String> = []
     private var commentCounts: [String: Int] = [:]
+    private var followingIds: Set<String> = []
+    private var sentRequestReceiverIds: Set<String> = []
 
     var filteredFeedPosts: [FeedPost] {
         switch feedFilter {
@@ -35,8 +38,26 @@ final class SocialViewModel {
 
     init() {
         Task {
+            await loadFollowingIds()
+            await loadSentRequests()
             await loadFeed()
         }
+    }
+
+    private func loadFollowingIds() async {
+        do {
+            let userId = try AuthService.shared.currentUserId()
+            let ids = try await messagingService.fetchFollowing(userId: userId)
+            followingIds = Set(ids)
+        } catch {}
+    }
+
+    private func loadSentRequests() async {
+        do {
+            let userId = try AuthService.shared.currentUserId()
+            let requests = try await messagingService.fetchSentRequests(userId: userId)
+            sentRequestReceiverIds = Set(requests.map { $0.receiver_id })
+        } catch {}
     }
 
     func loadFeed() async {
@@ -61,6 +82,8 @@ final class SocialViewModel {
                     FeedMediaItem(type: .photo, imageURL: url)
                 }
 
+                let isFollowingUser = followingIds.contains(sp.user_id)
+
                 let post = FeedPost(
                     id: UUID(uuidString: sp.id) ?? UUID(),
                     user: user,
@@ -72,7 +95,7 @@ final class SocialViewModel {
                     comments: [],
                     repostCount: sp.repost_count ?? 0,
                     tags: tags,
-                    isFollowing: false,
+                    isFollowing: isFollowingUser,
                     supabaseId: sp.id
                 )
                 newFeedPosts.append(post)
@@ -239,13 +262,55 @@ final class SocialViewModel {
             return
         }
         isSearching = true
-        searchResults = []
-        isSearching = false
+
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                let profiles = try await messagingService.searchUsers(query: query, excludeUserId: userId)
+
+                searchResults = profiles.map { profile in
+                    let user = messagingService.socialUserFromAuthor(profile)
+                    let status: FriendRequestStatus = sentRequestReceiverIds.contains(profile.id) ? .pending : .none
+                    return FriendSearchResult(id: user.id, user: user, requestStatus: status)
+                }
+            } catch {
+                searchResults = []
+            }
+            isSearching = false
+        }
     }
 
     func sendFriendRequest(to userID: UUID) {
         guard let index = searchResults.firstIndex(where: { $0.id == userID }) else { return }
         searchResults[index].requestStatus = .pending
+
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                try await messagingService.sendFriendRequest(senderId: userId, receiverId: userID.uuidString)
+                sentRequestReceiverIds.insert(userID.uuidString)
+            } catch {
+                if let idx = searchResults.firstIndex(where: { $0.id == userID }) {
+                    searchResults[idx].requestStatus = .none
+                }
+            }
+        }
+    }
+
+    func followUser(userId: String) async throws {
+        let myId = try AuthService.shared.currentUserId()
+        try await messagingService.followUser(followerId: myId, followingId: userId)
+        followingIds.insert(userId)
+    }
+
+    func unfollowUser(userId: String) async throws {
+        let myId = try AuthService.shared.currentUserId()
+        try await messagingService.unfollowUser(followerId: myId, followingId: userId)
+        followingIds.remove(userId)
+    }
+
+    func isFollowing(userId: String) -> Bool {
+        followingIds.contains(userId)
     }
 }
 

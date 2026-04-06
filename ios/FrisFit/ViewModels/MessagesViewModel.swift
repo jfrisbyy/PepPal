@@ -6,6 +6,8 @@ final class MessagesViewModel {
     var searchQuery: String = ""
     var searchResults: [SocialUser] = []
     var isSearching: Bool = false
+    var isLoading: Bool = false
+    var error: String?
 
     var totalUnread: Int {
         conversations.reduce(0) { $0 + $1.unreadCount }
@@ -19,22 +21,77 @@ final class MessagesViewModel {
         }
     }
 
-    private let allUsers: [SocialUser] = [
-        SocialUser(id: UUID(), name: "Alex Martinez", username: "alexm_fit", avatarInitial: "A", avatarColor: Color(red: 0.2, green: 0.6, blue: 0.9), activeProgramName: "Push Pull Legs", streak: 14, totalFP: 8420),
-        SocialUser(id: UUID(), name: "Jordan Kim", username: "jkim_lifts", avatarInitial: "J", avatarColor: Color(red: 0.9, green: 0.4, blue: 0.3), activeProgramName: "Upper Lower", streak: 21, totalFP: 12350),
-        SocialUser(id: UUID(), name: "Sam Taylor", username: "samtaylor", avatarInitial: "S", avatarColor: Color(red: 0.4, green: 0.8, blue: 0.5), activeProgramName: nil, streak: 7, totalFP: 5680),
-        SocialUser(id: UUID(), name: "Riley Chen", username: "rileyc", avatarInitial: "R", avatarColor: Color(red: 0.8, green: 0.5, blue: 0.9), activeProgramName: "5/3/1", streak: 45, totalFP: 18900),
-        SocialUser(id: UUID(), name: "Casey Nguyen", username: "casey_ng", avatarInitial: "C", avatarColor: Color(red: 0.9, green: 0.7, blue: 0.2), activeProgramName: "GZCLP", streak: 10, totalFP: 6750),
-        SocialUser(id: UUID(), name: "Morgan Davis", username: "morgfit", avatarInitial: "M", avatarColor: Color(red: 0.3, green: 0.7, blue: 0.8), activeProgramName: "Full Body 3x", streak: 33, totalFP: 15200),
-        SocialUser(id: UUID(), name: "Taylor Swift", username: "tswift_gym", avatarInitial: "T", avatarColor: .pink, activeProgramName: nil, streak: 3, totalFP: 1200),
-        SocialUser(id: UUID(), name: "Chris Evans", username: "capfit", avatarInitial: "C", avatarColor: .blue, activeProgramName: "Superhero Split", streak: 60, totalFP: 25000),
-        SocialUser(id: UUID(), name: "Jamie Lee", username: "jamielifts", avatarInitial: "J", avatarColor: .orange, activeProgramName: "Starting Strength", streak: 8, totalFP: 3400),
-    ]
-
-    private let myID = UUID()
+    private let messagingService = MessagingService.shared
 
     init() {
-        loadMockConversations()
+        Task {
+            await loadConversations()
+        }
+    }
+
+    func loadConversations() async {
+        guard !isLoading else { return }
+        isLoading = true
+        error = nil
+
+        do {
+            let userId = try AuthService.shared.currentUserId()
+            let results = try await messagingService.fetchConversations(userId: userId)
+
+            var loaded: [Conversation] = []
+            for result in results {
+                let participant = messagingService.socialUserFromAuthor(result.participant)
+
+                var lastMessages: [DirectMessage] = []
+                if let msg = result.lastMessage {
+                    lastMessages.append(DirectMessage(
+                        id: UUID(uuidString: msg.id ?? "") ?? UUID(),
+                        senderID: UUID(uuidString: msg.sender_id) ?? UUID(),
+                        text: msg.text_content ?? "",
+                        timestamp: messagingService.parseDate(msg.created_at),
+                        isRead: msg.is_read ?? false,
+                        supabaseId: msg.id
+                    ))
+                }
+
+                let conv = Conversation(
+                    id: UUID(uuidString: result.conversation.id) ?? UUID(),
+                    participant: participant,
+                    messages: lastMessages,
+                    unreadCount: result.unreadCount,
+                    supabaseConversationId: result.conversation.id
+                )
+                loaded.append(conv)
+            }
+
+            conversations = loaded
+        } catch {
+            self.error = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+
+    func loadFullConversation(conversationID: UUID) async {
+        guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
+              let supabaseId = conversations[index].supabaseConversationId else { return }
+
+        do {
+            let messages = try await messagingService.fetchMessages(conversationId: supabaseId)
+            let mapped = messages.map { msg in
+                DirectMessage(
+                    id: UUID(uuidString: msg.id) ?? UUID(),
+                    senderID: UUID(uuidString: msg.sender_id) ?? UUID(),
+                    text: msg.text_content ?? "",
+                    timestamp: messagingService.parseDate(msg.created_at),
+                    isRead: msg.is_read ?? false,
+                    supabaseId: msg.id
+                )
+            }
+            conversations[index].messages = mapped
+        } catch {
+            // Silently fail
+        }
     }
 
     func searchUsers(query: String) {
@@ -44,34 +101,107 @@ final class MessagesViewModel {
             return
         }
         isSearching = true
-        let conversationUserIDs = Set(conversations.map { $0.participant.id })
-        searchResults = allUsers.filter {
-            !conversationUserIDs.contains($0.id) &&
-            ($0.name.localizedStandardContains(query) || $0.username.localizedStandardContains(query))
+
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                let profiles = try await messagingService.searchUsers(query: query, excludeUserId: userId)
+                let conversationUserIds = Set(conversations.compactMap { $0.participant.id.uuidString.lowercased() })
+
+                searchResults = profiles
+                    .filter { !conversationUserIds.contains($0.id.lowercased()) }
+                    .map { messagingService.socialUserFromAuthor($0) }
+            } catch {
+                searchResults = []
+            }
+            isSearching = false
         }
-        isSearching = false
     }
 
     func sendMessage(to conversationID: UUID, text: String) {
-        guard let index = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
-        let message = DirectMessage(senderID: myID, text: text, timestamp: Date(), isRead: true)
-        conversations[index].messages.append(message)
+        guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
+              let supabaseConvId = conversations[index].supabaseConversationId else { return }
+
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                let sent = try await messagingService.sendMessage(
+                    conversationId: supabaseConvId,
+                    senderId: userId,
+                    text: text
+                )
+
+                let dm = DirectMessage(
+                    id: UUID(uuidString: sent.id ?? "") ?? UUID(),
+                    senderID: UUID(uuidString: sent.sender_id) ?? UUID(),
+                    text: sent.text_content ?? text,
+                    timestamp: messagingService.parseDate(sent.created_at),
+                    isRead: true,
+                    supabaseId: sent.id
+                )
+
+                if let idx = conversations.firstIndex(where: { $0.id == conversationID }) {
+                    conversations[idx].messages.append(dm)
+                }
+            } catch {
+                // Silently fail
+            }
+        }
     }
 
     func startConversation(with user: SocialUser) -> UUID {
         if let existing = conversations.first(where: { $0.participant.id == user.id }) {
             return existing.id
         }
-        let conversation = Conversation(participant: user)
+
+        let placeholderId = UUID()
+        let conversation = Conversation(
+            id: placeholderId,
+            participant: user,
+            supabaseConversationId: nil
+        )
         conversations.insert(conversation, at: 0)
-        return conversation.id
+
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                let convId = try await messagingService.findOrCreateConversation(
+                    userId: userId,
+                    otherUserId: user.id.uuidString
+                )
+
+                if let idx = conversations.firstIndex(where: { $0.id == placeholderId }) {
+                    let updated = Conversation(
+                        id: UUID(uuidString: convId) ?? placeholderId,
+                        participant: user,
+                        messages: conversations[idx].messages,
+                        supabaseConversationId: convId
+                    )
+                    conversations[idx] = updated
+                }
+            } catch {
+                // Keep placeholder
+            }
+        }
+
+        return placeholderId
     }
 
     func markAsRead(conversationID: UUID) {
-        guard let index = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
+        guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
+              let supabaseConvId = conversations[index].supabaseConversationId else { return }
+
+        conversations[index].unreadCount = 0
         for i in conversations[index].messages.indices {
-            if conversations[index].messages[i].senderID == conversations[index].participant.id {
-                conversations[index].messages[i].isRead = true
+            conversations[index].messages[i].isRead = true
+        }
+
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                try await messagingService.markMessagesAsRead(conversationId: supabaseConvId, userId: userId)
+            } catch {
+                // Silently fail
             }
         }
     }
@@ -80,38 +210,8 @@ final class MessagesViewModel {
         conversations.first { $0.id == id }
     }
 
-    private func loadMockConversations() {
-        let now = Date()
-        conversations = [
-            Conversation(
-                participant: allUsers[0],
-                messages: [
-                    DirectMessage(senderID: allUsers[0].id, text: "Hey! Nice PR on bench today 💪", timestamp: now.addingTimeInterval(-3600), isRead: true),
-                    DirectMessage(senderID: myID, text: "Thanks! Finally hit 225", timestamp: now.addingTimeInterval(-3500), isRead: true),
-                    DirectMessage(senderID: allUsers[0].id, text: "That's insane, we should train together sometime", timestamp: now.addingTimeInterval(-1800), isRead: false),
-                ]
-            ),
-            Conversation(
-                participant: allUsers[1],
-                messages: [
-                    DirectMessage(senderID: myID, text: "What program are you running rn?", timestamp: now.addingTimeInterval(-86400), isRead: true),
-                    DirectMessage(senderID: allUsers[1].id, text: "Upper lower split, 4 days a week. Loving it so far", timestamp: now.addingTimeInterval(-82800), isRead: true),
-                    DirectMessage(senderID: allUsers[1].id, text: "Want me to share the template?", timestamp: now.addingTimeInterval(-82000), isRead: false),
-                ]
-            ),
-            Conversation(
-                participant: allUsers[3],
-                messages: [
-                    DirectMessage(senderID: allUsers[3].id, text: "Squat day tomorrow, you in?", timestamp: now.addingTimeInterval(-7200), isRead: false),
-                ]
-            ),
-            Conversation(
-                participant: allUsers[5],
-                messages: [
-                    DirectMessage(senderID: myID, text: "Good session today!", timestamp: now.addingTimeInterval(-172800), isRead: true),
-                    DirectMessage(senderID: allUsers[5].id, text: "For sure! Let's keep the streak going 🔥", timestamp: now.addingTimeInterval(-170000), isRead: true),
-                ]
-            ),
-        ]
+    func refreshConversations() async {
+        isLoading = false
+        await loadConversations()
     }
 }

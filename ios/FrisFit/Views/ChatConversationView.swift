@@ -7,6 +7,8 @@ struct ChatConversationView: View {
     @FocusState private var isInputFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
+    @State private var hasLoadedMessages: Bool = false
+
     init(viewModel: MessagesViewModel, conversationID: UUID) {
         _viewModel = State(initialValue: viewModel)
         self.conversationID = conversationID
@@ -47,6 +49,12 @@ struct ChatConversationView: View {
         }
         .onAppear {
             viewModel.markAsRead(conversationID: conversationID)
+        }
+        .task {
+            if !hasLoadedMessages {
+                hasLoadedMessages = true
+                await viewModel.loadFullConversation(conversationID: conversationID)
+            }
         }
     }
 

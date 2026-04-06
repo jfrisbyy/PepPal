@@ -5,6 +5,7 @@ struct SocialView: View {
     @State private var messagesViewModel = MessagesViewModel()
     @State private var groupsViewModel = GroupsViewModel()
     @State private var profileViewModel = ProfileViewModel()
+    @State private var notificationsViewModel = NotificationsViewModel()
     @State private var commentPost: WorkoutPost?
     @State private var commentFeedPost: FeedPost?
     @State private var isLoading: Bool = true
@@ -22,6 +23,26 @@ struct SocialView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 14) {
+                        NavigationLink {
+                            NotificationsView()
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "bell.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(PepTheme.teal)
+
+                                if notificationsViewModel.unreadCount > 0 {
+                                    Text("\(notificationsViewModel.unreadCount)")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .frame(minWidth: 16, minHeight: 16)
+                                        .background(Color.red)
+                                        .clipShape(.circle)
+                                        .offset(x: 6, y: -6)
+                                }
+                            }
+                        }
+
                         NavigationLink {
                             GroupsListView(viewModel: groupsViewModel)
                         } label: {
@@ -75,6 +96,9 @@ struct SocialView: View {
                         isLoading = false
                     }
                 }
+            }
+            .task {
+                await notificationsViewModel.refreshUnreadCount()
             }
         }
     }

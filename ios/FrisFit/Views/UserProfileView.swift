@@ -7,9 +7,15 @@ struct UserProfileView: View {
     @State private var selectedTab: UserProfileTab = .posts
     @State private var isFollowing: Bool = false
     @State private var friendStatus: FriendRequestStatus = .none
+    @State private var friendRequestId: String?
     @State private var followBounce: Int = 0
     @State private var friendBounce: Int = 0
+    @State private var followerCount: Int = 0
+    @State private var followingCount: Int = 0
+    @State private var isLoadingRelationship: Bool = true
     @Environment(\.dismiss) private var dismiss
+
+    private let messagingService = MessagingService.shared
 
     enum UserProfileTab: String, CaseIterable {
         case posts = "Posts"
@@ -62,6 +68,32 @@ struct UserProfileView: View {
         .scrollIndicators(.hidden)
         .background(PepTheme.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await loadRelationshipData()
+        }
+    }
+
+    private func loadRelationshipData() async {
+        do {
+            let userId = try AuthService.shared.currentUserId()
+            let targetUserId = user.id.uuidString
+
+            async let followCheck = messagingService.isFollowing(followerId: userId, followingId: targetUserId)
+            async let friendCheck = messagingService.fetchFriendStatus(userId: userId, otherUserId: targetUserId)
+            async let followers = messagingService.fetchFollowers(userId: targetUserId)
+            async let following = messagingService.fetchFollowing(userId: targetUserId)
+
+            let (isFollow, friendResult, followerIds, followingIds) = try await (followCheck, friendCheck, followers, following)
+
+            isFollowing = isFollow
+            friendStatus = friendResult.status
+            friendRequestId = friendResult.requestId
+            followerCount = followerIds.count
+            followingCount = followingIds.count
+            isLoadingRelationship = false
+        } catch {
+            isLoadingRelationship = false
+        }
     }
 
     private var bannerHeader: some View {
@@ -116,49 +148,82 @@ struct UserProfileView: View {
 
                 Spacer()
 
-                HStack(spacing: 8) {
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            isFollowing.toggle()
-                            followBounce += 1
-                        }
-                    } label: {
-                        Text(isFollowing ? "Following" : "Follow")
-                            .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(isFollowing ? PepTheme.textPrimary : .black)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(isFollowing ? PepTheme.elevated : PepTheme.teal)
-                            .clipShape(.capsule)
-                            .overlay(
-                                Capsule().strokeBorder(
-                                    isFollowing ? PepTheme.glassBorderTop : .clear,
-                                    lineWidth: 0.5
-                                )
-                            )
-                    }
-                    .sensoryFeedback(.impact(weight: .medium), trigger: followBounce)
-
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            if friendStatus == .none {
-                                friendStatus = .pending
+                if !isLoadingRelationship {
+                    HStack(spacing: 8) {
+                        Button {
+                            let wasFollowing = isFollowing
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                isFollowing.toggle()
+                                followerCount += isFollowing ? 1 : -1
+                                followBounce += 1
                             }
-                            friendBounce += 1
+
+                            Task {
+                                do {
+                                    if wasFollowing {
+                                        try await messagingService.unfollowUser(
+                                            followerId: AuthService.shared.currentUserId(),
+                                            followingId: user.id.uuidString
+                                        )
+                                    } else {
+                                        try await messagingService.followUser(
+                                            followerId: AuthService.shared.currentUserId(),
+                                            followingId: user.id.uuidString
+                                        )
+                                    }
+                                } catch {
+                                    isFollowing = wasFollowing
+                                    followerCount += wasFollowing ? 1 : -1
+                                }
+                            }
+                        } label: {
+                            Text(isFollowing ? "Following" : "Follow")
+                                .font(.system(.subheadline, weight: .semibold))
+                                .foregroundStyle(isFollowing ? PepTheme.textPrimary : .black)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(isFollowing ? PepTheme.elevated : PepTheme.teal)
+                                .clipShape(.capsule)
+                                .overlay(
+                                    Capsule().strokeBorder(
+                                        isFollowing ? PepTheme.glassBorderTop : .clear,
+                                        lineWidth: 0.5
+                                    )
+                                )
                         }
-                    } label: {
-                        Image(systemName: friendIcon)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(friendIconColor)
-                            .frame(width: 34, height: 34)
-                            .background(PepTheme.elevated)
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-                            )
+                        .sensoryFeedback(.impact(weight: .medium), trigger: followBounce)
+
+                        Button {
+                            guard friendStatus == .none else { return }
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                friendStatus = .pending
+                                friendBounce += 1
+                            }
+
+                            Task {
+                                do {
+                                    try await messagingService.sendFriendRequest(
+                                        senderId: AuthService.shared.currentUserId(),
+                                        receiverId: user.id.uuidString
+                                    )
+                                } catch {
+                                    friendStatus = .none
+                                }
+                            }
+                        } label: {
+                            Image(systemName: friendIcon)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(friendIconColor)
+                                .frame(width: 34, height: 34)
+                                .background(PepTheme.elevated)
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                                )
+                        }
+                        .sensoryFeedback(.impact(weight: .light), trigger: friendBounce)
+                        .disabled(friendStatus == .accepted)
                     }
-                    .sensoryFeedback(.impact(weight: .light), trigger: friendBounce)
-                    .disabled(friendStatus == .accepted)
                 }
             }
 
@@ -176,7 +241,7 @@ struct UserProfileView: View {
 
             HStack(spacing: 20) {
                 HStack(spacing: 4) {
-                    Text("\(Int.random(in: 100...500))")
+                    Text("\(followingCount)")
                         .font(.system(.subheadline, weight: .bold))
                         .foregroundStyle(PepTheme.textPrimary)
                     Text("Following")
@@ -185,7 +250,7 @@ struct UserProfileView: View {
                 }
 
                 HStack(spacing: 4) {
-                    Text("\(Int.random(in: 200...2000))")
+                    Text("\(followerCount)")
                         .font(.system(.subheadline, weight: .bold))
                         .foregroundStyle(PepTheme.textPrimary)
                     Text("Followers")
@@ -465,12 +530,5 @@ struct UserProfileView: View {
         .padding(.vertical, 48)
         .padding(.horizontal, 32)
         .frame(maxWidth: .infinity)
-    }
-
-    private func formatNumber(_ n: Int) -> String {
-        if n >= 1000 {
-            return String(format: "%.1fk", Double(n) / 1000.0)
-        }
-        return "\(n)"
     }
 }
