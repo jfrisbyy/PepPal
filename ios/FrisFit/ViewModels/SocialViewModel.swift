@@ -11,6 +11,7 @@ final class SocialViewModel {
     var feedFilter: FeedFilter = .all
     var selectedTags: Set<FeedTag> = []
     var isTagsExpanded: Bool = false
+    var expandedCategories: Set<TagCategory> = []
 
     var filteredFeedPosts: [FeedPost] {
         switch feedFilter {

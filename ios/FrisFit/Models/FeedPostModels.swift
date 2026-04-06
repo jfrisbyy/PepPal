@@ -62,6 +62,37 @@ nonisolated enum FeedTag: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+nonisolated enum TagCategory: String, CaseIterable, Identifiable, Sendable {
+    case peptides = "Peptides"
+    case sports = "Sports"
+    case research = "Research"
+    case fitness = "Fitness"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .peptides: return "syringe.fill"
+        case .sports: return "sportscourt.fill"
+        case .research: return "flask.fill"
+        case .fitness: return "dumbbell.fill"
+        }
+    }
+
+    var tags: [FeedTag] {
+        switch self {
+        case .peptides:
+            return [.bpc157, .tb500, .glp1, .growthHormone, .healing, .cognitive, .tanning]
+        case .sports:
+            return [.basketball, .running, .cycling, .swimming, .soccer, .tennis]
+        case .research:
+            return [.bloodwork, .vendors, .reconstitution, .sideEffects]
+        case .fitness:
+            return [.bodybuilding, .progress, .nutrition, .prAlert, .motivation, .program]
+        }
+    }
+}
+
 nonisolated enum FeedPostMediaType: String, Sendable {
     case text
     case photo

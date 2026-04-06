@@ -237,9 +237,105 @@ struct SocialView: View {
     }
 
     private var tagSelectionGrid: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(TagCategory.allCases) { category in
+                        let isExpanded = viewModel.expandedCategories.contains(category)
+                        let hasActiveTag = category.tags.contains(where: { viewModel.selectedTags.contains($0) })
+                        let activeCount = category.tags.filter { viewModel.selectedTags.contains($0) }.count
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                if isExpanded {
+                                    viewModel.expandedCategories.remove(category)
+                                } else {
+                                    viewModel.expandedCategories = [category]
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: category.icon)
+                                    .font(.system(size: 12))
+                                Text(category.rawValue)
+                                    .font(.system(.caption, weight: isExpanded || hasActiveTag ? .bold : .semibold))
+                                if activeCount > 0 {
+                                    Text("\(activeCount)")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(isExpanded || hasActiveTag ? PepTheme.teal : PepTheme.textSecondary)
+                                        .frame(width: 16, height: 16)
+                                        .background(
+                                            (isExpanded || hasActiveTag ? PepTheme.invertedText : PepTheme.elevated).opacity(0.3)
+                                        )
+                                        .clipShape(.circle)
+                                }
+                                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 9, weight: .semibold))
+                            }
+                            .foregroundStyle(isExpanded || hasActiveTag ? PepTheme.invertedText : PepTheme.textPrimary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                isExpanded || hasActiveTag
+                                    ? AnyShapeStyle(PepTheme.teal)
+                                    : AnyShapeStyle(PepTheme.cardSurface)
+                            )
+                            .clipShape(.capsule)
+                            .overlay(
+                                Capsule()
+                                    .strokeBorder(
+                                        isExpanded || hasActiveTag ? PepTheme.teal : PepTheme.separatorColor,
+                                        lineWidth: 1
+                                    )
+                            )
+                        }
+                        .sensoryFeedback(.selection, trigger: isExpanded)
+                    }
+                }
+                .padding(.horizontal)
+            }
+            .contentMargins(.horizontal, 0)
+
+            ForEach(TagCategory.allCases) { category in
+                if viewModel.expandedCategories.contains(category) {
+                    expandedCategoryTags(for: category)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                }
+            }
+        }
+    }
+
+    private func expandedCategoryTags(for category: TagCategory) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(FeedTag.allCases) { tag in
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        let categoryTags = Set(category.tags)
+                        let allSelected = categoryTags.isSubset(of: viewModel.selectedTags)
+                        if allSelected {
+                            viewModel.selectedTags.subtract(categoryTags)
+                        } else {
+                            viewModel.selectedTags.formUnion(categoryTags)
+                        }
+                    }
+                } label: {
+                    let allSelected = Set(category.tags).isSubset(of: viewModel.selectedTags)
+                    Text("All")
+                        .font(.system(.caption, weight: .bold))
+                        .foregroundStyle(allSelected ? PepTheme.invertedText : PepTheme.teal)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(
+                            allSelected
+                                ? AnyShapeStyle(PepTheme.teal)
+                                : AnyShapeStyle(PepTheme.teal.opacity(0.12))
+                        )
+                        .clipShape(.capsule)
+                }
+
+                ForEach(category.tags) { tag in
                     let isSelected = viewModel.selectedTags.contains(tag)
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -252,7 +348,7 @@ struct SocialView: View {
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: tag.icon)
-                                .font(.system(size: 12))
+                                .font(.system(size: 11))
                             Text(tag.rawValue)
                                 .font(.system(.caption, weight: .semibold))
                         }
