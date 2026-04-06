@@ -5,8 +5,12 @@ nonisolated enum PeptideCategory: String, CaseIterable, Identifiable, Sendable {
     case muscleGrowth = "Muscle Growth"
     case healing = "Healing & Recovery"
     case cognitive = "Cognitive"
-    case tanning = "Tanning & Cosmetic"
+    case sexualHealth = "Sexual Health"
+    case tanning = "Tanning & Skin"
     case antiAging = "Anti-Aging"
+    case sarms = "SARMs"
+    case igfVariants = "IGF Variants"
+    case niche = "Niche"
     case all = "All"
 
     var id: String { rawValue }
@@ -17,8 +21,12 @@ nonisolated enum PeptideCategory: String, CaseIterable, Identifiable, Sendable {
         case .muscleGrowth: return "figure.strengthtraining.traditional"
         case .healing: return "cross.case.fill"
         case .cognitive: return "brain.head.profile"
+        case .sexualHealth: return "heart.fill"
         case .tanning: return "sun.max.fill"
         case .antiAging: return "hourglass"
+        case .sarms: return "bolt.fill"
+        case .igfVariants: return "arrow.up.forward"
+        case .niche: return "flask.fill"
         case .all: return "square.grid.2x2.fill"
         }
     }
@@ -29,8 +37,12 @@ nonisolated enum PeptideCategory: String, CaseIterable, Identifiable, Sendable {
         case .muscleGrowth: return PepTheme.teal
         case .healing: return PepTheme.blue
         case .cognitive: return PepTheme.violet
+        case .sexualHealth: return .pink
         case .tanning: return .orange
-        case .antiAging: return .pink
+        case .antiAging: return Color(red: 200/255, green: 120/255, blue: 220/255)
+        case .sarms: return .red
+        case .igfVariants: return Color(red: 255/255, green: 140/255, blue: 50/255)
+        case .niche: return Color(red: 100/255, green: 200/255, blue: 220/255)
         case .all: return PepTheme.teal
         }
     }
