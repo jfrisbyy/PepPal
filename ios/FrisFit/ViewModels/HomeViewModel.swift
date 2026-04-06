@@ -6,6 +6,7 @@ final class HomeViewModel {
     var isLoading: Bool = true
     var selectedDate: Date = Date()
     var selectedTimePeriod: HomeTimePeriod = .daily
+    var isDateSelectorExpanded: Bool = false
     var selectedWeekStart: Date = Calendar.current.date(from: Calendar.current.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) ?? Date()
     var selectedMonthDate: Date = Date()
 
@@ -37,6 +38,12 @@ final class HomeViewModel {
             formatter.dateFormat = "EEEE, MMM d"
             return formatter.string(from: selectedDate)
         }
+    }
+
+    var toolbarDateString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, MMM d"
+        return formatter.string(from: Date())
     }
 
     var isSelectedDateToday: Bool {

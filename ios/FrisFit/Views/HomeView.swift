@@ -12,6 +12,7 @@ struct HomeView: View {
     @State private var showDailyTasks: Bool = false
     @State private var showStepDetail: Bool = false
     @State private var bodyGoalViewModel = BodyGoalViewModel()
+    @State private var dateSelectorHeight: CGFloat = 0
 
     var body: some View {
         NavigationStack {
@@ -27,14 +28,12 @@ struct HomeView: View {
                             dailyContent
                         case .weekly:
                             VStack(spacing: 20) {
-                                weekCalendarStrip
                                 WeeklySummaryView(summary: viewModel.weeklySummary, bodyGoalViewModel: bodyGoalViewModel, selectedWeekStart: viewModel.selectedWeekStart)
                             }
                             .padding(.horizontal)
                             .padding(.bottom, 24)
                         case .monthly:
                             VStack(spacing: 20) {
-                                monthCalendarStrip
                                 MonthlySummaryView(summary: viewModel.monthlySummary, bodyGoalViewModel: bodyGoalViewModel, selectedMonthDate: viewModel.selectedMonthDate)
                             }
                             .padding(.horizontal)
@@ -57,10 +56,16 @@ struct HomeView: View {
                         .foregroundStyle(PepTheme.textPrimary)
                 }
                 ToolbarItem(placement: .principal) {
-                    timePeriodPicker
+                    dateHeaderButton
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     streakToolbarIcon
+                }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if viewModel.isDateSelectorExpanded {
+                    expandedDateSelector
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
             .onAppear { viewModel.onAppear() }
@@ -74,7 +79,9 @@ struct HomeView: View {
 
     private var dailyContent: some View {
         VStack(spacing: 20) {
-            calendarStrip
+            if !viewModel.isSelectedDateToday {
+                selectedDateBanner
+            }
             protocolCard
             BodyGoalSectionView(viewModel: bodyGoalViewModel)
             nutritionCard
@@ -255,32 +262,87 @@ struct HomeView: View {
         .sensoryFeedback(.impact(weight: .medium), trigger: showProtocolWizard)
     }
 
-    // MARK: - Time Period Picker
+    // MARK: - Date Header Button
 
-    private var timePeriodPicker: some View {
-        HStack(spacing: 2) {
-            ForEach(HomeTimePeriod.allCases) { period in
-                Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        viewModel.selectedTimePeriod = period
+    private var dateHeaderButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+                viewModel.isDateSelectorExpanded.toggle()
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Text(viewModel.toolbarDateString)
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(PepTheme.teal)
+                    .rotationEffect(.degrees(viewModel.isDateSelectorExpanded ? 180 : 0))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(PepTheme.elevated)
+            .clipShape(.capsule)
+        }
+        .sensoryFeedback(.selection, trigger: viewModel.isDateSelectorExpanded)
+    }
+
+    // MARK: - Expanded Date Selector
+
+    private var expandedDateSelector: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 2) {
+                ForEach(HomeTimePeriod.allCases) { period in
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            viewModel.selectedTimePeriod = period
+                        }
+                    } label: {
+                        Text(period.rawValue)
+                            .font(.system(size: 13, weight: viewModel.selectedTimePeriod == period ? .bold : .medium))
+                            .foregroundStyle(viewModel.selectedTimePeriod == period ? PepTheme.invertedText : PepTheme.textSecondary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(
+                                viewModel.selectedTimePeriod == period ? PepTheme.teal : Color.clear
+                            )
+                            .clipShape(.capsule)
                     }
-                } label: {
-                    Text(period.rawValue)
-                        .font(.system(size: 12, weight: viewModel.selectedTimePeriod == period ? .bold : .medium))
-                        .foregroundStyle(viewModel.selectedTimePeriod == period ? PepTheme.invertedText : PepTheme.textSecondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            viewModel.selectedTimePeriod == period ? PepTheme.teal : Color.clear
-                        )
-                        .clipShape(.capsule)
+                    .sensoryFeedback(.selection, trigger: viewModel.selectedTimePeriod)
                 }
-                .sensoryFeedback(.selection, trigger: viewModel.selectedTimePeriod)
+            }
+            .padding(3)
+            .background(PepTheme.elevated)
+            .clipShape(.capsule)
+
+            if viewModel.selectedTimePeriod == .daily {
+                DatePicker(
+                    "Select Date",
+                    selection: $viewModel.selectedDate,
+                    in: ...Date(),
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .tint(PepTheme.teal)
+                .padding(.horizontal, 4)
+                .onChange(of: viewModel.selectedDate) { _, _ in
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        viewModel.isDateSelectorExpanded = false
+                    }
+                }
+            } else if viewModel.selectedTimePeriod == .weekly {
+                weekCalendarStrip
+            } else {
+                monthCalendarStrip
             }
         }
-        .padding(3)
-        .background(PepTheme.elevated)
-        .clipShape(.capsule)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            PepTheme.cardSurface
+                .overlay(PepTheme.cardOverlay)
+                .shadow(color: .black.opacity(0.25), radius: 16, x: 0, y: 8)
+        )
     }
 
     // MARK: - Streak Toolbar Icon
@@ -311,7 +373,42 @@ struct HomeView: View {
         )
     }
 
-    // MARK: - Calendar Strip
+    // MARK: - Selected Date Banner
+
+    private var selectedDateBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "calendar")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(PepTheme.teal)
+            Text(viewModel.selectedDateLabel)
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+            Spacer()
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    viewModel.selectedDate = Date()
+                }
+            } label: {
+                Text("Back to Today")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(PepTheme.teal)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(PepTheme.teal.opacity(0.12))
+                    .clipShape(.capsule)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(PepTheme.teal.opacity(0.2), lineWidth: 0.5)
+        )
+    }
+
+    // MARK: - Calendar Strip (Legacy)
 
     private var calendarStrip: some View {
         VStack(alignment: .leading, spacing: 12) {
