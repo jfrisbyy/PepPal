@@ -268,6 +268,9 @@ struct HomeView: View {
         Button {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
                 viewModel.isDateSelectorExpanded.toggle()
+                if !viewModel.isDateSelectorExpanded {
+                    viewModel.isFullCalendarExpanded = false
+                }
             }
         } label: {
             HStack(spacing: 5) {
@@ -290,7 +293,9 @@ struct HomeView: View {
     // MARK: - Expanded Date Selector
 
     private var expandedDateSelector: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 12) {
+            weekStripSelector
+
             HStack(spacing: 2) {
                 ForEach(HomeTimePeriod.allCases) { period in
                     Button {
@@ -299,10 +304,10 @@ struct HomeView: View {
                         }
                     } label: {
                         Text(period.rawValue)
-                            .font(.system(size: 13, weight: viewModel.selectedTimePeriod == period ? .bold : .medium))
+                            .font(.system(size: 12, weight: viewModel.selectedTimePeriod == period ? .bold : .medium))
                             .foregroundStyle(viewModel.selectedTimePeriod == period ? PepTheme.invertedText : PepTheme.textSecondary)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
                             .background(
                                 viewModel.selectedTimePeriod == period ? PepTheme.teal : Color.clear
                             )
@@ -315,26 +320,48 @@ struct HomeView: View {
             .background(PepTheme.elevated)
             .clipShape(.capsule)
 
-            if viewModel.selectedTimePeriod == .daily {
-                DatePicker(
-                    "Select Date",
-                    selection: $viewModel.selectedDate,
-                    in: ...Date(),
-                    displayedComponents: .date
-                )
-                .datePickerStyle(.graphical)
-                .tint(PepTheme.teal)
-                .padding(.horizontal, 4)
-                .onChange(of: viewModel.selectedDate) { _, _ in
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        viewModel.isDateSelectorExpanded = false
+            if viewModel.isFullCalendarExpanded {
+                if viewModel.selectedTimePeriod == .daily {
+                    DatePicker(
+                        "Select Date",
+                        selection: $viewModel.selectedDate,
+                        in: ...Date(),
+                        displayedComponents: .date
+                    )
+                    .datePickerStyle(.graphical)
+                    .tint(PepTheme.teal)
+                    .padding(.horizontal, 4)
+                    .onChange(of: viewModel.selectedDate) { _, _ in
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            viewModel.isFullCalendarExpanded = false
+                            viewModel.isDateSelectorExpanded = false
+                        }
                     }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                } else if viewModel.selectedTimePeriod == .weekly {
+                    weekCalendarStrip
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                } else {
+                    monthCalendarStrip
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-            } else if viewModel.selectedTimePeriod == .weekly {
-                weekCalendarStrip
-            } else {
-                monthCalendarStrip
             }
+
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                    viewModel.isFullCalendarExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(viewModel.isFullCalendarExpanded ? "Hide Calendar" : "Pick a Date")
+                        .font(.system(size: 12, weight: .medium))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .rotationEffect(.degrees(viewModel.isFullCalendarExpanded ? 180 : 0))
+                }
+                .foregroundStyle(PepTheme.teal)
+            }
+            .sensoryFeedback(.selection, trigger: viewModel.isFullCalendarExpanded)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -343,6 +370,71 @@ struct HomeView: View {
                 .overlay(PepTheme.cardOverlay)
                 .shadow(color: .black.opacity(0.25), radius: 16, x: 0, y: 8)
         )
+    }
+
+    // MARK: - Week Strip Selector
+
+    private var weekStripSelector: some View {
+        HStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    viewModel.navigateWeekStrip(by: -1)
+                }
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .frame(width: 28, height: 28)
+            }
+
+            ForEach(viewModel.weekStripDays) { day in
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        viewModel.selectedDate = day.date
+                        viewModel.selectedTimePeriod = .daily
+                    }
+                } label: {
+                    VStack(spacing: 5) {
+                        Text(day.dayName)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(day.isSelected ? PepTheme.teal : PepTheme.textSecondary)
+
+                        ZStack {
+                            Circle()
+                                .fill(day.isSelected ? PepTheme.teal : Color.clear)
+                                .frame(width: 34, height: 34)
+
+                            if !day.isSelected && day.isToday {
+                                Circle()
+                                    .strokeBorder(PepTheme.teal.opacity(0.5), lineWidth: 1.5)
+                                    .frame(width: 34, height: 34)
+                            }
+
+                            Text(day.dayNumber)
+                                .font(.system(.subheadline, design: .rounded, weight: day.isSelected || day.isToday ? .bold : .medium))
+                                .foregroundStyle(day.isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
+                        }
+
+                        Circle()
+                            .fill(day.hasActivity && !day.isSelected ? PepTheme.teal : Color.clear)
+                            .frame(width: 4, height: 4)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .sensoryFeedback(.selection, trigger: viewModel.selectedDate)
+            }
+
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    viewModel.navigateWeekStrip(by: 1)
+                }
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .frame(width: 28, height: 28)
+            }
+        }
     }
 
     // MARK: - Streak Toolbar Icon

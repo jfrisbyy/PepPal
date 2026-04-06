@@ -7,6 +7,7 @@ final class HomeViewModel {
     var selectedDate: Date = Date()
     var selectedTimePeriod: HomeTimePeriod = .daily
     var isDateSelectorExpanded: Bool = false
+    var isFullCalendarExpanded: Bool = false
     var selectedWeekStart: Date = Calendar.current.date(from: Calendar.current.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) ?? Date()
     var selectedMonthDate: Date = Date()
 
@@ -26,6 +27,22 @@ final class HomeViewModel {
             let hasActivity = streakManager.activityLog.contains { calendar.isDate($0.date, inSameDayAs: date) }
             return CalendarDay(date: date, isSelected: isSelected, isToday: isToday, hasActivity: hasActivity)
         }
+    }
+
+    var weekStripDays: [CalendarDay] {
+        guard let weekStart = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedDate)) else { return [] }
+        return (0..<7).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
+            let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
+            let isToday = calendar.isDateInToday(date)
+            let hasActivity = streakManager.activityLog.contains { calendar.isDate($0.date, inSameDayAs: date) }
+            return CalendarDay(date: date, isSelected: isSelected, isToday: isToday, hasActivity: hasActivity)
+        }
+    }
+
+    func navigateWeekStrip(by offset: Int) {
+        guard let newDate = calendar.date(byAdding: .weekOfYear, value: offset, to: selectedDate) else { return }
+        selectedDate = newDate
     }
 
     var selectedDateLabel: String {
