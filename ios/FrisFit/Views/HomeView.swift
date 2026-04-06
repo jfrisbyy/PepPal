@@ -51,7 +51,7 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Text("PepPal")
+                    Text("Welcome, \(viewModel.userFirstName)")
                         .font(.system(.title2, design: .rounded, weight: .bold))
                         .foregroundStyle(PepTheme.textPrimary)
                 }

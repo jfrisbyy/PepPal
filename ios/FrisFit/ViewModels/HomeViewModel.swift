@@ -11,6 +11,11 @@ final class HomeViewModel {
     var selectedWeekStart: Date = Calendar.current.date(from: Calendar.current.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) ?? Date()
     var selectedMonthDate: Date = Date()
 
+    var userFirstName: String {
+        let fullName = "Jane"
+        return fullName.components(separatedBy: " ").first ?? fullName
+    }
+
     let streakManager = StreakManager.shared
     let notificationService = NotificationService.shared
     let healthKit = HealthKitService.shared
