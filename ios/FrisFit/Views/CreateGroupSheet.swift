@@ -110,7 +110,7 @@ struct CreateGroupSheet: View {
                         }
 
                         fieldSection(title: "Color") {
-                            HStack(spacing: 10) {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 5), spacing: 10) {
                                 ForEach(colorOptions, id: \.self) { color in
                                     Button {
                                         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
@@ -166,19 +166,19 @@ struct CreateGroupSheet: View {
     }
 
     private var groupPreview: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             ZStack {
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: 20)
                     .fill(selectedColor.opacity(0.12))
-                    .frame(width: 72, height: 72)
+                    .frame(width: 60, height: 60)
 
                 Image(systemName: selectedIcon)
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(.system(size: 26, weight: .semibold))
                     .foregroundStyle(selectedColor)
             }
 
             Text(name.isEmpty ? "Group Name" : name)
-                .font(.system(.headline, weight: .bold))
+                .font(.system(.subheadline, weight: .bold))
                 .foregroundStyle(name.isEmpty ? PepTheme.textSecondary.opacity(0.4) : PepTheme.textPrimary)
 
             HStack(spacing: 8) {
@@ -188,7 +188,7 @@ struct CreateGroupSheet: View {
             .font(.system(size: 11, weight: .medium))
             .foregroundStyle(PepTheme.textSecondary)
         }
-        .padding(.vertical, 20)
+        .padding(.vertical, 14)
         .frame(maxWidth: .infinity)
         .background(PepTheme.cardSurface)
     }
