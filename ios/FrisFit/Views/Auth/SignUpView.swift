@@ -24,7 +24,7 @@ struct SignUpView: View {
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(PepTheme.textPrimary)
 
-                    Text("Join FrisFit and start your fitness journey")
+                    Text("Join Peppal and start your fitness journey")
                         .font(.subheadline)
                         .foregroundStyle(PepTheme.textSecondary)
                         .multilineTextAlignment(.center)

@@ -27,7 +27,7 @@ struct LoginView: View {
                                 )
                             )
 
-                        Text("FrisFit")
+                        Text("Peppal")
                             .font(.system(size: 34, weight: .bold, design: .rounded))
                             .foregroundStyle(PepTheme.textPrimary)
 
