@@ -31,6 +31,8 @@ nonisolated struct ProfileUpdate: Codable, Sendable {
 final class ProfileService {
     static let shared = ProfileService()
 
+    var cachedDisplayName: String?
+
     private var supabase: SupabaseClient {
         SupabaseService.shared.client
     }

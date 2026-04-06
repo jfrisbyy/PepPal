@@ -24,6 +24,8 @@ final class TrainViewModel {
         WorkoutTemplate(name: "Leg Day", exerciseCount: 7, muscleGroups: [.quadriceps, .hamstrings, .glutes, .calves], estimatedMinutes: 60),
     ]
 
+    private var workoutsLoaded: Bool = false
+
     var workoutHistory: [WorkoutHistoryDetail] = {
         let cal = Calendar.current
         let now = Date()
@@ -278,8 +280,43 @@ final class TrainViewModel {
         ]
     }
 
+    func loadWorkoutsFromSupabase() {
+        guard AuthService.shared.authState == .signedIn, !workoutsLoaded else { return }
+        workoutsLoaded = true
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                let workouts = try await WorkoutService.shared.fetchWorkouts(userId: userId)
+                guard !workouts.isEmpty else { return }
+                let converted = workouts.map { WorkoutService.shared.toWorkoutHistoryDetail($0) }
+                workoutHistory = converted
+            } catch {}
+        }
+    }
+
+    func saveWorkoutToSupabase(name: String, type: String?, durationMinutes: Int?, caloriesBurned: Int?, notes: String?) {
+        guard AuthService.shared.authState == .signedIn else { return }
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                _ = try await WorkoutService.shared.createWorkout(
+                    userId: userId, name: name, type: type,
+                    durationMinutes: durationMinutes, caloriesBurned: caloriesBurned, notes: notes
+                )
+            } catch {}
+        }
+    }
+
     func addSportSession(_ session: SportSession) {
         sportSessions.insert(session, at: 0)
+        saveWorkoutToSupabase(
+            name: session.displayName,
+            type: "sport",
+            durationMinutes: session.durationMinutes,
+            caloriesBurned: nil,
+            notes: nil
+        )
+        StreakManager.shared.logActivity(type: .sportSession, sport: session.sport, durationMinutes: session.durationMinutes)
     }
 
     func resetBuilder() {

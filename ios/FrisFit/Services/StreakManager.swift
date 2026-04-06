@@ -10,33 +10,64 @@ final class StreakManager {
 
     private let calendar = Calendar.current
 
+    private var logsLoaded: Bool = false
+
     private init() {
-        let now = Date()
-        let cal = Calendar.current
-
-        var logs: [ActivityLog] = []
-        for i in 0..<12 {
-            if let date = cal.date(byAdding: .day, value: -i, to: now) {
-                logs.append(ActivityLog(id: UUID(), date: date, type: i % 3 == 0 ? .sportSession : .workout))
-            }
-        }
-        self.activityLog = logs
-
+        self.activityLog = []
         self.streakData = StreakData(
-            currentStreak: 12,
-            longestStreak: 42,
-            lastActivityDate: now,
+            currentStreak: 0,
+            longestStreak: 0,
+            lastActivityDate: nil,
             streakFreezeAvailable: true,
             streakFreezeUsedThisWeek: false,
             missedYesterday: false
         )
     }
 
-    func logActivity(type: ActivityType) {
-        let newLog = ActivityLog(id: UUID(), date: Date(), type: type)
+    func loadFromSupabase() {
+        guard AuthService.shared.authState == .signedIn, !logsLoaded else { return }
+        logsLoaded = true
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                let logs = try await StreakService.shared.fetchActivityLogs(userId: userId)
+                activityLog = logs.map { StreakService.shared.toActivityLog($0) }
+                recalculateStreak()
+            } catch {
+                loadFallbackData()
+            }
+        }
+    }
+
+    private func loadFallbackData() {
+        let now = Date()
+        let cal = Calendar.current
+        var logs: [ActivityLog] = []
+        for i in 0..<12 {
+            if let date = cal.date(byAdding: .day, value: -i, to: now) {
+                logs.append(ActivityLog(id: UUID(), date: date, type: i % 3 == 0 ? .sportSession : .workout))
+            }
+        }
+        activityLog = logs
+        recalculateStreak()
+    }
+
+    func logActivity(type: ActivityType, sport: Sport? = nil, durationMinutes: Int? = nil) {
+        let newLog = ActivityLog(id: UUID(), date: Date(), type: type, sport: sport)
         activityLog.insert(newLog, at: 0)
         recalculateStreak()
         checkMilestones()
+        persistActivityToSupabase(type: type, sport: sport, durationMinutes: durationMinutes)
+    }
+
+    private func persistActivityToSupabase(type: ActivityType, sport: Sport?, durationMinutes: Int?) {
+        guard AuthService.shared.authState == .signedIn else { return }
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                _ = try await StreakService.shared.logActivity(userId: userId, type: type, sport: sport, durationMinutes: durationMinutes)
+            } catch {}
+        }
     }
 
     func useStreakFreeze() -> Bool {

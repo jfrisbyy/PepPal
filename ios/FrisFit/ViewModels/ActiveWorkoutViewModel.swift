@@ -204,6 +204,25 @@ final class ActiveWorkoutViewModel {
             personalRecords: prs
         )
         isCompleted = true
+        saveToSupabase(durationMinutes: elapsedSeconds / 60, caloriesBurned: (elapsedSeconds / 60) * 8)
+        StreakManager.shared.logActivity(type: .workout, durationMinutes: elapsedSeconds / 60)
+    }
+
+    private func saveToSupabase(durationMinutes: Int, caloriesBurned: Int) {
+        guard AuthService.shared.authState == .signedIn else { return }
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                _ = try await WorkoutService.shared.createWorkout(
+                    userId: userId,
+                    name: workoutName,
+                    type: "strength",
+                    durationMinutes: durationMinutes,
+                    caloriesBurned: caloriesBurned,
+                    notes: nil
+                )
+            } catch {}
+        }
     }
 
     private func calculateFP(totalSets: Int, totalVolume: Double, duration: Int) -> Int {

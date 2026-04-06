@@ -1,0 +1,254 @@
+import Foundation
+import Supabase
+import SwiftUI
+
+nonisolated struct SupabaseCircle: Codable, Sendable {
+    let id: String?
+    let owner_id: String
+    let name: String
+    let description: String?
+    let is_private: Bool?
+    let goals: [String]?
+    let accent_color: String?
+    let invite_code: String?
+    let created_at: String?
+}
+
+nonisolated struct SupabaseCircleMember: Codable, Sendable {
+    let id: String?
+    let circle_id: String
+    let user_id: String
+    let role: String?
+    let joined_at: String?
+}
+
+nonisolated struct SupabaseCircleMemberWithProfile: Codable, Sendable {
+    let id: String?
+    let circle_id: String
+    let user_id: String
+    let role: String?
+    let joined_at: String?
+    let profiles: SupabasePostAuthor?
+}
+
+nonisolated struct CreateCirclePayload: Codable, Sendable {
+    let owner_id: String
+    let name: String
+    let description: String?
+    let is_private: Bool
+    let goals: [String]?
+    let accent_color: String?
+    let invite_code: String
+}
+
+nonisolated struct CreateCircleMemberPayload: Codable, Sendable {
+    let circle_id: String
+    let user_id: String
+    let role: String
+}
+
+final class CircleService {
+    static let shared = CircleService()
+
+    private var supabase: SupabaseClient {
+        SupabaseService.shared.client
+    }
+
+    private init() {}
+
+    private let iso8601: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    func fetchMyCircles(userId: String) async throws -> [SupabaseCircle] {
+        let memberships: [SupabaseCircleMember] = try await supabase
+            .from("circle_members")
+            .select("id, circle_id, user_id, role, joined_at")
+            .eq("user_id", value: userId)
+            .execute()
+            .value
+
+        guard !memberships.isEmpty else { return [] }
+        let circleIds = memberships.map { $0.circle_id }
+
+        let circles: [SupabaseCircle] = try await supabase
+            .from("circles")
+            .select()
+            .in("id", values: circleIds)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+        return circles
+    }
+
+    func fetchPublicCircles(userId: String) async throws -> [SupabaseCircle] {
+        let myCircles = try await fetchMyCircles(userId: userId)
+        let myIds = Set(myCircles.map { $0.id ?? "" })
+
+        let circles: [SupabaseCircle] = try await supabase
+            .from("circles")
+            .select()
+            .eq("is_private", value: false)
+            .order("created_at", ascending: false)
+            .limit(50)
+            .execute()
+            .value
+        return circles.filter { !myIds.contains($0.id ?? "") }
+    }
+
+    func fetchMembers(circleId: String) async throws -> [SupabaseCircleMemberWithProfile] {
+        let response: [SupabaseCircleMemberWithProfile] = try await supabase
+            .from("circle_members")
+            .select("*, profiles!circle_members_user_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .eq("circle_id", value: circleId)
+            .execute()
+            .value
+        return response
+    }
+
+    func createCircle(userId: String, name: String, description: String, isPrivate: Bool, accentColor: String?) async throws -> SupabaseCircle {
+        let inviteCode = String(UUID().uuidString.prefix(8)).uppercased()
+        let payload = CreateCirclePayload(
+            owner_id: userId,
+            name: name,
+            description: description.isEmpty ? nil : description,
+            is_private: isPrivate,
+            goals: nil,
+            accent_color: accentColor,
+            invite_code: inviteCode
+        )
+
+        let created: SupabaseCircle = try await supabase
+            .from("circles")
+            .insert(payload)
+            .select()
+            .single()
+            .execute()
+            .value
+
+        guard let circleId = created.id else { return created }
+
+        let memberPayload = CreateCircleMemberPayload(
+            circle_id: circleId,
+            user_id: userId,
+            role: "owner"
+        )
+        try await supabase
+            .from("circle_members")
+            .insert(memberPayload)
+            .execute()
+
+        return created
+    }
+
+    func joinCircle(circleId: String, userId: String) async throws {
+        let payload = CreateCircleMemberPayload(
+            circle_id: circleId,
+            user_id: userId,
+            role: "member"
+        )
+        try await supabase
+            .from("circle_members")
+            .insert(payload)
+            .execute()
+    }
+
+    func leaveCircle(circleId: String, userId: String) async throws {
+        try await supabase
+            .from("circle_members")
+            .delete()
+            .eq("circle_id", value: circleId)
+            .eq("user_id", value: userId)
+            .execute()
+    }
+
+    func deleteCircle(circleId: String) async throws {
+        try await supabase
+            .from("circle_members")
+            .delete()
+            .eq("circle_id", value: circleId)
+            .execute()
+
+        try await supabase
+            .from("circles")
+            .delete()
+            .eq("id", value: circleId)
+            .execute()
+    }
+
+    func joinByInviteCode(code: String, userId: String) async throws -> SupabaseCircle? {
+        let circles: [SupabaseCircle] = try await supabase
+            .from("circles")
+            .select()
+            .eq("invite_code", value: code.uppercased())
+            .limit(1)
+            .execute()
+            .value
+
+        guard let circle = circles.first, let circleId = circle.id else { return nil }
+        try await joinCircle(circleId: circleId, userId: userId)
+        return circle
+    }
+
+    func toFitCircle(_ circle: SupabaseCircle, members: [SupabaseCircleMemberWithProfile]) -> FitCircle {
+        let circleMembers = members.map { m -> CircleMember in
+            let user = SocialService.shared.socialUserFromAuthor(m.profiles)
+            let role = CircleRole(rawValue: (m.role ?? "member").capitalized) ?? .member
+            let joinedAt: Date
+            if let dateStr = m.joined_at {
+                joinedAt = iso8601.date(from: dateStr) ?? Date()
+            } else {
+                joinedAt = Date()
+            }
+            return CircleMember(
+                id: UUID(uuidString: m.id ?? "") ?? UUID(),
+                user: user,
+                role: role,
+                joinedAt: joinedAt,
+                totalPoints: user.totalFP,
+                weeklyPoints: 0,
+                goalStreak: user.streak,
+                longestStreak: user.streak
+            )
+        }
+
+        let accentColor = parseColor(circle.accent_color)
+        let createdAt: Date
+        if let dateStr = circle.created_at {
+            createdAt = iso8601.date(from: dateStr) ?? Date()
+        } else {
+            createdAt = Date()
+        }
+
+        return FitCircle(
+            id: UUID(uuidString: circle.id ?? "") ?? UUID(),
+            name: circle.name,
+            description: circle.description ?? "",
+            ownerId: UUID(uuidString: circle.owner_id) ?? UUID(),
+            isPrivate: circle.is_private ?? false,
+            dailyPointGoal: nil,
+            weeklyPointGoal: nil,
+            totalCirclePoints: circleMembers.reduce(0) { $0 + $1.totalPoints },
+            inviteCode: circle.invite_code ?? "",
+            createdAt: createdAt,
+            members: circleMembers,
+            accentColor: accentColor
+        )
+    }
+
+    private func parseColor(_ hex: String?) -> Color {
+        guard let hex, !hex.isEmpty else { return Color(red: 0.0, green: 0.7, blue: 1.0) }
+        var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.hasPrefix("#") { cleaned.removeFirst() }
+        guard cleaned.count == 6, let num = UInt64(cleaned, radix: 16) else {
+            return Color(red: 0.0, green: 0.7, blue: 1.0)
+        }
+        return Color(
+            red: Double((num >> 16) & 0xFF) / 255.0,
+            green: Double((num >> 8) & 0xFF) / 255.0,
+            blue: Double(num & 0xFF) / 255.0
+        )
+    }
+}

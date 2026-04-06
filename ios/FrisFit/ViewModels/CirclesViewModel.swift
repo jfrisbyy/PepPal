@@ -52,8 +52,41 @@ final class CirclesViewModel {
 
     private let meUser = SocialUser(id: UUID(), name: "You", username: "me", avatarInitial: "Y", avatarColor: PepTheme.teal, activeProgramName: "Push Pull Legs", streak: 12, totalFP: 7200)
 
+    private var dataLoaded: Bool = false
+
     init() {
         loadMockData()
+    }
+
+    func loadFromSupabase() {
+        guard AuthService.shared.authState == .signedIn, !dataLoaded else { return }
+        dataLoaded = true
+        isLoading = true
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                let myRaw = try await CircleService.shared.fetchMyCircles(userId: userId)
+                var myConverted: [FitCircle] = []
+                for circle in myRaw {
+                    guard let cid = circle.id else { continue }
+                    let members = try await CircleService.shared.fetchMembers(circleId: cid)
+                    myConverted.append(CircleService.shared.toFitCircle(circle, members: members))
+                }
+                if !myConverted.isEmpty {
+                    myCircles = myConverted
+                }
+
+                let pubRaw = try await CircleService.shared.fetchPublicCircles(userId: userId)
+                var pubConverted: [FitCircle] = []
+                for circle in pubRaw {
+                    guard let cid = circle.id else { continue }
+                    let members = try await CircleService.shared.fetchMembers(circleId: cid)
+                    pubConverted.append(CircleService.shared.toFitCircle(circle, members: members))
+                }
+                publicCircles = pubConverted
+            } catch {}
+            isLoading = false
+        }
     }
 
     var filteredPublicCircles: [FitCircle] {
@@ -102,8 +135,19 @@ final class CirclesViewModel {
             accentColor: [PepTheme.teal, PepTheme.violet, PepTheme.amber, Color.green, Color.pink].randomElement()!
         )
         myCircles.append(circle)
+        persistCreateCircle(name: createName, description: createDescription, isPrivate: createIsPrivate)
         resetCreateFields()
         showCreateCircle = false
+    }
+
+    private func persistCreateCircle(name: String, description: String, isPrivate: Bool) {
+        guard AuthService.shared.authState == .signedIn else { return }
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                _ = try await CircleService.shared.createCircle(userId: userId, name: name, description: description, isPrivate: isPrivate, accentColor: nil)
+            } catch {}
+        }
     }
 
     func joinCircle(_ circle: FitCircle) {
@@ -112,12 +156,28 @@ final class CirclesViewModel {
         joined.members.append(newMember)
         myCircles.append(joined)
         publicCircles.removeAll { $0.id == circle.id }
+        if AuthService.shared.authState == .signedIn {
+            Task {
+                do {
+                    let userId = try AuthService.shared.currentUserId()
+                    try await CircleService.shared.joinCircle(circleId: circle.id.uuidString, userId: userId)
+                } catch {}
+            }
+        }
     }
 
     func leaveCircle(_ circle: FitCircle) {
         myCircles.removeAll { $0.id == circle.id }
         if selectedCircle?.id == circle.id {
             selectedCircle = nil
+        }
+        if AuthService.shared.authState == .signedIn {
+            Task {
+                do {
+                    let userId = try AuthService.shared.currentUserId()
+                    try await CircleService.shared.leaveCircle(circleId: circle.id.uuidString, userId: userId)
+                } catch {}
+            }
         }
     }
 

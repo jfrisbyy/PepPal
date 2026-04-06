@@ -6,6 +6,8 @@ final class NutritionViewModel {
     var isFollowingNutritionPlan: Bool = true
     var searchText: String = ""
     var selectedCategory: FoodCategory? = nil
+    var isLoading: Bool = false
+    var supabaseMealIds: [UUID: String] = [:]
 
     let dailyTarget = MacroTarget(calories: 2200, protein: 150, carbs: 250, fat: 73)
 
@@ -86,6 +88,17 @@ final class NutritionViewModel {
     func logMeal(food: FoodItem, servings: Double, mealTime: MealTime) {
         let meal = LoggedMeal(food: food, servings: servings, mealTime: mealTime)
         loggedMeals.append(meal)
+        persistMealToSupabase(food: food, servings: servings, mealTime: mealTime)
+    }
+
+    private func persistMealToSupabase(food: FoodItem, servings: Double, mealTime: MealTime) {
+        guard AuthService.shared.authState == .signedIn else { return }
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                _ = try await NutritionService.shared.logMeal(userId: userId, food: food, servings: servings, mealTime: mealTime)
+            } catch {}
+        }
     }
 
     func quickAddMeal(name: String, calories: Int, protein: Double, carbs: Double, fat: Double, mealTime: MealTime) {
@@ -105,9 +118,40 @@ final class NutritionViewModel {
 
     func removeMeal(_ meal: LoggedMeal) {
         loggedMeals.removeAll { $0.id == meal.id }
+        if let supabaseId = supabaseMealIds[meal.id] {
+            Task {
+                try? await NutritionService.shared.deleteMeal(mealId: supabaseId)
+            }
+        }
+    }
+
+    func loadFromSupabase() {
+        guard AuthService.shared.authState == .signedIn else { return }
+        isLoading = true
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                let meals = try await NutritionService.shared.fetchLoggedMeals(userId: userId, date: Date())
+                let converted = meals.map { NutritionService.shared.toLoggedMeal($0) }
+                var idMap: [UUID: String] = [:]
+                for (i, meal) in meals.enumerated() {
+                    if let sid = meal.id {
+                        idMap[converted[i].id] = sid
+                    }
+                }
+                loggedMeals = converted
+                supabaseMealIds = idMap
+            } catch {}
+            isLoading = false
+        }
     }
 
     func loadSampleData() {
+        guard loggedMeals.isEmpty else { return }
+        if AuthService.shared.authState == .signedIn {
+            loadFromSupabase()
+            return
+        }
         let sampleMeals: [(String, MealTime)] = [
             ("Greek Yogurt (plain, nonfat)", .breakfast),
             ("Banana", .breakfast),
@@ -120,7 +164,8 @@ final class NutritionViewModel {
 
         for (foodName, mealTime) in sampleMeals {
             if let food = FoodDatabase.allFoods.first(where: { $0.name == foodName }) {
-                logMeal(food: food, servings: 1.0, mealTime: mealTime)
+                let meal = LoggedMeal(food: food, servings: 1.0, mealTime: mealTime)
+                loggedMeals.append(meal)
             }
         }
     }

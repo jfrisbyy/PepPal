@@ -5,6 +5,8 @@ final class HomeViewModel {
     var dailyTasks: [DailyTask] = DailyTaskLibrary.defaultTasks()
     var customCategories: [CustomTaskCategory] = []
     var isLoading: Bool = true
+    var taskSupabaseIds: [UUID: String] = [:]
+    private var tasksLoaded: Bool = false
     var selectedDate: Date = Date()
     var selectedTimePeriod: HomeTimePeriod = .daily
     var isDateSelectorExpanded: Bool = false
@@ -13,8 +15,11 @@ final class HomeViewModel {
     var selectedMonthDate: Date = Date()
 
     var userFirstName: String {
-        let fullName = "Jane"
-        return fullName.components(separatedBy: " ").first ?? fullName
+        if AuthService.shared.authState == .signedIn,
+           let profile = ProfileService.shared.cachedDisplayName {
+            return profile.components(separatedBy: " ").first ?? profile
+        }
+        return "Jane"
     }
 
     let streakManager = StreakManager.shared
@@ -169,6 +174,10 @@ final class HomeViewModel {
     func toggleTask(_ task: DailyTask) {
         guard let index = dailyTasks.firstIndex(where: { $0.id == task.id }) else { return }
         dailyTasks[index].isCompleted.toggle()
+        let newState = dailyTasks[index].isCompleted
+        if let supabaseId = taskSupabaseIds[task.id] {
+            Task { try? await DailyTaskService.shared.toggleCompletion(taskId: supabaseId, isCompleted: newState) }
+        }
     }
 
     func tasks(for category: TaskCategory) -> [DailyTask] {
@@ -211,6 +220,20 @@ final class HomeViewModel {
 
     func addTask(_ task: DailyTask) {
         dailyTasks.append(task)
+        persistTaskToSupabase(task)
+    }
+
+    private func persistTaskToSupabase(_ task: DailyTask) {
+        guard AuthService.shared.authState == .signedIn else { return }
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                let created = try await DailyTaskService.shared.createTask(userId: userId, task: task, date: Date())
+                if let sid = created.id {
+                    taskSupabaseIds[task.id] = sid
+                }
+            } catch {}
+        }
     }
 
     func updateTask(_ task: DailyTask) {
@@ -222,6 +245,10 @@ final class HomeViewModel {
 
     func deleteTask(_ task: DailyTask) {
         dailyTasks.removeAll { $0.id == task.id }
+        if let supabaseId = taskSupabaseIds[task.id] {
+            Task { try? await DailyTaskService.shared.deleteTask(taskId: supabaseId) }
+            taskSupabaseIds.removeValue(forKey: task.id)
+        }
     }
 
     func checkActionLinkedTasks() {
@@ -412,6 +439,7 @@ final class HomeViewModel {
 
     func onAppear() {
         streakManager.checkAndHandleMissedDay()
+        streakManager.loadFromSupabase()
         Task {
             _ = await notificationService.requestAuthorization()
         }
@@ -427,6 +455,9 @@ final class HomeViewModel {
         if !protocolsLoaded {
             loadProtocolsFromSupabase()
         }
+        if !tasksLoaded {
+            loadTasksFromSupabase()
+        }
         if isLoading {
             Task {
                 try? await Task.sleep(for: .milliseconds(600))
@@ -434,6 +465,28 @@ final class HomeViewModel {
                     isLoading = false
                 }
             }
+        }
+    }
+
+    func loadTasksFromSupabase() {
+        guard AuthService.shared.authState == .signedIn else { return }
+        tasksLoaded = true
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                let tasks = try await DailyTaskService.shared.fetchTasks(userId: userId, date: Date())
+                guard !tasks.isEmpty else { return }
+                var idMap: [UUID: String] = [:]
+                let converted = tasks.map { t -> DailyTask in
+                    let dt = DailyTaskService.shared.toDailyTask(t)
+                    if let sid = t.id {
+                        idMap[dt.id] = sid
+                    }
+                    return dt
+                }
+                dailyTasks = converted
+                taskSupabaseIds = idMap
+            } catch {}
         }
     }
 
