@@ -278,6 +278,12 @@ struct DailyDeckBannerView: View {
                 Spacer()
 
                 if task.actionLink != .none {
+                    if !task.goalDescription.isEmpty {
+                        Text(task.goalDescription)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(PepTheme.teal.opacity(0.6))
+                            .lineLimit(1)
+                    }
                     Image(systemName: "link")
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(PepTheme.teal.opacity(0.5))

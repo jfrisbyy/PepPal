@@ -214,6 +214,32 @@ nonisolated enum TaskActionLink: String, CaseIterable, Identifiable, Sendable, C
         }
     }
 
+    var supportsGoalDescription: Bool {
+        switch self {
+        case .runningSession, .cyclingSession, .swimmingSession, .basketballSession,
+             .soccerSession, .tennisSession, .footballSession, .yogaSession,
+             .workoutCompleted:
+            return true
+        default:
+            return false
+        }
+    }
+
+    var goalPlaceholder: String {
+        switch self {
+        case .runningSession: return "e.g. Run 1 mile, Run for 30 min"
+        case .cyclingSession: return "e.g. Ride 10 miles, Ride for 45 min"
+        case .swimmingSession: return "e.g. Swim 20 laps, Swim for 30 min"
+        case .basketballSession: return "e.g. Play 1 hour, Shoot 100 free throws"
+        case .soccerSession: return "e.g. Play 90 min, Run 3 miles"
+        case .tennisSession: return "e.g. Play 3 sets, Hit for 1 hour"
+        case .footballSession: return "e.g. Practice 1 hour, Run drills"
+        case .yogaSession: return "e.g. 30 min session, Complete flow"
+        case .workoutCompleted: return "e.g. Push day, Leg day, Full body"
+        default: return "Describe your goal"
+        }
+    }
+
     var targetLabel: String {
         switch self {
         case .stepCounter: return "Step Goal"
@@ -269,6 +295,7 @@ struct DailyTask: Identifiable, Sendable {
     var oneTimeDate: Date?
     var actionLink: TaskActionLink
     var actionTarget: Int
+    var goalDescription: String
     var isUserCreated: Bool
 
     init(
@@ -283,6 +310,7 @@ struct DailyTask: Identifiable, Sendable {
         oneTimeDate: Date? = nil,
         actionLink: TaskActionLink = .none,
         actionTarget: Int = 0,
+        goalDescription: String = "",
         isUserCreated: Bool = false
     ) {
         self.id = id
@@ -296,6 +324,7 @@ struct DailyTask: Identifiable, Sendable {
         self.oneTimeDate = oneTimeDate
         self.actionLink = actionLink
         self.actionTarget = actionTarget
+        self.goalDescription = goalDescription
         self.isUserCreated = isUserCreated
     }
 

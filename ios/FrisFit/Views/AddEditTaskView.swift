@@ -14,6 +14,7 @@ struct AddEditTaskView: View {
     @State private var oneTimeDate: Date = Date()
     @State private var actionLink: TaskActionLink = .none
     @State private var actionTarget: String = ""
+    @State private var goalDescription: String = ""
     @State private var expandedGroup: ActionLinkGroup? = nil
     @State private var showCreateCategory: Bool = false
 
@@ -76,6 +77,7 @@ struct AddEditTaskView: View {
                     oneTimeDate = task.oneTimeDate ?? Date()
                     actionLink = task.actionLink
                     actionTarget = task.actionTarget > 0 ? "\(task.actionTarget)" : ""
+                    goalDescription = task.goalDescription
                     expandedGroup = actionLink.group
                 }
             }
@@ -325,6 +327,10 @@ struct AddEditTaskView: View {
             if actionLink.hasCustomTarget {
                 targetInputField
             }
+
+            if actionLink.supportsGoalDescription {
+                goalDescriptionField
+            }
         }
     }
 
@@ -391,6 +397,9 @@ struct AddEditTaskView: View {
                 if !link.hasCustomTarget {
                     actionTarget = ""
                 }
+                if !link.supportsGoalDescription {
+                    goalDescription = ""
+                }
             }
         } label: {
             HStack(spacing: 12) {
@@ -418,6 +427,13 @@ struct AddEditTaskView: View {
                         .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
                 }
 
+                if actionLink == link && !goalDescription.isEmpty && link.supportsGoalDescription {
+                    Text(goalDescription)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(PepTheme.teal.opacity(0.7))
+                        .lineLimit(1)
+                }
+
                 if actionLink == link {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 16))
@@ -430,6 +446,26 @@ struct AddEditTaskView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+    }
+
+    private var goalDescriptionField: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("GOAL")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                .tracking(0.5)
+
+            TextField(actionLink.goalPlaceholder, text: $goalDescription)
+                .font(.system(.body, weight: .medium))
+                .foregroundStyle(PepTheme.textPrimary)
+                .padding(14)
+                .background(PepTheme.cardSurface)
+                .clipShape(.rect(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                )
+        }
     }
 
     private var targetInputField: some View {
@@ -498,6 +534,7 @@ struct AddEditTaskView: View {
             updated.oneTimeDate = scheduleType == .oneTime ? oneTimeDate : nil
             updated.actionLink = actionLink
             updated.actionTarget = target
+            updated.goalDescription = goalDescription.trimmingCharacters(in: .whitespaces)
             viewModel.updateTask(updated)
         } else {
             let newTask = DailyTask(
@@ -510,6 +547,7 @@ struct AddEditTaskView: View {
                 oneTimeDate: scheduleType == .oneTime ? oneTimeDate : nil,
                 actionLink: actionLink,
                 actionTarget: target,
+                goalDescription: goalDescription.trimmingCharacters(in: .whitespaces),
                 isUserCreated: true
             )
             viewModel.addTask(newTask)

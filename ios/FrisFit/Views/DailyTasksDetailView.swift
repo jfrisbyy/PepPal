@@ -269,6 +269,13 @@ struct DailyTasksDetailView: View {
                                 Text(goalStr)
                                     .font(.system(size: 9, weight: .bold, design: .rounded))
                             }
+                            if !task.goalDescription.isEmpty {
+                                Text("·")
+                                    .font(.system(size: 8))
+                                Text(task.goalDescription)
+                                    .font(.system(size: 9, weight: .bold))
+                                    .lineLimit(1)
+                            }
                         }
                         .foregroundStyle(PepTheme.teal.opacity(0.6))
                     }
