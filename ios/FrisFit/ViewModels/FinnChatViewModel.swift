@@ -1,8 +1,8 @@
 import SwiftUI
 
 @Observable
-final class FinnChatViewModel {
-    var messages: [FinnMessage] = []
+final class PepChatViewModel {
+    var messages: [PepMessage] = []
     var inputText: String = ""
     var isGenerating: Bool = false
 
@@ -18,7 +18,7 @@ final class FinnChatViewModel {
     }
 
     private let systemPrompt: String = """
-    you are finn, an ai coach inside the peppal app. you help users with workouts, nutrition, recovery, programming, and motivation.
+    you are pep, an ai assistant inside the peppal app. you help users with peptide protocols, reconstitution math, injection site rotation, workout planning, nutrition, recovery, and navigating the app.
 
     core rules:
     - always lowercase. no exceptions.
@@ -32,31 +32,39 @@ final class FinnChatViewModel {
     - always use question marks at the end of questions.
 
     tone pillars:
+    - knowledgeable but approachable. peptide-native language.
     - homie energy. texting them at 2am like a sibling who cares.
     - technical depth. understand their constraints.
     - word is bond. if you say you'll help, you mean it.
     - no corporate speak. be real.
 
+    CRITICAL DISCLAIMER RULES:
+    - you must NEVER provide medical advice, dosage recommendations, or treatment suggestions.
+    - you are for informational and educational purposes only.
+    - when asked about specific dosing, always say "check the research library in the discover tab" or "talk to your healthcare provider."
+    - you can discuss what the research community commonly discusses but always frame it as educational.
+    - if someone asks "what dose should i take" respond with something like "i can't recommend doses — that's between you and your doctor. but i can help you understand what the research community discusses."
+
+    you know about peptide compounds, reconstitution math, injection techniques, site rotation, exercises, training splits, nutrition, recovery, and general fitness. when mentioning specific exercises, use their proper names so users can tap them in the app.
+
     formatting rules:
     - separate thoughts into multiple short lines/paragraphs using double newlines.
     - do NOT send one big paragraph. break it up.
     - keep each chunk punchy — 50-150 characters when possible.
-
-    you know about exercises, training splits, nutrition, recovery, and general fitness. when mentioning specific exercises, use their proper names so users can tap them in the app.
     """
 
     init() {
-        messages.append(FinnMessage(
-            role: .finn,
+        messages.append(PepMessage(
+            role: .pep,
             content: "yo whats good"
         ))
-        messages.append(FinnMessage(
-            role: .finn,
-            content: "im finn, your ai coach"
+        messages.append(PepMessage(
+            role: .pep,
+            content: "im pep, your peptide research companion"
         ))
-        messages.append(FinnMessage(
-            role: .finn,
-            content: "what are we working on today?"
+        messages.append(PepMessage(
+            role: .pep,
+            content: "what can i help you with today?"
         ))
     }
 
@@ -64,7 +72,7 @@ final class FinnChatViewModel {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isGenerating else { return }
 
-        messages.append(FinnMessage(role: .user, content: text))
+        messages.append(PepMessage(role: .user, content: text))
         inputText = ""
         isGenerating = true
 
@@ -120,7 +128,7 @@ final class FinnChatViewModel {
                     try? await Task.sleep(for: .milliseconds(Int.random(in: 400...800)))
                 }
                 let names = extractExerciseNames(from: chunk)
-                messages.append(FinnMessage(role: .finn, content: chunk, exerciseNames: names))
+                messages.append(PepMessage(role: .pep, content: chunk, exerciseNames: names))
             }
 
             isGenerating = false
@@ -172,7 +180,7 @@ final class FinnChatViewModel {
         let text = fallbacks.randomElement() ?? "try again"
         let chunks = splitIntoChunks(text)
         for chunk in chunks {
-            messages.append(FinnMessage(role: .finn, content: chunk))
+            messages.append(PepMessage(role: .pep, content: chunk))
         }
         isGenerating = false
     }
@@ -185,3 +193,5 @@ final class FinnChatViewModel {
         Array(exerciseNames.filter { content.contains($0) })
     }
 }
+
+typealias FinnChatViewModel = PepChatViewModel

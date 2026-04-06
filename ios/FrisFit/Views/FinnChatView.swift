@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct FinnChatView: View {
-    @State private var viewModel = FinnChatViewModel()
+struct PepChatView: View {
+    @State private var viewModel = PepChatViewModel()
     @FocusState private var isInputFocused: Bool
     @State private var showQuickActions: Bool = false
 
@@ -9,12 +9,12 @@ struct FinnChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            iMessageNavBar
+            pepNavBar
 
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 2) {
-                        finnProfileHeader
+                        pepProfileHeader
                             .padding(.bottom, 8)
 
                         ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
@@ -30,8 +30,8 @@ struct FinnChatView: View {
                             }
 
                             switch message.role {
-                            case .finn:
-                                FinnBubble(message: message, viewModel: viewModel, showAvatar: shouldShowFinnAvatar(at: index))
+                            case .pep:
+                                PepBubble(message: message, viewModel: viewModel, showAvatar: shouldShowPepAvatar(at: index))
                                     .padding(.top, isSameRoleAsPrevious(at: index) && !showTimestamp ? 2 : 8)
                             case .user:
                                 UserBubble(text: message.content)
@@ -40,7 +40,7 @@ struct FinnChatView: View {
                         }
 
                         if viewModel.isGenerating {
-                            FinnTypingBubble()
+                            PepTypingBubble()
                                 .padding(.top, 8)
                         }
 
@@ -65,12 +65,12 @@ struct FinnChatView: View {
                 }
             }
 
-            iMessageInputBar
+            pepInputBar
         }
         .background(PepTheme.background.ignoresSafeArea())
     }
 
-    private var iMessageNavBar: some View {
+    private var pepNavBar: some View {
         VStack(spacing: 0) {
             HStack {
                 Button {
@@ -86,8 +86,8 @@ struct FinnChatView: View {
                 Spacer()
 
                 VStack(spacing: 2) {
-                    FinnNavAvatar(size: 32)
-                    Text("Finn")
+                    PepNavAvatar(size: 32)
+                    Text("Pep")
                         .font(.system(.caption, weight: .semibold))
                         .foregroundStyle(PepTheme.textPrimary)
                 }
@@ -113,24 +113,32 @@ struct FinnChatView: View {
         .background(.ultraThinMaterial)
     }
 
-    private var finnProfileHeader: some View {
+    private var pepProfileHeader: some View {
         VStack(spacing: 8) {
-            FinnNavAvatar(size: 60)
+            PepNavAvatar(size: 60)
 
-            Text("Finn")
+            Text("Pep")
                 .font(.system(.headline, weight: .semibold))
                 .foregroundStyle(PepTheme.textPrimary)
 
-            Text("AI Coach")
+            Text("Peptide Research Companion")
                 .font(.caption)
                 .foregroundStyle(PepTheme.textSecondary)
+
+            Text("For informational & educational purposes only")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(PepTheme.amber)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(PepTheme.amber.opacity(0.1))
+                .clipShape(.capsule)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 16)
         .padding(.bottom, 8)
     }
 
-    private var iMessageInputBar: some View {
+    private var pepInputBar: some View {
         VStack(spacing: 0) {
             Rectangle()
                 .fill(PepTheme.separatorColor)
@@ -149,7 +157,7 @@ struct FinnChatView: View {
                 }
 
                 HStack(spacing: 0) {
-                    TextField("iMessage", text: $viewModel.inputText, axis: .vertical)
+                    TextField("Ask Pep anything...", text: $viewModel.inputText, axis: .vertical)
                         .lineLimit(1...5)
                         .font(.body)
                         .foregroundStyle(PepTheme.textPrimary)
@@ -200,20 +208,20 @@ struct FinnChatView: View {
 
     private var quickActionsRow: some View {
         HStack(spacing: 20) {
-            QuickActionButton(icon: "dumbbell.fill", label: "Workout", color: PepTheme.teal) {
+            QuickActionButton(icon: "pill.fill", label: "Peptides", color: PepTheme.teal) {
+                viewModel.inputText = "Tell me about BPC-157"
+                showQuickActions = false
+            }
+            QuickActionButton(icon: "function", label: "Reconstitution", color: PepTheme.blue) {
+                viewModel.inputText = "Help me with reconstitution math"
+                showQuickActions = false
+            }
+            QuickActionButton(icon: "syringe.fill", label: "Injection", color: .orange) {
+                viewModel.inputText = "Where should I inject next?"
+                showQuickActions = false
+            }
+            QuickActionButton(icon: "dumbbell.fill", label: "Training", color: PepTheme.violet) {
                 viewModel.inputText = "What should I train today?"
-                showQuickActions = false
-            }
-            QuickActionButton(icon: "fork.knife", label: "Nutrition", color: .orange) {
-                viewModel.inputText = "Help me with my diet plan"
-                showQuickActions = false
-            }
-            QuickActionButton(icon: "chart.line.uptrend.xyaxis", label: "Progress", color: .green) {
-                viewModel.inputText = "How's my progress looking?"
-                showQuickActions = false
-            }
-            QuickActionButton(icon: "bed.double.fill", label: "Recovery", color: .blue) {
-                viewModel.inputText = "Tips for better recovery"
                 showQuickActions = false
             }
         }
@@ -233,10 +241,10 @@ struct FinnChatView: View {
         return viewModel.messages[index].role == viewModel.messages[index - 1].role
     }
 
-    private func shouldShowFinnAvatar(at index: Int) -> Bool {
+    private func shouldShowPepAvatar(at index: Int) -> Bool {
         let messages = viewModel.messages
         if index + 1 < messages.count {
-            if messages[index + 1].role == .finn {
+            if messages[index + 1].role == .pep {
                 let timeDiff = messages[index + 1].timestamp.timeIntervalSince(messages[index].timestamp)
                 if timeDiff < 300 { return false }
             }
@@ -244,6 +252,8 @@ struct FinnChatView: View {
         return true
     }
 }
+
+typealias FinnChatView = PepChatView
 
 struct QuickActionButton: View {
     let icon: String
@@ -269,7 +279,7 @@ struct QuickActionButton: View {
     }
 }
 
-struct FinnNavAvatar: View {
+struct PepNavAvatar: View {
     let size: CGFloat
 
     var body: some View {
@@ -277,29 +287,31 @@ struct FinnNavAvatar: View {
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [PepTheme.violet, PepTheme.violet.opacity(0.7)],
+                        colors: [PepTheme.teal, PepTheme.violet.opacity(0.7)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
                 .frame(width: size, height: size)
 
-            Text("F")
+            Text("P")
                 .font(.system(size: size * 0.4, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
         }
     }
 }
 
-struct FinnBubble: View {
-    let message: FinnMessage
-    let viewModel: FinnChatViewModel
+typealias FinnNavAvatar = PepNavAvatar
+
+struct PepBubble: View {
+    let message: PepMessage
+    let viewModel: PepChatViewModel
     let showAvatar: Bool
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 6) {
             if showAvatar {
-                FinnNavAvatar(size: 28)
+                PepNavAvatar(size: 28)
             } else {
                 Color.clear.frame(width: 28)
             }
@@ -310,15 +322,15 @@ struct FinnBubble: View {
                     .foregroundStyle(PepTheme.textPrimary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(finnBubbleBackground)
-                    .clipShape(FinnBubbleShape(showTail: showAvatar))
+                    .background(pepBubbleBackground)
+                    .clipShape(PepBubbleShape(showTail: showAvatar))
             }
 
             Spacer(minLength: 50)
         }
     }
 
-    private var finnBubbleBackground: some View {
+    private var pepBubbleBackground: some View {
         Color(UIColor { traits in
             traits.userInterfaceStyle == .dark
                 ? UIColor(red: 38/255, green: 38/255, blue: 42/255, alpha: 1)
@@ -337,7 +349,9 @@ struct FinnBubble: View {
     }
 }
 
-struct FinnBubbleShape: Shape {
+typealias FinnBubble = PepBubble
+
+struct PepBubbleShape: Shape {
     let showTail: Bool
 
     func path(in rect: CGRect) -> Path {
@@ -393,6 +407,8 @@ struct FinnBubbleShape: Shape {
         return path
     }
 }
+
+typealias FinnBubbleShape = PepBubbleShape
 
 struct UserBubble: View {
     let text: String
@@ -459,10 +475,10 @@ struct UserBubbleShape: Shape {
     }
 }
 
-struct FinnTypingBubble: View {
+struct PepTypingBubble: View {
     var body: some View {
         HStack(alignment: .bottom, spacing: 6) {
-            FinnNavAvatar(size: 28)
+            PepNavAvatar(size: 28)
 
             TypingDots()
                 .padding(.horizontal, 16)
@@ -474,12 +490,14 @@ struct FinnTypingBubble: View {
                             : UIColor(red: 230/255, green: 230/255, blue: 235/255, alpha: 1)
                     })
                 )
-                .clipShape(FinnBubbleShape(showTail: true))
+                .clipShape(PepBubbleShape(showTail: true))
 
             Spacer()
         }
     }
 }
+
+typealias FinnTypingBubble = PepTypingBubble
 
 struct TypingDots: View {
     @State private var phase: Int = 0
@@ -506,7 +524,7 @@ struct TypingDots: View {
 struct ExerciseLinkText: View {
     let content: String
     let exerciseNames: [String]
-    let viewModel: FinnChatViewModel
+    let viewModel: PepChatViewModel
 
     @State private var selectedExercise: Exercise?
 
@@ -592,7 +610,23 @@ struct FinnAvatar: View {
     var isAnimating: Bool = false
 
     var body: some View {
-        FinnNavAvatar(size: size)
+        PepNavAvatar(size: size)
+            .scaleEffect(isAnimating ? 1.06 : 1.0)
+            .animation(
+                isAnimating ?
+                    .easeInOut(duration: 1.2).repeatForever(autoreverses: true) :
+                    .default,
+                value: isAnimating
+            )
+    }
+}
+
+struct PepAvatar: View {
+    let size: CGFloat
+    var isAnimating: Bool = false
+
+    var body: some View {
+        PepNavAvatar(size: size)
             .scaleEffect(isAnimating ? 1.06 : 1.0)
             .animation(
                 isAnimating ?

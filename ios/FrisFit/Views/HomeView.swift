@@ -4,7 +4,10 @@ import HealthKit
 struct HomeView: View {
     @State private var viewModel = HomeViewModel()
     @State private var appeared: Bool = false
-    @State private var showFinnChat: Bool = false
+    @State private var showPepChat: Bool = false
+    @State private var showProtocolWizard: Bool = false
+    @State private var showReconCalculator: Bool = false
+    @State private var showQuickActions: Bool = false
     @State private var showNutrition: Bool = false
     @State private var showDailyTasks: Bool = false
     @State private var showStepDetail: Bool = false
@@ -70,26 +73,236 @@ struct HomeView: View {
     // MARK: - Daily Content
 
     private var dailyContent: some View {
-        VStack(spacing: 20) {
-            calendarStrip
-            BodyGoalSectionView(viewModel: bodyGoalViewModel)
-            if viewModel.healthKit.isAuthorized {
-                stepsModuleCard
-                healthStatsCard
+        ZStack(alignment: .bottomTrailing) {
+            VStack(spacing: 20) {
+                calendarStrip
+                protocolCard
+                BodyGoalSectionView(viewModel: bodyGoalViewModel)
+                if viewModel.healthKit.isAuthorized {
+                    stepsModuleCard
+                    healthStatsCard
+                }
+                dailyPointsCard
+                if let encouragement = viewModel.streakEncouragement {
+                    streakEncouragementCard(message: encouragement)
+                }
+                todaysPlanCard
+                nutritionCard
+                pepInsightCard
+                activityFeedSection
+                quickStatsBar
             }
-            dailyPointsCard
-            if let encouragement = viewModel.streakEncouragement {
-                streakEncouragementCard(message: encouragement)
-            }
-            todaysPlanCard
-            nutritionCard
-            finnInsightCard
-            activityFeedSection
-            quickStatsBar
+            .padding(.horizontal)
+            .padding(.bottom, 80)
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
+
+            floatingQuickActionButton
+                .padding(.trailing, 16)
+                .padding(.bottom, 16)
         }
-        .padding(.horizontal)
-        .padding(.bottom, 24)
-        .transition(.opacity.combined(with: .move(edge: .bottom)))
+        .sheet(isPresented: $showProtocolWizard) {
+            ProtocolSetupWizardView { proto in
+                viewModel.activeProtocol = proto
+            }
+        }
+        .sheet(isPresented: $showReconCalculator) {
+            ReconstitutionCalculatorView()
+        }
+    }
+
+    // MARK: - Protocol Card
+
+    private var protocolCard: some View {
+        Group {
+            if let proto = viewModel.activeProtocol {
+                activeProtocolCard(proto)
+            } else {
+                startProtocolCard
+            }
+        }
+    }
+
+    private func activeProtocolCard(_ proto: PeptideProtocol) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "pill.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(PepTheme.teal)
+                            Text("Active Protocol")
+                                .font(.system(.caption, weight: .semibold))
+                                .foregroundStyle(PepTheme.textSecondary)
+                        }
+                        Text(proto.name)
+                            .font(.system(.headline, design: .rounded, weight: .bold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Day \(proto.currentDay)")
+                            .font(.system(.title3, design: .rounded, weight: .bold))
+                            .foregroundStyle(PepTheme.teal)
+                        Text(proto.currentPhase.rawValue)
+                            .font(.system(.caption2, weight: .semibold))
+                            .foregroundStyle(proto.currentPhase.color)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(proto.currentPhase.color.opacity(0.12))
+                            .clipShape(.capsule)
+                    }
+                }
+
+                if let nextDose = proto.nextDose {
+                    HStack(spacing: 10) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(PepTheme.amber)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Next Dose")
+                                .font(.caption2)
+                                .foregroundStyle(PepTheme.textSecondary)
+                            Text("\(Int(nextDose.doseMcg))mcg \(nextDose.compoundName)")
+                                .font(.system(.subheadline, weight: .semibold))
+                                .foregroundStyle(PepTheme.textPrimary)
+                        }
+                        Spacer()
+                        Button {
+                        } label: {
+                            Text("Log Dose")
+                                .font(.system(.caption, weight: .bold))
+                                .foregroundStyle(PepTheme.invertedText)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(PepTheme.teal, in: .capsule)
+                        }
+                        .buttonStyle(.scale)
+                    }
+                    .padding(10)
+                    .background(PepTheme.elevated.opacity(0.5))
+                    .clipShape(.rect(cornerRadius: 10))
+                }
+
+                let total = max(1, proto.loadingWeeks + proto.maintenanceWeeks + proto.taperingWeeks + proto.offCycleWeeks)
+                GeometryReader { geo in
+                    HStack(spacing: 2) {
+                        if proto.loadingWeeks > 0 {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(CyclePhase.loading.color)
+                                .frame(width: geo.size.width * CGFloat(proto.loadingWeeks) / CGFloat(total))
+                        }
+                        if proto.maintenanceWeeks > 0 {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(CyclePhase.maintenance.color)
+                                .frame(width: geo.size.width * CGFloat(proto.maintenanceWeeks) / CGFloat(total))
+                        }
+                        if proto.taperingWeeks > 0 {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(CyclePhase.tapering.color)
+                                .frame(width: geo.size.width * CGFloat(proto.taperingWeeks) / CGFloat(total))
+                        }
+                        if proto.offCycleWeeks > 0 {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(CyclePhase.offCycle.color)
+                                .frame(width: geo.size.width * CGFloat(proto.offCycleWeeks) / CGFloat(total))
+                        }
+                    }
+                }
+                .frame(height: 6)
+            }
+        }
+    }
+
+    private var startProtocolCard: some View {
+        Button {
+            showProtocolWizard = true
+        } label: {
+            VStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                colors: [PepTheme.teal.opacity(0.15), PepTheme.blue.opacity(0.1)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(height: 100)
+
+                    VStack(spacing: 10) {
+                        Image(systemName: "pill.circle.fill")
+                            .font(.system(size: 36))
+                            .foregroundStyle(PepTheme.teal)
+
+                        Text("Start Your First Protocol")
+                            .font(.system(.headline, design: .rounded, weight: .bold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                    }
+                }
+
+                Text("Set up your peptide protocol with dose scheduling, cycle planning, and injection tracking")
+                    .font(.caption)
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
+            }
+            .padding(16)
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+            .clipShape(.rect(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        LinearGradient(colors: [PepTheme.teal.opacity(0.3), PepTheme.blue.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        lineWidth: 0.5
+                    )
+            )
+        }
+        .buttonStyle(.scale)
+        .sensoryFeedback(.impact(weight: .medium), trigger: showProtocolWizard)
+    }
+
+    // MARK: - Floating Quick Action
+
+    private var floatingQuickActionButton: some View {
+        Menu {
+            Button { } label: {
+                Label("Log Dose", systemImage: "pill.fill")
+            }
+            Button { } label: {
+                Label("Start Workout", systemImage: "figure.run")
+            }
+            Button { } label: {
+                Label("Log Bloodwork", systemImage: "drop.fill")
+            }
+            Button {
+                showProtocolWizard = true
+            } label: {
+                Label("New Protocol", systemImage: "plus.circle")
+            }
+            Button {
+                showReconCalculator = true
+            } label: {
+                Label("Reconstitution Calculator", systemImage: "function")
+            }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [PepTheme.teal, PepTheme.teal.opacity(0.8)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 56, height: 56)
+                    .shadow(color: PepTheme.teal.opacity(0.4), radius: 12, x: 0, y: 4)
+
+                Image(systemName: "plus")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+        }
     }
 
     // MARK: - Time Period Picker
@@ -828,17 +1041,17 @@ struct HomeView: View {
 
     // MARK: - Finn Insight
 
-    private var finnInsightCard: some View {
+    private var pepInsightCard: some View {
         Button {
-            showFinnChat = true
+            showPepChat = true
         } label: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top, spacing: 12) {
-                    FinnAvatar(size: 44)
+                    PepAvatar(size: 44)
 
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text("Finn's Daily Insight")
+                            Text("Pep's Daily Insight")
                                 .font(.system(.subheadline, weight: .semibold))
                                 .foregroundStyle(PepTheme.violet)
                             Spacer()
@@ -847,7 +1060,7 @@ struct HomeView: View {
                                 .foregroundStyle(PepTheme.violet.opacity(0.5))
                         }
 
-                        Text(viewModel.finnInsight)
+                        Text(viewModel.pepInsight)
                             .font(.subheadline)
                             .italic()
                             .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
@@ -876,8 +1089,8 @@ struct HomeView: View {
             .shadow(color: PepTheme.violet.opacity(0.15), radius: 12, x: 0, y: 4)
         }
         .buttonStyle(.scale)
-        .fullScreenCover(isPresented: $showFinnChat) {
-            FinnChatView()
+        .fullScreenCover(isPresented: $showPepChat) {
+            PepChatView()
         }
     }
 
@@ -942,7 +1155,7 @@ struct HomeView: View {
                 FinnAvatar(size: 40)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Finn says...")
+                    Text("Pep says...")
                         .font(.system(.caption, weight: .semibold))
                         .foregroundStyle(PepTheme.violet)
 

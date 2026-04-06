@@ -10,14 +10,14 @@ final class WorkoutState {
 }
 
 nonisolated enum AppTab: Int, CaseIterable {
-    case home, train, market, social, profile
+    case home, train, discover, community, profile
 
     var title: String {
         switch self {
         case .home: "Home"
         case .train: "Train"
-        case .market: "Market"
-        case .social: "Social"
+        case .discover: "Discover"
+        case .community: "Community"
         case .profile: "Profile"
         }
     }
@@ -26,8 +26,8 @@ nonisolated enum AppTab: Int, CaseIterable {
         switch self {
         case .home: "house"
         case .train: "figure.run"
-        case .market: "bag"
-        case .social: "person.2"
+        case .discover: "magnifyingglass"
+        case .community: "person.2"
         case .profile: "person.crop.circle"
         }
     }
@@ -36,8 +36,8 @@ nonisolated enum AppTab: Int, CaseIterable {
         switch self {
         case .home: "house.fill"
         case .train: "figure.run"
-        case .market: "bag.fill"
-        case .social: "person.2.fill"
+        case .discover: "magnifyingglass"
+        case .community: "person.2.fill"
         case .profile: "person.crop.circle.fill"
         }
     }
@@ -45,7 +45,7 @@ nonisolated enum AppTab: Int, CaseIterable {
 
 struct ContentView: View {
     @State private var selectedTab: AppTab = .home
-    @State private var showFinnChat: Bool = false
+    @State private var showPepChat: Bool = false
     @State private var previousTab: AppTab = .home
     @State private var workoutState = WorkoutState.shared
 
@@ -58,10 +58,10 @@ struct ContentView: View {
                 Tab("Train", systemImage: selectedTab == .train ? AppTab.train.activeIcon : AppTab.train.icon, value: .train) {
                     TrainView()
                 }
-                Tab("Market", systemImage: selectedTab == .market ? AppTab.market.activeIcon : AppTab.market.icon, value: .market) {
-                    MarketView()
+                Tab("Discover", systemImage: selectedTab == .discover ? AppTab.discover.activeIcon : AppTab.discover.icon, value: .discover) {
+                    DiscoverView()
                 }
-                Tab("Social", systemImage: selectedTab == .social ? AppTab.social.activeIcon : AppTab.social.icon, value: .social) {
+                Tab("Community", systemImage: selectedTab == .community ? AppTab.community.activeIcon : AppTab.community.icon, value: .community) {
                     SocialView()
                 }
                 Tab("Profile", systemImage: selectedTab == .profile ? AppTab.profile.activeIcon : AppTab.profile.icon, value: .profile) {
@@ -74,8 +74,8 @@ struct ContentView: View {
                 workoutIndicatorBar
             }
 
-            if selectedTab != .social {
-                floatingFinnButton
+            if selectedTab != .community {
+                floatingPepButton
             }
         }
         .onAppear {
@@ -84,18 +84,13 @@ struct ContentView: View {
         .onChange(of: selectedTab) { oldValue, newValue in
             previousTab = oldValue
         }
-        .fullScreenCover(isPresented: $showFinnChat) {
-            FinnChatView()
+        .fullScreenCover(isPresented: $showPepChat) {
+            PepChatView()
         }
         .task {
             try? await Task.sleep(for: .milliseconds(500))
-            print("[HealthKit] isHealthDataAvailable: \(HKHealthStore.isHealthDataAvailable())")
             if HKHealthStore.isHealthDataAvailable() {
-                print("[HealthKit] Calling requestAuthorization from ContentView")
                 await HealthKitService.shared.requestAuthorization()
-                print("[HealthKit] requestAuthorization completed, isAuthorized: \(HealthKitService.shared.isAuthorized)")
-            } else {
-                print("[HealthKit] Health data NOT available on this device")
             }
         }
     }
@@ -128,9 +123,9 @@ struct ContentView: View {
         .ignoresSafeArea()
     }
 
-    private var floatingFinnButton: some View {
+    private var floatingPepButton: some View {
         Button {
-            showFinnChat = true
+            showPepChat = true
         } label: {
             ZStack {
                 Circle()
@@ -153,7 +148,7 @@ struct ContentView: View {
         .buttonStyle(.scale)
         .padding(.trailing, 16)
         .padding(.bottom, 80)
-        .sensoryFeedback(.impact(weight: .medium), trigger: showFinnChat)
+        .sensoryFeedback(.impact(weight: .medium), trigger: showPepChat)
     }
 
     private func configureTabBarAppearance() {

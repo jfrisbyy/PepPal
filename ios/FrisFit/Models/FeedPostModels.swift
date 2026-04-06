@@ -7,6 +7,17 @@ nonisolated enum FeedFilter: String, CaseIterable, Sendable {
 }
 
 nonisolated enum FeedTag: String, CaseIterable, Identifiable, Sendable {
+    case bpc157 = "BPC-157"
+    case tb500 = "TB-500"
+    case glp1 = "GLP-1"
+    case growthHormone = "Growth Hormone"
+    case bloodwork = "Bloodwork"
+    case vendors = "Vendors"
+    case reconstitution = "Reconstitution"
+    case sideEffects = "Side Effects"
+    case healing = "Healing"
+    case cognitive = "Cognitive"
+    case tanning = "Tanning"
     case basketball = "Basketball"
     case running = "Running"
     case cycling = "Cycling"
@@ -24,6 +35,17 @@ nonisolated enum FeedTag: String, CaseIterable, Identifiable, Sendable {
 
     var icon: String {
         switch self {
+        case .bpc157: return "cross.case.fill"
+        case .tb500: return "bandage.fill"
+        case .glp1: return "scalemass.fill"
+        case .growthHormone: return "arrow.up.right"
+        case .bloodwork: return "drop.fill"
+        case .vendors: return "building.2.fill"
+        case .reconstitution: return "flask.fill"
+        case .sideEffects: return "exclamationmark.triangle.fill"
+        case .healing: return "heart.fill"
+        case .cognitive: return "brain.head.profile"
+        case .tanning: return "sun.max.fill"
         case .basketball: return "basketball.fill"
         case .running: return "figure.run"
         case .cycling: return "bicycle"
@@ -47,6 +69,7 @@ nonisolated enum FeedPostMediaType: String, Sendable {
     case voice
     case marketLink
     case workoutLog
+    case poll
 }
 
 nonisolated struct FeedMediaItem: Identifiable, Sendable {
@@ -57,6 +80,7 @@ nonisolated struct FeedMediaItem: Identifiable, Sendable {
     let voiceDuration: TimeInterval?
     let marketProgram: MarketProgram?
     let workoutLog: WorkoutLogAttachment?
+    let poll: CommunityPoll?
 
     init(
         id: UUID = UUID(),
@@ -65,7 +89,8 @@ nonisolated struct FeedMediaItem: Identifiable, Sendable {
         videoURL: String? = nil,
         voiceDuration: TimeInterval? = nil,
         marketProgram: MarketProgram? = nil,
-        workoutLog: WorkoutLogAttachment? = nil
+        workoutLog: WorkoutLogAttachment? = nil,
+        poll: CommunityPoll? = nil
     ) {
         self.id = id
         self.type = type
@@ -74,6 +99,7 @@ nonisolated struct FeedMediaItem: Identifiable, Sendable {
         self.voiceDuration = voiceDuration
         self.marketProgram = marketProgram
         self.workoutLog = workoutLog
+        self.poll = poll
     }
 }
 
@@ -132,4 +158,5 @@ nonisolated struct FeedPost: Identifiable, Sendable {
     var voiceMedia: FeedMediaItem? { media.first { $0.type == .voice } }
     var marketLink: FeedMediaItem? { media.first { $0.type == .marketLink } }
     var workoutAttachment: FeedMediaItem? { media.first { $0.type == .workoutLog } }
+    var pollAttachment: FeedMediaItem? { media.first { $0.type == .poll } }
 }

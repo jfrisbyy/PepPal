@@ -185,7 +185,11 @@ final class HomeViewModel {
         proteinTarget: 150
     )
 
-    var finnInsight: String = "Your bench press volume has been climbing steadily — up 12% this month. Consider adding a deload week soon to lock in those gains."
+    var activeProtocol: PeptideProtocol? = nil
+
+    var pepInsight: String = "Your BPC-157 protocol is on day 14 — maintenance phase looking solid. Remember to rotate injection sites and stay hydrated for optimal absorption."
+
+    var finnInsight: String { pepInsight }
 
     var activityFeed: [FriendActivity] = [
         FriendActivity(friendName: "Marcus", workoutName: "Leg Day Destroyer", fpEarned: 340, timeAgo: "25m ago", highFived: false),

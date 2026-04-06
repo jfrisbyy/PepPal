@@ -56,7 +56,7 @@ struct SocialView: View {
                 }
             }
             .background(PepTheme.background.ignoresSafeArea())
-            .navigationTitle("Social")
+            .navigationTitle("Community")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 12) {

@@ -7,7 +7,7 @@ struct ProfileView: View {
 
     enum ProfileTab: String, CaseIterable {
         case posts = "Posts"
-        case market = "Market"
+        case health = "Health"
         case stats = "Stats"
     }
 
@@ -240,8 +240,8 @@ struct ProfileView: View {
             switch selectedTab {
             case .posts:
                 postsTab
-            case .market:
-                marketTab
+            case .health:
+                healthTab
             case .stats:
                 statsTab
             }
@@ -264,15 +264,15 @@ struct ProfileView: View {
         }
     }
 
-    private var marketTab: some View {
-        LazyVStack(spacing: 12) {
-            if viewModel.userMarketItems.isEmpty {
-                profileEmptyState(icon: "bag", title: "No Market Items", message: "Programs and plans you publish will appear here.")
-            } else {
-                ForEach(viewModel.userMarketItems) { program in
-                    ProfileMarketCard(program: program)
-                }
-            }
+    private var healthTab: some View {
+        VStack(spacing: 12) {
+            ProfileMenuRow(icon: "drop.fill", title: "Bloodwork Tracking", subtitle: "Log and track your lab results over time")
+
+            ProfileMenuRow(icon: "camera.fill", title: "Progress Photos", subtitle: "Document your journey with side-by-side comparisons")
+
+            ProfileMenuRow(icon: "pill.fill", title: "Protocol History", subtitle: "View past and current peptide protocols")
+
+            ProfileMenuRow(icon: "function", title: "Reconstitution Calculator", subtitle: "Quick dose and concentration math")
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)

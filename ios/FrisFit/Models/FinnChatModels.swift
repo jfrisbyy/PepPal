@@ -1,18 +1,18 @@
 import Foundation
 
-nonisolated enum FinnMessageRole: Sendable {
-    case finn
+nonisolated enum PepMessageRole: Sendable {
+    case pep
     case user
 }
 
-nonisolated struct FinnMessage: Identifiable, Sendable {
+nonisolated struct PepMessage: Identifiable, Sendable {
     let id: UUID
-    let role: FinnMessageRole
+    let role: PepMessageRole
     let content: String
     let timestamp: Date
     let exerciseNames: [String]
 
-    init(id: UUID = UUID(), role: FinnMessageRole, content: String, timestamp: Date = Date(), exerciseNames: [String] = []) {
+    init(id: UUID = UUID(), role: PepMessageRole, content: String, timestamp: Date = Date(), exerciseNames: [String] = []) {
         self.id = id
         self.role = role
         self.content = content
@@ -20,3 +20,6 @@ nonisolated struct FinnMessage: Identifiable, Sendable {
         self.exerciseNames = exerciseNames
     }
 }
+
+typealias FinnMessageRole = PepMessageRole
+typealias FinnMessage = PepMessage
