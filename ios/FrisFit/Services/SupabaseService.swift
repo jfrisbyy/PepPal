@@ -1,20 +1,22 @@
 import Foundation
 import Supabase
 
-@Observable
 final class SupabaseService {
     static let shared = SupabaseService()
 
     let client: SupabaseClient
 
     private init() {
-        guard let url = URL(string: Config.EXPO_PUBLIC_SUPABASE_URL), !Config.EXPO_PUBLIC_SUPABASE_URL.isEmpty else {
-            fatalError("Missing EXPO_PUBLIC_SUPABASE_URL")
+        let supabaseURL = Config.EXPO_PUBLIC_SUPABASE_URL
+        let supabaseKey = Config.EXPO_PUBLIC_SUPABASE_ANON_KEY
+
+        guard let url = URL(string: supabaseURL), !supabaseURL.isEmpty, !supabaseKey.isEmpty else {
+            fatalError("Supabase URL or Anon Key not configured in environment variables.")
         }
-        let anonKey = Config.EXPO_PUBLIC_SUPABASE_ANON_KEY
-        guard !anonKey.isEmpty else {
-            fatalError("Missing EXPO_PUBLIC_SUPABASE_ANON_KEY")
-        }
-        client = SupabaseClient(supabaseURL: url, supabaseKey: anonKey)
+
+        client = SupabaseClient(
+            supabaseURL: url,
+            supabaseKey: supabaseKey
+        )
     }
 }

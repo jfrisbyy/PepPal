@@ -51,8 +51,30 @@ struct ContentView: View {
     @State private var fabExpanded: Bool = false
     @State private var previousTab: AppTab = .home
     @State private var workoutState = WorkoutState.shared
+    @State private var authService = AuthService.shared
 
     var body: some View {
+        switch authService.authState {
+        case .loading:
+            ZStack {
+                PepTheme.background.ignoresSafeArea()
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .controlSize(.large)
+                        .tint(PepTheme.teal)
+                    Text("Loading...")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+        case .signedOut:
+            LoginView()
+        case .signedIn:
+            mainAppView
+        }
+    }
+
+    private var mainAppView: some View {
         ZStack(alignment: .bottomTrailing) {
             TabView(selection: $selectedTab) {
                 Tab("Home", systemImage: selectedTab == .home ? AppTab.home.activeIcon : AppTab.home.icon, value: .home) {
