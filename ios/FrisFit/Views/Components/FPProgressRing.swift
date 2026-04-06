@@ -14,13 +14,13 @@ struct FPProgressRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(FrisTheme.cyan.opacity(0.15), lineWidth: lineWidth)
+                .stroke(PepTheme.teal.opacity(0.15), lineWidth: lineWidth)
 
             Circle()
                 .trim(from: 0, to: animatedProgress)
                 .stroke(
                     AngularGradient(
-                        colors: [FrisTheme.cyan.opacity(0.6), FrisTheme.cyan],
+                        colors: [PepTheme.teal.opacity(0.6), PepTheme.teal],
                         center: .center,
                         startAngle: .degrees(0),
                         endAngle: .degrees(360 * animatedProgress)
@@ -28,15 +28,15 @@ struct FPProgressRing: View {
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .shadow(color: FrisTheme.cyan.opacity(0.4), radius: 6, x: 0, y: 0)
+                .shadow(color: PepTheme.teal.opacity(0.4), radius: 6, x: 0, y: 0)
 
             VStack(spacing: showSubtitle ? 2 : 1) {
                 Text("\(currentFP)")
                     .font(.system(size: fontSize, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 Text("/ \(targetFP)")
                     .font(.system(size: showSubtitle ? 13 : fontSize * 0.38, weight: .medium, design: .rounded))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
         .frame(width: size, height: size)

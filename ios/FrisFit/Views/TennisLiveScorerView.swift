@@ -32,7 +32,7 @@ struct TennisLiveScorerView: View {
 
                 bottomBar
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Live Match")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -72,7 +72,7 @@ struct TennisLiveScorerView: View {
             HStack {
                 Text(formatTime(elapsedSeconds))
                     .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Spacer()
                 Text(tennisVM.liveScore.format.rawValue)
                     .font(.system(size: 11, weight: .semibold))
@@ -96,7 +96,7 @@ struct TennisLiveScorerView: View {
                     VStack(spacing: 4) {
                         Text("S\(index + 1)")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .tracking(0.5)
                     }
                     .frame(width: 36)
@@ -105,7 +105,7 @@ struct TennisLiveScorerView: View {
                 VStack(spacing: 4) {
                     Text("PTS")
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .tracking(0.5)
                 }
                 .frame(width: 50)
@@ -120,14 +120,14 @@ struct TennisLiveScorerView: View {
                     }
                     Text("You")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 ForEach(Array(tennisVM.liveScore.sets.enumerated()), id: \.offset) { _, set in
                     Text("\(set.playerGames)")
                         .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(set.playerWon ? accentColor : FrisTheme.textPrimary)
+                        .foregroundStyle(set.playerWon ? accentColor : PepTheme.textPrimary)
                         .frame(width: 36)
                 }
 
@@ -139,7 +139,7 @@ struct TennisLiveScorerView: View {
             }
 
             Rectangle()
-                .fill(FrisTheme.elevated)
+                .fill(PepTheme.elevated)
                 .frame(height: 1)
 
             HStack(spacing: 0) {
@@ -151,14 +151,14 @@ struct TennisLiveScorerView: View {
                     }
                     Text(tennisVM.opponentName.isEmpty ? "OPP" : tennisVM.opponentName)
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 ForEach(Array(tennisVM.liveScore.sets.enumerated()), id: \.offset) { _, set in
                     Text("\(set.opponentGames)")
                         .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(!set.playerWon && (set.playerGames + set.opponentGames > 0) ? .red : FrisTheme.textPrimary)
+                        .foregroundStyle(!set.playerWon && (set.playerGames + set.opponentGames > 0) ? .red : PepTheme.textPrimary)
                         .frame(width: 36)
                 }
 
@@ -170,12 +170,12 @@ struct TennisLiveScorerView: View {
             }
         }
         .padding(20)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
                 .strokeBorder(
-                    LinearGradient(colors: [accentColor.opacity(0.15), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [accentColor.opacity(0.15), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -188,14 +188,14 @@ struct TennisLiveScorerView: View {
                 .foregroundStyle(tennisVM.liveScore.isPlayerServing ? accentColor : .red)
             Text(tennisVM.liveScore.isPlayerServing ? "Your Serve" : "Opponent's Serve")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             if tennisVM.liveScore.isTiebreak {
                 Text("TIEBREAK")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .background(FrisTheme.amber.opacity(0.15))
+                    .background(PepTheme.amber.opacity(0.15))
                     .clipShape(Capsule())
             }
         }
@@ -250,11 +250,11 @@ struct TennisLiveScorerView: View {
             let playerWon = tennisVM.liveScore.computedPlayerSetsWon > tennisVM.liveScore.computedOpponentSetsWon
             Image(systemName: playerWon ? "trophy.fill" : "flag.fill")
                 .font(.system(size: 48))
-                .foregroundStyle(playerWon ? FrisTheme.amber : FrisTheme.textSecondary)
+                .foregroundStyle(playerWon ? PepTheme.amber : PepTheme.textSecondary)
 
             Text(playerWon ? "Match Won!" : "Match Lost")
                 .font(.title.weight(.bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             Text(tennisVM.liveScore.sets.map(\.display).joined(separator: "  "))
                 .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -292,7 +292,7 @@ struct TennisLiveScorerView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(
-            FrisTheme.cardSurface
+            PepTheme.cardSurface
                 .shadow(color: .black.opacity(0.5), radius: 20, y: -8)
                 .ignoresSafeArea()
         )
@@ -311,7 +311,7 @@ struct TennisLiveScorerView: View {
             }
             Text(label)
                 .font(.system(size: 8, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)

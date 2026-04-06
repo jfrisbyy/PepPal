@@ -39,10 +39,10 @@ struct SoccerDashboardView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Soccer")
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("\(soccerVM.thisWeekSessions) session\(soccerVM.thisWeekSessions == 1 ? "" : "s") this week · \(soccerVM.totalWins)W-\(soccerVM.totalDraws)D-\(soccerVM.totalLosses)L")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -54,7 +54,7 @@ struct SoccerDashboardView: View {
                                 .foregroundStyle(soccerVM.winPercentage >= 50 ? .green : .orange)
                             Text("Win %")
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
@@ -76,16 +76,16 @@ struct SoccerDashboardView: View {
                 .foregroundStyle(accentColor.opacity(0.7))
             Text(value)
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -104,10 +104,10 @@ struct SoccerDashboardView: View {
                                     .font(.system(size: 8, weight: .semibold))
                                     .lineLimit(1)
                             }
-                            .foregroundStyle(soccerVM.selectedSessionType == type ? .black : FrisTheme.textSecondary)
+                            .foregroundStyle(soccerVM.selectedSessionType == type ? .black : PepTheme.textSecondary)
                             .frame(width: 72)
                             .padding(.vertical, 10)
-                            .background(soccerVM.selectedSessionType == type ? accentColor : FrisTheme.elevated.opacity(0.5))
+                            .background(soccerVM.selectedSessionType == type ? accentColor : PepTheme.elevated.opacity(0.5))
                             .clipShape(.rect(cornerRadius: 10))
                         }
                     }
@@ -139,12 +139,12 @@ struct SoccerDashboardView: View {
             .buttonStyle(.scalePrimary)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [accentColor.opacity(0.15), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [accentColor.opacity(0.15), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -185,7 +185,7 @@ struct SoccerDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -197,7 +197,7 @@ struct SoccerDashboardView: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
@@ -214,7 +214,7 @@ struct SoccerDashboardView: View {
                 Spacer()
                 Text("\(soccerVM.matches.count) total")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             if soccerVM.matches.isEmpty {
@@ -231,7 +231,7 @@ struct SoccerDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -257,11 +257,11 @@ struct SoccerDashboardView: View {
                 HStack(spacing: 6) {
                     Text(match.sessionType.rawValue)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     if let ts = match.teamScore, let os = match.opponentScore {
                         Text("\(ts)-\(os)")
                             .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundStyle(match.result?.color ?? FrisTheme.textSecondary)
+                            .foregroundStyle(match.result?.color ?? PepTheme.textSecondary)
                     }
                     Text(match.position.shortName)
                         .font(.system(size: 8, weight: .bold))
@@ -273,7 +273,7 @@ struct SoccerDashboardView: View {
                 }
                 Text(match.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
                     .font(.system(size: 10))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -294,19 +294,19 @@ struct SoccerDashboardView: View {
                         if match.stats.goals == 0 && match.stats.assists == 0 {
                             Text("\(match.performanceRating)/10")
                                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
             } else {
                 Text("\(match.fpEarned) FP")
                     .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
             }
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
         }
         .padding(.vertical, 4)
     }
@@ -337,7 +337,7 @@ struct SoccerDashboardView: View {
 
                             Text(dayLabel(entry.date))
                                 .font(.system(size: 8, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -348,7 +348,7 @@ struct SoccerDashboardView: View {
                 HStack {
                     Text("Last \(data.count) matches")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     HStack(spacing: 3) {
                         Image(systemName: "star.fill")
@@ -361,7 +361,7 @@ struct SoccerDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -370,12 +370,12 @@ struct SoccerDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Season Stats")
                 Spacer()
                 Text("\(soccerVM.totalGamesPlayed) matches")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             if soccerVM.totalGamesPlayed == 0 {
@@ -394,12 +394,12 @@ struct SoccerDashboardView: View {
                     avgStatCell(value: String(format: "%.1f", avgKeyPasses), label: "Key Pass/G", color: .cyan)
                     avgStatCell(value: String(format: "%.1f", avgTackles), label: "Tackle/G", color: .red)
                     avgStatCell(value: String(format: "%.1f", avgInterceptions), label: "INT/G", color: .orange)
-                    avgStatCell(value: "\(totalYellows)Y \(totalReds)R", label: "Cards", color: FrisTheme.amber)
+                    avgStatCell(value: "\(totalYellows)Y \(totalReds)R", label: "Cards", color: PepTheme.amber)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -413,7 +413,7 @@ struct SoccerDashboardView: View {
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -451,13 +451,13 @@ struct SoccerDashboardView: View {
                         .foregroundStyle(accentColor.opacity(0.7))
                     Text(String(format: "%.1f km total distance covered", totalDist))
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -473,18 +473,18 @@ struct SoccerDashboardView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Drill Library")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("\(SoccerDrillLibrary.all.count) drills across \(SoccerDrillCategory.allCases.count) categories")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 16))
             .overlay(cardBorder())
         }
@@ -523,20 +523,20 @@ struct SoccerDashboardView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Create Training Session")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Build custom drill circuits")
                         .font(.system(size: 11))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 16))
             .overlay(cardBorder())
         }
@@ -549,10 +549,10 @@ struct SoccerDashboardView: View {
             VStack(spacing: 8) {
                 Image(systemName: "chart.line.downtrend.xyaxis")
                     .font(.title2)
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(.vertical, 16)
             Spacer()
@@ -562,7 +562,7 @@ struct SoccerDashboardView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

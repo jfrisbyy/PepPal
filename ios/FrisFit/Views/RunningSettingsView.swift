@@ -18,7 +18,7 @@ struct RunningSettingsView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Running Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -43,7 +43,7 @@ struct RunningSettingsView: View {
             HStack {
                 Text("Distance Unit")
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Spacer()
                 Picker("Unit", selection: $runVM.settings.distanceUnit) {
                     ForEach(DistanceUnit.allCases) { unit in
@@ -55,7 +55,7 @@ struct RunningSettingsView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -69,7 +69,7 @@ struct RunningSettingsView: View {
             VStack(spacing: 4) {
                 Text("Announce Every")
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -80,10 +80,10 @@ struct RunningSettingsView: View {
                             } label: {
                                 Text(interval.rawValue)
                                     .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(runVM.settings.audioCueInterval == interval ? .black : FrisTheme.textSecondary)
+                                    .foregroundStyle(runVM.settings.audioCueInterval == interval ? .black : PepTheme.textSecondary)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
-                                    .background(runVM.settings.audioCueInterval == interval ? accentColor : FrisTheme.elevated)
+                                    .background(runVM.settings.audioCueInterval == interval ? accentColor : PepTheme.elevated)
                                     .clipShape(Capsule())
                             }
                         }
@@ -94,21 +94,21 @@ struct RunningSettingsView: View {
 
             Toggle("Announce Pace", isOn: $runVM.settings.announcePace)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .tint(accentColor)
 
             Toggle("Announce Heart Rate", isOn: $runVM.settings.announceHeartRate)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .tint(accentColor)
 
             Toggle("Announce Distance", isOn: $runVM.settings.announceDistance)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .tint(accentColor)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -121,13 +121,13 @@ struct RunningSettingsView: View {
 
             Toggle("Auto-Pause", isOn: $runVM.settings.autoPause)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .tint(accentColor)
 
             HStack {
                 Text("Countdown Timer")
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Spacer()
                 Picker("Countdown", selection: $runVM.settings.countdownSeconds) {
                     Text("Off").tag(0)
@@ -140,7 +140,7 @@ struct RunningSettingsView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -167,10 +167,10 @@ struct RunningSettingsView: View {
                     VStack(spacing: 6) {
                         Image(systemName: "shoe.fill")
                             .font(.title2)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                         Text("No shoes added yet")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .padding(.vertical, 16)
                     Spacer()
@@ -180,18 +180,18 @@ struct RunningSettingsView: View {
                     HStack(spacing: 12) {
                         ZStack {
                             Circle()
-                                .fill(shoe.isRetired ? FrisTheme.textSecondary.opacity(0.1) : shoe.statusColor.opacity(0.12))
+                                .fill(shoe.isRetired ? PepTheme.textSecondary.opacity(0.1) : shoe.statusColor.opacity(0.12))
                                 .frame(width: 38, height: 38)
                             Image(systemName: "shoe.fill")
                                 .font(.system(size: 14))
-                                .foregroundStyle(shoe.isRetired ? FrisTheme.textSecondary : shoe.statusColor)
+                                .foregroundStyle(shoe.isRetired ? PepTheme.textSecondary : shoe.statusColor)
                         }
 
                         VStack(alignment: .leading, spacing: 3) {
                             HStack(spacing: 6) {
                                 Text("\(shoe.brand) \(shoe.name)")
                                     .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(shoe.isRetired ? FrisTheme.textSecondary : FrisTheme.textPrimary)
+                                    .foregroundStyle(shoe.isRetired ? PepTheme.textSecondary : PepTheme.textPrimary)
                                 if shoe.isRetired {
                                     Text("RETIRED")
                                         .font(.system(size: 8, weight: .bold))
@@ -204,7 +204,7 @@ struct RunningSettingsView: View {
                             }
                             Text(String(format: "%.0f / %.0f mi", shoe.totalMiles, shoe.retirementMiles))
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
 
                         Spacer()
@@ -221,7 +221,7 @@ struct RunningSettingsView: View {
                         } label: {
                             Image(systemName: "ellipsis")
                                 .font(.system(size: 14))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                                 .frame(width: 30, height: 30)
                         }
                     }
@@ -230,7 +230,7 @@ struct RunningSettingsView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -244,14 +244,14 @@ struct RunningSettingsView: View {
                 .foregroundStyle(accentColor)
             Text(title)
                 .font(.headline.weight(.semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
         }
     }
 
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }
@@ -274,7 +274,7 @@ struct AddShoeSheet: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Brand")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     TextField("Nike, Brooks, etc.", text: $brand)
                         .textFieldStyle(.roundedBorder)
                 }
@@ -282,7 +282,7 @@ struct AddShoeSheet: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Model Name")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     TextField("Pegasus 41, Ghost 16, etc.", text: $name)
                         .textFieldStyle(.roundedBorder)
                 }
@@ -291,7 +291,7 @@ struct AddShoeSheet: View {
                     HStack {
                         Text("Retirement at")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         Spacer()
                         Text("\(Int(retirementMiles)) mi")
                             .font(.system(size: 14, weight: .bold, design: .rounded))
@@ -304,13 +304,13 @@ struct AddShoeSheet: View {
                 Spacer()
             }
             .padding()
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Add Shoe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {

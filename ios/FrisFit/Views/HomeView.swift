@@ -45,13 +45,13 @@ struct HomeView: View {
             .refreshable {
                 await viewModel.refresh()
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Text("PepPal")
                         .font(.system(.title2, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
                 ToolbarItem(placement: .principal) {
                     timePeriodPicker
@@ -104,11 +104,11 @@ struct HomeView: View {
                 } label: {
                     Text(period.rawValue)
                         .font(.system(size: 12, weight: viewModel.selectedTimePeriod == period ? .bold : .medium))
-                        .foregroundStyle(viewModel.selectedTimePeriod == period ? FrisTheme.invertedText : FrisTheme.textSecondary)
+                        .foregroundStyle(viewModel.selectedTimePeriod == period ? PepTheme.invertedText : PepTheme.textSecondary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(
-                            viewModel.selectedTimePeriod == period ? FrisTheme.cyan : Color.clear
+                            viewModel.selectedTimePeriod == period ? PepTheme.teal : Color.clear
                         )
                         .clipShape(.capsule)
                 }
@@ -116,7 +116,7 @@ struct HomeView: View {
             }
         }
         .padding(3)
-        .background(FrisTheme.elevated)
+        .background(PepTheme.elevated)
         .clipShape(.capsule)
     }
 
@@ -128,7 +128,7 @@ struct HomeView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [.orange, FrisTheme.amber],
+                        colors: [.orange, PepTheme.amber],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -136,15 +136,15 @@ struct HomeView: View {
                 .symbolEffect(.pulse, options: .repeating, isActive: viewModel.streakManager.hasActivityToday)
             Text("\(viewModel.quickStats.streakDays)")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.capsule)
         .overlay(
             Capsule()
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -156,7 +156,7 @@ struct HomeView: View {
                 HStack(spacing: 6) {
                     Text(viewModel.selectedDateLabel)
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -165,7 +165,7 @@ struct HomeView: View {
                     } label: {
                         Text("Today")
                             .font(.system(.caption, weight: .semibold))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                     }
                 }
                 .padding(.horizontal, 4)
@@ -181,26 +181,26 @@ struct HomeView: View {
                         VStack(spacing: 6) {
                             Text(day.dayName)
                                 .font(.system(.caption2, weight: .medium))
-                                .foregroundStyle(day.isSelected ? FrisTheme.cyan : FrisTheme.textSecondary)
+                                .foregroundStyle(day.isSelected ? PepTheme.teal : PepTheme.textSecondary)
 
                             ZStack {
                                 Circle()
-                                    .fill(day.isSelected ? FrisTheme.cyan : Color.clear)
+                                    .fill(day.isSelected ? PepTheme.teal : Color.clear)
                                     .frame(width: 36, height: 36)
 
                                 if !day.isSelected && day.isToday {
                                     Circle()
-                                        .strokeBorder(FrisTheme.cyan.opacity(0.5), lineWidth: 1.5)
+                                        .strokeBorder(PepTheme.teal.opacity(0.5), lineWidth: 1.5)
                                         .frame(width: 36, height: 36)
                                 }
 
                                 Text(day.dayNumber)
                                     .font(.system(.subheadline, design: .rounded, weight: day.isSelected || day.isToday ? .bold : .medium))
-                                    .foregroundStyle(day.isSelected ? FrisTheme.invertedText : FrisTheme.textPrimary)
+                                    .foregroundStyle(day.isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
                             }
 
                             Circle()
-                                .fill(day.hasActivity && !day.isSelected ? FrisTheme.cyan : Color.clear)
+                                .fill(day.hasActivity && !day.isSelected ? PepTheme.teal : Color.clear)
                                 .frame(width: 5, height: 5)
                         }
                     }
@@ -224,9 +224,9 @@ struct HomeView: View {
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(width: 32, height: 32)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(.circle)
                 }
 
@@ -234,7 +234,7 @@ struct HomeView: View {
 
                 Text(viewModel.selectedWeekLabel)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .contentTransition(.numericText())
 
                 Spacer()
@@ -247,7 +247,7 @@ struct HomeView: View {
                     } label: {
                         Text("Current")
                             .font(.system(.caption, weight: .semibold))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                     }
                 }
 
@@ -258,9 +258,9 @@ struct HomeView: View {
                 } label: {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(width: 32, height: 32)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(.circle)
                 }
             }
@@ -275,18 +275,18 @@ struct HomeView: View {
                         VStack(spacing: 6) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(week.isSelected ? FrisTheme.cyan : Color.clear)
+                                    .fill(week.isSelected ? PepTheme.teal : Color.clear)
                                     .frame(height: 36)
 
                                 if !week.isSelected && week.isCurrent {
                                     RoundedRectangle(cornerRadius: 8)
-                                        .strokeBorder(FrisTheme.cyan.opacity(0.5), lineWidth: 1.5)
+                                        .strokeBorder(PepTheme.teal.opacity(0.5), lineWidth: 1.5)
                                         .frame(height: 36)
                                 }
 
                                 Text(week.shortLabel)
                                     .font(.system(size: 11, weight: week.isSelected || week.isCurrent ? .bold : .medium))
-                                    .foregroundStyle(week.isSelected ? FrisTheme.invertedText : FrisTheme.textPrimary)
+                                    .foregroundStyle(week.isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
                             }
                         }
                     }
@@ -310,9 +310,9 @@ struct HomeView: View {
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(width: 32, height: 32)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(.circle)
                 }
 
@@ -320,7 +320,7 @@ struct HomeView: View {
 
                 Text(viewModel.selectedMonthLabel)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .contentTransition(.numericText())
 
                 Spacer()
@@ -333,7 +333,7 @@ struct HomeView: View {
                     } label: {
                         Text("Current")
                             .font(.system(.caption, weight: .semibold))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                     }
                 }
 
@@ -344,9 +344,9 @@ struct HomeView: View {
                 } label: {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(width: 32, height: 32)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(.circle)
                 }
             }
@@ -361,22 +361,22 @@ struct HomeView: View {
                         VStack(spacing: 6) {
                             Text(month.yearLabel)
                                 .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(month.isSelected ? FrisTheme.cyan : FrisTheme.textSecondary.opacity(0.6))
+                                .foregroundStyle(month.isSelected ? PepTheme.teal : PepTheme.textSecondary.opacity(0.6))
 
                             ZStack {
                                 RoundedRectangle(cornerRadius: 10)
-                                    .fill(month.isSelected ? FrisTheme.cyan : Color.clear)
+                                    .fill(month.isSelected ? PepTheme.teal : Color.clear)
                                     .frame(height: 40)
 
                                 if !month.isSelected && month.isCurrent {
                                     RoundedRectangle(cornerRadius: 10)
-                                        .strokeBorder(FrisTheme.cyan.opacity(0.5), lineWidth: 1.5)
+                                        .strokeBorder(PepTheme.teal.opacity(0.5), lineWidth: 1.5)
                                         .frame(height: 40)
                                 }
 
                                 Text(month.shortLabel)
                                     .font(.system(.subheadline, weight: month.isSelected || month.isCurrent ? .bold : .medium))
-                                    .foregroundStyle(month.isSelected ? FrisTheme.invertedText : FrisTheme.textPrimary)
+                                    .foregroundStyle(month.isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
                             }
                         }
                     }
@@ -396,7 +396,7 @@ struct HomeView: View {
                 HStack {
                     Image(systemName: "chart.bar.fill")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     SubheadText(text: "Day Summary")
                 }
 
@@ -406,10 +406,10 @@ struct HomeView: View {
                         VStack(spacing: 8) {
                             Image(systemName: "moon.zzz.fill")
                                 .font(.title2)
-                                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                             Text("No activity logged")
                                 .font(.subheadline)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         .padding(.vertical, 8)
                         Spacer()
@@ -421,7 +421,7 @@ struct HomeView: View {
                                 icon: "figure.strengthtraining.traditional",
                                 value: "\(viewModel.selectedDateWorkoutCount)",
                                 label: viewModel.selectedDateWorkoutCount == 1 ? "Workout" : "Workouts",
-                                color: FrisTheme.cyan
+                                color: PepTheme.teal
                             )
                         }
                         if viewModel.selectedDateSportCount > 0 {
@@ -429,7 +429,7 @@ struct HomeView: View {
                                 icon: "sportscourt.fill",
                                 value: "\(viewModel.selectedDateSportCount)",
                                 label: viewModel.selectedDateSportCount == 1 ? "Sport" : "Sports",
-                                color: FrisTheme.cyan
+                                color: PepTheme.teal
                             )
                         }
                     }
@@ -441,13 +441,13 @@ struct HomeView: View {
                         label: "Calories",
                         current: dayNutrition.caloriesConsumed,
                         target: dayNutrition.caloriesTarget,
-                        color: FrisTheme.cyan
+                        color: PepTheme.teal
                     )
                     NutritionProgressBar(
                         label: "Protein",
                         current: dayNutrition.proteinConsumed,
                         target: dayNutrition.proteinTarget,
-                        color: FrisTheme.amber
+                        color: PepTheme.amber
                     )
                 }
             }
@@ -462,10 +462,10 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
                     .font(.system(.title3, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text(label)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
     }
@@ -492,21 +492,21 @@ struct HomeView: View {
                         HStack(spacing: 6) {
                             Text("Daily Points")
                                 .font(.system(.subheadline, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption2)
-                                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                         }
 
                         Text("\(viewModel.completedCount) of \(viewModel.dailyTasks.count) tasks")
                             .font(.system(.caption, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
 
                         if viewModel.recentlyCompleted.isEmpty {
                             Text("Tap to start completing tasks")
                                 .font(.caption)
-                                .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
                                 .padding(.top, 2)
                         } else {
                             VStack(alignment: .leading, spacing: 6) {
@@ -517,12 +517,12 @@ struct HomeView: View {
                                             .foregroundStyle(task.category.color)
                                         Text(task.name)
                                             .font(.system(.caption, weight: .medium))
-                                            .foregroundStyle(FrisTheme.textPrimary.opacity(0.8))
+                                            .foregroundStyle(PepTheme.textPrimary.opacity(0.8))
                                             .lineLimit(1)
                                         Spacer()
                                         Text("+\(task.points)")
                                             .font(.system(.caption2, design: .rounded, weight: .bold))
-                                            .foregroundStyle(FrisTheme.cyan)
+                                            .foregroundStyle(PepTheme.teal)
                                     }
                                 }
                             }
@@ -552,12 +552,12 @@ struct HomeView: View {
                         HStack {
                             Image(systemName: "calendar")
                                 .font(.subheadline)
-                                .foregroundStyle(FrisTheme.cyan)
+                                .foregroundStyle(PepTheme.teal)
                             SubheadText(text: viewModel.isSelectedDateToday ? "Today's Plan" : "Plan")
                             Spacer()
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                                 .rotationEffect(.degrees(viewModel.isPlanExpanded ? 180 : 0))
                         }
 
@@ -583,14 +583,14 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(viewModel.todaysPlan.name)
                 .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             HStack(spacing: 16) {
                 Label("\(viewModel.todaysPlan.exercises) exercises", systemImage: "dumbbell.fill")
                 Label("\(viewModel.todaysPlan.estimatedMinutes) min", systemImage: "clock.fill")
             }
             .font(.caption)
-            .foregroundStyle(FrisTheme.textSecondary)
+            .foregroundStyle(PepTheme.textSecondary)
 
             if !viewModel.isPlanExpanded {
                 splitDayStrip
@@ -603,11 +603,11 @@ struct HomeView: View {
             ForEach(viewModel.todaysPlan.splitDays) { day in
                 Text(day.name)
                     .font(.system(size: 10, weight: day.isToday ? .bold : .medium))
-                    .foregroundStyle(day.isToday ? FrisTheme.invertedText : (day.isRest ? FrisTheme.textSecondary.opacity(0.5) : FrisTheme.textSecondary))
+                    .foregroundStyle(day.isToday ? PepTheme.invertedText : (day.isRest ? PepTheme.textSecondary.opacity(0.5) : PepTheme.textSecondary))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
-                        day.isToday ? FrisTheme.cyan : FrisTheme.elevated.opacity(day.isRest ? 0.4 : 1)
+                        day.isToday ? PepTheme.teal : PepTheme.elevated.opacity(day.isRest ? 0.4 : 1)
                     )
                     .clipShape(.capsule)
             }
@@ -636,10 +636,10 @@ struct HomeView: View {
                     } label: {
                         Text("Start Workout")
                             .font(.system(.body, weight: .semibold))
-                            .foregroundStyle(FrisTheme.invertedText)
+                            .foregroundStyle(PepTheme.invertedText)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(FrisTheme.cyan, in: .rect(cornerRadius: 12))
+                            .background(PepTheme.teal, in: .rect(cornerRadius: 12))
                     }
                     .buttonStyle(.scalePrimary)
 
@@ -652,14 +652,14 @@ struct HomeView: View {
                             Text("Edit Split")
                                 .font(.system(.subheadline, weight: .semibold))
                         }
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(FrisTheme.cyan.opacity(0.1))
+                        .background(PepTheme.teal.opacity(0.1))
                         .clipShape(.rect(cornerRadius: 12))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(FrisTheme.cyan.opacity(0.25), lineWidth: 0.5)
+                                .strokeBorder(PepTheme.teal.opacity(0.25), lineWidth: 0.5)
                         )
                     }
                     .buttonStyle(.scale)
@@ -671,13 +671,13 @@ struct HomeView: View {
                 Spacer().frame(height: 12)
             }
         }
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -694,15 +694,15 @@ struct HomeView: View {
                 VStack(spacing: 4) {
                     Text("D\(day.dayIndex + 1)")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(day.isToday ? FrisTheme.cyan : FrisTheme.textSecondary.opacity(0.5))
+                        .foregroundStyle(day.isToday ? PepTheme.teal : PepTheme.textSecondary.opacity(0.5))
                     Text(day.name)
                         .font(.system(size: 11, weight: day.isToday ? .bold : .medium))
-                        .foregroundStyle(day.isToday ? FrisTheme.invertedText : (day.isRest ? FrisTheme.textSecondary.opacity(0.5) : FrisTheme.textPrimary.opacity(0.7)))
+                        .foregroundStyle(day.isToday ? PepTheme.invertedText : (day.isRest ? PepTheme.textSecondary.opacity(0.5) : PepTheme.textPrimary.opacity(0.7)))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
                         .frame(maxWidth: .infinity)
                         .background(
-                            day.isToday ? FrisTheme.cyan : FrisTheme.elevated.opacity(day.isRest ? 0.3 : 0.7)
+                            day.isToday ? PepTheme.teal : PepTheme.elevated.opacity(day.isRest ? 0.3 : 0.7)
                         )
                         .clipShape(.rect(cornerRadius: 8))
                 }
@@ -715,13 +715,13 @@ struct HomeView: View {
         HStack(spacing: 12) {
             Text("\(index)")
                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.cyan.opacity(0.6))
+                .foregroundStyle(PepTheme.teal.opacity(0.6))
                 .frame(width: 22)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(exercise.name)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: 8) {
@@ -731,11 +731,11 @@ struct HomeView: View {
                         Text(exercise.muscle)
                             .font(.system(size: 10, weight: .medium))
                     }
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
 
                     Text("\(exercise.sets) × \(exercise.repsMin)-\(exercise.repsMax)")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FrisTheme.cyan.opacity(0.8))
+                        .foregroundStyle(PepTheme.teal.opacity(0.8))
                 }
             }
 
@@ -743,15 +743,15 @@ struct HomeView: View {
 
             Text("\(exercise.sets)s")
                 .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.capsule)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .background(FrisTheme.elevated.opacity(0.4))
+        .background(PepTheme.elevated.opacity(0.4))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -760,16 +760,16 @@ struct HomeView: View {
             HStack(spacing: 10) {
                 Image(systemName: "bed.double.fill")
                     .font(.title2)
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 Text("Rest Day")
                     .font(.system(.title3, design: .rounded, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
 
             if let tip = viewModel.todaysPlan.recoveryTip {
                 Text(tip)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .lineSpacing(3)
             }
         }
@@ -786,36 +786,36 @@ struct HomeView: View {
                     HStack {
                         Image(systemName: "fork.knife")
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                         SubheadText(text: "Nutrition Snapshot")
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption2)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                     }
 
                     let dayNutrition = viewModel.selectedDateNutrition
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(dayNutrition.caloriesConsumed)")
                             .font(.system(.title3, design: .rounded, weight: .bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("/ \(dayNutrition.caloriesTarget) cal")
                             .font(.system(.caption, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     NutritionProgressBar(
                         label: "Calories",
                         current: dayNutrition.caloriesConsumed,
                         target: dayNutrition.caloriesTarget,
-                        color: FrisTheme.cyan
+                        color: PepTheme.teal
                     )
 
                     NutritionProgressBar(
                         label: "Protein",
                         current: dayNutrition.proteinConsumed,
                         target: dayNutrition.proteinTarget,
-                        color: FrisTheme.amber
+                        color: PepTheme.amber
                     )
                 }
             }
@@ -840,17 +840,17 @@ struct HomeView: View {
                         HStack {
                             Text("Finn's Daily Insight")
                                 .font(.system(.subheadline, weight: .semibold))
-                                .foregroundStyle(FrisTheme.violet)
+                                .foregroundStyle(PepTheme.violet)
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption2)
-                                .foregroundStyle(FrisTheme.violet.opacity(0.5))
+                                .foregroundStyle(PepTheme.violet.opacity(0.5))
                         }
 
                         Text(viewModel.finnInsight)
                             .font(.subheadline)
                             .italic()
-                            .foregroundStyle(FrisTheme.textPrimary.opacity(0.85))
+                            .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
                             .lineSpacing(3)
                             .multilineTextAlignment(.leading)
                     }
@@ -858,22 +858,22 @@ struct HomeView: View {
             }
             .padding(16)
             .background(
-                FrisTheme.violet.opacity(0.08)
-                    .overlay(FrisTheme.cardSurface.opacity(0.7))
+                PepTheme.violet.opacity(0.08)
+                    .overlay(PepTheme.cardSurface.opacity(0.7))
             )
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(
                         LinearGradient(
-                            colors: [FrisTheme.violet.opacity(0.25), FrisTheme.violet.opacity(0.05)],
+                            colors: [PepTheme.violet.opacity(0.25), PepTheme.violet.opacity(0.05)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
                         lineWidth: 0.5
                     )
             )
-            .shadow(color: FrisTheme.violet.opacity(0.15), radius: 12, x: 0, y: 4)
+            .shadow(color: PepTheme.violet.opacity(0.15), radius: 12, x: 0, y: 4)
         }
         .buttonStyle(.scale)
         .fullScreenCover(isPresented: $showFinnChat) {
@@ -892,7 +892,7 @@ struct HomeView: View {
                 } label: {
                     Text("See All")
                         .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
 
@@ -911,19 +911,19 @@ struct HomeView: View {
 
                         if activity.id != viewModel.activityFeed.last?.id {
                             Divider()
-                                .overlay(FrisTheme.shimmerHighlight)
+                                .overlay(PepTheme.shimmerHighlight)
                                 .padding(.leading, 52)
                         }
                     }
                 }
                 .padding(12)
-                .background(FrisTheme.cardSurface)
+                .background(PepTheme.cardSurface)
                 .clipShape(.rect(cornerRadius: 16))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
                         .strokeBorder(
                             LinearGradient(
-                                colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                                colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
@@ -944,24 +944,24 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Finn says...")
                         .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(FrisTheme.violet)
+                        .foregroundStyle(PepTheme.violet)
 
                     Text(message)
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.textPrimary.opacity(0.85))
+                        .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
                         .lineSpacing(3)
                 }
             }
         }
         .padding(16)
         .background(
-            FrisTheme.violet.opacity(0.06)
-                .overlay(FrisTheme.cardSurface.opacity(0.8))
+            PepTheme.violet.opacity(0.06)
+                .overlay(PepTheme.cardSurface.opacity(0.8))
         )
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(FrisTheme.violet.opacity(0.15), lineWidth: 0.5)
+                .strokeBorder(PepTheme.violet.opacity(0.15), lineWidth: 0.5)
         )
     }
 
@@ -973,7 +973,7 @@ struct HomeView: View {
                 icon: "figure.strengthtraining.traditional",
                 value: "\(viewModel.quickStats.workoutsThisWeek)",
                 label: "This Week",
-                iconColor: FrisTheme.cyan
+                iconColor: PepTheme.teal
             )
 
             quickStatDivider
@@ -982,17 +982,17 @@ struct HomeView: View {
                 icon: "trophy.fill",
                 value: "#\(viewModel.quickStats.leaderboardRank)",
                 label: "Rank",
-                iconColor: FrisTheme.amber
+                iconColor: PepTheme.amber
             )
         }
         .padding(.vertical, 14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -1003,7 +1003,7 @@ struct HomeView: View {
 
     private var quickStatDivider: some View {
         Rectangle()
-            .fill(FrisTheme.shimmerHighlight)
+            .fill(PepTheme.shimmerHighlight)
             .frame(width: 1, height: 36)
     }
 
@@ -1019,20 +1019,20 @@ struct HomeView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "figure.walk")
                                 .font(.subheadline)
-                                .foregroundStyle(FrisTheme.cyan)
+                                .foregroundStyle(PepTheme.teal)
                             SubheadText(text: "Steps")
                         }
 
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text(formattedStepsNumber(viewModel.healthKit.steps))
                                 .font(.system(size: 32, weight: .bold, design: .rounded))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                                 .contentTransition(.numericText())
                         }
 
                         Text("\(String(format: "%.1f", viewModel.healthKit.distanceMiles)) mi \u{00b7} \(viewModel.healthKit.flightsClimbed) floors")
                             .font(.system(.caption, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -1040,7 +1040,7 @@ struct HomeView: View {
                     VStack(alignment: .trailing, spacing: 4) {
                         Image(systemName: "chevron.right")
                             .font(.caption2)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
 
                         stepProgressRing
                     }
@@ -1050,13 +1050,13 @@ struct HomeView: View {
                     .padding(.top, 12)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(
                         LinearGradient(
-                            colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -1077,13 +1077,13 @@ struct HomeView: View {
 
         return ZStack {
             Circle()
-                .stroke(FrisTheme.elevated, lineWidth: 5)
+                .stroke(PepTheme.elevated, lineWidth: 5)
                 .frame(width: 48, height: 48)
 
             Circle()
                 .trim(from: 0, to: progress)
                 .stroke(
-                    FrisTheme.cyan,
+                    PepTheme.teal,
                     style: StrokeStyle(lineWidth: 5, lineCap: .round)
                 )
                 .frame(width: 48, height: 48)
@@ -1091,7 +1091,7 @@ struct HomeView: View {
 
             Text("\(Int(progress * 100))%")
                 .font(.system(size: 10, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
         }
     }
 
@@ -1106,7 +1106,7 @@ struct HomeView: View {
             HStack(alignment: .bottom, spacing: spacing) {
                 ForEach(Array(hours), id: \.self) { hour in
                     RoundedRectangle(cornerRadius: 1.5)
-                        .fill(FrisTheme.cyan.opacity(0.4))
+                        .fill(PepTheme.teal.opacity(0.4))
                         .frame(width: barWidth, height: max(3, 28 * miniChartRatio(for: hour)))
                 }
             }
@@ -1144,7 +1144,7 @@ struct HomeView: View {
                 Spacer()
                 Image(systemName: "apple.logo")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
             }
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
@@ -1152,7 +1152,7 @@ struct HomeView: View {
                     icon: "figure.walk",
                     value: formattedSteps(viewModel.healthKit.steps),
                     label: "Steps",
-                    color: FrisTheme.cyan
+                    color: PepTheme.teal
                 )
                 healthStatCell(
                     icon: "flame.fill",
@@ -1176,46 +1176,46 @@ struct HomeView: View {
                     icon: "timer",
                     value: "\(Int(viewModel.healthKit.exerciseMinutes))",
                     label: "Exercise Min",
-                    color: FrisTheme.amber
+                    color: PepTheme.amber
                 )
                 healthStatCell(
                     icon: "bed.double.fill",
                     value: viewModel.healthKit.sleepHours > 0 ? String(format: "%.1f", viewModel.healthKit.sleepHours) : "--",
                     label: "Sleep Hrs",
-                    color: FrisTheme.violet
+                    color: PepTheme.violet
                 )
             }
 
             if !viewModel.healthKit.workoutsToday.isEmpty {
                 Divider()
-                    .overlay(FrisTheme.shimmerHighlight)
+                    .overlay(PepTheme.shimmerHighlight)
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Today's Workouts")
                         .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     ForEach(viewModel.healthKit.workoutsToday, id: \.uuid) { workout in
                         HStack(spacing: 10) {
                             Image(systemName: "figure.strengthtraining.traditional")
                                 .font(.system(size: 14))
-                                .foregroundStyle(FrisTheme.cyan)
+                                .foregroundStyle(PepTheme.teal)
                                 .frame(width: 24)
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(workout.workoutActivityType.displayName)
                                     .font(.system(.caption, weight: .semibold))
-                                    .foregroundStyle(FrisTheme.textPrimary)
+                                    .foregroundStyle(PepTheme.textPrimary)
                                 HStack(spacing: 6) {
                                     let durationMin = Int(workout.duration / 60)
                                     Text("\(durationMin) min")
                                         .font(.system(.caption2, weight: .medium))
-                                        .foregroundStyle(FrisTheme.textSecondary)
+                                        .foregroundStyle(PepTheme.textSecondary)
                                     if let stats = workout.statistics(for: HKQuantityType(.activeEnergyBurned)),
                                        let sum = stats.sumQuantity() {
                                         Text("\(Int(sum.doubleValue(for: .kilocalorie()))) cal")
                                             .font(.system(.caption2, weight: .medium))
-                                            .foregroundStyle(FrisTheme.textSecondary)
+                                            .foregroundStyle(PepTheme.textSecondary)
                                     }
                                 }
                             }
@@ -1226,13 +1226,13 @@ struct HomeView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -1249,17 +1249,17 @@ struct HomeView: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(.headline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -1287,17 +1287,17 @@ struct NutritionProgressBar: View {
             HStack {
                 Text(label)
                     .font(.system(.caption, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Spacer()
                 Text("\(current)g / \(target)g")
                     .font(.system(.caption, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(FrisTheme.elevated)
+                        .fill(PepTheme.elevated)
                         .frame(height: 6)
 
                     Capsule()
@@ -1322,7 +1322,7 @@ struct ActivityFeedRow: View {
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [FrisTheme.cyan.opacity(0.3), FrisTheme.violet.opacity(0.2)],
+                        colors: [PepTheme.teal.opacity(0.3), PepTheme.violet.opacity(0.2)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -1331,25 +1331,25 @@ struct ActivityFeedRow: View {
                 .overlay {
                     Text(String(activity.friendName.prefix(1)))
                         .font(.system(.headline, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(activity.friendName)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text(activity.workoutName)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 HStack(spacing: 6) {
                     Text("+\(activity.fpEarned) FP")
                         .font(.system(.caption2, weight: .bold))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     Text("·")
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Text(activity.timeAgo)
                         .font(.caption2)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
@@ -1361,7 +1361,7 @@ struct ActivityFeedRow: View {
             } label: {
                 Image(systemName: activity.highFived ? "hand.raised.fill" : "hand.raised")
                     .font(.system(size: 18))
-                    .foregroundStyle(activity.highFived ? FrisTheme.amber : FrisTheme.textSecondary)
+                    .foregroundStyle(activity.highFived ? PepTheme.amber : PepTheme.textSecondary)
                     .contentTransition(.symbolEffect(.replace))
             }
             .sensoryFeedback(.impact(weight: .light), trigger: highFiveTap)
@@ -1383,10 +1383,10 @@ struct QuickStatItem: View {
                 .foregroundStyle(iconColor)
             Text(value)
                 .font(.system(.headline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }

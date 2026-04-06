@@ -20,13 +20,13 @@ struct SwimWorkoutBuilderView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Swim Workouts")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
@@ -50,10 +50,10 @@ struct SwimWorkoutBuilderView: View {
                     VStack(spacing: 6) {
                         Image(systemName: "list.bullet.clipboard")
                             .font(.title2)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.4))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
                         Text("No saved workouts yet")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .padding(.vertical, 14)
                     Spacer()
@@ -65,7 +65,7 @@ struct SwimWorkoutBuilderView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -84,14 +84,14 @@ struct SwimWorkoutBuilderView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(workout.name)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 HStack(spacing: 8) {
                     Label("\(workout.totalDistance)m", systemImage: "water.waves")
                     Label("\(workout.intervals.count) sets", systemImage: "repeat")
                     Label("~\(workout.estimatedDurationMinutes) min", systemImage: "clock")
                 }
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -103,7 +103,7 @@ struct SwimWorkoutBuilderView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.red.opacity(0.6))
                     .frame(width: 28, height: 28)
-                    .background(FrisTheme.elevated.opacity(0.5))
+                    .background(PepTheme.elevated.opacity(0.5))
                     .clipShape(Circle())
             }
         }
@@ -121,9 +121,9 @@ struct SwimWorkoutBuilderView: View {
 
             TextField("Workout Name", text: $workoutName)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .padding(12)
-                .background(FrisTheme.elevated.opacity(0.5))
+                .background(PepTheme.elevated.opacity(0.5))
                 .clipShape(.rect(cornerRadius: 10))
 
             ForEach(Array(intervals.enumerated()), id: \.element.id) { index, interval in
@@ -156,20 +156,20 @@ struct SwimWorkoutBuilderView: View {
                             .foregroundStyle(accentColor)
                         Text("Total Distance")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     VStack(spacing: 2) {
                         Text("\(totalSets)")
                             .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("Total Sets")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(FrisTheme.elevated.opacity(0.3))
+                .background(PepTheme.elevated.opacity(0.3))
                 .clipShape(.rect(cornerRadius: 10))
             }
 
@@ -197,7 +197,7 @@ struct SwimWorkoutBuilderView: View {
             .disabled(workoutName.trimmingCharacters(in: .whitespaces).isEmpty || intervals.isEmpty)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -215,7 +215,7 @@ struct SwimWorkoutBuilderView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 14))
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                     }
                 }
             }
@@ -224,16 +224,16 @@ struct SwimWorkoutBuilderView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Reps")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Stepper("\(intervals[index].repetitions)x", value: $intervals[index].repetitions, in: 1...20)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Distance")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Picker("", selection: $intervals[index].distanceMeters) {
                         ForEach([25, 50, 100, 200, 400, 800], id: \.self) { d in
                             Text("\(d)m").tag(d)
@@ -248,7 +248,7 @@ struct SwimWorkoutBuilderView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Stroke")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Picker("", selection: $intervals[index].strokeType) {
                         ForEach(SwimStrokeType.allCases) { stroke in
                             Text(stroke.rawValue).tag(stroke)
@@ -261,27 +261,27 @@ struct SwimWorkoutBuilderView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Rest")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Stepper("\(intervals[index].restSeconds)s", value: $intervals[index].restSeconds, in: 0...120, step: 5)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
             }
 
             Text(intervals[index].description + " · \(intervals[index].totalDistance)m total")
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(12)
-        .background(FrisTheme.elevated.opacity(0.3))
+        .background(PepTheme.elevated.opacity(0.3))
         .clipShape(.rect(cornerRadius: 10))
     }
 
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

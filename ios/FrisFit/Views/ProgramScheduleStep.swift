@@ -27,11 +27,11 @@ struct ProgramScheduleStep: View {
             HStack(spacing: 10) {
                 Text("DAY \(index + 1)")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                     .tracking(1)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(FrisTheme.cyan.opacity(0.12))
+                    .background(PepTheme.teal.opacity(0.12))
                     .clipShape(Capsule())
 
                 Spacer()
@@ -39,18 +39,18 @@ struct ProgramScheduleStep: View {
                 if !day.exercises.isEmpty {
                     Text("\(day.exercises.count) exercise\(day.exercises.count == 1 ? "" : "s")")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
             TextField("", text: Binding(
                 get: { viewModel.programDays[index].name },
                 set: { viewModel.programDays[index].name = $0 }
-            ), prompt: Text("Day name (e.g. Push Day)").foregroundStyle(FrisTheme.textSecondary.opacity(0.4)))
+            ), prompt: Text("Day name (e.g. Push Day)").foregroundStyle(PepTheme.textSecondary.opacity(0.4)))
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .padding(12)
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 10))
 
             if !day.exercises.isEmpty {
@@ -67,25 +67,25 @@ struct ProgramScheduleStep: View {
                     Text("Add Exercises")
                         .font(.subheadline.weight(.semibold))
                 }
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 11)
-                .background(FrisTheme.cyan.opacity(0.08))
+                .background(PepTheme.teal.opacity(0.08))
                 .clipShape(.rect(cornerRadius: 10))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(FrisTheme.cyan.opacity(0.2), lineWidth: 1)
+                        .strokeBorder(PepTheme.teal.opacity(0.2), lineWidth: 1)
                 )
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -113,11 +113,11 @@ struct ProgramScheduleStep: View {
 
                 if exIndex < exercises.count - 1 {
                     Divider()
-                        .background(FrisTheme.glassBorderTop)
+                        .background(PepTheme.glassBorderTop)
                 }
             }
         }
-        .background(FrisTheme.elevated)
+        .background(PepTheme.elevated)
         .clipShape(.rect(cornerRadius: 10))
     }
 }
@@ -137,26 +137,26 @@ private struct ScheduleExerciseRow: View {
                 HStack(spacing: 10) {
                     Image(systemName: exercise.primaryMuscle.icon)
                         .font(.system(size: 12))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                         .frame(width: 28, height: 28)
-                        .background(FrisTheme.cyan.opacity(0.1))
+                        .background(PepTheme.teal.opacity(0.1))
                         .clipShape(.rect(cornerRadius: 7))
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(exercise.exerciseName)
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .lineLimit(1)
                         Text("\(exercise.targetSets) sets × \(exercise.targetRepsMin)-\(exercise.targetRepsMax) reps")
                             .font(.system(size: 11))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
@@ -179,7 +179,7 @@ private struct ScheduleExerciseRow: View {
             HStack {
                 Text("Rest")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Spacer()
                 HStack(spacing: 8) {
                     Button {
@@ -187,23 +187,23 @@ private struct ScheduleExerciseRow: View {
                     } label: {
                         Image(systemName: "minus")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .frame(width: 28, height: 28)
-                            .background(FrisTheme.elevated)
+                            .background(PepTheme.elevated)
                             .clipShape(Circle())
                     }
                     Text("\(exercise.restSeconds)s")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .frame(width: 48)
                     Button {
                         if exercise.restSeconds < 300 { exercise.restSeconds += 15 }
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .frame(width: 28, height: 28)
-                            .background(FrisTheme.elevated)
+                            .background(PepTheme.elevated)
                             .clipShape(Circle())
                     }
                 }
@@ -233,37 +233,37 @@ private struct ScheduleExerciseRow: View {
         VStack(spacing: 6) {
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             HStack(spacing: 4) {
                 Button {
                     if value.wrappedValue > range.lowerBound { value.wrappedValue -= 1 }
                 } label: {
                     Image(systemName: "minus")
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(width: 24, height: 24)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(Circle())
                 }
                 Text("\(value.wrappedValue)")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .frame(width: 28)
                 Button {
                     if value.wrappedValue < range.upperBound { value.wrappedValue += 1 }
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(width: 24, height: 24)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(Circle())
                 }
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 8))
     }
 }

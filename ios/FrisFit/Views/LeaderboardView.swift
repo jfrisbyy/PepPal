@@ -25,7 +25,7 @@ struct LeaderboardView: View {
                         LeaderboardRow(entry: entry)
                     }
                 }
-                .background(FrisTheme.cardSurface.opacity(0.5))
+                .background(PepTheme.cardSurface.opacity(0.5))
                 .clipShape(.rect(cornerRadius: 16))
                 .padding(.horizontal)
             }
@@ -64,33 +64,33 @@ struct LeaderboardView: View {
                             .font(.system(.caption2, design: .rounded, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(width: 20, height: 20)
-                            .background(entry.rank == 1 ? FrisTheme.amber : FrisTheme.elevated)
+                            .background(entry.rank == 1 ? PepTheme.amber : PepTheme.elevated)
                             .clipShape(.circle)
                     }
 
                 if crown {
                     Image(systemName: "crown.fill")
                         .font(.system(size: 16))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                         .offset(y: -22)
                 }
             }
 
             Text(entry.user.name.components(separatedBy: " ").first ?? "")
                 .font(.system(.caption, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
 
             Text(formatFP(entry.fp))
                 .font(.system(.caption2, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
 
             RoundedRectangle(cornerRadius: 8)
                 .fill(
                     LinearGradient(
                         colors: [
-                            entry.rank == 1 ? FrisTheme.amber.opacity(0.3) : FrisTheme.cyan.opacity(0.15),
-                            entry.rank == 1 ? FrisTheme.amber.opacity(0.1) : FrisTheme.cyan.opacity(0.05),
+                            entry.rank == 1 ? PepTheme.amber.opacity(0.3) : PepTheme.teal.opacity(0.15),
+                            entry.rank == 1 ? PepTheme.amber.opacity(0.1) : PepTheme.teal.opacity(0.05),
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -100,7 +100,7 @@ struct LeaderboardView: View {
                 .overlay(alignment: .top) {
                     RoundedRectangle(cornerRadius: 8)
                         .strokeBorder(
-                            entry.rank == 1 ? FrisTheme.amber.opacity(0.3) : FrisTheme.cyan.opacity(0.15),
+                            entry.rank == 1 ? PepTheme.amber.opacity(0.3) : PepTheme.teal.opacity(0.15),
                             lineWidth: 0.5
                         )
                 }
@@ -123,7 +123,7 @@ private struct LeaderboardRow: View {
         HStack(spacing: 12) {
             Text("\(entry.rank)")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .frame(width: 28)
 
             Circle()
@@ -138,13 +138,13 @@ private struct LeaderboardRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.user.name)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 HStack(spacing: 8) {
                     if let program = entry.user.activeProgramName {
                         Text(program)
                             .font(.caption2)
-                            .foregroundStyle(FrisTheme.cyan.opacity(0.8))
+                            .foregroundStyle(PepTheme.teal.opacity(0.8))
                     }
                     if entry.user.streak > 0 {
                         HStack(spacing: 2) {
@@ -153,7 +153,7 @@ private struct LeaderboardRow: View {
                             Text("\(entry.user.streak)")
                                 .font(.caption2)
                         }
-                        .foregroundStyle(FrisTheme.amber.opacity(0.8))
+                        .foregroundStyle(PepTheme.amber.opacity(0.8))
                     }
                 }
             }
@@ -162,7 +162,7 @@ private struct LeaderboardRow: View {
 
             Text("\(entry.fp) FP")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

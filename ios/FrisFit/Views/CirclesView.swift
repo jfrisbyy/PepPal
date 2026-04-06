@@ -73,14 +73,14 @@ struct CirclesView: View {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 TextField("Search circles...", text: $viewModel.searchQuery)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(FrisTheme.elevated)
+            .background(PepTheme.elevated)
             .clipShape(.capsule)
             .padding(.horizontal)
             .padding(.bottom, 12)
@@ -117,21 +117,21 @@ struct CirclesView: View {
             ForEach(viewModel.pendingInvites) { invite in
                 HStack(spacing: 12) {
                     Circle()
-                        .fill(FrisTheme.violet.opacity(0.2))
+                        .fill(PepTheme.violet.opacity(0.2))
                         .frame(width: 40, height: 40)
                         .overlay {
                             Image(systemName: "envelope.fill")
                                 .font(.system(size: 16))
-                                .foregroundStyle(FrisTheme.violet)
+                                .foregroundStyle(PepTheme.violet)
                         }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(invite.inviter.name) invited you")
                             .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("to join \(invite.circleName)")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -141,25 +141,25 @@ struct CirclesView: View {
                         } label: {
                             Text("Join")
                                 .font(.system(.caption, weight: .semibold))
-                                .foregroundStyle(FrisTheme.invertedText)
+                                .foregroundStyle(PepTheme.invertedText)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 6)
-                                .background(FrisTheme.cyan, in: .capsule)
+                                .background(PepTheme.teal, in: .capsule)
                         }
                         Button {
                         } label: {
                             Image(systemName: "xmark")
                                 .font(.caption)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
                 .padding(12)
-                .background(FrisTheme.violet.opacity(0.06))
+                .background(PepTheme.violet.opacity(0.06))
                 .clipShape(.rect(cornerRadius: 14))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(FrisTheme.violet.opacity(0.15), lineWidth: 0.5)
+                        .strokeBorder(PepTheme.violet.opacity(0.15), lineWidth: 0.5)
                 )
             }
         }
@@ -181,23 +181,23 @@ struct CirclesView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(cheer.sender.name)
                             .font(.system(.caption, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text(cheer.message)
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .lineLimit(2)
                     }
                     Spacer()
                     Image(systemName: "megaphone.fill")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                 }
                 .padding(12)
-                .background(FrisTheme.amber.opacity(0.06))
+                .background(PepTheme.amber.opacity(0.06))
                 .clipShape(.rect(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(FrisTheme.amber.opacity(0.12), lineWidth: 0.5)
+                        .strokeBorder(PepTheme.amber.opacity(0.12), lineWidth: 0.5)
                 )
             }
         }
@@ -208,19 +208,19 @@ struct CirclesView: View {
             HStack(spacing: 12) {
                 Image(systemName: "ticket.fill")
                     .font(.title3)
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Join by Invite Code")
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Enter a code from a friend")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
             }
         }
     }
@@ -251,11 +251,11 @@ struct CircleCardView: View {
                     HStack(spacing: 6) {
                         Text(circle.name)
                             .font(.system(.headline, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         if circle.isPrivate {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 10))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                     HStack(spacing: 8) {
@@ -264,14 +264,14 @@ struct CircleCardView: View {
                         Text("\(circle.totalCirclePoints.formatted()) pts")
                     }
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
             }
 
             if let weeklyGoal = circle.weeklyPointGoal {
@@ -281,7 +281,7 @@ struct CircleCardView: View {
                     HStack {
                         Text("Weekly Progress")
                             .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         Spacer()
                         Text("\(weeklyTotal) / \(weeklyGoal)")
                             .font(.system(.caption2, design: .rounded, weight: .bold))
@@ -290,7 +290,7 @@ struct CircleCardView: View {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule()
-                                .fill(FrisTheme.elevated)
+                                .fill(PepTheme.elevated)
                                 .frame(height: 5)
                             Capsule()
                                 .fill(circle.accentColor)
@@ -312,33 +312,33 @@ struct CircleCardView: View {
                                 .foregroundStyle(member.user.avatarColor)
                         }
                         .overlay(
-                            Circle().strokeBorder(FrisTheme.cardSurface, lineWidth: 2)
+                            Circle().strokeBorder(PepTheme.cardSurface, lineWidth: 2)
                         )
                         .zIndex(Double(4 - idx))
                 }
                 if circle.memberCount > 4 {
                     Circle()
-                        .fill(FrisTheme.elevated)
+                        .fill(PepTheme.elevated)
                         .frame(width: 28, height: 28)
                         .overlay {
                             Text("+\(circle.memberCount - 4)")
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         .overlay(
-                            Circle().strokeBorder(FrisTheme.cardSurface, lineWidth: 2)
+                            Circle().strokeBorder(PepTheme.cardSurface, lineWidth: 2)
                         )
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -374,14 +374,14 @@ struct PublicCircleCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(circle.name)
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     HStack(spacing: 6) {
                         Label("\(circle.memberCount) members", systemImage: "person.2")
                         Text("·")
                         Text("\(circle.totalCirclePoints.formatted()) pts")
                     }
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
@@ -389,7 +389,7 @@ struct PublicCircleCard: View {
 
             Text(circle.description)
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .lineLimit(2)
 
             Button {
@@ -397,7 +397,7 @@ struct PublicCircleCard: View {
             } label: {
                 Text("Join Circle")
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.invertedText)
+                    .foregroundStyle(PepTheme.invertedText)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                     .background(circle.accentColor, in: .rect(cornerRadius: 10))
@@ -405,13 +405,13 @@ struct PublicCircleCard: View {
             .buttonStyle(.scalePrimary)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),

@@ -18,13 +18,13 @@ struct SwimSettingsView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Swim Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
@@ -43,7 +43,7 @@ struct SwimSettingsView: View {
                 HStack {
                     Text("Pool Length")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
                     Picker("", selection: $swimVM.settings.poolLength) {
                         ForEach(PoolLength.allCases) { length in
@@ -58,7 +58,7 @@ struct SwimSettingsView: View {
                     HStack {
                         Text("Custom Length (meters)")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Spacer()
                         TextField("25", value: $swimVM.settings.customPoolLengthMeters, format: .number)
                             .font(.system(size: 14, weight: .semibold))
@@ -68,14 +68,14 @@ struct SwimSettingsView: View {
                             .frame(width: 60)
                         Text("m")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
 
                 HStack {
                     Text("Pace Unit")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
                     Picker("", selection: $swimVM.settings.paceUnit) {
                         ForEach(SwimPaceUnit.allCases) { unit in
@@ -88,7 +88,7 @@ struct SwimSettingsView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -110,7 +110,7 @@ struct SwimSettingsView: View {
                             .foregroundStyle(accentColor.opacity(0.7))
                         Text("Auto-Detect Strokes")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                     }
                 }
                 .tint(accentColor)
@@ -122,7 +122,7 @@ struct SwimSettingsView: View {
                             .foregroundStyle(accentColor.opacity(0.7))
                         Text("Lap Alerts")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                     }
                 }
                 .tint(accentColor)
@@ -133,7 +133,7 @@ struct SwimSettingsView: View {
                         .foregroundStyle(accentColor.opacity(0.7))
                     Text("Session Lap Goal")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
                     Stepper("\(swimVM.settings.targetLapsPerSession)", value: $swimVM.settings.targetLapsPerSession, in: 10...200, step: 5)
                         .font(.system(size: 13, weight: .semibold))
@@ -142,7 +142,7 @@ struct SwimSettingsView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -151,7 +151,7 @@ struct SwimSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "speedometer")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Critical Swim Speed Test")
                 Spacer()
             }
@@ -159,7 +159,7 @@ struct SwimSettingsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("How it works:")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 VStack(alignment: .leading, spacing: 6) {
                     stepRow(number: 1, text: "Warm up with 200-400m easy swimming")
@@ -171,14 +171,14 @@ struct SwimSettingsView: View {
 
                 Text("CSS = (T400 - T200) / (D400 - D200) × 100")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .padding(.top, 4)
             }
 
             CSSInputForm(swimVM: swimVM)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -193,7 +193,7 @@ struct SwimSettingsView: View {
                 .clipShape(Circle())
             Text(text)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
     }
 
@@ -211,7 +211,7 @@ struct SwimSettingsView: View {
                     Spacer()
                     Text("No CSS tests recorded yet")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                 }
                 .padding(.vertical, 8)
@@ -224,16 +224,16 @@ struct SwimSettingsView: View {
                                 .foregroundStyle(accentColor)
                             Text(result.date.formatted(.dateTime.month(.abbreviated).day().year()))
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 3) {
                             Text("400m: \(SwimFormatters.formatDuration(result.time400m))")
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             Text("200m: \(SwimFormatters.formatDuration(result.time200m))")
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                     .padding(.vertical, 4)
@@ -241,7 +241,7 @@ struct SwimSettingsView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -249,7 +249,7 @@ struct SwimSettingsView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }
@@ -283,7 +283,7 @@ struct CSSInputForm: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("400m Time")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     HStack(spacing: 4) {
                         Picker("", selection: $minutes400) {
                             ForEach(0..<20, id: \.self) { m in Text("\(m)").tag(m) }
@@ -293,7 +293,7 @@ struct CSSInputForm: View {
                         .clipped()
                         Text(":")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Picker("", selection: $seconds400) {
                             ForEach(0..<60, id: \.self) { s in Text(String(format: "%02d", s)).tag(s) }
                         }
@@ -306,7 +306,7 @@ struct CSSInputForm: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("200m Time")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     HStack(spacing: 4) {
                         Picker("", selection: $minutes200) {
                             ForEach(0..<20, id: \.self) { m in Text("\(m)").tag(m) }
@@ -316,7 +316,7 @@ struct CSSInputForm: View {
                         .clipped()
                         Text(":")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Picker("", selection: $seconds200) {
                             ForEach(0..<60, id: \.self) { s in Text(String(format: "%02d", s)).tag(s) }
                         }
@@ -331,7 +331,7 @@ struct CSSInputForm: View {
                 HStack(spacing: 8) {
                     Text("Calculated CSS:")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Text(SwimFormatters.formatPace(calculatedCSS) + " /100m")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(accentColor)
@@ -352,7 +352,7 @@ struct CSSInputForm: View {
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(FrisTheme.amber)
+                .background(PepTheme.amber)
                 .clipShape(.rect(cornerRadius: 10))
             }
             .buttonStyle(.scalePrimary)

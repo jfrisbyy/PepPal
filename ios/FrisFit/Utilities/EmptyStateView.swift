@@ -13,7 +13,7 @@ struct EmptyStateView: View {
                 Circle()
                     .fill(
                         RadialGradient(
-                            colors: [FrisTheme.cyan.opacity(0.08), FrisTheme.cyan.opacity(0.01)],
+                            colors: [PepTheme.teal.opacity(0.08), PepTheme.teal.opacity(0.01)],
                             center: .center,
                             startRadius: 0,
                             endRadius: 60
@@ -25,7 +25,7 @@ struct EmptyStateView: View {
                     .font(.system(size: 44))
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [FrisTheme.cyan.opacity(0.6), FrisTheme.cyan.opacity(0.25)],
+                            colors: [PepTheme.teal.opacity(0.6), PepTheme.teal.opacity(0.25)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -35,11 +35,11 @@ struct EmptyStateView: View {
             VStack(spacing: 8) {
                 Text(title)
                     .font(.system(.title3, design: .rounded, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 Text(message)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(3)
                     .frame(maxWidth: 260)
@@ -52,7 +52,7 @@ struct EmptyStateView: View {
                         .foregroundStyle(.black)
                         .padding(.horizontal, 28)
                         .padding(.vertical, 12)
-                        .background(FrisTheme.cyan, in: Capsule())
+                        .background(PepTheme.teal, in: Capsule())
                 }
                 .buttonStyle(.scale)
                 .padding(.top, 4)

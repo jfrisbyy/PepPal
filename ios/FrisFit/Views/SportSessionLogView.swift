@@ -27,14 +27,14 @@ struct SportSessionLogView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Log Session")
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -58,7 +58,7 @@ struct SportSessionLogView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
                 .background(
-                    FrisTheme.background
+                    PepTheme.background
                         .shadow(color: .black.opacity(0.5), radius: 20, y: -8)
                         .ignoresSafeArea()
                 )
@@ -81,27 +81,27 @@ struct SportSessionLogView: View {
                 if viewModel.selectedSport == .custom {
                     TextField("Sport name", text: $viewModel.customSportName)
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .tint(viewModel.selectedSport.color)
                 } else {
                     Text(viewModel.selectedSport.rawValue)
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
                 Text("Enter your session details")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [viewModel.selectedSport.color.opacity(0.25), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [viewModel.selectedSport.color.opacity(0.25), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -125,14 +125,14 @@ struct SportSessionLogView: View {
                             Text(type.rawValue)
                                 .font(.system(size: 12, weight: .semibold))
                         }
-                        .foregroundStyle(isSelected ? .black : FrisTheme.textSecondary)
+                        .foregroundStyle(isSelected ? .black : PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(isSelected ? viewModel.selectedSport.color : FrisTheme.elevated)
+                        .background(isSelected ? viewModel.selectedSport.color : PepTheme.elevated)
                         .clipShape(.rect(cornerRadius: 12))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(isSelected ? viewModel.selectedSport.color.opacity(0.5) : FrisTheme.glassBorderTop, lineWidth: 0.5)
+                                .strokeBorder(isSelected ? viewModel.selectedSport.color.opacity(0.5) : PepTheme.glassBorderTop, lineWidth: 0.5)
                         )
                     }
                 }
@@ -148,38 +148,38 @@ struct SportSessionLogView: View {
                 Button { viewModel.durationMinutes = max(5, viewModel.durationMinutes - 5) } label: {
                     Image(systemName: "minus")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .frame(width: 44, height: 44)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(Circle())
                 }
 
                 VStack(spacing: 2) {
                     Text("\(viewModel.durationMinutes)")
                         .font(.system(size: 40, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .contentTransition(.numericText())
                     Text("minutes")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
 
                 Button { viewModel.durationMinutes = min(300, viewModel.durationMinutes + 5) } label: {
                     Image(systemName: "plus")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .frame(width: 44, height: 44)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(Circle())
                 }
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
 
             ScrollView(.horizontal) {
@@ -192,10 +192,10 @@ struct SportSessionLogView: View {
                         } label: {
                             Text("\(mins)m")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(viewModel.durationMinutes == mins ? .black : FrisTheme.textSecondary)
+                                .foregroundStyle(viewModel.durationMinutes == mins ? .black : PepTheme.textSecondary)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 8)
-                                .background(viewModel.durationMinutes == mins ? viewModel.selectedSport.color : FrisTheme.elevated)
+                                .background(viewModel.durationMinutes == mins ? viewModel.selectedSport.color : PepTheme.elevated)
                                 .clipShape(Capsule())
                         }
                     }
@@ -225,7 +225,7 @@ struct SportSessionLogView: View {
                             }
                         } label: {
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(level <= viewModel.intensity ? intensityColor : FrisTheme.elevated)
+                                .fill(level <= viewModel.intensity ? intensityColor : PepTheme.elevated)
                                 .frame(height: 32 + CGFloat(level) * 2)
                         }
                         if level < 10 {
@@ -237,7 +237,7 @@ struct SportSessionLogView: View {
                 HStack {
                     Text("Light")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     Text(intensityLabel)
                         .font(.system(size: 11, weight: .semibold))
@@ -245,15 +245,15 @@ struct SportSessionLogView: View {
                     Spacer()
                     Text("Max")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
         }
     }
@@ -298,17 +298,17 @@ struct SportSessionLogView: View {
 
             VStack(spacing: 12) {
                 SportStatRow(label: "Points", value: $viewModel.basketballStats.points, icon: "target", color: .orange)
-                Divider().overlay(FrisTheme.glassBorderTop)
+                Divider().overlay(PepTheme.glassBorderTop)
                 SportStatRow(label: "Assists", value: $viewModel.basketballStats.assists, icon: "arrow.turn.up.right", color: .blue)
-                Divider().overlay(FrisTheme.glassBorderTop)
+                Divider().overlay(PepTheme.glassBorderTop)
                 SportStatRow(label: "Rebounds", value: $viewModel.basketballStats.rebounds, icon: "arrow.up.and.down", color: .green)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
         }
     }
@@ -326,18 +326,18 @@ struct SportSessionLogView: View {
                             .frame(width: 28)
                         Text("Distance (mi)")
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                     }
                     Spacer()
                     TextField("0.0", value: $viewModel.runningStats.distanceMiles, format: .number.precision(.fractionLength(1)))
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.decimalPad)
                         .frame(width: 80)
                 }
 
-                Divider().overlay(FrisTheme.glassBorderTop)
+                Divider().overlay(PepTheme.glassBorderTop)
 
                 HStack {
                     HStack(spacing: 8) {
@@ -347,23 +347,23 @@ struct SportSessionLogView: View {
                             .frame(width: 28)
                         Text("Pace (min/mi)")
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                     }
                     Spacer()
                     TextField("0.0", value: $viewModel.runningStats.paceMinutesPerMile, format: .number.precision(.fractionLength(1)))
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.decimalPad)
                         .frame(width: 80)
                 }
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
         }
     }
@@ -381,18 +381,18 @@ struct SportSessionLogView: View {
                             .frame(width: 28)
                         Text("Laps")
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                     }
                     Spacer()
                     HStack(spacing: 12) {
                         Button { viewModel.swimmingStats.laps = max(0, viewModel.swimmingStats.laps - 1) } label: {
                             Image(systemName: "minus.circle.fill")
                                 .font(.title3)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         Text("\(viewModel.swimmingStats.laps)")
                             .font(.system(.title3, design: .rounded, weight: .bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .frame(width: 40)
                         Button { viewModel.swimmingStats.laps += 1 } label: {
                             Image(systemName: "plus.circle.fill")
@@ -402,7 +402,7 @@ struct SportSessionLogView: View {
                     }
                 }
 
-                Divider().overlay(FrisTheme.glassBorderTop)
+                Divider().overlay(PepTheme.glassBorderTop)
 
                 HStack {
                     HStack(spacing: 8) {
@@ -412,7 +412,7 @@ struct SportSessionLogView: View {
                             .frame(width: 28)
                         Text("Stroke")
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                     }
                     Spacer()
                     Picker("Stroke", selection: $viewModel.swimmingStats.stroke) {
@@ -420,15 +420,15 @@ struct SportSessionLogView: View {
                             Text(stroke.rawValue).tag(stroke)
                         }
                     }
-                    .tint(FrisTheme.textPrimary)
+                    .tint(PepTheme.textPrimary)
                 }
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
         }
     }
@@ -438,34 +438,34 @@ struct SportSessionLogView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("ESTIMATED FP")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .tracking(1)
                 Text("Based on duration & intensity")
                     .font(.system(size: 11))
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.7))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
             }
             Spacer()
             HStack(spacing: 4) {
                 Image(systemName: "star.fill")
                     .font(.system(size: 14))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 Text("\(viewModel.estimatedFP)")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                     .contentTransition(.numericText())
                 Text("FP")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FrisTheme.cyan.opacity(0.7))
+                    .foregroundStyle(PepTheme.teal.opacity(0.7))
             }
         }
         .padding(16)
         .background(
-            FrisTheme.cyan.opacity(0.08)
+            PepTheme.teal.opacity(0.08)
         )
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(FrisTheme.cyan.opacity(0.2), lineWidth: 0.5)
+                .strokeBorder(PepTheme.teal.opacity(0.2), lineWidth: 0.5)
         )
     }
 }
@@ -485,18 +485,18 @@ private struct SportStatRow: View {
                     .frame(width: 28)
                 Text(label)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
             Spacer()
             HStack(spacing: 12) {
                 Button { value = max(0, value - 1) } label: {
                     Image(systemName: "minus.circle.fill")
                         .font(.title3)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 Text("\(value)")
                     .font(.system(.title3, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .frame(width: 40)
                     .contentTransition(.numericText())
                 Button { value += 1 } label: {
@@ -515,7 +515,7 @@ private struct SectionLabel: View {
     var body: some View {
         Text(text)
             .font(.system(size: 11, weight: .bold))
-            .foregroundStyle(FrisTheme.textSecondary)
+            .foregroundStyle(PepTheme.textSecondary)
             .tracking(1)
     }
 }

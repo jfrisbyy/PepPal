@@ -35,19 +35,19 @@ struct CircleSettingsSheet: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(FrisTheme.background)
+            .background(PepTheme.background)
             .navigationTitle("Circle Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") {
                         dismiss()
                     }
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                     .font(.system(.body, weight: .semibold))
                 }
             }
@@ -63,14 +63,14 @@ struct CircleSettingsSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(FrisTheme.background)
+        .presentationBackground(PepTheme.background)
     }
 
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("GENERAL")
                 .font(.system(.caption2, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(0.5)
 
             VStack(spacing: 12) {
@@ -82,14 +82,14 @@ struct CircleSettingsSheet: View {
                 HStack {
                     Text("Private")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
                     Toggle("", isOn: $editIsPrivate)
-                        .tint(FrisTheme.cyan)
+                        .tint(PepTheme.teal)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 10))
             }
         }
@@ -99,24 +99,24 @@ struct CircleSettingsSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("INVITE CODE")
                 .font(.system(.caption2, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(0.5)
 
             HStack {
                 Text(circle.inviteCode)
                     .font(.system(.title3, design: .monospaced, weight: .bold))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 Spacer()
                 Button {
                     UIPasteboard.general.string = circle.inviteCode
                 } label: {
                     Image(systemName: "doc.on.doc")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
             .padding(14)
-            .background(FrisTheme.elevated)
+            .background(PepTheme.elevated)
             .clipShape(.rect(cornerRadius: 12))
         }
     }
@@ -125,7 +125,7 @@ struct CircleSettingsSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("MEMBERS (\(circle.memberCount))")
                 .font(.system(.caption2, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(0.5)
 
             VStack(spacing: 0) {
@@ -143,7 +143,7 @@ struct CircleSettingsSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(member.user.name)
                                 .font(.system(.subheadline, weight: .medium))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             Text(member.role.rawValue)
                                 .font(.caption2)
                                 .foregroundStyle(member.role.color)
@@ -158,19 +158,19 @@ struct CircleSettingsSheet: View {
                             } label: {
                                 Image(systemName: "ellipsis")
                                     .font(.subheadline)
-                                    .foregroundStyle(FrisTheme.textSecondary)
+                                    .foregroundStyle(PepTheme.textSecondary)
                             }
                         }
                     }
                     .padding(.vertical, 10)
 
                     if member.id != circle.members.last?.id {
-                        Divider().overlay(FrisTheme.separatorColor)
+                        Divider().overlay(PepTheme.separatorColor)
                     }
                 }
             }
             .padding(.horizontal, 14)
-            .background(FrisTheme.elevated)
+            .background(PepTheme.elevated)
             .clipShape(.rect(cornerRadius: 12))
         }
     }
@@ -208,10 +208,10 @@ struct CircleSettingsSheet: View {
                     Text("Leave Circle")
                 }
                 .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 10))
             }
         }
@@ -227,14 +227,14 @@ struct SettingsField: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             TextField(label, text: $text)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .keyboardType(keyboardType)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 10))
         }
     }

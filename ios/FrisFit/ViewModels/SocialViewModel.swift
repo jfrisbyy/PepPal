@@ -56,7 +56,7 @@ final class SocialViewModel {
 
     func addFeedComment(to postID: UUID, text: String) {
         guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
-        let me = SocialUser(id: UUID(), name: "You", username: "me", avatarInitial: "Y", avatarColor: FrisTheme.cyan, activeProgramName: "Push Pull Legs", streak: 12, totalFP: 7200)
+        let me = SocialUser(id: UUID(), name: "You", username: "me", avatarInitial: "Y", avatarColor: PepTheme.teal, activeProgramName: "Push Pull Legs", streak: 12, totalFP: 7200)
         let comment = PostComment(id: UUID(), user: me, text: text, timestamp: Date())
         feedPosts[index].comments.append(comment)
     }
@@ -69,7 +69,7 @@ final class SocialViewModel {
 
     func addComment(to postID: UUID, text: String) {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
-        let me = SocialUser(id: UUID(), name: "You", username: "me", avatarInitial: "Y", avatarColor: FrisTheme.cyan, activeProgramName: "Push Pull Legs", streak: 12, totalFP: 7200)
+        let me = SocialUser(id: UUID(), name: "You", username: "me", avatarInitial: "Y", avatarColor: PepTheme.teal, activeProgramName: "Push Pull Legs", streak: 12, totalFP: 7200)
         let comment = PostComment(id: UUID(), user: me, text: text, timestamp: Date())
         posts[index].comments.append(comment)
     }

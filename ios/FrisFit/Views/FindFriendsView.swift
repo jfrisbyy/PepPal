@@ -28,7 +28,7 @@ struct FindFriendsView: View {
                 }
             }
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Find Friends")
         .navigationBarTitleDisplayMode(.inline)
         
@@ -73,16 +73,16 @@ private struct FriendSearchRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(result.user.name)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 Text("@\(result.user.username)")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
 
                 if let program = result.user.activeProgramName {
                     Text(program)
                         .font(.caption2)
-                        .foregroundStyle(FrisTheme.cyan.opacity(0.8))
+                        .foregroundStyle(PepTheme.teal.opacity(0.8))
                 }
             }
 
@@ -98,7 +98,7 @@ private struct FriendSearchRow: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 7)
-                        .background(FrisTheme.cyan)
+                        .background(PepTheme.teal)
                         .clipShape(.capsule)
                 }
                 .buttonStyle(.scale)
@@ -106,10 +106,10 @@ private struct FriendSearchRow: View {
             case .pending:
                 Text("Pending")
                     .font(.system(.caption, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
-                    .background(FrisTheme.elevated)
+                    .background(PepTheme.elevated)
                     .clipShape(.capsule)
             case .accepted:
                 HStack(spacing: 4) {
@@ -118,10 +118,10 @@ private struct FriendSearchRow: View {
                     Text("Friends")
                         .font(.system(.caption, weight: .medium))
                 }
-                .foregroundStyle(FrisTheme.cyan.opacity(0.8))
+                .foregroundStyle(PepTheme.teal.opacity(0.8))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
-                .background(FrisTheme.cyan.opacity(0.1))
+                .background(PepTheme.teal.opacity(0.1))
                 .clipShape(.capsule)
             }
         }

@@ -19,10 +19,10 @@ nonisolated enum TaskCategory: String, CaseIterable, Identifiable, Sendable {
 
     var color: Color {
         switch self {
-        case .fitness: return FrisTheme.cyan
+        case .fitness: return PepTheme.teal
         case .nutrition: return Color(red: 0.3, green: 0.85, blue: 0.4)
         case .wellness: return Color(red: 1.0, green: 0.45, blue: 0.5)
-        case .lifestyle: return FrisTheme.amber
+        case .lifestyle: return PepTheme.amber
         }
     }
 }

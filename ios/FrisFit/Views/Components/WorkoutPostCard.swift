@@ -28,11 +28,11 @@ struct WorkoutPostCard: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(post.user.name)
                                     .font(.system(.subheadline, weight: .semibold))
-                                    .foregroundStyle(FrisTheme.textPrimary)
+                                    .foregroundStyle(PepTheme.textPrimary)
 
                                 Text("@\(post.user.username) · \(post.timestamp.timeAgoDisplay())")
                                     .font(.caption)
-                                    .foregroundStyle(FrisTheme.textSecondary)
+                                    .foregroundStyle(PepTheme.textSecondary)
                             }
                         }
                         .contentShape(.rect)
@@ -44,10 +44,10 @@ struct WorkoutPostCard: View {
                     if let program = post.user.activeProgramName {
                         Text(program)
                             .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(FrisTheme.cyan.opacity(0.1))
+                            .background(PepTheme.teal.opacity(0.1))
                             .clipShape(.capsule)
                     }
                 }
@@ -55,7 +55,7 @@ struct WorkoutPostCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(post.workoutName)
                         .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     HStack(spacing: 16) {
                         WorkoutStatPill(icon: "clock", value: "\(post.duration)m")
@@ -67,18 +67,18 @@ struct WorkoutPostCard: View {
                 HStack(spacing: 0) {
                     Image(systemName: "bolt.fill")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     Text(" \(post.fpEarned) FP earned")
                         .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
-                .background(FrisTheme.cyan.opacity(0.08))
+                .background(PepTheme.teal.opacity(0.08))
                 .clipShape(.capsule)
 
                 Divider()
-                    .overlay(FrisTheme.separatorColor)
+                    .overlay(PepTheme.separatorColor)
 
                 HStack(spacing: 24) {
                     Button {
@@ -88,12 +88,12 @@ struct WorkoutPostCard: View {
                         HStack(spacing: 6) {
                             Image(systemName: post.isHighFived ? "hand.raised.fill" : "hand.raised")
                                 .font(.system(size: 18))
-                                .foregroundStyle(post.isHighFived ? FrisTheme.amber : FrisTheme.textSecondary)
+                                .foregroundStyle(post.isHighFived ? PepTheme.amber : PepTheme.textSecondary)
                                 .symbolEffect(.bounce, value: highFiveBounce)
 
                             Text("\(post.highFiveCount)")
                                 .font(.system(.subheadline, weight: .medium))
-                                .foregroundStyle(post.isHighFived ? FrisTheme.amber : FrisTheme.textSecondary)
+                                .foregroundStyle(post.isHighFived ? PepTheme.amber : PepTheme.textSecondary)
                         }
                         .contentShape(.rect)
                     }
@@ -109,7 +109,7 @@ struct WorkoutPostCard: View {
                             Text("\(post.comments.count)")
                                 .font(.system(.subheadline, weight: .medium))
                         }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .contentShape(.rect)
                     }
                     .buttonStyle(.scale)
@@ -141,7 +141,7 @@ private struct WorkoutStatPill: View {
             Text(value)
                 .font(.system(.caption, weight: .medium))
         }
-        .foregroundStyle(FrisTheme.textSecondary)
+        .foregroundStyle(PepTheme.textSecondary)
     }
 }
 

@@ -22,7 +22,7 @@ struct RideDetailView: View {
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Ride Details")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -43,7 +43,7 @@ struct RideDetailView: View {
                 .clipShape(.rect(cornerRadius: 16))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                 )
             }
         }
@@ -67,14 +67,14 @@ struct RideDetailView: View {
                     HStack(spacing: 8) {
                         Text(ride.rideType.rawValue)
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         if ride.isIndoor {
                             Text("INDOOR")
                                 .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(FrisTheme.violet)
+                                .foregroundStyle(PepTheme.violet)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 3)
-                                .background(FrisTheme.violet.opacity(0.12))
+                                .background(PepTheme.violet.opacity(0.12))
                                 .clipShape(Capsule())
                         }
                         if let cat = ride.climbCategory {
@@ -89,7 +89,7 @@ struct RideDetailView: View {
                     }
                     Text(ride.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute()))
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
@@ -97,10 +97,10 @@ struct RideDetailView: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("+\(ride.fpEarned)")
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                     Text("FP")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.amber.opacity(0.7))
+                        .foregroundStyle(PepTheme.amber.opacity(0.7))
                 }
             }
         }
@@ -115,7 +115,7 @@ struct RideDetailView: View {
             statCell(value: ride.averageSpeedFormatted, label: "Avg MPH", color: .blue)
             statCell(value: ride.maxSpeedFormatted, label: "Max MPH", color: .mint)
             statCell(value: String(format: "%.0f ft", ride.totalElevationGain), label: "Elev Gain", color: .orange)
-            statCell(value: "\(ride.caloriesBurned)", label: "Calories", color: FrisTheme.amber)
+            statCell(value: "\(ride.caloriesBurned)", label: "Calories", color: PepTheme.amber)
         }
     }
 
@@ -128,7 +128,7 @@ struct RideDetailView: View {
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
@@ -200,7 +200,7 @@ struct RideDetailView: View {
             .font(.system(size: 11, weight: .medium))
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -232,7 +232,7 @@ struct RideDetailView: View {
             .font(.system(size: 11, weight: .medium))
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -245,11 +245,11 @@ struct RideDetailView: View {
             Spacer()
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .multilineTextAlignment(.trailing)
         }
         .padding(12)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -264,7 +264,7 @@ struct RideDetailView: View {
                 Spacer()
                 Text("\(ride.segments.count) segments")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             if ride.segments.isEmpty {
@@ -272,7 +272,7 @@ struct RideDetailView: View {
                     Spacer()
                     Text("No segment data")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                 }
                 .padding(.vertical, 8)
@@ -300,14 +300,14 @@ struct RideDetailView: View {
 
                         Text("\(seg.avgSpeedFormatted)")
                             .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .frame(width: 36, alignment: .trailing)
                     }
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -338,7 +338,7 @@ struct RideDetailView: View {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule()
-                                .fill(FrisTheme.elevated)
+                                .fill(PepTheme.elevated)
                                 .frame(height: 10)
                             Capsule()
                                 .fill(dist.zone.color)
@@ -349,13 +349,13 @@ struct RideDetailView: View {
 
                     Text("\(Int(dist.percentage * 100))%")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(width: 32, alignment: .trailing)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -366,36 +366,36 @@ struct RideDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Image(systemName: "info.circle.fill")
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 HeadlineText(text: "Ride Info")
                 Spacer()
             }
 
             HStack {
                 Text("Duration")
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Spacer()
                 Text(ride.durationFormatted)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
             .font(.system(size: 13, weight: .medium))
 
             HStack {
                 Text("Moving Time")
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Spacer()
                 Text(ride.movingTimeFormatted)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
             .font(.system(size: 13, weight: .medium))
 
             if let bike {
                 HStack {
                     Text("Bike")
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     Text("\(bike.name) (\(bike.type))")
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
                 .font(.system(size: 13, weight: .medium))
             }
@@ -404,15 +404,15 @@ struct RideDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Notes")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Text(ride.notes)
                         .font(.system(size: 13))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -420,7 +420,7 @@ struct RideDetailView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

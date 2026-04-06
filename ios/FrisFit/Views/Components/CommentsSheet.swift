@@ -16,13 +16,13 @@ struct CommentsSheet: View {
                     VStack(spacing: 12) {
                         Image(systemName: "bubble.left.and.bubble.right")
                             .font(.system(size: 40))
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                         Text("No comments yet")
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         Text("Be the first to comment!")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.7))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                     }
                     Spacer()
                 } else {
@@ -37,15 +37,15 @@ struct CommentsSheet: View {
                 }
 
                 Divider()
-                    .overlay(FrisTheme.separatorColor)
+                    .overlay(PepTheme.separatorColor)
 
                 HStack(spacing: 12) {
                     TextField("Add a comment...", text: $commentText)
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(.capsule)
                         .focused($isCommentFocused)
                         .onSubmit { sendComment() }
@@ -55,28 +55,28 @@ struct CommentsSheet: View {
                     } label: {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.system(size: 32))
-                            .foregroundStyle(commentText.isEmpty ? FrisTheme.textSecondary.opacity(0.3) : FrisTheme.cyan)
+                            .foregroundStyle(commentText.isEmpty ? PepTheme.textSecondary.opacity(0.3) : PepTheme.teal)
                     }
                     .disabled(commentText.isEmpty)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(FrisTheme.cardSurface)
+                .background(PepTheme.cardSurface)
             }
-            .background(FrisTheme.background)
+            .background(PepTheme.background)
             .navigationTitle("Comments")
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(FrisTheme.background)
+        .presentationBackground(PepTheme.background)
         .presentationContentInteraction(.scrolls)
     }
 
@@ -106,16 +106,16 @@ private struct CommentRow: View {
                 HStack(spacing: 6) {
                     Text(comment.user.name)
                         .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     Text(comment.timestamp.timeAgoDisplay())
                         .font(.caption2)
-                        .foregroundStyle(FrisTheme.textSecondary.opacity(0.7))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                 }
 
                 Text(comment.text)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary.opacity(0.85))
+                    .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
             }
         }
     }

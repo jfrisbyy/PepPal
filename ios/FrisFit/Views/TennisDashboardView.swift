@@ -40,10 +40,10 @@ struct TennisDashboardView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Tennis")
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("\(tennisVM.thisWeekSessions) session\(tennisVM.thisWeekSessions == 1 ? "" : "s") this week · \(tennisVM.totalWins)W-\(tennisVM.totalLosses)L")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -55,7 +55,7 @@ struct TennisDashboardView: View {
                                 .foregroundStyle(tennisVM.winPercentage >= 50 ? .green : .orange)
                             Text("Win %")
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
@@ -77,16 +77,16 @@ struct TennisDashboardView: View {
                 .foregroundStyle(accentColor.opacity(0.7))
             Text(value)
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -105,10 +105,10 @@ struct TennisDashboardView: View {
                                     .font(.system(size: 8, weight: .semibold))
                                     .lineLimit(1)
                             }
-                            .foregroundStyle(tennisVM.selectedSessionType == type ? .black : FrisTheme.textSecondary)
+                            .foregroundStyle(tennisVM.selectedSessionType == type ? .black : PepTheme.textSecondary)
                             .frame(width: 72)
                             .padding(.vertical, 10)
-                            .background(tennisVM.selectedSessionType == type ? accentColor : FrisTheme.elevated.opacity(0.5))
+                            .background(tennisVM.selectedSessionType == type ? accentColor : PepTheme.elevated.opacity(0.5))
                             .clipShape(.rect(cornerRadius: 10))
                         }
                     }
@@ -157,12 +157,12 @@ struct TennisDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [accentColor.opacity(0.15), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [accentColor.opacity(0.15), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -177,7 +177,7 @@ struct TennisDashboardView: View {
                 Spacer()
                 Text("\(tennisVM.gameMatches.count) total")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             if tennisVM.matches.isEmpty {
@@ -194,7 +194,7 @@ struct TennisDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -220,16 +220,16 @@ struct TennisDashboardView: View {
                 HStack(spacing: 6) {
                     Text(match.sessionType.isMatch ? (match.opponentName.isEmpty ? match.sessionType.rawValue : "vs \(match.opponentName)") : match.sessionType.rawValue)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     if !match.sets.isEmpty {
                         Text(match.scoreDisplay)
                             .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundStyle(match.result?.color ?? FrisTheme.textSecondary)
+                            .foregroundStyle(match.result?.color ?? PepTheme.textSecondary)
                     }
                 }
                 Text(match.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
                     .font(.system(size: 10))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -241,17 +241,17 @@ struct TennisDashboardView: View {
                         .foregroundStyle(accentColor)
                     Text(String(format: "%.0f%% 1st", match.stats.firstServePercentage))
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             } else {
                 Text("\(match.fpEarned) FP")
                     .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
             }
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
         }
         .padding(.vertical, 4)
     }
@@ -276,7 +276,7 @@ struct TennisDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -285,7 +285,7 @@ struct TennisDashboardView: View {
         VStack(spacing: 8) {
             ZStack {
                 Circle()
-                    .stroke(FrisTheme.elevated, lineWidth: 6)
+                    .stroke(PepTheme.elevated, lineWidth: 6)
                     .frame(width: 56, height: 56)
                 Circle()
                     .trim(from: 0, to: min(value / 100, 1.0))
@@ -298,7 +298,7 @@ struct TennisDashboardView: View {
             }
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -307,7 +307,7 @@ struct TennisDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Winners vs Errors")
                 Spacer()
             }
@@ -322,13 +322,13 @@ struct TennisDashboardView: View {
                             .foregroundStyle(.green)
                         Text("Winners")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
 
                     ZStack {
                         Circle()
-                            .fill(FrisTheme.elevated)
+                            .fill(PepTheme.elevated)
                             .frame(width: 50, height: 50)
                         let ratio = tennisVM.totalUnforcedErrors > 0 ? Double(tennisVM.totalWinners) / Double(tennisVM.totalUnforcedErrors) : 0
                         Text(String(format: "%.1f", ratio))
@@ -342,7 +342,7 @@ struct TennisDashboardView: View {
                             .foregroundStyle(.red)
                         Text("UE")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -363,7 +363,7 @@ struct TennisDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -428,7 +428,7 @@ struct TennisDashboardView: View {
                 HStack {
                     Text("Last \(data.count) matches")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     if let first = data.first, let last = data.last {
                         let diff = last.rating - first.rating
@@ -444,7 +444,7 @@ struct TennisDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -453,7 +453,7 @@ struct TennisDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "person.2.fill")
-                    .foregroundStyle(FrisTheme.violet)
+                    .foregroundStyle(PepTheme.violet)
                 HeadlineText(text: "Head-to-Head")
                 Spacer()
             }
@@ -466,16 +466,16 @@ struct TennisDashboardView: View {
                     HStack(spacing: 12) {
                         ZStack {
                             Circle()
-                                .fill(FrisTheme.violet.opacity(0.12))
+                                .fill(PepTheme.violet.opacity(0.12))
                                 .frame(width: 36, height: 36)
                             Text(String(record.opponent.prefix(1)))
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(FrisTheme.violet)
+                                .foregroundStyle(PepTheme.violet)
                         }
 
                         Text(record.opponent)
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
 
                         Spacer()
 
@@ -485,7 +485,7 @@ struct TennisDashboardView: View {
                                 .foregroundStyle(.green)
                             Text("-")
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             Text("\(record.losses)")
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
                                 .foregroundStyle(.red)
@@ -496,12 +496,12 @@ struct TennisDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.violet.opacity(0.12), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.violet.opacity(0.12), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -543,18 +543,18 @@ struct TennisDashboardView: View {
                                 .frame(width: 8, height: 8)
                             Text(item.type)
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             Spacer()
                             Text("\(item.count)")
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                         }
                     }
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -570,18 +570,18 @@ struct TennisDashboardView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Drill Library")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("\(TennisDrillLibrary.all.count) drills across \(TennisDrillCategory.allCases.count) categories")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 16))
             .overlay(cardBorder())
         }
@@ -605,20 +605,20 @@ struct TennisDashboardView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Create Practice Session")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Build custom drill sessions")
                         .font(.system(size: 11))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 16))
             .overlay(cardBorder())
         }
@@ -631,10 +631,10 @@ struct TennisDashboardView: View {
             VStack(spacing: 8) {
                 Image(systemName: "chart.line.downtrend.xyaxis")
                     .font(.title2)
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(.vertical, 16)
             Spacer()
@@ -644,7 +644,7 @@ struct TennisDashboardView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

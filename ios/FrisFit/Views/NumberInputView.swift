@@ -9,18 +9,18 @@ struct NumberInputView: View {
     var body: some View {
         VStack(spacing: 0) {
             Capsule()
-                .fill(FrisTheme.textSecondary.opacity(0.3))
+                .fill(PepTheme.textSecondary.opacity(0.3))
                 .frame(width: 36, height: 4)
                 .padding(.top, 10)
 
             HStack(spacing: 0) {
                 Text(value.isEmpty ? "0" : value)
                     .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 Text(isWeight ? " lbs" : " reps")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
@@ -45,10 +45,10 @@ struct NumberInputView: View {
                 } label: {
                     Image(systemName: "delete.backward")
                         .font(.title3.weight(.medium))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(.rect(cornerRadius: 12))
                 }
             }
@@ -60,7 +60,7 @@ struct NumberInputView: View {
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .background(FrisTheme.cyan)
+                    .background(PepTheme.teal)
                     .clipShape(.rect(cornerRadius: 14))
             }
             .padding(.horizontal, 20)
@@ -68,17 +68,17 @@ struct NumberInputView: View {
             .padding(.bottom, 8)
         }
         .padding(.bottom, 8)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
     }
 
     private func incrementButton(label: String, amount: Double) -> some View {
         Button { onIncrement(amount) } label: {
             Text(label)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(amount > 0 ? FrisTheme.cyan : FrisTheme.textSecondary)
+                .foregroundStyle(amount > 0 ? PepTheme.teal : PepTheme.textSecondary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
-                .background(amount > 0 ? FrisTheme.cyan.opacity(0.12) : FrisTheme.elevated)
+                .background(amount > 0 ? PepTheme.teal.opacity(0.12) : PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 10))
         }
     }
@@ -95,10 +95,10 @@ struct NumberInputView: View {
         } label: {
             Text(digit)
                 .font(.system(size: 22, weight: .semibold, design: .rounded))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 12))
         }
     }

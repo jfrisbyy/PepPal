@@ -28,7 +28,7 @@ struct PhotoMealView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                FrisTheme.background.ignoresSafeArea()
+                PepTheme.background.ignoresSafeArea()
 
                 if capturedImage == nil {
                     pickSourceState
@@ -44,7 +44,7 @@ struct PhotoMealView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhoto, matching: .images)
@@ -77,21 +77,21 @@ struct PhotoMealView: View {
             VStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(FrisTheme.amber.opacity(0.12))
+                        .fill(PepTheme.amber.opacity(0.12))
                         .frame(width: 80, height: 80)
 
                     Image(systemName: "camera.fill")
                         .font(.system(size: 34))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                 }
 
                 Text("Add a Food Photo")
                     .font(.system(.title3, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 Text("Take a photo or choose from your library\nand AI will estimate the calories")
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .multilineTextAlignment(.center)
             }
 
@@ -108,10 +108,10 @@ struct PhotoMealView: View {
                         Text("Take Photo")
                             .font(.system(.body, weight: .semibold))
                     }
-                    .foregroundStyle(FrisTheme.invertedText)
+                    .foregroundStyle(PepTheme.invertedText)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(FrisTheme.amber, in: .rect(cornerRadius: 12))
+                    .background(PepTheme.amber, in: .rect(cornerRadius: 12))
                 }
                 .buttonStyle(.scale)
 
@@ -123,10 +123,10 @@ struct PhotoMealView: View {
                         Text("Choose from Library")
                             .font(.system(.body, weight: .semibold))
                     }
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(FrisTheme.amber.opacity(0.12), in: .rect(cornerRadius: 12))
+                    .background(PepTheme.amber.opacity(0.12), in: .rect(cornerRadius: 12))
                 }
                 .buttonStyle(.scale)
             }
@@ -148,24 +148,24 @@ struct PhotoMealView: View {
         VStack(spacing: 12) {
             Image(systemName: "camera.badge.ellipsis")
                 .font(.system(size: 28))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
 
             Text("Camera Preview")
                 .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             Text("Install this app on your device\nvia the Rork App to use the camera.")
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding(20)
         .frame(maxWidth: .infinity)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
         .padding(.horizontal, 40)
     }
@@ -187,7 +187,7 @@ struct PhotoMealView: View {
                     Rectangle()
                         .fill(
                             LinearGradient(
-                                colors: [FrisTheme.amber.opacity(0), FrisTheme.amber.opacity(0.6), FrisTheme.amber.opacity(0)],
+                                colors: [PepTheme.amber.opacity(0), PepTheme.amber.opacity(0.6), PepTheme.amber.opacity(0)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -209,16 +209,16 @@ struct PhotoMealView: View {
 
             VStack(spacing: 16) {
                 ProgressView()
-                    .tint(FrisTheme.amber)
+                    .tint(PepTheme.amber)
                     .scaleEffect(1.2)
 
                 Text("Analyzing your meal...")
                     .font(.system(.headline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 Text("Identifying food items and estimating nutrition")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -238,11 +238,11 @@ struct PhotoMealView: View {
                     HStack {
                         Text("Detected Items")
                             .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Spacer()
                         Text("Tap to adjust")
                             .font(.caption2)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
                     }
                     .padding(.horizontal, 4)
 
@@ -286,7 +286,7 @@ struct PhotoMealView: View {
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(FrisTheme.amber.opacity(0.2), lineWidth: 0.5)
+                .strokeBorder(PepTheme.amber.opacity(0.2), lineWidth: 0.5)
         )
     }
 
@@ -304,7 +304,7 @@ struct PhotoMealView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .background(
-            FrisTheme.amber.opacity(0.85)
+            PepTheme.amber.opacity(0.85)
                 .background(.ultraThinMaterial)
         )
         .clipShape(.rect(cornerRadius: 8))
@@ -322,26 +322,26 @@ struct PhotoMealView: View {
             VStack(spacing: 2) {
                 Text("\(totalCal)")
                     .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 Text("total cal")
                     .font(.caption2)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
 
             HStack(spacing: 14) {
-                miniMacro(label: "Protein", value: Int(totalP), color: FrisTheme.cyan)
-                miniMacro(label: "Carbs", value: Int(totalC), color: FrisTheme.amber)
-                miniMacro(label: "Fat", value: Int(totalF), color: FrisTheme.violet)
+                miniMacro(label: "Protein", value: Int(totalP), color: PepTheme.teal)
+                miniMacro(label: "Carbs", value: Int(totalC), color: PepTheme.amber)
+                miniMacro(label: "Fat", value: Int(totalF), color: PepTheme.violet)
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(FrisTheme.cyan.opacity(0.12), lineWidth: 0.5)
+                .strokeBorder(PepTheme.teal.opacity(0.12), lineWidth: 0.5)
         )
     }
 
@@ -352,7 +352,7 @@ struct PhotoMealView: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
     }
 
@@ -360,17 +360,17 @@ struct PhotoMealView: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(FrisTheme.amber.opacity(0.15))
+                    .fill(PepTheme.amber.opacity(0.15))
                     .frame(width: 36, height: 36)
                 Text("\(index + 1)")
                     .font(.system(.caption, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
             }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.name)
                     .font(.system(.subheadline, weight: .medium))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 HStack(spacing: 6) {
                     Text(item.amount)
@@ -380,7 +380,7 @@ struct PhotoMealView: View {
                     Text("F:\(Int(item.fat))g")
                 }
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -388,22 +388,22 @@ struct PhotoMealView: View {
             VStack(alignment: .trailing, spacing: 1) {
                 Text("\(item.calories)")
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text("cal")
                     .font(.caption2)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Image(systemName: "pencil.circle.fill")
                 .font(.body)
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.4))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
         }
         .padding(12)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -417,10 +417,10 @@ struct PhotoMealView: View {
                     Text("Add All to \(mealTime.rawValue)")
                         .font(.system(.body, weight: .semibold))
                 }
-                .foregroundStyle(FrisTheme.invertedText)
+                .foregroundStyle(PepTheme.invertedText)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(FrisTheme.cyan, in: .rect(cornerRadius: 12))
+                .background(PepTheme.teal, in: .rect(cornerRadius: 12))
             }
             .sensoryFeedback(.success, trigger: hasResult)
 
@@ -430,10 +430,10 @@ struct PhotoMealView: View {
                 } label: {
                     Text("Try Another Photo")
                         .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(FrisTheme.amber.opacity(0.12), in: .rect(cornerRadius: 10))
+                        .background(PepTheme.amber.opacity(0.12), in: .rect(cornerRadius: 10))
                 }
 
                 Button {
@@ -441,10 +441,10 @@ struct PhotoMealView: View {
                 } label: {
                     Text("Cancel")
                         .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(FrisTheme.elevated, in: .rect(cornerRadius: 10))
+                        .background(PepTheme.elevated, in: .rect(cornerRadius: 10))
                 }
             }
         }
@@ -579,10 +579,10 @@ struct ClarifyItemSheet: View {
                 VStack(spacing: 6) {
                     Image(systemName: "pencil.and.outline")
                         .font(.title2)
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                     Text("Adjust Estimate")
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
 
                 VStack(spacing: 14) {
@@ -602,16 +602,16 @@ struct ClarifyItemSheet: View {
                 } label: {
                     Text("Save Changes")
                         .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(FrisTheme.invertedText)
+                        .foregroundStyle(PepTheme.invertedText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(FrisTheme.amber, in: .rect(cornerRadius: 12))
+                        .background(PepTheme.amber, in: .rect(cornerRadius: 12))
                 }
 
                 Spacer()
             }
             .padding(20)
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .onAppear {
                 nameText = item.name
                 amountText = item.amount
@@ -627,15 +627,15 @@ struct ClarifyItemSheet: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
 
             TextField(label, text: text)
                 .font(.system(.body, weight: .medium))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .keyboardType(isNumeric ? .decimalPad : .default)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 10))
         }
     }

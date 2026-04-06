@@ -26,7 +26,7 @@ struct SoccerGameDetailView: View {
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Match Detail")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -54,7 +54,7 @@ struct SoccerGameDetailView: View {
                         HStack(spacing: 8) {
                             Text(match.sessionType.rawValue)
                                 .font(.title3.weight(.bold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             Text(match.position.shortName)
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(accentColor)
@@ -65,7 +65,7 @@ struct SoccerGameDetailView: View {
                         }
                         Text(match.date.formatted(.dateTime.weekday(.wide).month(.wide).day().year()))
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -74,10 +74,10 @@ struct SoccerGameDetailView: View {
                         VStack(spacing: 2) {
                             Text("\(ts) — \(os)")
                                 .font(.system(size: 22, weight: .bold, design: .rounded))
-                                .foregroundStyle(match.result?.color ?? FrisTheme.textPrimary)
+                                .foregroundStyle(match.result?.color ?? PepTheme.textPrimary)
                             Text("Final Score")
                                 .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
@@ -85,17 +85,17 @@ struct SoccerGameDetailView: View {
                 if match.sessionType.isGame {
                     HStack(spacing: 0) {
                         broadcastStat(value: "\(match.stats.goals)", label: "G")
-                        Divider().frame(height: 30).overlay(FrisTheme.elevated)
+                        Divider().frame(height: 30).overlay(PepTheme.elevated)
                         broadcastStat(value: "\(match.stats.assists)", label: "A")
-                        Divider().frame(height: 30).overlay(FrisTheme.elevated)
+                        Divider().frame(height: 30).overlay(PepTheme.elevated)
                         broadcastStat(value: "\(match.stats.shotsOnTarget)", label: "SOT")
-                        Divider().frame(height: 30).overlay(FrisTheme.elevated)
+                        Divider().frame(height: 30).overlay(PepTheme.elevated)
                         broadcastStat(value: "\(match.stats.tacklesWon)", label: "TKL")
-                        Divider().frame(height: 30).overlay(FrisTheme.elevated)
+                        Divider().frame(height: 30).overlay(PepTheme.elevated)
                         broadcastStat(value: "\(match.stats.interceptions)", label: "INT")
                     }
                     .padding(.vertical, 10)
-                    .background(FrisTheme.elevated.opacity(0.5))
+                    .background(PepTheme.elevated.opacity(0.5))
                     .clipShape(.rect(cornerRadius: 12))
                 }
             }
@@ -106,10 +106,10 @@ struct SoccerGameDetailView: View {
         VStack(spacing: 3) {
             Text(value)
                 .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(0.5)
         }
         .frame(maxWidth: .infinity)
@@ -125,7 +125,7 @@ struct SoccerGameDetailView: View {
                 if match.stats.minutesPlayed > 0 {
                     Text("\(match.stats.minutesPlayed) min")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
@@ -133,11 +133,11 @@ struct SoccerGameDetailView: View {
                 detailStatCell(value: "\(match.stats.goals)", label: "GOALS", color: accentColor)
                 detailStatCell(value: "\(match.stats.assists)", label: "AST", color: .blue)
                 detailStatCell(value: "\(match.stats.goalContributions)", label: "G+A", color: .cyan)
-                detailStatCell(value: "\(match.performanceRating)/10", label: "RATING", color: FrisTheme.amber)
+                detailStatCell(value: "\(match.performanceRating)/10", label: "RATING", color: PepTheme.amber)
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -161,7 +161,7 @@ struct SoccerGameDetailView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -183,7 +183,7 @@ struct SoccerGameDetailView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -192,7 +192,7 @@ struct SoccerGameDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Discipline")
                 Spacer()
             }
@@ -205,7 +205,7 @@ struct SoccerGameDetailView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -217,7 +217,7 @@ struct SoccerGameDetailView: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
@@ -241,7 +241,7 @@ struct SoccerGameDetailView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -260,7 +260,7 @@ struct SoccerGameDetailView: View {
             }
             Text(label)
                 .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -272,7 +272,7 @@ struct SoccerGameDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "brain.head.profile.fill")
-                    .foregroundStyle(FrisTheme.violet)
+                    .foregroundStyle(PepTheme.violet)
                 HeadlineText(text: "Self Assessment")
                 Spacer()
             }
@@ -281,37 +281,37 @@ struct SoccerGameDetailView: View {
                 VStack(spacing: 6) {
                     Text("\(match.performanceRating)")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                     Text("Performance")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
-                    ratingDots(value: match.performanceRating, color: FrisTheme.amber)
+                        .foregroundStyle(PepTheme.textSecondary)
+                    ratingDots(value: match.performanceRating, color: PepTheme.amber)
                 }
                 .frame(maxWidth: .infinity)
 
                 Rectangle()
-                    .fill(FrisTheme.elevated)
+                    .fill(PepTheme.elevated)
                     .frame(width: 1, height: 50)
 
                 VStack(spacing: 6) {
                     Text("\(match.confidenceRating)")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.violet)
+                        .foregroundStyle(PepTheme.violet)
                     Text("Confidence")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
-                    ratingDots(value: match.confidenceRating, color: FrisTheme.violet)
+                        .foregroundStyle(PepTheme.textSecondary)
+                    ratingDots(value: match.confidenceRating, color: PepTheme.violet)
                 }
                 .frame(maxWidth: .infinity)
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.violet.opacity(0.12), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.violet.opacity(0.12), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -321,7 +321,7 @@ struct SoccerGameDetailView: View {
         HStack(spacing: 3) {
             ForEach(1...10, id: \.self) { i in
                 Circle()
-                    .fill(i <= value ? color : FrisTheme.elevated)
+                    .fill(i <= value ? color : PepTheme.elevated)
                     .frame(width: 6, height: 6)
             }
         }
@@ -331,16 +331,16 @@ struct SoccerGameDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "note.text")
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 HeadlineText(text: "Notes")
                 Spacer()
             }
             Text(match.notes)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -350,31 +350,31 @@ struct SoccerGameDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("FP EARNED")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .tracking(1)
                 Text("\(match.durationMinutes) min · \(match.sessionType.rawValue) · \(match.position.shortName)")
                     .font(.system(size: 11))
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.7))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
             }
             Spacer()
             HStack(spacing: 4) {
                 Image(systemName: "star.fill")
                     .font(.system(size: 14))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 Text("\(match.fpEarned)")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 Text("FP")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FrisTheme.cyan.opacity(0.7))
+                    .foregroundStyle(PepTheme.teal.opacity(0.7))
             }
         }
         .padding(16)
-        .background(FrisTheme.cyan.opacity(0.08))
+        .background(PepTheme.teal.opacity(0.08))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(FrisTheme.cyan.opacity(0.2), lineWidth: 0.5)
+                .strokeBorder(PepTheme.teal.opacity(0.2), lineWidth: 0.5)
         )
     }
 
@@ -385,7 +385,7 @@ struct SoccerGameDetailView: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(0.5)
         }
         .frame(maxWidth: .infinity)
@@ -398,7 +398,7 @@ struct SoccerGameDetailView: View {
         HStack {
             Text(label)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             Spacer()
             Text(value)
                 .font(.system(size: 14, weight: .bold, design: .rounded))
@@ -409,7 +409,7 @@ struct SoccerGameDetailView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

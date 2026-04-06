@@ -15,7 +15,7 @@ struct LiveRideView: View {
 
     var body: some View {
         ZStack {
-            FrisTheme.background.ignoresSafeArea()
+            PepTheme.background.ignoresSafeArea()
 
             if countdownActive {
                 countdownOverlay
@@ -53,7 +53,7 @@ struct LiveRideView: View {
                 .contentTransition(.numericText())
             Text("Get Ready")
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             Spacer()
         }
     }
@@ -126,7 +126,7 @@ struct LiveRideView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(FrisTheme.violet.opacity(0.9))
+                    .background(PepTheme.violet.opacity(0.9))
                     .clipShape(Capsule())
                 }
 
@@ -156,7 +156,7 @@ struct LiveRideView: View {
                         .foregroundStyle(cyclingVM.currentHeartRateZone.color)
                     Text("\(cyclingVM.currentHeartRate) bpm")
                         .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Z\(cyclingVM.currentHeartRateZone.rawValue)")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(cyclingVM.currentHeartRateZone.color)
@@ -186,7 +186,7 @@ struct LiveRideView: View {
             )
 
             Rectangle()
-                .fill(FrisTheme.separatorColor)
+                .fill(PepTheme.separatorColor)
                 .frame(width: 0.5, height: 50)
 
             metricBlock(
@@ -197,7 +197,7 @@ struct LiveRideView: View {
             )
 
             Rectangle()
-                .fill(FrisTheme.separatorColor)
+                .fill(PepTheme.separatorColor)
                 .frame(width: 0.5, height: 50)
 
             metricBlock(
@@ -208,12 +208,12 @@ struct LiveRideView: View {
             )
         }
         .padding(.vertical, 16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [accentColor.opacity(0.12), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [accentColor.opacity(0.12), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -224,16 +224,16 @@ struct LiveRideView: View {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
                     .font(.system(size: isPrimary ? 32 : 28, weight: .heavy, design: .rounded))
-                    .foregroundStyle(isPrimary ? accentColor : FrisTheme.textPrimary)
+                    .foregroundStyle(isPrimary ? accentColor : PepTheme.textPrimary)
                 if !unit.isEmpty {
                     Text(unit)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -256,18 +256,18 @@ struct LiveRideView: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -281,10 +281,10 @@ struct LiveRideView: View {
                     .foregroundStyle(.yellow)
                 Text("\(cyclingVM.currentPower)")
                     .font(.system(size: 24, weight: .heavy, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text("Watts")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
@@ -297,10 +297,10 @@ struct LiveRideView: View {
                     .foregroundStyle(.mint)
                 Text("\(cyclingVM.currentCadence)")
                     .font(.system(size: 24, weight: .heavy, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text("RPM")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
@@ -325,7 +325,7 @@ struct LiveRideView: View {
                     Spacer()
                     Text("First segment at 1 \(cyclingVM.settings.distanceUnit.splitLabel)...")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                 }
                 .padding(.vertical, 12)
@@ -340,14 +340,14 @@ struct LiveRideView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(seg.avgSpeedFormatted) \(cyclingVM.settings.speedUnit.rawValue)")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             HStack(spacing: 8) {
                                 Label("\(seg.avgHeartRate) bpm", systemImage: "heart.fill")
                                 Label("\(seg.avgCadence) rpm", systemImage: "arrow.triangle.2.circlepath")
                                 Label(String(format: "%+.0f ft", seg.elevationChange), systemImage: "arrow.up.right")
                             }
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         }
 
                         Spacer()
@@ -359,11 +359,11 @@ struct LiveRideView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -377,7 +377,7 @@ struct LiveRideView: View {
             Text(String(format: "%+.1f", diff))
                 .font(.system(size: 10, weight: .bold, design: .rounded))
         }
-        .foregroundStyle(diff > 0.5 ? .green : diff < -0.5 ? .red : FrisTheme.textSecondary)
+        .foregroundStyle(diff > 0.5 ? .green : diff < -0.5 ? .red : PepTheme.textSecondary)
     }
 
     // MARK: - Control Bar
@@ -414,7 +414,7 @@ struct LiveRideView: View {
                         .font(.system(size: 24))
                         .foregroundStyle(.white)
                         .frame(width: 64, height: 64)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(Circle())
                         .overlay(Circle().strokeBorder(accentColor.opacity(0.3), lineWidth: 2))
                 }
@@ -447,7 +447,7 @@ struct RideSummarySheet: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Ride Complete")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -467,7 +467,7 @@ struct RideSummarySheet: View {
 
             Text(ride.rideType.rawValue)
                 .font(.title2.weight(.bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             if let cat = ride.climbCategory {
                 Text(cat.rawValue)
@@ -481,7 +481,7 @@ struct RideSummarySheet: View {
 
             Text("+\(ride.fpEarned) FP")
                 .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.amber)
+                .foregroundStyle(PepTheme.amber)
         }
         .padding(.top, 12)
     }
@@ -493,7 +493,7 @@ struct RideSummarySheet: View {
             summaryCell(value: ride.averageSpeedFormatted, label: "Avg MPH", color: .blue)
             summaryCell(value: ride.maxSpeedFormatted, label: "Max MPH", color: .mint)
             summaryCell(value: String(format: "%.0f", ride.totalElevationGain), label: "Elev Gain", color: .orange)
-            summaryCell(value: "\(ride.caloriesBurned)", label: "Calories", color: FrisTheme.amber)
+            summaryCell(value: "\(ride.caloriesBurned)", label: "Calories", color: PepTheme.amber)
         }
     }
 
@@ -508,7 +508,7 @@ struct RideSummarySheet: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
     }
 
@@ -519,7 +519,7 @@ struct RideSummarySheet: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
@@ -534,7 +534,7 @@ struct RideSummarySheet: View {
                 HStack {
                     Text("Mi \(seg.segmentNumber)")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
                     HStack(spacing: 12) {
                         Text("\(seg.avgSpeedFormatted) mph")
@@ -542,13 +542,13 @@ struct RideSummarySheet: View {
                             .foregroundStyle(accentColor)
                         Text("\(seg.avgHeartRate) bpm")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
     }
 
@@ -565,7 +565,7 @@ struct RideSummarySheet: View {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule()
-                                .fill(FrisTheme.elevated)
+                                .fill(PepTheme.elevated)
                                 .frame(height: 8)
                             Capsule()
                                 .fill(dist.zone.color)
@@ -576,13 +576,13 @@ struct RideSummarySheet: View {
 
                     Text("\(Int(dist.percentage * 100))%")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(width: 32, alignment: .trailing)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
     }
 }

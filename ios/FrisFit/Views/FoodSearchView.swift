@@ -19,14 +19,14 @@ struct FoodSearchView: View {
                     foodList
                 }
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Add Food")
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -38,7 +38,7 @@ struct FoodSearchView: View {
                             Text("Quick Add")
                                 .font(.system(.subheadline, weight: .medium))
                         }
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     }
                 }
             }
@@ -87,10 +87,10 @@ struct FoodSearchView: View {
         } label: {
             Text(label)
                 .font(.system(.caption, weight: .semibold))
-                .foregroundStyle(isSelected ? FrisTheme.background : FrisTheme.textPrimary)
+                .foregroundStyle(isSelected ? PepTheme.background : PepTheme.textPrimary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
-                .background(isSelected ? FrisTheme.cyan : FrisTheme.elevated)
+                .background(isSelected ? PepTheme.teal : PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 8))
         }
     }
@@ -104,8 +104,8 @@ struct FoodSearchView: View {
                 } label: {
                     foodRow(food)
                 }
-                .listRowBackground(FrisTheme.cardSurface)
-                .listRowSeparatorTint(FrisTheme.separatorColor)
+                .listRowBackground(PepTheme.cardSurface)
+                .listRowSeparatorTint(PepTheme.separatorColor)
             }
         }
         .listStyle(.plain)
@@ -117,19 +117,19 @@ struct FoodSearchView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(food.name)
                     .font(.system(.subheadline, weight: .medium))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: 6) {
                     if !food.brand.isEmpty {
                         Text(food.brand)
-                            .foregroundStyle(FrisTheme.cyan.opacity(0.8))
+                            .foregroundStyle(PepTheme.teal.opacity(0.8))
                         Text("·")
                     }
                     Text(food.servingSize)
                 }
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -137,16 +137,16 @@ struct FoodSearchView: View {
             VStack(alignment: .trailing, spacing: 4) {
                 Text("\(food.calories)")
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 +
                 Text(" cal")
                     .font(.caption2)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
 
                 HStack(spacing: 6) {
-                    macroTag("P", value: food.protein, color: FrisTheme.cyan)
-                    macroTag("C", value: food.carbs, color: FrisTheme.amber)
-                    macroTag("F", value: food.fat, color: FrisTheme.violet)
+                    macroTag("P", value: food.protein, color: PepTheme.teal)
+                    macroTag("C", value: food.carbs, color: PepTheme.amber)
+                    macroTag("F", value: food.fat, color: PepTheme.violet)
                 }
             }
         }
@@ -163,13 +163,13 @@ struct FoodSearchView: View {
         VStack(spacing: 14) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 36))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.4))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
             Text("No foods found")
                 .font(.system(.headline, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             Text("Try a different search or use Quick Add")
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -191,25 +191,25 @@ struct FoodDetailSheet: View {
                 VStack(spacing: 6) {
                     Text(food.name)
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     if !food.brand.isEmpty {
                         Text(food.brand)
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
 
                 HStack(spacing: 20) {
-                    macroCircle(label: "Calories", value: "\(adjustedCalories)", unit: "cal", color: FrisTheme.cyan)
-                    macroCircle(label: "Protein", value: "\(Int(adjustedProtein))", unit: "g", color: FrisTheme.cyan)
-                    macroCircle(label: "Carbs", value: "\(Int(adjustedCarbs))", unit: "g", color: FrisTheme.amber)
-                    macroCircle(label: "Fat", value: "\(Int(adjustedFat))", unit: "g", color: FrisTheme.violet)
+                    macroCircle(label: "Calories", value: "\(adjustedCalories)", unit: "cal", color: PepTheme.teal)
+                    macroCircle(label: "Protein", value: "\(Int(adjustedProtein))", unit: "g", color: PepTheme.teal)
+                    macroCircle(label: "Carbs", value: "\(Int(adjustedCarbs))", unit: "g", color: PepTheme.amber)
+                    macroCircle(label: "Fat", value: "\(Int(adjustedFat))", unit: "g", color: PepTheme.violet)
                 }
 
                 VStack(spacing: 10) {
                     Text("Servings")
                         .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     HStack(spacing: 16) {
                         Button {
@@ -217,12 +217,12 @@ struct FoodDetailSheet: View {
                         } label: {
                             Image(systemName: "minus.circle.fill")
                                 .font(.title2)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
 
                         Text(String(format: "%.1f", servings))
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .frame(width: 60)
 
                         Button {
@@ -230,27 +230,27 @@ struct FoodDetailSheet: View {
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
-                                .foregroundStyle(FrisTheme.cyan)
+                                .foregroundStyle(PepTheme.teal)
                         }
                     }
 
                     Text(food.servingSize)
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary.opacity(0.7))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                 }
 
                 Button(action: onAdd) {
                     Text("Add to Meal")
                         .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(FrisTheme.invertedText)
+                        .foregroundStyle(PepTheme.invertedText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(FrisTheme.cyan, in: .rect(cornerRadius: 12))
+                        .background(PepTheme.teal, in: .rect(cornerRadius: 12))
                 }
                 .sensoryFeedback(.impact(weight: .medium), trigger: servings)
             }
             .padding(20)
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
         }
     }
 
@@ -271,7 +271,7 @@ struct FoodDetailSheet: View {
             }
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
     }
 }
@@ -292,13 +292,13 @@ struct QuickAddSheet: View {
                 VStack(spacing: 6) {
                     Image(systemName: "bolt.fill")
                         .font(.title2)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     Text("Quick Add")
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Add calories and optionally macros")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 VStack(spacing: 14) {
@@ -326,11 +326,11 @@ struct QuickAddSheet: View {
                 } label: {
                     Text("Add Entry")
                         .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(FrisTheme.invertedText)
+                        .foregroundStyle(PepTheme.invertedText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(
-                            (caloriesText.isEmpty ? FrisTheme.elevated : FrisTheme.cyan),
+                            (caloriesText.isEmpty ? PepTheme.elevated : PepTheme.teal),
                             in: .rect(cornerRadius: 12)
                         )
                 }
@@ -339,7 +339,7 @@ struct QuickAddSheet: View {
                 Spacer()
             }
             .padding(20)
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
         }
     }
 
@@ -347,15 +347,15 @@ struct QuickAddSheet: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
 
             TextField(placeholder, text: text)
                 .font(.system(.body, weight: .medium))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .keyboardType(label.contains("Name") ? .default : .decimalPad)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 10))
         }
     }

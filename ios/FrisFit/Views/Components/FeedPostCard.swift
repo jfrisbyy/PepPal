@@ -16,7 +16,7 @@ struct FeedPostCard: View {
                 if !post.textContent.isEmpty {
                     Text(post.textContent)
                         .font(.system(.body))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if !post.photoMedia.isEmpty {
@@ -31,7 +31,7 @@ struct FeedPostCard: View {
                 if let workout = post.workoutAttachment, let log = workout.workoutLog {
                     workoutLogSection(log)
                 }
-                Divider().overlay(FrisTheme.separatorColor)
+                Divider().overlay(PepTheme.separatorColor)
                 actionBar
             }
         }
@@ -52,14 +52,14 @@ struct FeedPostCard: View {
                 HStack(spacing: 4) {
                     Text(post.user.name)
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("@\(post.user.username)")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 Text(post.timestamp.timeAgoDisplay())
                     .font(.caption2)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -67,7 +67,7 @@ struct FeedPostCard: View {
             Button { } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 14))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .frame(width: 32, height: 32)
             }
         }
@@ -87,7 +87,7 @@ struct FeedPostCard: View {
                     .overlay {
                         Image(systemName: "photo")
                             .font(.title2)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.4))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
                     }
                     .clipShape(.rect(cornerRadius: 10))
             }
@@ -103,7 +103,7 @@ struct FeedPostCard: View {
             } label: {
                 Image(systemName: isPlayingVoice ? "pause.circle.fill" : "play.circle.fill")
                     .font(.system(size: 32))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
             }
 
             VStack(spacing: 6) {
@@ -111,7 +111,7 @@ struct FeedPostCard: View {
                     ZStack(alignment: .leading) {
                         waveformBars(width: geo.size.width, height: geo.size.height)
                         Rectangle()
-                            .fill(FrisTheme.cyan)
+                            .fill(PepTheme.teal)
                             .frame(width: geo.size.width * voiceProgress)
                             .mask { waveformBars(width: geo.size.width, height: geo.size.height) }
                     }
@@ -121,16 +121,16 @@ struct FeedPostCard: View {
                 HStack {
                     Text(formatVoiceDuration(voiceProgress * (voice.voiceDuration ?? 0)))
                         .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     Text(formatVoiceDuration(voice.voiceDuration ?? 0))
                         .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
         .padding(12)
-        .background(FrisTheme.elevated)
+        .background(PepTheme.elevated)
         .clipShape(.rect(cornerRadius: 14))
     }
 
@@ -140,7 +140,7 @@ struct FeedPostCard: View {
                 let seed = Double(i * 7 + 3)
                 let h = (sin(seed) * 0.4 + 0.6) * height
                 RoundedRectangle(cornerRadius: 1)
-                    .fill(FrisTheme.textSecondary.opacity(0.35))
+                    .fill(PepTheme.textSecondary.opacity(0.35))
                     .frame(width: 2.5, height: max(4, h))
             }
         }
@@ -166,7 +166,7 @@ struct FeedPostCard: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(program.title)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: 4) {
@@ -178,26 +178,26 @@ struct FeedPostCard: View {
                     HStack(spacing: 2) {
                         Image(systemName: "star.fill")
                             .font(.system(size: 9))
-                            .foregroundStyle(FrisTheme.amber)
+                            .foregroundStyle(PepTheme.amber)
                         Text(String(format: "%.1f", program.rating))
                             .font(.caption)
                     }
                 }
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
 
             Text("View")
                 .font(.system(.caption, weight: .semibold))
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(FrisTheme.cyan.opacity(0.1))
+                .background(PepTheme.teal.opacity(0.1))
                 .clipShape(.capsule)
         }
         .padding(12)
-        .background(FrisTheme.elevated)
+        .background(PepTheme.elevated)
         .clipShape(.rect(cornerRadius: 14))
     }
 
@@ -206,10 +206,10 @@ struct FeedPostCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "figure.strengthtraining.traditional")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 Text(log.workoutName)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
             }
 
@@ -222,18 +222,18 @@ struct FeedPostCard: View {
             HStack(spacing: 0) {
                 Image(systemName: "bolt.fill")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 Text(" \(log.fpEarned) FP earned")
                     .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(FrisTheme.cyan.opacity(0.08))
+            .background(PepTheme.teal.opacity(0.08))
             .clipShape(.capsule)
         }
         .padding(12)
-        .background(FrisTheme.elevated)
+        .background(PepTheme.elevated)
         .clipShape(.rect(cornerRadius: 14))
     }
 
@@ -245,10 +245,10 @@ struct FeedPostCard: View {
                 Text(value)
                     .font(.system(.caption, weight: .semibold))
             }
-            .foregroundStyle(FrisTheme.textPrimary)
+            .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.system(size: 9))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
     }
 
@@ -261,11 +261,11 @@ struct FeedPostCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: post.isHighFived ? "hand.raised.fill" : "hand.raised")
                         .font(.system(size: 17))
-                        .foregroundStyle(post.isHighFived ? FrisTheme.amber : FrisTheme.textSecondary)
+                        .foregroundStyle(post.isHighFived ? PepTheme.amber : PepTheme.textSecondary)
                         .symbolEffect(.bounce, value: highFiveBounce)
                     Text("\(post.highFiveCount)")
                         .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(post.isHighFived ? FrisTheme.amber : FrisTheme.textSecondary)
+                        .foregroundStyle(post.isHighFived ? PepTheme.amber : PepTheme.textSecondary)
                 }
                 .contentShape(.rect)
             }
@@ -283,7 +283,7 @@ struct FeedPostCard: View {
                     Text("\(post.comments.count)")
                         .font(.system(.subheadline, weight: .medium))
                 }
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .contentShape(.rect)
             }
             .buttonStyle(.scale)
@@ -297,7 +297,7 @@ struct FeedPostCard: View {
                     Text("\(post.repostCount)")
                         .font(.system(.subheadline, weight: .medium))
                 }
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .contentShape(.rect)
             }
             .buttonStyle(.scale)
@@ -307,7 +307,7 @@ struct FeedPostCard: View {
             Button { } label: {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 15))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.scale)

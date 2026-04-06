@@ -24,20 +24,20 @@ struct CreateTrainModeSheet: View {
                 .padding(.top, 8)
                 .padding(.bottom, 32)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Create Mode")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Create") {
                         createMode()
                     }
                     .fontWeight(.semibold)
-                    .foregroundStyle(canCreate ? FrisTheme.cyan : FrisTheme.textSecondary)
+                    .foregroundStyle(canCreate ? PepTheme.teal : PepTheme.textSecondary)
                     .disabled(!canCreate)
                 }
             }
@@ -52,18 +52,18 @@ struct CreateTrainModeSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("MODE NAME")
                 .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(1.2)
 
             TextField("e.g. Boxing, Hiking, Martial Arts", text: $customName)
                 .font(.body)
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .padding(14)
-                .background(FrisTheme.cardSurface)
+                .background(PepTheme.cardSurface)
                 .clipShape(.rect(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                 )
         }
     }
@@ -72,7 +72,7 @@ struct CreateTrainModeSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("BASED ON")
                 .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(1.2)
 
             let types: [TrainModeType] = [.custom, .running, .cycling, .swimming, .basketball, .soccer, .tennis, .football]
@@ -88,19 +88,19 @@ struct CreateTrainModeSheet: View {
                         VStack(spacing: 6) {
                             Image(systemName: type.icon)
                                 .font(.system(size: 18))
-                                .foregroundStyle(selectedType == type ? type.color : FrisTheme.textSecondary)
+                                .foregroundStyle(selectedType == type ? type.color : PepTheme.textSecondary)
                             Text(type == .custom ? "General" : type.rawValue)
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(selectedType == type ? FrisTheme.textPrimary : FrisTheme.textSecondary)
+                                .foregroundStyle(selectedType == type ? PepTheme.textPrimary : PepTheme.textSecondary)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(selectedType == type ? type.color.opacity(0.1) : FrisTheme.cardSurface)
+                        .background(selectedType == type ? type.color.opacity(0.1) : PepTheme.cardSurface)
                         .clipShape(.rect(cornerRadius: 10))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .strokeBorder(
-                                    selectedType == type ? type.color.opacity(0.3) : FrisTheme.glassBorderTop,
+                                    selectedType == type ? type.color.opacity(0.3) : PepTheme.glassBorderTop,
                                     lineWidth: selectedType == type ? 1 : 0.5
                                 )
                         )
@@ -115,7 +115,7 @@ struct CreateTrainModeSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("DASHBOARD CARDS")
                 .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(1.2)
 
             ForEach(sportCardOptions) { card in
@@ -131,23 +131,23 @@ struct CreateTrainModeSheet: View {
                     HStack(spacing: 12) {
                         Image(systemName: card.icon)
                             .font(.system(size: 14))
-                            .foregroundStyle(selectedCards.contains(card) ? selectedType.color : FrisTheme.textSecondary)
+                            .foregroundStyle(selectedCards.contains(card) ? selectedType.color : PepTheme.textSecondary)
                             .frame(width: 32, height: 32)
-                            .background(selectedCards.contains(card) ? selectedType.color.opacity(0.12) : FrisTheme.elevated)
+                            .background(selectedCards.contains(card) ? selectedType.color.opacity(0.12) : PepTheme.elevated)
                             .clipShape(Circle())
 
                         Text(card.rawValue)
                             .font(.subheadline.weight(.medium))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
 
                         Spacer()
 
                         Image(systemName: selectedCards.contains(card) ? "checkmark.circle.fill" : "circle")
                             .font(.title3)
-                            .foregroundStyle(selectedCards.contains(card) ? selectedType.color : FrisTheme.glassBorderTop)
+                            .foregroundStyle(selectedCards.contains(card) ? selectedType.color : PepTheme.glassBorderTop)
                     }
                     .padding(12)
-                    .background(FrisTheme.cardSurface)
+                    .background(PepTheme.cardSurface)
                     .clipShape(.rect(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)

@@ -18,7 +18,7 @@ struct CyclingSettingsView: View {
                 bikesSection
             }
             .scrollContentBackground(.hidden)
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Cycling Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -118,18 +118,18 @@ struct CyclingSettingsView: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(bike.isRetired ? FrisTheme.textSecondary.opacity(0.12) : bike.maintenanceStatusColor.opacity(0.12))
+                    .fill(bike.isRetired ? PepTheme.textSecondary.opacity(0.12) : bike.maintenanceStatusColor.opacity(0.12))
                     .frame(width: 36, height: 36)
                 Image(systemName: "bicycle")
                     .font(.system(size: 14))
-                    .foregroundStyle(bike.isRetired ? FrisTheme.textSecondary : bike.maintenanceStatusColor)
+                    .foregroundStyle(bike.isRetired ? PepTheme.textSecondary : bike.maintenanceStatusColor)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(bike.name)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(bike.isRetired ? FrisTheme.textSecondary : FrisTheme.textPrimary)
+                        .foregroundStyle(bike.isRetired ? PepTheme.textSecondary : PepTheme.textPrimary)
                     Text(bike.type)
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(accentColor)
@@ -149,7 +149,7 @@ struct CyclingSettingsView: View {
                 }
                 Text(String(format: "%.0f mi total", bike.totalMiles))
                     .font(.system(size: 11))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()

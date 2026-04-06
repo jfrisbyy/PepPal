@@ -7,15 +7,15 @@ struct GlassCard<Content: View>: View {
         content()
             .padding(16)
             .background(
-                FrisTheme.cardSurface
-                    .overlay(FrisTheme.cardOverlay)
+                PepTheme.cardSurface
+                    .overlay(PepTheme.cardOverlay)
             )
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(
                         LinearGradient(
-                            colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),

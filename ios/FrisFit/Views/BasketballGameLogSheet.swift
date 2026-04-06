@@ -25,7 +25,7 @@ struct BasketballGameLogSheet: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Log Basketball")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -34,7 +34,7 @@ struct BasketballGameLogSheet: View {
                         bbVM.resetLogForm()
                         dismiss()
                     }
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -49,7 +49,7 @@ struct BasketballGameLogSheet: View {
         HStack(spacing: 6) {
             ForEach(0..<4, id: \.self) { step in
                 Capsule()
-                    .fill(step <= currentStep ? accentColor : FrisTheme.elevated)
+                    .fill(step <= currentStep ? accentColor : PepTheme.elevated)
                     .frame(height: 4)
             }
         }
@@ -75,10 +75,10 @@ struct BasketballGameLogSheet: View {
                             Text(type.rawValue)
                                 .font(.system(size: 13, weight: .semibold))
                         }
-                        .foregroundStyle(isSelected ? .black : FrisTheme.textSecondary)
+                        .foregroundStyle(isSelected ? .black : PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(isSelected ? accentColor : FrisTheme.elevated)
+                        .background(isSelected ? accentColor : PepTheme.elevated)
                         .clipShape(.rect(cornerRadius: 12))
                     }
                 }
@@ -109,10 +109,10 @@ struct BasketballGameLogSheet: View {
                             Text(result == .win ? "Win" : "Loss")
                                 .font(.system(size: 15, weight: .bold))
                         }
-                        .foregroundStyle(isSelected ? .white : FrisTheme.textSecondary)
+                        .foregroundStyle(isSelected ? .white : PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(isSelected ? result.color : FrisTheme.elevated)
+                        .background(isSelected ? result.color : PepTheme.elevated)
                         .clipShape(.rect(cornerRadius: 12))
                     }
                 }
@@ -122,7 +122,7 @@ struct BasketballGameLogSheet: View {
                 VStack(spacing: 6) {
                     Text("YOUR TEAM")
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .tracking(1)
                     scoreCounter(value: $bbVM.teamScore, color: .green)
                 }
@@ -130,23 +130,23 @@ struct BasketballGameLogSheet: View {
 
                 Text("—")
                     .font(.title2.weight(.bold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
 
                 VStack(spacing: 6) {
                     Text("OPPONENT")
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .tracking(1)
                     scoreCounter(value: $bbVM.opponentScore, color: .red)
                 }
                 .frame(maxWidth: .infinity)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
         }
     }
@@ -156,7 +156,7 @@ struct BasketballGameLogSheet: View {
             Button { value.wrappedValue = max(0, value.wrappedValue - 1) } label: {
                 Image(systemName: "minus.circle.fill")
                     .font(.title3)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             Text("\(value.wrappedValue)")
                 .font(.system(size: 32, weight: .bold, design: .rounded))
@@ -179,38 +179,38 @@ struct BasketballGameLogSheet: View {
                 Button { bbVM.gameDuration = max(5, bbVM.gameDuration - 5) } label: {
                     Image(systemName: "minus")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .frame(width: 44, height: 44)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(Circle())
                 }
 
                 VStack(spacing: 2) {
                     Text("\(bbVM.gameDuration)")
                         .font(.system(size: 40, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .contentTransition(.numericText())
                     Text("minutes")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
 
                 Button { bbVM.gameDuration = min(300, bbVM.gameDuration + 5) } label: {
                     Image(systemName: "plus")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .frame(width: 44, height: 44)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(Circle())
                 }
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
         }
     }
@@ -248,7 +248,7 @@ struct BasketballGameLogSheet: View {
     private var quickLogSection: some View {
         VStack(spacing: 12) {
             counterRow(label: "Points", value: $bbVM.currentStats.points, icon: "target", color: accentColor)
-            Divider().overlay(FrisTheme.glassBorderTop)
+            Divider().overlay(PepTheme.glassBorderTop)
             counterRow(label: "Rebounds", value: Binding(
                 get: { bbVM.currentStats.offensiveRebounds + bbVM.currentStats.defensiveRebounds },
                 set: { newVal in
@@ -258,15 +258,15 @@ struct BasketballGameLogSheet: View {
                     else { bbVM.currentStats.defensiveRebounds = max(0, bbVM.currentStats.defensiveRebounds + diff) }
                 }
             ), icon: "arrow.up.and.down", color: .green)
-            Divider().overlay(FrisTheme.glassBorderTop)
+            Divider().overlay(PepTheme.glassBorderTop)
             counterRow(label: "Assists", value: $bbVM.currentStats.assists, icon: "arrow.turn.up.right", color: .blue)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -279,25 +279,25 @@ struct BasketballGameLogSheet: View {
                         .foregroundStyle(accentColor)
                     Text("SCORING")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .tracking(0.8)
                     Spacer()
                 }
 
                 counterRow(label: "Points", value: $bbVM.currentStats.points, icon: "target", color: accentColor)
-                Divider().overlay(FrisTheme.glassBorderTop)
+                Divider().overlay(PepTheme.glassBorderTop)
                 madeAttemptedRow(label: "FG", made: $bbVM.currentStats.fieldGoalsMade, attempted: $bbVM.currentStats.fieldGoalsAttempted, color: accentColor)
-                Divider().overlay(FrisTheme.glassBorderTop)
+                Divider().overlay(PepTheme.glassBorderTop)
                 madeAttemptedRow(label: "3PT", made: $bbVM.currentStats.threePointersMade, attempted: $bbVM.currentStats.threePointersAttempted, color: .green)
-                Divider().overlay(FrisTheme.glassBorderTop)
-                madeAttemptedRow(label: "FT", made: $bbVM.currentStats.freeThrowsMade, attempted: $bbVM.currentStats.freeThrowsAttempted, color: FrisTheme.amber)
+                Divider().overlay(PepTheme.glassBorderTop)
+                madeAttemptedRow(label: "FT", made: $bbVM.currentStats.freeThrowsMade, attempted: $bbVM.currentStats.freeThrowsAttempted, color: PepTheme.amber)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
 
             VStack(spacing: 12) {
@@ -307,23 +307,23 @@ struct BasketballGameLogSheet: View {
                         .foregroundStyle(.green)
                     Text("REBOUNDS & PLAYMAKING")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .tracking(0.8)
                     Spacer()
                 }
 
                 counterRow(label: "Off. Rebounds", value: $bbVM.currentStats.offensiveRebounds, icon: "arrow.up", color: .green)
-                Divider().overlay(FrisTheme.glassBorderTop)
+                Divider().overlay(PepTheme.glassBorderTop)
                 counterRow(label: "Def. Rebounds", value: $bbVM.currentStats.defensiveRebounds, icon: "arrow.down", color: .green)
-                Divider().overlay(FrisTheme.glassBorderTop)
+                Divider().overlay(PepTheme.glassBorderTop)
                 counterRow(label: "Assists", value: $bbVM.currentStats.assists, icon: "arrow.turn.up.right", color: .blue)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
 
             VStack(spacing: 12) {
@@ -333,32 +333,32 @@ struct BasketballGameLogSheet: View {
                         .foregroundStyle(.red)
                     Text("DEFENSE & TURNOVERS")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .tracking(0.8)
                     Spacer()
                 }
 
-                counterRow(label: "Steals", value: $bbVM.currentStats.steals, icon: "hand.raised.fill", color: FrisTheme.amber)
-                Divider().overlay(FrisTheme.glassBorderTop)
+                counterRow(label: "Steals", value: $bbVM.currentStats.steals, icon: "hand.raised.fill", color: PepTheme.amber)
+                Divider().overlay(PepTheme.glassBorderTop)
                 counterRow(label: "Blocks", value: $bbVM.currentStats.blocks, icon: "xmark.shield.fill", color: .red)
-                Divider().overlay(FrisTheme.glassBorderTop)
-                counterRow(label: "Turnovers", value: $bbVM.currentStats.turnovers, icon: "arrow.uturn.left", color: FrisTheme.textSecondary)
+                Divider().overlay(PepTheme.glassBorderTop)
+                counterRow(label: "Turnovers", value: $bbVM.currentStats.turnovers, icon: "arrow.uturn.left", color: PepTheme.textSecondary)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
 
-            counterRow(label: "Minutes Played", value: $bbVM.currentStats.minutesPlayed, icon: "clock.fill", color: FrisTheme.textSecondary)
+            counterRow(label: "Minutes Played", value: $bbVM.currentStats.minutesPlayed, icon: "clock.fill", color: PepTheme.textSecondary)
                 .padding(16)
-                .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+                .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
                 .clipShape(.rect(cornerRadius: 16))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                 )
         }
     }
@@ -372,18 +372,18 @@ struct BasketballGameLogSheet: View {
                     .frame(width: 28)
                 Text(label)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
             Spacer()
             HStack(spacing: 12) {
                 Button { value.wrappedValue = max(0, value.wrappedValue - 1) } label: {
                     Image(systemName: "minus.circle.fill")
                         .font(.title3)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 Text("\(value.wrappedValue)")
                     .font(.system(.title3, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .frame(width: 40)
                     .contentTransition(.numericText())
                 Button { value.wrappedValue += 1 } label: {
@@ -399,7 +399,7 @@ struct BasketballGameLogSheet: View {
         HStack {
             Text(label)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .frame(width: 32, alignment: .leading)
 
             Spacer()
@@ -408,8 +408,8 @@ struct BasketballGameLogSheet: View {
                 miniCounter(value: made, color: color)
                 Text("/")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(FrisTheme.textSecondary)
-                miniCounter(value: attempted, color: FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
+                miniCounter(value: attempted, color: PepTheme.textSecondary)
             }
 
             let pct = attempted.wrappedValue > 0 ? Double(made.wrappedValue) / Double(attempted.wrappedValue) * 100 : 0
@@ -425,14 +425,14 @@ struct BasketballGameLogSheet: View {
             Button { value.wrappedValue = max(0, value.wrappedValue - 1) } label: {
                 Image(systemName: "minus")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .frame(width: 24, height: 24)
-                    .background(FrisTheme.elevated)
+                    .background(PepTheme.elevated)
                     .clipShape(Circle())
             }
             Text("\(value.wrappedValue)")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .frame(width: 28)
                 .contentTransition(.numericText())
             Button { value.wrappedValue += 1 } label: {
@@ -455,12 +455,12 @@ struct BasketballGameLogSheet: View {
                 Spacer()
                 Text("\(bbVM.shotChartEntries.count) shots")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Text("Tap a zone, then mark as made or missed")
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
 
             BasketballShotChartInputView(bbVM: bbVM, accentColor: accentColor)
 
@@ -470,7 +470,7 @@ struct BasketballGameLogSheet: View {
 
             Text("You can skip this step if you prefer not to chart shots.")
                 .font(.system(size: 11))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
         }
     }
 
@@ -486,7 +486,7 @@ struct BasketballGameLogSheet: View {
                     .foregroundStyle(accentColor)
                 Text("Made/Att")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .frame(maxWidth: .infinity)
 
@@ -496,12 +496,12 @@ struct BasketballGameLogSheet: View {
                     .foregroundStyle(pct >= 50 ? .green : .orange)
                 Text("FG%")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .frame(maxWidth: .infinity)
         }
         .padding(14)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
     }
 
@@ -512,30 +512,30 @@ struct BasketballGameLogSheet: View {
             sectionLabel("SELF ASSESSMENT")
 
             VStack(spacing: 16) {
-                ratingSlider(label: "Confidence", value: $bbVM.confidenceRating, icon: "brain.head.profile.fill", color: FrisTheme.violet)
-                ratingSlider(label: "Performance", value: $bbVM.performanceRating, icon: "star.fill", color: FrisTheme.amber)
+                ratingSlider(label: "Confidence", value: $bbVM.confidenceRating, icon: "brain.head.profile.fill", color: PepTheme.violet)
+                ratingSlider(label: "Performance", value: $bbVM.performanceRating, icon: "star.fill", color: PepTheme.amber)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
 
             VStack(alignment: .leading, spacing: 8) {
                 sectionLabel("NOTES")
                 TextField("How did you feel? Any key moments?", text: $bbVM.gameNotes, axis: .vertical)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .tint(accentColor)
                     .lineLimit(3...6)
                     .padding(14)
-                    .background(FrisTheme.cardSurface)
+                    .background(PepTheme.cardSurface)
                     .clipShape(.rect(cornerRadius: 14))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                            .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                     )
             }
 
@@ -551,7 +551,7 @@ struct BasketballGameLogSheet: View {
                     .foregroundStyle(color)
                 Text(label)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Spacer()
                 Text("\(value.wrappedValue)/10")
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
@@ -566,7 +566,7 @@ struct BasketballGameLogSheet: View {
                         }
                     } label: {
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(level <= value.wrappedValue ? color : FrisTheme.elevated)
+                            .fill(level <= value.wrappedValue ? color : PepTheme.elevated)
                             .frame(height: 28)
                     }
                     if level < 10 {
@@ -586,32 +586,32 @@ struct BasketballGameLogSheet: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("ESTIMATED FP")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .tracking(1)
                 Text("Based on stats & duration")
                     .font(.system(size: 11))
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.7))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
             }
             Spacer()
             HStack(spacing: 4) {
                 Image(systemName: "star.fill")
                     .font(.system(size: 14))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 Text("\(estimatedFP)")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                     .contentTransition(.numericText())
                 Text("FP")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FrisTheme.cyan.opacity(0.7))
+                    .foregroundStyle(PepTheme.teal.opacity(0.7))
             }
         }
         .padding(16)
-        .background(FrisTheme.cyan.opacity(0.08))
+        .background(PepTheme.teal.opacity(0.08))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(FrisTheme.cyan.opacity(0.2), lineWidth: 0.5)
+                .strokeBorder(PepTheme.teal.opacity(0.2), lineWidth: 0.5)
         )
     }
 
@@ -627,9 +627,9 @@ struct BasketballGameLogSheet: View {
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .frame(width: 50, height: 50)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(.rect(cornerRadius: 14))
                 }
             }
@@ -663,7 +663,7 @@ struct BasketballGameLogSheet: View {
         .padding(.horizontal)
         .padding(.bottom, 8)
         .background(
-            FrisTheme.background
+            PepTheme.background
                 .shadow(color: .black.opacity(0.5), radius: 20, y: -8)
                 .ignoresSafeArea()
         )
@@ -672,7 +672,7 @@ struct BasketballGameLogSheet: View {
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 11, weight: .bold))
-            .foregroundStyle(FrisTheme.textSecondary)
+            .foregroundStyle(PepTheme.textSecondary)
             .tracking(1)
     }
 }

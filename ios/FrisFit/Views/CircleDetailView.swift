@@ -12,7 +12,7 @@ struct CircleDetailView: View {
                 tabBar
                 tabContent
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -25,7 +25,7 @@ struct CircleDetailView: View {
                             Text("Circles")
                                 .font(.subheadline)
                         }
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -35,7 +35,7 @@ struct CircleDetailView: View {
                         } label: {
                             Image(systemName: "gearshape.fill")
                                 .font(.subheadline)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
@@ -81,7 +81,7 @@ struct CircleDetailView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(circle.name)
                             .font(.system(.title3, weight: .bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
 
                         HStack(spacing: 12) {
                             Label("\(circle.memberCount)", systemImage: "person.2.fill")
@@ -94,7 +94,7 @@ struct CircleDetailView: View {
                             }
                         }
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -105,7 +105,7 @@ struct CircleDetailView: View {
                             .foregroundStyle(circle.accentColor)
                         Text("this week")
                             .font(.caption2)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
             }
@@ -133,13 +133,13 @@ struct CircleDetailView: View {
                         .padding(.vertical, 8)
                         .background(
                             viewModel.selectedTab == tab
-                                ? FrisTheme.cyan.opacity(0.15)
-                                : FrisTheme.elevated.opacity(0.5)
+                                ? PepTheme.teal.opacity(0.15)
+                                : PepTheme.elevated.opacity(0.5)
                         )
                         .foregroundStyle(
                             viewModel.selectedTab == tab
-                                ? FrisTheme.cyan
-                                : FrisTheme.textSecondary
+                                ? PepTheme.teal
+                                : PepTheme.textSecondary
                         )
                         .clipShape(.capsule)
                     }
@@ -196,27 +196,27 @@ struct CircleTasksTab: View {
                     VStack(spacing: 4) {
                         Text("\(completedPoints)")
                             .font(.system(.title2, design: .rounded, weight: .bold))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                         Text("earned today")
                             .font(.caption2)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(FrisTheme.cyan.opacity(0.06))
+                    .background(PepTheme.teal.opacity(0.06))
                     .clipShape(.rect(cornerRadius: 12))
 
                     VStack(spacing: 4) {
                         Text("\(totalPoints)")
                             .font(.system(.title2, design: .rounded, weight: .bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("available")
                             .font(.caption2)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(FrisTheme.elevated.opacity(0.5))
+                    .background(PepTheme.elevated.opacity(0.5))
                     .clipShape(.rect(cornerRadius: 12))
                 }
 
@@ -228,7 +228,7 @@ struct CircleTasksTab: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(category)
                             .font(.system(.caption, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .textCase(.uppercase)
                             .tracking(0.5)
 
@@ -252,10 +252,10 @@ struct CircleTasksTab: View {
             HStack(spacing: 6) {
                 Image(systemName: "bell.badge.fill")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 Text("Pending Requests")
                     .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
             }
 
             ForEach(viewModel.taskRequests) { request in
@@ -263,10 +263,10 @@ struct CircleTasksTab: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(request.taskName)
                             .font(.system(.subheadline, weight: .medium))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("by \(request.requester.name) · \(request.taskValue) pts")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     Spacer()
                     Button {
@@ -285,11 +285,11 @@ struct CircleTasksTab: View {
                     }
                 }
                 .padding(12)
-                .background(FrisTheme.amber.opacity(0.06))
+                .background(PepTheme.amber.opacity(0.06))
                 .clipShape(.rect(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(FrisTheme.amber.opacity(0.15), lineWidth: 0.5)
+                        .strokeBorder(PepTheme.amber.opacity(0.15), lineWidth: 0.5)
                 )
             }
         }
@@ -310,23 +310,23 @@ struct CircleTaskRow: View {
             HStack(spacing: 12) {
                 Image(systemName: task.isCompletedToday ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(task.isCompletedToday ? FrisTheme.cyan : FrisTheme.textSecondary.opacity(0.4))
+                    .foregroundStyle(task.isCompletedToday ? PepTheme.teal : PepTheme.textSecondary.opacity(0.4))
                     .contentTransition(.symbolEffect(.replace))
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(task.name)
                             .font(.system(.subheadline, weight: .medium))
-                            .foregroundStyle(task.isCompletedToday ? FrisTheme.textPrimary.opacity(0.5) : FrisTheme.textPrimary)
-                            .strikethrough(task.isCompletedToday, color: FrisTheme.textSecondary)
+                            .foregroundStyle(task.isCompletedToday ? PepTheme.textPrimary.opacity(0.5) : PepTheme.textPrimary)
+                            .strikethrough(task.isCompletedToday, color: PepTheme.textSecondary)
 
                         if task.taskType == .circleTask {
                             Text("GROUP")
                                 .font(.system(size: 8, weight: .bold))
-                                .foregroundStyle(FrisTheme.violet)
+                                .foregroundStyle(PepTheme.violet)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
-                                .background(FrisTheme.violet.opacity(0.15), in: .capsule)
+                                .background(PepTheme.violet.opacity(0.15), in: .capsule)
                         }
                     }
                 }
@@ -335,20 +335,20 @@ struct CircleTaskRow: View {
 
                 Text(task.isPenalty ? "\(task.value)" : "+\(task.value)")
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .foregroundStyle(task.isPenalty ? .red.opacity(0.7) : FrisTheme.cyan)
+                    .foregroundStyle(task.isPenalty ? .red.opacity(0.7) : PepTheme.teal)
             }
             .padding(.vertical, 10)
             .padding(.horizontal, 14)
             .background(
                 task.isCompletedToday
-                    ? FrisTheme.cyan.opacity(0.04)
-                    : FrisTheme.cardSurface
+                    ? PepTheme.teal.opacity(0.04)
+                    : PepTheme.cardSurface
             )
             .clipShape(.rect(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(
-                        task.isCompletedToday ? FrisTheme.cyan.opacity(0.15) : FrisTheme.glassBorderTop,
+                        task.isCompletedToday ? PepTheme.teal.opacity(0.15) : PepTheme.glassBorderTop,
                         lineWidth: 0.5
                     )
             )
@@ -370,7 +370,7 @@ struct CircleLeaderboardTab: View {
                     LeaderboardMemberRow(
                         member: member,
                         isExpanded: expandedMember == member.id,
-                        circleColor: viewModel.selectedCircle?.accentColor ?? FrisTheme.cyan
+                        circleColor: viewModel.selectedCircle?.accentColor ?? PepTheme.teal
                     ) {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             expandedMember = expandedMember == member.id ? nil : member.id
@@ -407,7 +407,7 @@ struct LeaderboardMemberRow: View {
                         } else {
                             Text("\(member.rank)")
                                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                                 .frame(width: 36)
                         }
                     }
@@ -424,14 +424,14 @@ struct LeaderboardMemberRow: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(member.user.name)
                             .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         HStack(spacing: 6) {
                             Image(systemName: "flame.fill")
                                 .font(.system(size: 10))
                                 .foregroundStyle(.orange)
                             Text("\(member.goalStreak)d streak")
                                 .font(.caption2)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
 
@@ -444,10 +444,10 @@ struct LeaderboardMemberRow: View {
 
                 if isExpanded {
                     VStack(spacing: 12) {
-                        Divider().overlay(FrisTheme.separatorColor)
+                        Divider().overlay(PepTheme.separatorColor)
 
                         HStack(spacing: 16) {
-                            StatPill(label: "Best Streak", value: "\(member.longestStreak)d", icon: "trophy.fill", color: FrisTheme.amber)
+                            StatPill(label: "Best Streak", value: "\(member.longestStreak)d", icon: "trophy.fill", color: PepTheme.amber)
                             StatPill(label: "Current", value: "\(member.goalStreak)d", icon: "flame.fill", color: .orange)
                         }
 
@@ -455,12 +455,12 @@ struct LeaderboardMemberRow: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Top Tasks")
                                     .font(.system(.caption2, weight: .semibold))
-                                    .foregroundStyle(FrisTheme.textSecondary)
+                                    .foregroundStyle(PepTheme.textSecondary)
                                 ForEach(member.topTasks) { task in
                                     HStack {
                                         Text(task.taskName)
                                             .font(.caption)
-                                            .foregroundStyle(FrisTheme.textPrimary.opacity(0.8))
+                                            .foregroundStyle(PepTheme.textPrimary.opacity(0.8))
                                         Spacer()
                                         Text("\(task.count)x")
                                             .font(.system(.caption, design: .rounded, weight: .bold))
@@ -477,12 +477,12 @@ struct LeaderboardMemberRow: View {
             }
             .padding(.vertical, 12)
             .padding(.horizontal, 14)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(
-                        isExpanded ? circleColor.opacity(0.15) : FrisTheme.glassBorderTop,
+                        isExpanded ? circleColor.opacity(0.15) : PepTheme.glassBorderTop,
                         lineWidth: 0.5
                     )
             )
@@ -492,10 +492,10 @@ struct LeaderboardMemberRow: View {
 
     private var rankColor: Color {
         switch member.rank {
-        case 1: return FrisTheme.amber
+        case 1: return PepTheme.amber
         case 2: return Color(white: 0.75)
         case 3: return Color(red: 0.8, green: 0.5, blue: 0.2)
-        default: return FrisTheme.textSecondary
+        default: return PepTheme.textSecondary
         }
     }
 
@@ -503,7 +503,7 @@ struct LeaderboardMemberRow: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("12-Week History")
                 .font(.system(.caption2, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             let maxVal = member.weeklyHistory.max() ?? 1
             HStack(alignment: .bottom, spacing: 3) {
                 ForEach(Array(member.weeklyHistory.enumerated()), id: \.offset) { _, value in
@@ -532,15 +532,15 @@ struct StatPill: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
                     .font(.system(.caption, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text(label)
                     .font(.system(size: 9))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(FrisTheme.elevated.opacity(0.7))
+        .background(PepTheme.elevated.opacity(0.7))
         .clipShape(.rect(cornerRadius: 8))
     }
 }
@@ -568,15 +568,15 @@ struct CirclePostsTab: View {
                 .padding(.bottom, 80)
             }
 
-            Divider().overlay(FrisTheme.separatorColor)
+            Divider().overlay(PepTheme.separatorColor)
 
             HStack(spacing: 10) {
                 TextField("Share an update...", text: $viewModel.newPostText)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(FrisTheme.elevated)
+                    .background(PepTheme.elevated)
                     .clipShape(.capsule)
                     .focused($isPostFocused)
                     .onSubmit { viewModel.createPost() }
@@ -587,13 +587,13 @@ struct CirclePostsTab: View {
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30))
-                        .foregroundStyle(viewModel.newPostText.isEmpty ? FrisTheme.textSecondary.opacity(0.3) : FrisTheme.cyan)
+                        .foregroundStyle(viewModel.newPostText.isEmpty ? PepTheme.textSecondary.opacity(0.3) : PepTheme.teal)
                 }
                 .disabled(viewModel.newPostText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
         }
     }
 }
@@ -620,17 +620,17 @@ struct CirclePostCard: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(post.author.name)
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text(post.createdAt.timeAgoDisplay())
                         .font(.caption2)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 Spacer()
             }
 
             Text(post.content)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textPrimary.opacity(0.9))
+                .foregroundStyle(PepTheme.textPrimary.opacity(0.9))
                 .lineSpacing(3)
 
             HStack(spacing: 20) {
@@ -644,7 +644,7 @@ struct CirclePostCard: View {
                         Text("\(post.likeCount)")
                     }
                     .font(.caption)
-                    .foregroundStyle(post.isLiked ? .red : FrisTheme.textSecondary)
+                    .foregroundStyle(post.isLiked ? .red : PepTheme.textSecondary)
                 }
                 .sensoryFeedback(.impact(weight: .light), trigger: likeTap)
 
@@ -656,16 +656,16 @@ struct CirclePostCard: View {
                         Text("\(post.comments.count)")
                     }
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 }
@@ -689,15 +689,15 @@ struct CircleChatTab: View {
             }
             .defaultScrollAnchor(.bottom)
 
-            Divider().overlay(FrisTheme.separatorColor)
+            Divider().overlay(PepTheme.separatorColor)
 
             HStack(spacing: 10) {
                 TextField("Message...", text: $viewModel.newMessageText)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(FrisTheme.elevated)
+                    .background(PepTheme.elevated)
                     .clipShape(.capsule)
                     .focused($isChatFocused)
                     .onSubmit { viewModel.sendMessage() }
@@ -707,13 +707,13 @@ struct CircleChatTab: View {
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30))
-                        .foregroundStyle(viewModel.newMessageText.isEmpty ? FrisTheme.textSecondary.opacity(0.3) : FrisTheme.cyan)
+                        .foregroundStyle(viewModel.newMessageText.isEmpty ? PepTheme.textSecondary.opacity(0.3) : PepTheme.teal)
                 }
                 .disabled(viewModel.newMessageText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
         }
     }
 }
@@ -741,16 +741,16 @@ struct ChatBubble: View {
                 if !isMe {
                     Text(message.sender.name)
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Text(message.content)
                     .font(.subheadline)
-                    .foregroundStyle(isMe ? .white : FrisTheme.textPrimary)
+                    .foregroundStyle(isMe ? .white : PepTheme.textPrimary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(
-                        isMe ? FrisTheme.cyan : FrisTheme.elevated,
+                        isMe ? PepTheme.teal : PepTheme.elevated,
                         in: .rect(
                             topLeadingRadius: 16,
                             bottomLeadingRadius: isMe ? 16 : 4,
@@ -761,7 +761,7 @@ struct ChatBubble: View {
 
                 Text(message.createdAt, style: .time)
                     .font(.system(size: 9))
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
             }
 
             if !isMe { Spacer(minLength: 60) }
@@ -784,21 +784,21 @@ struct CircleCompeteTab: View {
                     HStack(spacing: 10) {
                         Image(systemName: "flag.2.crossed.fill")
                             .font(.headline)
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                         Text("Challenge a Circle")
                             .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                     }
                     .padding(14)
-                    .background(FrisTheme.cyan.opacity(0.06))
+                    .background(PepTheme.teal.opacity(0.06))
                     .clipShape(.rect(cornerRadius: 14))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(FrisTheme.cyan.opacity(0.15), lineWidth: 0.5)
+                            .strokeBorder(PepTheme.teal.opacity(0.15), lineWidth: 0.5)
                     )
                 }
                 .buttonStyle(.scale)
@@ -855,7 +855,7 @@ struct CompetitionCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(competition.name)
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text(competition.competitionType.rawValue)
                         .font(.caption2)
                         .foregroundStyle(statusColor)
@@ -873,28 +873,28 @@ struct CompetitionCard: View {
                 VStack(spacing: 4) {
                     Text("Us")
                         .font(.caption2)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Text("\(myPoints.formatted())")
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(myPoints >= theirPoints ? FrisTheme.cyan : FrisTheme.textPrimary)
+                        .foregroundStyle(myPoints >= theirPoints ? PepTheme.teal : PepTheme.textPrimary)
                 }
                 .frame(maxWidth: .infinity)
 
                 VStack(spacing: 2) {
                     Text("VS")
                         .font(.system(.caption2, design: .rounded, weight: .black))
-                        .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                 }
                 .frame(width: 40)
 
                 VStack(spacing: 4) {
                     Text(opponentName)
                         .font(.caption2)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .lineLimit(1)
                     Text("\(theirPoints.formatted())")
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(theirPoints > myPoints ? .red.opacity(0.7) : FrisTheme.textPrimary)
+                        .foregroundStyle(theirPoints > myPoints ? .red.opacity(0.7) : PepTheme.textPrimary)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -905,31 +905,31 @@ struct CompetitionCard: View {
                 VStack(spacing: 4) {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(FrisTheme.elevated).frame(height: 6)
-                            Capsule().fill(FrisTheme.cyan).frame(width: geo.size.width * progress, height: 6)
+                            Capsule().fill(PepTheme.elevated).frame(height: 6)
+                            Capsule().fill(PepTheme.teal).frame(width: geo.size.width * progress, height: 6)
                         }
                     }
                     .frame(height: 6)
                     Text("\(leading.formatted()) / \(target.formatted()) pts")
                         .font(.caption2)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
     private var statusColor: Color {
         switch competition.status {
         case .active: return .green
-        case .pending: return FrisTheme.amber
-        case .completed: return FrisTheme.textSecondary
+        case .pending: return PepTheme.amber
+        case .completed: return PepTheme.textSecondary
         }
     }
 }
@@ -941,25 +941,25 @@ struct AwardCard: View {
         HStack(spacing: 12) {
             Image(systemName: awardIcon)
                 .font(.title3)
-                .foregroundStyle(award.winnerId != nil ? FrisTheme.amber : FrisTheme.textSecondary)
+                .foregroundStyle(award.winnerId != nil ? PepTheme.amber : PepTheme.textSecondary)
                 .frame(width: 40)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(award.name)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text(award.description)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .lineLimit(2)
                 if let winner = award.winnerName {
                     HStack(spacing: 4) {
                         Image(systemName: "crown.fill")
                             .font(.system(size: 10))
-                            .foregroundStyle(FrisTheme.amber)
+                            .foregroundStyle(PepTheme.amber)
                         Text(winner)
                             .font(.system(.caption, weight: .semibold))
-                            .foregroundStyle(FrisTheme.amber)
+                            .foregroundStyle(PepTheme.amber)
                     }
                 }
             }
@@ -969,15 +969,15 @@ struct AwardCard: View {
             if let pts = award.rewardPoints {
                 Text("+\(pts)")
                     .font(.system(.caption, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
             }
         }
         .padding(12)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -1022,59 +1022,59 @@ struct BadgeCard: View {
         VStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .fill(badge.earned ? FrisTheme.amber.opacity(0.15) : FrisTheme.elevated)
+                    .fill(badge.earned ? PepTheme.amber.opacity(0.15) : PepTheme.elevated)
                     .frame(width: 52, height: 52)
 
                 Image(systemName: badge.icon)
                     .font(.title2)
-                    .foregroundStyle(badge.earned ? FrisTheme.amber : FrisTheme.textSecondary)
+                    .foregroundStyle(badge.earned ? PepTheme.amber : PepTheme.textSecondary)
                     .symbolEffect(.bounce, options: .speed(0.5), isActive: badge.earned)
             }
 
             Text(badge.name)
                 .font(.system(.caption, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
 
             Text(badge.description)
                 .font(.system(size: 10))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
 
             VStack(spacing: 4) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(FrisTheme.elevated).frame(height: 5)
-                        Capsule().fill(badge.earned ? FrisTheme.amber : FrisTheme.cyan).frame(width: geo.size.width * progress, height: 5)
+                        Capsule().fill(PepTheme.elevated).frame(height: 5)
+                        Capsule().fill(badge.earned ? PepTheme.amber : PepTheme.teal).frame(width: geo.size.width * progress, height: 5)
                     }
                 }
                 .frame(height: 5)
                 Text("\(badge.progress)/\(badge.required)")
                     .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             if badge.earned {
                 Text("EARNED")
                     .font(.system(size: 8, weight: .black))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(FrisTheme.amber.opacity(0.12), in: .capsule)
+                    .background(PepTheme.amber.opacity(0.12), in: .capsule)
             } else if let pts = badge.rewardPoints {
                 Text("+\(pts) pts")
                     .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
-                    badge.earned ? FrisTheme.amber.opacity(0.2) : FrisTheme.glassBorderTop,
+                    badge.earned ? PepTheme.amber.opacity(0.2) : PepTheme.glassBorderTop,
                     lineWidth: 0.5
                 )
         )
@@ -1099,10 +1099,10 @@ struct CirclePostCommentsSheet: View {
                     VStack(spacing: 12) {
                         Image(systemName: "bubble.left.and.bubble.right")
                             .font(.system(size: 40))
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                         Text("No comments yet")
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     Spacer()
                 } else {
@@ -1122,14 +1122,14 @@ struct CirclePostCommentsSheet: View {
                                         HStack(spacing: 6) {
                                             Text(comment.author.name)
                                                 .font(.system(.caption, weight: .semibold))
-                                                .foregroundStyle(FrisTheme.textPrimary)
+                                                .foregroundStyle(PepTheme.textPrimary)
                                             Text(comment.createdAt.timeAgoDisplay())
                                                 .font(.caption2)
-                                                .foregroundStyle(FrisTheme.textSecondary.opacity(0.7))
+                                                .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                                         }
                                         Text(comment.content)
                                             .font(.subheadline)
-                                            .foregroundStyle(FrisTheme.textPrimary.opacity(0.85))
+                                            .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
                                     }
                                 }
                             }
@@ -1138,15 +1138,15 @@ struct CirclePostCommentsSheet: View {
                     }
                 }
 
-                Divider().overlay(FrisTheme.separatorColor)
+                Divider().overlay(PepTheme.separatorColor)
 
                 HStack(spacing: 12) {
                     TextField("Add a comment...", text: $commentText)
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(.capsule)
                         .focused($isCommentFocused)
                         .onSubmit { sendComment() }
@@ -1154,27 +1154,27 @@ struct CirclePostCommentsSheet: View {
                     Button { sendComment() } label: {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.system(size: 32))
-                            .foregroundStyle(commentText.isEmpty ? FrisTheme.textSecondary.opacity(0.3) : FrisTheme.cyan)
+                            .foregroundStyle(commentText.isEmpty ? PepTheme.textSecondary.opacity(0.3) : PepTheme.teal)
                     }
                     .disabled(commentText.isEmpty)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(FrisTheme.cardSurface)
+                .background(PepTheme.cardSurface)
             }
-            .background(FrisTheme.background)
+            .background(PepTheme.background)
             .navigationTitle("Comments")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(FrisTheme.background)
+        .presentationBackground(PepTheme.background)
         .presentationContentInteraction(.scrolls)
     }
 

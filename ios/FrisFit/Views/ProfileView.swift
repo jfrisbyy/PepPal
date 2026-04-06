@@ -34,13 +34,13 @@ struct ProfileView: View {
                 }
             }
             .scrollIndicators(.hidden)
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(value: ProfileDestination.settings) {
                         Image(systemName: "gearshape")
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                     }
                 }
             }
@@ -77,9 +77,9 @@ struct ProfileView: View {
         ZStack(alignment: .bottomLeading) {
             LinearGradient(
                 colors: [
-                    FrisTheme.cyan.opacity(0.25),
-                    FrisTheme.violet.opacity(0.15),
-                    FrisTheme.background
+                    PepTheme.teal.opacity(0.25),
+                    PepTheme.violet.opacity(0.15),
+                    PepTheme.background
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -87,13 +87,13 @@ struct ProfileView: View {
             .frame(height: 120)
 
             Circle()
-                .fill(FrisTheme.background)
+                .fill(PepTheme.background)
                 .frame(width: 88, height: 88)
                 .overlay {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [viewModel.profile.avatarColor.opacity(0.8), FrisTheme.violet.opacity(0.6)],
+                                colors: [viewModel.profile.avatarColor.opacity(0.8), PepTheme.violet.opacity(0.6)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -116,11 +116,11 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(viewModel.profile.displayName)
                         .font(.system(.title2, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     Text("@\(viewModel.profile.username)")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
@@ -128,13 +128,13 @@ struct ProfileView: View {
                 NavigationLink(value: ProfileDestination.settings) {
                     Text("Edit Profile")
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(.capsule)
                         .overlay(
-                            Capsule().strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                            Capsule().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                         )
                 }
             }
@@ -142,7 +142,7 @@ struct ProfileView: View {
             if !viewModel.profile.bio.isEmpty {
                 Text(viewModel.profile.bio)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineSpacing(3)
                     .padding(.top, 4)
             }
@@ -152,20 +152,20 @@ struct ProfileView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "figure.run")
                             .font(.caption2)
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                         Text(program)
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                     }
                 }
 
                 HStack(spacing: 4) {
                     Image(systemName: "calendar")
                         .font(.caption2)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Text(viewModel.memberSinceFormatted)
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .padding(.top, 4)
@@ -183,26 +183,26 @@ struct ProfileView: View {
         HStack(spacing: 4) {
             Text(formatCount(count))
                 .font(.system(.subheadline, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
     }
 
     private var statsBar: some View {
         HStack(spacing: 0) {
-            ProfileQuickStat(value: formatNumber(viewModel.profile.totalFP), label: "Total FP", icon: "bolt.fill", color: FrisTheme.cyan)
-            ProfileQuickStat(value: "\(viewModel.streakManager.streakData.currentStreak)", label: "Day Streak", icon: "flame.fill", color: FrisTheme.amber)
-            ProfileQuickStat(value: "\(viewModel.profile.totalWorkouts)", label: "Workouts", icon: "dumbbell.fill", color: FrisTheme.violet)
+            ProfileQuickStat(value: formatNumber(viewModel.profile.totalFP), label: "Total FP", icon: "bolt.fill", color: PepTheme.teal)
+            ProfileQuickStat(value: "\(viewModel.streakManager.streakData.currentStreak)", label: "Day Streak", icon: "flame.fill", color: PepTheme.amber)
+            ProfileQuickStat(value: "\(viewModel.profile.totalWorkouts)", label: "Workouts", icon: "dumbbell.fill", color: PepTheme.violet)
         }
         .padding(.vertical, 14)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -220,11 +220,11 @@ struct ProfileView: View {
                         VStack(spacing: 8) {
                             Text(tab.rawValue)
                                 .font(.system(.subheadline, weight: selectedTab == tab ? .bold : .medium))
-                                .foregroundStyle(selectedTab == tab ? FrisTheme.textPrimary : FrisTheme.textSecondary)
+                                .foregroundStyle(selectedTab == tab ? PepTheme.textPrimary : PepTheme.textSecondary)
                                 .frame(maxWidth: .infinity)
 
                             Rectangle()
-                                .fill(selectedTab == tab ? FrisTheme.cyan : .clear)
+                                .fill(selectedTab == tab ? PepTheme.teal : .clear)
                                 .frame(height: 2)
                                 .clipShape(.capsule)
                         }
@@ -235,7 +235,7 @@ struct ProfileView: View {
             .padding(.horizontal, 16)
 
             Divider()
-                .overlay(FrisTheme.separatorColor)
+                .overlay(PepTheme.separatorColor)
 
             switch selectedTab {
             case .posts:
@@ -258,7 +258,7 @@ struct ProfileView: View {
                     ProfilePostRow(post: post, profile: viewModel.profile) {
                         viewModel.togglePostLike(post.id)
                     }
-                    Divider().overlay(FrisTheme.separatorColor)
+                    Divider().overlay(PepTheme.separatorColor)
                 }
             }
         }
@@ -303,13 +303,13 @@ struct ProfileView: View {
         VStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 36))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
             Text(title)
                 .font(.system(.headline, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             Text(message)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.7))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                 .multilineTextAlignment(.center)
         }
         .padding(.vertical, 48)
@@ -366,10 +366,10 @@ struct ProfileQuickStat: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(.headline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -387,7 +387,7 @@ struct ProfilePostRow: View {
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [profile.avatarColor.opacity(0.8), FrisTheme.violet.opacity(0.5)],
+                        colors: [profile.avatarColor.opacity(0.8), PepTheme.violet.opacity(0.5)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -403,24 +403,24 @@ struct ProfilePostRow: View {
                 HStack(spacing: 6) {
                     Text(profile.displayName)
                         .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     Text("@\(profile.username)")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     Text("·")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     Text(post.timestamp.timeAgoDisplay())
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Text(post.content)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineSpacing(3)
 
                 if let attachment = post.workoutAttachment {
@@ -435,11 +435,11 @@ struct ProfilePostRow: View {
                         HStack(spacing: 5) {
                             Image(systemName: post.isLiked ? "heart.fill" : "heart")
                                 .font(.system(size: 14))
-                                .foregroundStyle(post.isLiked ? .red : FrisTheme.textSecondary)
+                                .foregroundStyle(post.isLiked ? .red : PepTheme.textSecondary)
                                 .symbolEffect(.bounce, value: likeBounce)
                             Text("\(post.likeCount)")
                                 .font(.caption)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                     .buttonStyle(.plain)
@@ -451,13 +451,13 @@ struct ProfilePostRow: View {
                         Text("\(post.commentCount)")
                             .font(.caption)
                     }
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
 
                     HStack(spacing: 5) {
                         Image(systemName: "arrow.2.squarepath")
                             .font(.system(size: 14))
                     }
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
 
                     Spacer()
                 }
@@ -472,7 +472,7 @@ struct ProfilePostRow: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(attachment.workoutName)
                 .font(.system(.caption, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             HStack(spacing: 14) {
                 HStack(spacing: 3) {
@@ -490,21 +490,21 @@ struct ProfilePostRow: View {
                 HStack(spacing: 3) {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 10))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     Text("\(attachment.fpEarned) FP")
                         .font(.system(.caption2, weight: .semibold))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
-            .foregroundStyle(FrisTheme.textSecondary)
+            .foregroundStyle(PepTheme.textSecondary)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FrisTheme.elevated.opacity(0.6))
+        .background(PepTheme.elevated.opacity(0.6))
         .clipShape(.rect(cornerRadius: 10))
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 }
@@ -529,7 +529,7 @@ struct ProfileMarketCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(program.title)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: 8) {
@@ -539,42 +539,42 @@ struct ProfileMarketCard: View {
                             .foregroundStyle(.yellow)
                         Text(String(format: "%.1f", program.rating))
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Text("·")
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     Text("\(program.reviewCount) reviews")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     Text("·")
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     Text(program.difficulty.rawValue)
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Text("\(program.durationWeeks) weeks · \(program.daysPerWeek)x/week")
                     .font(.caption2)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
 
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .padding(14)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -590,28 +590,28 @@ private struct ProfileMenuRow: View {
         HStack(spacing: 14) {
             Image(systemName: icon)
                 .font(.body)
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(.body, weight: .medium))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text(subtitle)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .padding(14)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )

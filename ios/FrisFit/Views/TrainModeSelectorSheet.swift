@@ -16,14 +16,14 @@ struct TrainModeSelectorSheet: View {
                 .padding(.top, 8)
                 .padding(.bottom, 32)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Training Modes")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                         .fontWeight(.semibold)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
             .sheet(isPresented: $showAddMode) {
@@ -36,7 +36,7 @@ struct TrainModeSelectorSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("YOUR MODES")
                 .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(1.2)
 
             ForEach(viewModel.availableModes) { mode in
@@ -78,21 +78,21 @@ struct TrainModeSelectorSheet: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(mode.name)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 if mode.type == .main {
                     Text("Overview of all training")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 } else if let sport = mode.type.sport {
                     let count = viewModel.sessionsForSport(sport).count
                     Text("\(count) session\(count == 1 ? "" : "s") logged")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 } else {
                     Text("Custom sport view")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
@@ -105,20 +105,20 @@ struct TrainModeSelectorSheet: View {
             } else {
                 Image(systemName: "circle")
                     .font(.title3)
-                    .foregroundStyle(FrisTheme.glassBorderTop)
+                    .foregroundStyle(PepTheme.glassBorderTop)
             }
         }
         .padding(14)
         .background(
             isActive
                 ? mode.type.color.opacity(0.06)
-                : FrisTheme.cardSurface
+                : PepTheme.cardSurface
         )
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
-                    isActive ? mode.type.color.opacity(0.25) : FrisTheme.glassBorderTop,
+                    isActive ? mode.type.color.opacity(0.25) : PepTheme.glassBorderTop,
                     lineWidth: isActive ? 1 : 0.5
                 )
         )
@@ -128,7 +128,7 @@ struct TrainModeSelectorSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("ADD NEW MODE")
                 .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(1.2)
 
             let availableTypes = TrainModeType.allCases.filter { type in
@@ -157,28 +157,28 @@ struct TrainModeSelectorSheet: View {
                 HStack(spacing: 10) {
                     Image(systemName: "plus.circle.fill")
                         .font(.title3)
-                        .foregroundStyle(FrisTheme.violet)
+                        .foregroundStyle(PepTheme.violet)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Create Custom Mode")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("Build a view for any sport or activity")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 .padding(14)
-                .background(FrisTheme.cardSurface)
+                .background(PepTheme.cardSurface)
                 .clipShape(.rect(cornerRadius: 14))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
                         .strokeBorder(
                             LinearGradient(
-                                colors: [FrisTheme.violet.opacity(0.2), FrisTheme.glassBorderBottom],
+                                colors: [PepTheme.violet.opacity(0.2), PepTheme.glassBorderBottom],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
@@ -197,7 +197,7 @@ struct TrainModeSelectorSheet: View {
                 .foregroundStyle(type.color)
             Text(type.rawValue)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 18)

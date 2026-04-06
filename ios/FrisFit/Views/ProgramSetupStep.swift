@@ -9,19 +9,19 @@ struct ProgramSetupStep: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("PROGRAM NAME")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .tracking(1)
 
-                    TextField("", text: $viewModel.programName, prompt: Text("e.g. Push Pull Legs").foregroundStyle(FrisTheme.textSecondary.opacity(0.5)))
+                    TextField("", text: $viewModel.programName, prompt: Text("e.g. Push Pull Legs").foregroundStyle(PepTheme.textSecondary.opacity(0.5)))
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .padding(16)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(.rect(cornerRadius: 14))
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
                                 .strokeBorder(
-                                    viewModel.programName.isEmpty ? FrisTheme.glassBorderTop : FrisTheme.cyan.opacity(0.4),
+                                    viewModel.programName.isEmpty ? PepTheme.glassBorderTop : PepTheme.teal.opacity(0.4),
                                     lineWidth: 1
                                 )
                         )
@@ -30,7 +30,7 @@ struct ProgramSetupStep: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("PROGRAM TYPE")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .tracking(1)
 
                     ForEach(ProgramType.allCases) { type in
@@ -41,7 +41,7 @@ struct ProgramSetupStep: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("DAYS PER WEEK")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .tracking(1)
 
                     daysSelector
@@ -63,33 +63,33 @@ struct ProgramSetupStep: View {
             HStack(spacing: 14) {
                 Image(systemName: type.icon)
                     .font(.title3)
-                    .foregroundStyle(isSelected ? FrisTheme.cyan : FrisTheme.textSecondary)
+                    .foregroundStyle(isSelected ? PepTheme.teal : PepTheme.textSecondary)
                     .frame(width: 44, height: 44)
-                    .background(isSelected ? FrisTheme.cyan.opacity(0.12) : FrisTheme.elevated)
+                    .background(isSelected ? PepTheme.teal.opacity(0.12) : PepTheme.elevated)
                     .clipShape(.rect(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(type.rawValue)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text(type.description)
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(isSelected ? FrisTheme.cyan : FrisTheme.textSecondary.opacity(0.4))
+                    .foregroundStyle(isSelected ? PepTheme.teal : PepTheme.textSecondary.opacity(0.4))
             }
             .padding(14)
-            .background(isSelected ? FrisTheme.cyan.opacity(0.05) : FrisTheme.cardSurface)
+            .background(isSelected ? PepTheme.teal.opacity(0.05) : PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(
-                        isSelected ? FrisTheme.cyan.opacity(0.4) : FrisTheme.glassBorderTop,
+                        isSelected ? PepTheme.teal.opacity(0.4) : PepTheme.glassBorderTop,
                         lineWidth: isSelected ? 1.5 : 0.5
                     )
             )
@@ -107,15 +107,15 @@ struct ProgramSetupStep: View {
                 } label: {
                     Text("\(count)")
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(isSelected ? .black : FrisTheme.textSecondary)
+                        .foregroundStyle(isSelected ? .black : PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .background(isSelected ? FrisTheme.cyan : FrisTheme.elevated)
+                        .background(isSelected ? PepTheme.teal : PepTheme.elevated)
                         .clipShape(.rect(cornerRadius: 12))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .strokeBorder(
-                                    isSelected ? Color.clear : FrisTheme.glassBorderTop,
+                                    isSelected ? Color.clear : PepTheme.glassBorderTop,
                                     lineWidth: 0.5
                                 )
                         )

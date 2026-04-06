@@ -94,14 +94,14 @@ struct MarketLinkPickerSheet: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
             }
-            .background(FrisTheme.background)
+            .background(PepTheme.background)
             .navigationTitle("Link Market Item")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search programs...")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
@@ -127,23 +127,23 @@ struct MarketLinkPickerSheet: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(program.title)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 HStack(spacing: 6) {
                     Text(program.creatorName)
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     Text("·")
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     HStack(spacing: 2) {
                         Image(systemName: "star.fill")
                             .font(.system(size: 9))
-                            .foregroundStyle(FrisTheme.amber)
+                            .foregroundStyle(PepTheme.amber)
                         Text(String(format: "%.1f", program.rating))
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
             }
@@ -152,10 +152,10 @@ struct MarketLinkPickerSheet: View {
 
             Image(systemName: "plus.circle.fill")
                 .font(.title3)
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
         }
         .padding(12)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 12))
     }
 }

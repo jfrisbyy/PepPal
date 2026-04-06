@@ -15,16 +15,16 @@ struct RestTimerView: View {
             Text("REST")
                 .font(.system(size: 12, weight: .bold))
                 .tracking(2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
 
             ZStack {
                 Circle()
-                    .stroke(FrisTheme.elevated, lineWidth: 8)
+                    .stroke(PepTheme.elevated, lineWidth: 8)
 
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(
-                        FrisTheme.cyan,
+                        PepTheme.teal,
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
@@ -33,13 +33,13 @@ struct RestTimerView: View {
                 VStack(spacing: 4) {
                     Text(formattedTime)
                         .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .monospacedDigit()
                         .contentTransition(.numericText())
 
                     Text("remaining")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .frame(width: 180, height: 180)
@@ -51,22 +51,22 @@ struct RestTimerView: View {
                     Text("Skip Rest")
                         .font(.subheadline.weight(.semibold))
                 }
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
                 .padding(.horizontal, 28)
                 .padding(.vertical, 14)
-                .background(FrisTheme.cyan.opacity(0.12))
+                .background(PepTheme.teal.opacity(0.12))
                 .clipShape(Capsule())
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(FrisTheme.cyan.opacity(0.15), lineWidth: 0.5)
+                .strokeBorder(PepTheme.teal.opacity(0.15), lineWidth: 0.5)
         )
-        .shadow(color: FrisTheme.cyan.opacity(0.08), radius: 20, y: 8)
+        .shadow(color: PepTheme.teal.opacity(0.08), radius: 20, y: 8)
         .padding(.horizontal, 20)
     }
 

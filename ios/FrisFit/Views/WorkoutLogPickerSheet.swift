@@ -29,13 +29,13 @@ struct WorkoutLogPickerSheet: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
             }
-            .background(FrisTheme.background)
+            .background(PepTheme.background)
             .navigationTitle("Attach Workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
@@ -44,18 +44,18 @@ struct WorkoutLogPickerSheet: View {
     private func workoutRow(_ workout: WorkoutLogAttachment) -> some View {
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 10)
-                .fill(FrisTheme.cyan.opacity(0.12))
+                .fill(PepTheme.teal.opacity(0.12))
                 .frame(width: 52, height: 52)
                 .overlay {
                     Image(systemName: "figure.strengthtraining.traditional")
                         .font(.title3)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(workout.workoutName)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: 8) {
@@ -64,7 +64,7 @@ struct WorkoutLogPickerSheet: View {
                     Label("\(workout.fpEarned) FP", systemImage: "bolt.fill")
                 }
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -72,14 +72,14 @@ struct WorkoutLogPickerSheet: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(workout.date.formatted(.dateTime.month(.abbreviated).day()))
                     .font(.caption2)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Image(systemName: "plus.circle.fill")
                     .font(.title3)
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
             }
         }
         .padding(12)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 12))
     }
 }

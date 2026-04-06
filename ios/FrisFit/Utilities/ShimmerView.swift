@@ -10,7 +10,7 @@ struct ShimmerModifier: ViewModifier {
                     LinearGradient(
                         stops: [
                             .init(color: .clear, location: max(0, phase - 0.3)),
-                            .init(color: FrisTheme.glassBorderTop, location: phase),
+                            .init(color: PepTheme.glassBorderTop, location: phase),
                             .init(color: .clear, location: min(1, phase + 0.3))
                         ],
                         startPoint: .topLeading,
@@ -41,7 +41,7 @@ struct SkeletonBlock: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: cornerRadius)
-            .fill(FrisTheme.elevated)
+            .fill(PepTheme.elevated)
             .frame(maxWidth: width ?? .infinity)
             .frame(height: height)
             .shimmer()
@@ -92,7 +92,7 @@ struct SkeletonHomeView: View {
                 }
             }
             .padding(.vertical, 14)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 16))
         }
         .padding(.horizontal)
@@ -185,7 +185,7 @@ struct SkeletonProfileView: View {
                 }
             }
             .padding(.vertical, 16)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 16))
 
             ForEach(0..<3, id: \.self) { _ in

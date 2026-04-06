@@ -112,7 +112,7 @@ struct TrainView: View {
                     }
                 }
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Train")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -307,10 +307,10 @@ struct TrainView: View {
                             Text(mode.name)
                                 .font(.system(size: 12, weight: .semibold))
                         }
-                        .foregroundStyle(isActive ? .black : FrisTheme.textSecondary)
+                        .foregroundStyle(isActive ? .black : PepTheme.textSecondary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(isActive ? mode.type.color : FrisTheme.elevated)
+                        .background(isActive ? mode.type.color : PepTheme.elevated)
                         .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -354,24 +354,24 @@ struct TrainView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "calendar.badge.clock")
                                 .font(.caption)
-                                .foregroundStyle(FrisTheme.cyan)
+                                .foregroundStyle(PepTheme.teal)
                             Text("TODAY'S SESSION")
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(FrisTheme.cyan)
+                                .foregroundStyle(PepTheme.teal)
                                 .tracking(1.2)
                         }
                         Text(viewModel.todayDayName)
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                     }
                     Spacer()
                     if let program = viewModel.activeProgram {
                         Text("Week \(program.currentWeek)")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
-                            .background(FrisTheme.cyan.opacity(0.12))
+                            .background(PepTheme.teal.opacity(0.12))
                             .clipShape(Capsule())
                     }
                 }
@@ -396,10 +396,10 @@ struct TrainView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Rest Day")
                         .font(.headline.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Recovery is where growth happens. Stay hydrated and stretch.")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .padding(12)
@@ -414,30 +414,30 @@ struct TrainView: View {
             HStack {
                 Text(day.name)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Spacer()
                 Text("\(day.exercises.count) exercises")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             ForEach(day.exercises) { exercise in
                 HStack(spacing: 10) {
                     Image(systemName: exercise.primaryMuscle.icon)
                         .font(.system(size: 12))
-                        .foregroundStyle(FrisTheme.cyan.opacity(0.7))
+                        .foregroundStyle(PepTheme.teal.opacity(0.7))
                         .frame(width: 28, height: 28)
-                        .background(FrisTheme.cyan.opacity(0.1))
+                        .background(PepTheme.teal.opacity(0.1))
                         .clipShape(Circle())
 
                     VStack(alignment: .leading, spacing: 1) {
                         Text(exercise.exerciseName)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .lineLimit(1)
                         Text("\(exercise.targetSets) sets × \(exercise.targetRepsMin)-\(exercise.targetRepsMax) reps")
                             .font(.system(size: 11))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -445,7 +445,7 @@ struct TrainView: View {
                     let trend = viewModel.progressiveOverloadTrend(for: exercise.exerciseName)
                     Text(trend)
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(trend == "↑" ? .green : trend == "↓" ? .red : FrisTheme.textSecondary)
+                        .foregroundStyle(trend == "↑" ? .green : trend == "↓" ? .red : PepTheme.textSecondary)
                 }
                 .padding(.vertical, 4)
             }
@@ -464,7 +464,7 @@ struct TrainView: View {
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(FrisTheme.cyan)
+                .background(PepTheme.teal)
                 .clipShape(.rect(cornerRadius: 12))
             }
             .buttonStyle(.scale)
@@ -477,14 +477,14 @@ struct TrainView: View {
             HStack(spacing: 10) {
                 Image(systemName: "questionmark.circle")
                     .font(.title3)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("No Active Program")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Create a program or start a quick workout")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
@@ -500,7 +500,7 @@ struct TrainView: View {
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(FrisTheme.cyan)
+                .background(PepTheme.teal)
                 .clipShape(.rect(cornerRadius: 12))
             }
             .buttonStyle(.scale)
@@ -514,13 +514,13 @@ struct TrainView: View {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .stroke(FrisTheme.elevated, lineWidth: 8)
+                        .stroke(PepTheme.elevated, lineWidth: 8)
                         .frame(width: 64, height: 64)
                     Circle()
                         .trim(from: 0, to: viewModel.consistencyProgress)
                         .stroke(
                             AngularGradient(
-                                colors: [FrisTheme.cyan, FrisTheme.cyan.opacity(0.4), FrisTheme.cyan],
+                                colors: [PepTheme.teal, PepTheme.teal.opacity(0.4), PepTheme.teal],
                                 center: .center
                             ),
                             style: StrokeStyle(lineWidth: 8, lineCap: .round)
@@ -531,20 +531,20 @@ struct TrainView: View {
                     VStack(spacing: 0) {
                         Text("\(viewModel.workoutsCompletedThisWeek)")
                             .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                         Text("/\(viewModel.weeklyWorkoutGoal)")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Weekly Consistency")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("\(viewModel.workoutsCompletedThisWeek) of \(viewModel.weeklyWorkoutGoal) sessions completed")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     if viewModel.workoutsCompletedThisWeek >= viewModel.weeklyWorkoutGoal {
                         HStack(spacing: 4) {
@@ -557,7 +557,7 @@ struct TrainView: View {
                     } else {
                         Text("\(viewModel.weeklyWorkoutGoal - viewModel.workoutsCompletedThisWeek) more to hit your goal")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(FrisTheme.amber)
+                            .foregroundStyle(PepTheme.amber)
                     }
                 }
                 Spacer()
@@ -576,19 +576,19 @@ struct TrainView: View {
 
             let insight = viewModel.weeklyInsight
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                insightTile(icon: "figure.strengthtraining.traditional", label: "Sessions", value: "\(insight.totalSessions)", color: FrisTheme.cyan)
-                insightTile(icon: "scalemass.fill", label: "Volume", value: viewModel.formattedVolume(insight.totalVolume), color: FrisTheme.cyan)
-                insightTile(icon: "clock.fill", label: "Avg Duration", value: "\(insight.avgDuration)m", color: FrisTheme.violet)
+                insightTile(icon: "figure.strengthtraining.traditional", label: "Sessions", value: "\(insight.totalSessions)", color: PepTheme.teal)
+                insightTile(icon: "scalemass.fill", label: "Volume", value: viewModel.formattedVolume(insight.totalVolume), color: PepTheme.teal)
+                insightTile(icon: "clock.fill", label: "Avg Duration", value: "\(insight.avgDuration)m", color: PepTheme.violet)
                 insightTile(icon: "flame.fill", label: "Calories", value: "\(insight.totalCaloriesBurned)", color: .orange)
             }
 
             HStack {
                 Image(systemName: "star.fill")
                     .font(.system(size: 11))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 Text("\(insight.totalFP) FP earned this week")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 Spacer()
             }
             .padding(.horizontal, 4)
@@ -606,22 +606,22 @@ struct TrainView: View {
             HStack {
                 Text(value)
                     .font(.system(.title3, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Spacer()
             }
             HStack {
                 Text(label)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Spacer()
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -631,7 +631,7 @@ struct TrainView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "trophy.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Personal Records")
                 Spacer()
             }
@@ -660,21 +660,21 @@ struct TrainView: View {
             HStack(spacing: 4) {
                 Image(systemName: "star.fill")
                     .font(.system(size: 10))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 Text("NEW PR")
                     .font(.system(size: 9, weight: .black))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                     .tracking(1)
             }
 
             Text(pr.exerciseName)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
 
             Text("\(Int(pr.weight)) lbs × \(pr.reps)")
                 .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.amber)
+                .foregroundStyle(PepTheme.amber)
 
             if let prev = pr.previousBest {
                 HStack(spacing: 4) {
@@ -690,7 +690,7 @@ struct TrainView: View {
         .frame(width: 160, alignment: .leading)
         .background(
             LinearGradient(
-                colors: [FrisTheme.amber.opacity(0.08), FrisTheme.cardSurface],
+                colors: [PepTheme.amber.opacity(0.08), PepTheme.cardSurface],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -698,31 +698,31 @@ struct TrainView: View {
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(FrisTheme.amber.opacity(0.2), lineWidth: 0.5)
+                .strokeBorder(PepTheme.amber.opacity(0.2), lineWidth: 0.5)
         )
     }
 
     private func prRow(_ pr: TrainPersonalRecord) -> some View {
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 3)
-                .fill(pr.isNew ? FrisTheme.amber : FrisTheme.glassBorderTop)
+                .fill(pr.isNew ? PepTheme.amber : PepTheme.glassBorderTop)
                 .frame(width: 3, height: 32)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(pr.exerciseName)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
                 Text(pr.dateAchieved.formatted(.dateTime.month(.abbreviated).day()))
                     .font(.system(size: 10))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
 
             Text("\(Int(pr.weight)) lbs")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(pr.isNew ? FrisTheme.amber : FrisTheme.textPrimary)
+                .foregroundStyle(pr.isNew ? PepTheme.amber : PepTheme.textPrimary)
         }
         .padding(.vertical, 2)
     }
@@ -733,7 +733,7 @@ struct TrainView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 HeadlineText(text: "Weekly Volume")
                 Spacer()
             }
@@ -743,19 +743,19 @@ struct TrainView: View {
                 HStack(spacing: 10) {
                     Image(systemName: vol.muscle.icon)
                         .font(.system(size: 12))
-                        .foregroundStyle(FrisTheme.cyan.opacity(0.7))
+                        .foregroundStyle(PepTheme.teal.opacity(0.7))
                         .frame(width: 24)
 
                     Text(vol.muscle.rawValue)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .frame(width: 70, alignment: .leading)
 
                     GeometryReader { geo in
                         let fraction = vol.targetSets > 0 ? min(CGFloat(vol.setsCompleted) / CGFloat(vol.targetSets), 1.0) : 0
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(FrisTheme.elevated)
+                                .fill(PepTheme.elevated)
                                 .frame(height: 10)
 
                             RoundedRectangle(cornerRadius: 4)
@@ -763,8 +763,8 @@ struct TrainView: View {
                                     fraction >= 1.0
                                         ? AnyShapeStyle(.green.opacity(0.8))
                                         : fraction >= 0.6
-                                            ? AnyShapeStyle(FrisTheme.cyan)
-                                            : AnyShapeStyle(FrisTheme.amber)
+                                            ? AnyShapeStyle(PepTheme.teal)
+                                            : AnyShapeStyle(PepTheme.amber)
                                 )
                                 .frame(width: max(geo.size.width * fraction, 4), height: 10)
                         }
@@ -773,19 +773,19 @@ struct TrainView: View {
 
                     Text("\(vol.setsCompleted)/\(vol.targetSets)")
                         .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(width: 36, alignment: .trailing)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -810,7 +810,7 @@ struct TrainView: View {
                 } label: {
                     Text(showAllRecovery ? "Less" : "See All")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
 
@@ -844,7 +844,7 @@ struct TrainView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.muscle.rawValue)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
                 Text(item.status.rawValue)
                     .font(.system(size: 10, weight: .medium))
@@ -853,7 +853,7 @@ struct TrainView: View {
             Spacer()
         }
         .padding(10)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 10))
         .overlay(
             RoundedRectangle(cornerRadius: 10)
@@ -872,7 +872,7 @@ struct TrainView: View {
                 Spacer()
                 Text(viewModel.todayWorkoutDay != nil ? "For today" : "General")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             ForEach(viewModel.warmupExercises) { warmup in
@@ -887,10 +887,10 @@ struct TrainView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(warmup.name)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text(warmup.type.rawValue)
                             .font(.system(size: 10))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -906,13 +906,13 @@ struct TrainView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [.orange.opacity(0.12), FrisTheme.glassBorderBottom],
+                        colors: [.orange.opacity(0.12), PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -937,7 +937,7 @@ struct TrainView: View {
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(FrisTheme.cyan)
+                .background(PepTheme.teal)
                 .clipShape(.rect(cornerRadius: 14))
             }
             .buttonStyle(.scalePrimary)
@@ -954,14 +954,14 @@ struct TrainView: View {
                         Text("New Program")
                             .font(.subheadline.weight(.semibold))
                     }
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(FrisTheme.elevated)
+                    .background(PepTheme.elevated)
                     .clipShape(.rect(cornerRadius: 14))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                            .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                     )
                 }
                 .buttonStyle(.scale)
@@ -975,12 +975,12 @@ struct TrainView: View {
                         Text("Log Sport")
                             .font(.subheadline.weight(.semibold))
                     }
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(
                         LinearGradient(
-                            colors: [FrisTheme.elevated, FrisTheme.elevated.opacity(0.8)],
+                            colors: [PepTheme.elevated, PepTheme.elevated.opacity(0.8)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -990,7 +990,7 @@ struct TrainView: View {
                         RoundedRectangle(cornerRadius: 14)
                             .strokeBorder(
                                 LinearGradient(
-                                    colors: [Color.orange.opacity(0.25), FrisTheme.glassBorderBottom],
+                                    colors: [Color.orange.opacity(0.25), PepTheme.glassBorderBottom],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
@@ -1013,7 +1013,7 @@ struct TrainView: View {
                 Button { } label: {
                     Text("See All")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
 
@@ -1036,16 +1036,16 @@ struct TrainView: View {
                     ForEach(template.muscleGroups.prefix(3)) { muscle in
                         Image(systemName: muscle.icon)
                             .font(.system(size: 11))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                             .frame(width: 26, height: 26)
-                            .background(FrisTheme.cyan.opacity(0.12))
+                            .background(PepTheme.teal.opacity(0.12))
                             .clipShape(Circle())
                     }
                 }
 
                 Text(template.name)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: 8) {
@@ -1054,17 +1054,17 @@ struct TrainView: View {
                     Label("\(template.estimatedMinutes)m", systemImage: "clock")
                 }
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(14)
             .frame(width: 160, alignment: .leading)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(
                         LinearGradient(
-                            colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -1084,28 +1084,28 @@ struct TrainView: View {
             HStack(spacing: 12) {
                 Image(systemName: "books.vertical.fill")
                     .font(.title3)
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Exercise Library")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Browse \(ExerciseLibrary.all.count) exercises")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(
                         LinearGradient(
-                            colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -1126,7 +1126,7 @@ struct TrainView: View {
                 Button { } label: {
                     Text("See All")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
 
@@ -1149,7 +1149,7 @@ struct TrainView: View {
 
     private func combinedHistoryRow(_ item: CombinedHistoryItem) -> some View {
         let isExpanded = expandedItemId == item.id
-        let accentColor = item.isSportSession ? (item.sportSession?.sport.color ?? FrisTheme.cyan) : FrisTheme.cyan
+        let accentColor = item.isSportSession ? (item.sportSession?.sport.color ?? PepTheme.teal) : PepTheme.teal
 
         return Button {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
@@ -1171,10 +1171,10 @@ struct TrainView: View {
                         VStack(spacing: 2) {
                             Text(dayAbbreviation(item.date))
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             Text(dayNumber(item.date))
                                 .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                         }
                         .frame(width: 40)
                     }
@@ -1183,7 +1183,7 @@ struct TrainView: View {
                         HStack(spacing: 6) {
                             Text(item.name)
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                                 .lineLimit(1)
 
                             if let session = item.sportSession {
@@ -1207,7 +1207,7 @@ struct TrainView: View {
                             }
                         }
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -1226,7 +1226,7 @@ struct TrainView: View {
 
                     Image(systemName: "chevron.down")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 }
                 .padding(12)
@@ -1236,7 +1236,7 @@ struct TrainView: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-            .background(FrisTheme.cardSurface.overlay(isExpanded ? FrisTheme.cardOverlay : Color.clear))
+            .background(PepTheme.cardSurface.overlay(isExpanded ? PepTheme.cardOverlay : Color.clear))
             .clipShape(.rect(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -1244,8 +1244,8 @@ struct TrainView: View {
                         isExpanded
                             ? accentColor.opacity(0.2)
                             : (item.isSportSession
-                                ? (item.sportSession?.sport.color ?? FrisTheme.glassBorderTop).opacity(0.15)
-                                : FrisTheme.glassBorderTop.opacity(0.4)),
+                                ? (item.sportSession?.sport.color ?? PepTheme.glassBorderTop).opacity(0.15)
+                                : PepTheme.glassBorderTop.opacity(0.4)),
                         lineWidth: isExpanded ? 0.8 : 0.5
                     )
             )
@@ -1257,7 +1257,7 @@ struct TrainView: View {
     private func expandedContent(item: CombinedHistoryItem, accentColor: Color) -> some View {
         VStack(spacing: 0) {
             Rectangle()
-                .fill(FrisTheme.glassBorderTop)
+                .fill(PepTheme.glassBorderTop)
                 .frame(height: 0.5)
                 .padding(.horizontal, 12)
 
@@ -1269,10 +1269,10 @@ struct TrainView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "checkmark.circle")
                         .font(.title3)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Text("Session completed")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
@@ -1290,11 +1290,11 @@ struct TrainView: View {
                             .foregroundStyle(accentColor.opacity(0.7))
                         Text(exercise.exerciseName)
                             .font(.system(.caption, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Spacer()
                         Text("\(exercise.sets.count) sets")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     HStack(spacing: 0) {
@@ -1308,7 +1308,7 @@ struct TrainView: View {
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                     .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
 
                     ForEach(exercise.sets) { set in
                         HStack(spacing: 0) {
@@ -1323,11 +1323,11 @@ struct TrainView: View {
                                 .foregroundStyle(accentColor.opacity(0.7))
                         }
                         .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(FrisTheme.textPrimary.opacity(0.8))
+                        .foregroundStyle(PepTheme.textPrimary.opacity(0.8))
                     }
                 }
                 .padding(10)
-                .background(FrisTheme.elevated.opacity(0.5))
+                .background(PepTheme.elevated.opacity(0.5))
                 .clipShape(.rect(cornerRadius: 8))
             }
         }
@@ -1390,17 +1390,17 @@ struct TrainView: View {
         VStack(spacing: 4) {
             Image(systemName: icon)
                 .font(.system(size: 10))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             Text(value)
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.system(size: 9))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 8))
     }
 
@@ -1411,7 +1411,7 @@ struct TrainView: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)

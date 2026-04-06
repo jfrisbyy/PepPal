@@ -14,7 +14,7 @@ struct WorkoutAnalyticsView: View {
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Workout Analytics")
         .navigationBarTitleDisplayMode(.large)
         
@@ -24,22 +24,22 @@ struct WorkoutAnalyticsView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "chart.xyaxis.line")
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 Text("Weekly Volume")
                     .font(.system(.headline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
 
             VolumeChart(volumes: viewModel.weeklyVolumes, maxVolume: viewModel.maxVolume)
                 .frame(height: 200)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -49,25 +49,25 @@ struct WorkoutAnalyticsView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "figure.stand")
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                 Text("Muscle Heat Map")
                     .font(.system(.headline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
 
             Text("Training intensity over the past 7 days")
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
 
             MuscleHeatMap(data: viewModel.muscleHeatData)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -80,7 +80,7 @@ struct WorkoutAnalyticsView: View {
                     .foregroundStyle(.orange)
                 Text("Sport Sessions")
                     .font(.system(.headline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
 
             if viewModel.sportAnalytics.isEmpty {
@@ -89,10 +89,10 @@ struct WorkoutAnalyticsView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "figure.run")
                             .font(.title)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         Text("No sport sessions yet")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .padding(.vertical, 20)
                     Spacer()
@@ -103,18 +103,18 @@ struct WorkoutAnalyticsView: View {
                 ForEach(viewModel.sportAnalytics, id: \.sport) { data in
                     sportAnalyticsRow(data)
                     if data.sport != viewModel.sportAnalytics.last?.sport {
-                        Divider().overlay(FrisTheme.glassBorderTop)
+                        Divider().overlay(PepTheme.glassBorderTop)
                     }
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -130,7 +130,7 @@ struct WorkoutAnalyticsView: View {
             SportSummaryStat(
                 value: "\(viewModel.sportSessions.reduce(0) { $0 + $1.durationMinutes })m",
                 label: "Total Time",
-                color: FrisTheme.cyan
+                color: PepTheme.teal
             )
             SportSummaryStat(
                 value: String(format: "%.1f", viewModel.sportSessions.isEmpty ? 0 : Double(viewModel.sportSessions.reduce(0) { $0 + $1.intensity }) / Double(viewModel.sportSessions.count)),
@@ -139,7 +139,7 @@ struct WorkoutAnalyticsView: View {
             )
         }
         .padding(.vertical, 12)
-        .background(FrisTheme.elevated)
+        .background(PepTheme.elevated)
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -157,14 +157,14 @@ struct WorkoutAnalyticsView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(data.sport.rawValue)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 HStack(spacing: 8) {
                     Text("\(data.sessionCount) sessions")
                     Text("·")
                     Text("\(data.totalMinutes)m total")
                 }
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -175,7 +175,7 @@ struct WorkoutAnalyticsView: View {
                     .foregroundStyle(data.sport.color)
                 Text("avg int.")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
         .padding(.vertical, 4)
@@ -185,47 +185,47 @@ struct WorkoutAnalyticsView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "trophy.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 Text("Personal Records")
                     .font(.system(.headline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
 
             ForEach(viewModel.personalRecords) { record in
                 HStack(spacing: 14) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(FrisTheme.amber.opacity(0.2))
+                        .fill(PepTheme.amber.opacity(0.2))
                         .frame(width: 4, height: 40)
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text(record.exerciseName)
                             .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text(record.dateAchieved.formatted(.dateTime.month(.abbreviated).day()))
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
 
                     Text("\(Int(record.bestWeight)) lbs")
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                 }
                 .padding(.vertical, 4)
 
                 if record.id != viewModel.personalRecords.last?.id {
-                    Divider().overlay(FrisTheme.glassBorderTop)
+                    Divider().overlay(PepTheme.glassBorderTop)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -251,7 +251,7 @@ private struct VolumeChart: View {
                         path.move(to: CGPoint(x: 0, y: y))
                         path.addLine(to: CGPoint(x: w, y: y))
                     }
-                    .stroke(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .stroke(PepTheme.glassBorderTop, lineWidth: 0.5)
                 }
 
                 HStack(alignment: .bottom, spacing: spacing) {
@@ -263,7 +263,7 @@ private struct VolumeChart: View {
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(
                                     LinearGradient(
-                                        colors: [FrisTheme.cyan, FrisTheme.cyan.opacity(0.3)],
+                                        colors: [PepTheme.teal, PepTheme.teal.opacity(0.3)],
                                         startPoint: .top,
                                         endPoint: .bottom
                                     )
@@ -272,7 +272,7 @@ private struct VolumeChart: View {
 
                             Text(vol.weekLabel)
                                 .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
@@ -293,7 +293,7 @@ private struct SportSummaryStat: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -313,7 +313,7 @@ private struct MuscleHeatMap: View {
             ForEach(data) { item in
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(FrisTheme.cyan.opacity(item.intensity))
+                        .fill(PepTheme.teal.opacity(item.intensity))
                         .frame(width: 28, height: 28)
                         .overlay {
                             Image(systemName: item.muscle.icon)
@@ -324,10 +324,10 @@ private struct MuscleHeatMap: View {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(item.muscle.rawValue)
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("\(Int(item.intensity * 100))%")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrisTheme.cyan.opacity(max(item.intensity, 0.4)))
+                            .foregroundStyle(PepTheme.teal.opacity(max(item.intensity, 0.4)))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

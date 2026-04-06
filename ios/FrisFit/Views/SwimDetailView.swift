@@ -21,7 +21,7 @@ struct SwimDetailView: View {
             .padding(.horizontal)
             .padding(.bottom, 24)
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Swim Details")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -47,10 +47,10 @@ struct SwimDetailView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(swim.sessionType.rawValue)
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text(swim.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute()))
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -58,18 +58,18 @@ struct SwimDetailView: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("\(swim.fpEarned)")
                             .font(.system(.title2, design: .rounded, weight: .bold))
-                            .foregroundStyle(FrisTheme.amber)
+                            .foregroundStyle(PepTheme.amber)
                         Text("FP earned")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
 
                 HStack(spacing: 0) {
                     heroStat(value: SwimFormatters.formatDistance(swim.totalDistanceMeters), label: "Distance")
-                    Divider().frame(height: 40).overlay(FrisTheme.separatorColor)
+                    Divider().frame(height: 40).overlay(PepTheme.separatorColor)
                     heroStat(value: swim.durationFormatted, label: "Duration")
-                    Divider().frame(height: 40).overlay(FrisTheme.separatorColor)
+                    Divider().frame(height: 40).overlay(PepTheme.separatorColor)
                     heroStat(value: swim.averagePaceFormatted, label: "Pace/100m")
                 }
             }
@@ -83,7 +83,7 @@ struct SwimDetailView: View {
                 .foregroundStyle(accentColor)
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -97,7 +97,7 @@ struct SwimDetailView: View {
                 metricCell(icon: "gauge.with.needle", value: String(format: "%.0f", swim.averageSwolf), label: "Avg SWOLF", color: .green)
             }
             if swim.bestSwolf > 0 {
-                metricCell(icon: "star.fill", value: "\(swim.bestSwolf)", label: "Best SWOLF", color: FrisTheme.amber)
+                metricCell(icon: "star.fill", value: "\(swim.bestSwolf)", label: "Best SWOLF", color: PepTheme.amber)
             }
             metricCell(icon: "speedometer", value: swim.bestPaceFormatted, label: "Best Pace", color: .green)
             if swim.averageHeartRate > 0 {
@@ -107,17 +107,17 @@ struct SwimDetailView: View {
                 metricCell(icon: "flame.fill", value: "\(swim.caloriesBurned)", label: "Calories", color: .orange)
             }
             if swim.totalStrokeCount > 0 {
-                metricCell(icon: "hand.raised.fill", value: "\(swim.totalStrokeCount)", label: "Strokes", color: FrisTheme.violet)
+                metricCell(icon: "hand.raised.fill", value: "\(swim.totalStrokeCount)", label: "Strokes", color: PepTheme.violet)
             }
             if swim.averageStrokeCount > 0 {
                 metricCell(icon: "number", value: String(format: "%.0f", swim.averageStrokeCount), label: "Strokes/Lap", color: accentColor)
             }
             if !swim.poolLength.rawValue.isEmpty && !swim.isOpenWater {
-                metricCell(icon: "ruler", value: swim.poolLength.rawValue, label: "Pool", color: FrisTheme.textSecondary)
+                metricCell(icon: "ruler", value: swim.poolLength.rawValue, label: "Pool", color: PepTheme.textSecondary)
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -129,12 +129,12 @@ struct SwimDetailView: View {
                 .foregroundStyle(color.opacity(0.7))
             Text(value)
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -151,7 +151,7 @@ struct SwimDetailView: View {
                 Spacer()
                 Text("\(swim.laps.count) laps")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             let maxPace = swim.laps.map(\.pacePer100).max() ?? 1
@@ -181,14 +181,14 @@ struct SwimDetailView: View {
                             Circle().fill(stroke.color).frame(width: 6, height: 6)
                             Text(stroke.rawValue)
                                 .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
                 Spacer()
                 Text("↑ Taller = Faster")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
             }
 
             ScrollView {
@@ -207,7 +207,7 @@ struct SwimDetailView: View {
                             .frame(width: 50, alignment: .trailing)
                     }
                     .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .padding(.vertical, 6)
 
                     ForEach(swim.laps.prefix(20)) { lap in
@@ -224,19 +224,19 @@ struct SwimDetailView: View {
                                 .frame(width: 50, alignment: .trailing)
                             Text("\(lap.swolf)")
                                 .frame(width: 48, alignment: .trailing)
-                                .foregroundStyle(lap.swolf <= Int(swim.averageSwolf) ? .green : FrisTheme.textPrimary)
+                                .foregroundStyle(lap.swolf <= Int(swim.averageSwolf) ? .green : PepTheme.textPrimary)
                             Text(SwimFormatters.formatPace(lap.pacePer100))
                                 .frame(width: 50, alignment: .trailing)
                         }
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .padding(.vertical, 4)
                     }
 
                     if swim.laps.count > 20 {
                         Text("+\(swim.laps.count - 20) more laps")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .padding(.top, 4)
                     }
                 }
@@ -244,7 +244,7 @@ struct SwimDetailView: View {
             .frame(maxHeight: 300)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -272,13 +272,13 @@ struct SwimDetailView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(breakdown.strokeType.rawValue)
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         HStack(spacing: 8) {
                             Text("\(breakdown.laps) laps")
                             Text(SwimFormatters.formatDistance(breakdown.distanceMeters))
                         }
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -289,14 +289,14 @@ struct SwimDetailView: View {
                             .foregroundStyle(breakdown.strokeType.color)
                         Text(SwimFormatters.formatPace(breakdown.averagePace) + "/100m")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
                 .padding(.vertical, 4)
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -311,7 +311,7 @@ struct SwimDetailView: View {
                 if swim.averageHeartRate > 0 {
                     Text("Avg \(swim.averageHeartRate) · Max \(swim.maxHeartRate)")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
@@ -333,15 +333,15 @@ struct SwimDetailView: View {
                         .frame(width: 4, height: 22)
                     Text(zone.zone.name)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .frame(width: 70, alignment: .leading)
                     Text("\(zone.zone.bpmRange.min)-\(zone.zone.bpmRange.max) bpm")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     Text(SwimFormatters.formatDuration(zone.timeInZone))
                         .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("\(Int(zone.percentage * 100))%")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(zone.zone.color)
@@ -350,7 +350,7 @@ struct SwimDetailView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -378,7 +378,7 @@ struct SwimDetailView: View {
             .disabled(true)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -400,7 +400,7 @@ struct SwimDetailView: View {
                             .foregroundStyle(accentColor)
                         Text("Average")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -413,7 +413,7 @@ struct SwimDetailView: View {
                             .foregroundStyle(.green)
                         Text("Best")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -424,24 +424,24 @@ struct SwimDetailView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "info.circle")
                         .font(.system(size: 10))
-                        .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
                     Text("SWOLF = Stroke Count + Lap Time (seconds). Lower is more efficient.")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary.opacity(0.8))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
                 }
             } else {
                 HStack {
                     Spacer()
                     Text("SWOLF data not available for this session")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                 }
                 .padding(.vertical, 8)
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -456,10 +456,10 @@ struct SwimDetailView: View {
             }
             Text(swim.notes)
                 .font(.system(size: 13))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -467,7 +467,7 @@ struct SwimDetailView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

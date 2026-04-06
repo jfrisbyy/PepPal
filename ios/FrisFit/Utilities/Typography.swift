@@ -2,7 +2,7 @@ import SwiftUI
 
 struct DisplayText: View {
     let text: String
-    var color: Color = FrisTheme.textPrimary
+    var color: Color = PepTheme.textPrimary
 
     var body: some View {
         Text(text)
@@ -13,7 +13,7 @@ struct DisplayText: View {
 
 struct TitleText: View {
     let text: String
-    var color: Color = FrisTheme.textPrimary
+    var color: Color = PepTheme.textPrimary
 
     var body: some View {
         Text(text)
@@ -24,7 +24,7 @@ struct TitleText: View {
 
 struct HeadlineText: View {
     let text: String
-    var color: Color = FrisTheme.textPrimary
+    var color: Color = PepTheme.textPrimary
 
     var body: some View {
         Text(text)
@@ -35,7 +35,7 @@ struct HeadlineText: View {
 
 struct SubheadText: View {
     let text: String
-    var color: Color = FrisTheme.textSecondary
+    var color: Color = PepTheme.textSecondary
 
     var body: some View {
         Text(text)
@@ -46,7 +46,7 @@ struct SubheadText: View {
 
 struct BodyText: View {
     let text: String
-    var color: Color = FrisTheme.textPrimary
+    var color: Color = PepTheme.textPrimary
 
     var body: some View {
         Text(text)
@@ -57,7 +57,7 @@ struct BodyText: View {
 
 struct CaptionText: View {
     let text: String
-    var color: Color = FrisTheme.textSecondary
+    var color: Color = PepTheme.textSecondary
 
     var body: some View {
         Text(text)

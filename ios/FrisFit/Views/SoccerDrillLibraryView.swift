@@ -31,7 +31,7 @@ struct SoccerDrillLibraryView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Soccer Drills")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search drills")
@@ -73,10 +73,10 @@ struct SoccerDrillLibraryView: View {
                 Text(label)
                     .font(.system(size: 12, weight: .semibold))
             }
-            .foregroundStyle(isSelected ? .black : FrisTheme.textSecondary)
+            .foregroundStyle(isSelected ? .black : PepTheme.textSecondary)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(isSelected ? accentColor : FrisTheme.elevated)
+            .background(isSelected ? accentColor : PepTheme.elevated)
             .clipShape(Capsule())
         }
     }
@@ -96,7 +96,7 @@ struct SoccerDrillLibraryView: View {
                 HStack(spacing: 6) {
                     Text(drill.name)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .lineLimit(1)
                     Text(drill.difficulty.rawValue)
                         .font(.system(size: 8, weight: .bold))
@@ -108,14 +108,14 @@ struct SoccerDrillLibraryView: View {
                 }
                 Text(drill.purpose)
                     .font(.system(size: 11))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .lineLimit(2)
                 HStack(spacing: 8) {
                     Label("\(drill.durationMinutes) min", systemImage: "clock")
                     Label(drill.equipment, systemImage: "sportscourt")
                 }
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.7))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
             }
 
             Spacer()
@@ -123,18 +123,18 @@ struct SoccerDrillLibraryView: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(drill.durationMinutes)")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text("min")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 }

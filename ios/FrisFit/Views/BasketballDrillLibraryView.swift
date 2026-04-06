@@ -39,7 +39,7 @@ struct BasketballDrillLibraryView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Drill Library")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search drills")
@@ -105,10 +105,10 @@ struct BasketballDrillLibraryView: View {
                 Text(label)
                     .font(.system(size: 12, weight: .semibold))
             }
-            .foregroundStyle(isSelected ? .black : FrisTheme.textSecondary)
+            .foregroundStyle(isSelected ? .black : PepTheme.textSecondary)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(isSelected ? accentColor : FrisTheme.elevated)
+            .background(isSelected ? accentColor : PepTheme.elevated)
             .clipShape(Capsule())
         }
     }
@@ -121,7 +121,7 @@ struct BasketballDrillLibraryView: View {
                     .foregroundStyle(accentColor)
                 Text("Building Practice Plan")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Spacer()
                 Text("\(selectedDrills.count) drills")
                     .font(.system(size: 11, weight: .semibold))
@@ -134,10 +134,10 @@ struct BasketballDrillLibraryView: View {
 
             TextField("Plan Name", text: $planName)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .tint(accentColor)
                 .padding(12)
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 10))
         }
         .padding(14)
@@ -164,7 +164,7 @@ struct BasketballDrillLibraryView: View {
                 if isBuilding {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 20))
-                        .foregroundStyle(isSelected ? accentColor : FrisTheme.textSecondary)
+                        .foregroundStyle(isSelected ? accentColor : PepTheme.textSecondary)
                 }
 
                 ZStack {
@@ -180,7 +180,7 @@ struct BasketballDrillLibraryView: View {
                     HStack(spacing: 6) {
                         Text(drill.name)
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .lineLimit(1)
                         Text(drill.difficulty.rawValue)
                             .font(.system(size: 8, weight: .bold))
@@ -192,7 +192,7 @@ struct BasketballDrillLibraryView: View {
                     }
                     Text(drill.purpose)
                         .font(.system(size: 11))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .lineLimit(2)
                 }
 
@@ -201,18 +201,18 @@ struct BasketballDrillLibraryView: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(drill.durationMinutes)")
                         .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("min")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .padding(14)
-            .background(isSelected ? accentColor.opacity(0.06) : FrisTheme.cardSurface)
+            .background(isSelected ? accentColor.opacity(0.06) : PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(isSelected ? accentColor.opacity(0.3) : FrisTheme.glassBorderTop, lineWidth: 0.5)
+                    .strokeBorder(isSelected ? accentColor.opacity(0.3) : PepTheme.glassBorderTop, lineWidth: 0.5)
             )
         }
         .buttonStyle(.plain)
@@ -246,7 +246,7 @@ struct BasketballDrillLibraryView: View {
         .padding(.horizontal)
         .padding(.bottom, 8)
         .background(
-            FrisTheme.background
+            PepTheme.background
                 .shadow(color: .black.opacity(0.5), radius: 20, y: -8)
                 .ignoresSafeArea()
         )

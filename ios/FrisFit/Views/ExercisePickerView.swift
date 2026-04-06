@@ -16,7 +16,7 @@ struct ExercisePickerView: View {
                     }
                     .padding(.bottom, selectedExercises.isEmpty ? 0 : 80)
                 }
-                .background(FrisTheme.background.ignoresSafeArea())
+                .background(PepTheme.background.ignoresSafeArea())
 
                 if !selectedExercises.isEmpty {
                     selectionBar
@@ -31,14 +31,14 @@ struct ExercisePickerView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     if viewModel.selectedMuscleGroup != nil {
                         Button("Clear") {
                             viewModel.clearFilters()
                         }
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     }
                 }
             }
@@ -74,10 +74,10 @@ struct ExercisePickerView: View {
                 VStack(spacing: 16) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 40))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Text("No exercises found")
                         .font(.headline)
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 80)
@@ -103,10 +103,10 @@ struct ExercisePickerView: View {
         HStack(spacing: 8) {
             Image(systemName: muscle.icon)
                 .font(.caption)
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
             Text(muscle.rawValue.uppercased())
                 .font(.caption.weight(.bold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(1.2)
             Spacer()
         }
@@ -129,15 +129,15 @@ struct ExercisePickerView: View {
             HStack(spacing: 12) {
                 Image(systemName: exercise.primaryMuscle.icon)
                     .font(.system(size: 14))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                     .frame(width: 36, height: 36)
-                    .background(FrisTheme.cyan.opacity(0.1))
+                    .background(PepTheme.teal.opacity(0.1))
                     .clipShape(.rect(cornerRadius: 9))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(exercise.name)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .lineLimit(1)
 
                     HStack(spacing: 6) {
@@ -146,7 +146,7 @@ struct ExercisePickerView: View {
                         Text(exercise.exerciseType.rawValue)
                     }
                     .font(.system(size: 11))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
@@ -155,22 +155,22 @@ struct ExercisePickerView: View {
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.title3)
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                     } else {
                         Image(systemName: "plus.circle")
                             .font(.title3)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                     }
                 }
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
-            .background(isSelected ? FrisTheme.cyan.opacity(0.06) : FrisTheme.cardSurface)
+            .background(isSelected ? PepTheme.teal.opacity(0.06) : PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(
-                        isSelected ? FrisTheme.cyan.opacity(0.3) : FrisTheme.glassBorderTop.opacity(0.4),
+                        isSelected ? PepTheme.teal.opacity(0.3) : PepTheme.glassBorderTop.opacity(0.4),
                         lineWidth: isSelected ? 1 : 0.5
                     )
             )
@@ -199,7 +199,7 @@ struct ExercisePickerView: View {
             .foregroundStyle(.black)
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
-            .background(FrisTheme.cyan)
+            .background(PepTheme.teal)
             .clipShape(.rect(cornerRadius: 16))
         }
         .padding(.horizontal, 16)
@@ -221,15 +221,15 @@ private struct PickerMuscleChip: View {
                 Text(group.rawValue)
                     .font(.system(size: 12, weight: .medium))
             }
-            .foregroundStyle(isSelected ? FrisTheme.cyan : FrisTheme.textSecondary)
+            .foregroundStyle(isSelected ? PepTheme.teal : PepTheme.textSecondary)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(isSelected ? FrisTheme.cyan.opacity(0.15) : FrisTheme.elevated)
+            .background(isSelected ? PepTheme.teal.opacity(0.15) : PepTheme.elevated)
             .clipShape(Capsule())
             .overlay(
                 Capsule()
                     .strokeBorder(
-                        isSelected ? FrisTheme.cyan.opacity(0.5) : Color.clear,
+                        isSelected ? PepTheme.teal.opacity(0.5) : Color.clear,
                         lineWidth: 1
                     )
             )

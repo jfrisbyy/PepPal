@@ -62,7 +62,7 @@ struct ActiveWorkoutView: View {
                 .animation(.spring(response: 0.35, dampingFraction: 0.85), value: viewModel.activeNumberInput != nil)
             }
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -81,7 +81,7 @@ struct ActiveWorkoutView: View {
             ToolbarItem(placement: .principal) {
                 Text(viewModel.workoutName)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
         }
         
@@ -126,14 +126,14 @@ struct ActiveWorkoutView: View {
         VStack(spacing: 4) {
             Text(viewModel.formattedElapsedTime)
                 .font(.system(size: 48, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .monospacedDigit()
                 .contentTransition(.numericText())
 
             Text("ELAPSED")
                 .font(.system(size: 10, weight: .bold))
                 .tracking(1.5)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -158,9 +158,9 @@ struct ActiveWorkoutView: View {
     }
 
     private func segmentColor(for index: Int, exercise: WorkoutExercise) -> Color {
-        if exercise.isCompleted { return FrisTheme.cyan }
-        if index == viewModel.currentExerciseIndex { return FrisTheme.cyan }
-        return FrisTheme.elevated
+        if exercise.isCompleted { return PepTheme.teal }
+        if index == viewModel.currentExerciseIndex { return PepTheme.teal }
+        return PepTheme.elevated
     }
 
     private func segmentOpacity(for index: Int, exercise: WorkoutExercise) -> Double {
@@ -176,11 +176,11 @@ struct ActiveWorkoutView: View {
                     Text("Exercise \(viewModel.currentExerciseIndex + 1) of \(viewModel.exercises.count)")
                         .font(.system(size: 11, weight: .bold))
                         .tracking(0.5)
-                        .foregroundStyle(FrisTheme.cyan.opacity(0.7))
+                        .foregroundStyle(PepTheme.teal.opacity(0.7))
 
                     Text(exercise.exercise.name)
                         .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
 
                 Spacer()
@@ -188,7 +188,7 @@ struct ActiveWorkoutView: View {
                 Button { viewModel.showExerciseInfo = true } label: {
                     Image(systemName: "info.circle")
                         .font(.title3)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                         .frame(width: 44, height: 44)
                 }
             }
@@ -198,16 +198,16 @@ struct ActiveWorkoutView: View {
                 Label(exercise.exercise.equipment.rawValue, systemImage: exercise.exercise.equipment.icon)
             }
             .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(FrisTheme.textSecondary)
+            .foregroundStyle(PepTheme.textSecondary)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -233,17 +233,17 @@ struct ActiveWorkoutView: View {
             }
             .font(.system(size: 10, weight: .bold))
             .tracking(1)
-            .foregroundStyle(FrisTheme.textSecondary)
+            .foregroundStyle(PepTheme.textSecondary)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
 
-            Divider().background(FrisTheme.elevated)
+            Divider().background(PepTheme.elevated)
 
             ForEach(Array(exercise.sets.enumerated()), id: \.element.id) { setIndex, workoutSet in
                 setRow(exerciseIndex: exerciseIndex, setIndex: setIndex, workoutSet: workoutSet)
 
                 if setIndex < exercise.sets.count - 1 {
-                    Divider().background(FrisTheme.elevated).padding(.horizontal, 16)
+                    Divider().background(PepTheme.elevated).padding(.horizontal, 16)
                 }
             }
 
@@ -256,20 +256,20 @@ struct ActiveWorkoutView: View {
                     Text("Add Set")
                         .font(.system(size: 13, weight: .semibold))
                 }
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
             }
             .buttonStyle(.scale)
             .sensoryFeedback(.impact(weight: .light), trigger: exercise.sets.count)
         }
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -282,7 +282,7 @@ struct ActiveWorkoutView: View {
         HStack {
             Text("\(setIndex + 1)")
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(workoutSet.isCompleted ? FrisTheme.cyan : FrisTheme.textPrimary)
+                .foregroundStyle(workoutSet.isCompleted ? PepTheme.teal : PepTheme.textPrimary)
                 .frame(width: 36, alignment: .leading)
 
             Spacer()
@@ -294,7 +294,7 @@ struct ActiveWorkoutView: View {
             } label: {
                 weightDisplay(workoutSet)
                     .frame(width: 90, height: 40)
-                    .background(workoutSet.isCompleted ? FrisTheme.cyan.opacity(0.08) : FrisTheme.elevated)
+                    .background(workoutSet.isCompleted ? PepTheme.teal.opacity(0.08) : PepTheme.elevated)
                     .clipShape(.rect(cornerRadius: 10))
             }
             .disabled(workoutSet.isCompleted)
@@ -308,7 +308,7 @@ struct ActiveWorkoutView: View {
             } label: {
                 repsDisplay(workoutSet)
                     .frame(width: 70, height: 40)
-                    .background(workoutSet.isCompleted ? FrisTheme.cyan.opacity(0.08) : FrisTheme.elevated)
+                    .background(workoutSet.isCompleted ? PepTheme.teal.opacity(0.08) : PepTheme.elevated)
                     .clipShape(.rect(cornerRadius: 10))
             }
             .disabled(workoutSet.isCompleted)
@@ -324,7 +324,7 @@ struct ActiveWorkoutView: View {
             } label: {
                 Image(systemName: workoutSet.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 26))
-                    .foregroundStyle(workoutSet.isCompleted ? FrisTheme.cyan : FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(workoutSet.isCompleted ? PepTheme.teal : PepTheme.textSecondary.opacity(0.5))
                     .frame(width: 44, height: 44)
                     .contentTransition(.symbolEffect(.replace))
             }
@@ -340,15 +340,15 @@ struct ActiveWorkoutView: View {
             if set.weight > 0 {
                 Text(viewModel.formatWeight(set.weight))
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             } else if let prev = set.previousWeight {
                 Text(viewModel.formatWeight(prev))
                     .font(.system(size: 15, weight: .medium, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary.opacity(0.35))
+                    .foregroundStyle(PepTheme.textPrimary.opacity(0.35))
             } else {
                 Text("—")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.4))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
             }
         }
     }
@@ -358,15 +358,15 @@ struct ActiveWorkoutView: View {
             if set.reps > 0 {
                 Text("\(set.reps)")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             } else if let prev = set.previousReps {
                 Text("\(prev)")
                     .font(.system(size: 15, weight: .medium, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary.opacity(0.35))
+                    .foregroundStyle(PepTheme.textPrimary.opacity(0.35))
             } else {
                 Text("—")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.4))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
             }
         }
     }
@@ -383,14 +383,14 @@ struct ActiveWorkoutView: View {
                         Text("Add Exercise")
                             .font(.system(size: 14, weight: .semibold))
                     }
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 14)
-                    .background(FrisTheme.cardSurface)
+                    .background(PepTheme.cardSurface)
                     .clipShape(Capsule())
                     .overlay(
                         Capsule()
-                            .strokeBorder(FrisTheme.cyan.opacity(0.3), lineWidth: 0.5)
+                            .strokeBorder(PepTheme.teal.opacity(0.3), lineWidth: 0.5)
                     )
                     .shadow(color: .black.opacity(0.4), radius: 12, y: 4)
                 }
@@ -408,7 +408,7 @@ struct ActiveWorkoutView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(exercise.name)
                             .font(.system(.title2, design: .rounded, weight: .bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
 
                         HStack(spacing: 12) {
                             Label(exercise.primaryMuscle.rawValue, systemImage: exercise.primaryMuscle.icon)
@@ -416,27 +416,27 @@ struct ActiveWorkoutView: View {
                             Label(exercise.difficulty.rawValue, systemImage: "chart.bar.fill")
                         }
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     if !exercise.instructions.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Instructions")
                                 .font(.headline.weight(.semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
 
                             ForEach(Array(exercise.instructions.enumerated()), id: \.offset) { index, step in
                                 HStack(alignment: .top, spacing: 12) {
                                     Text("\(index + 1)")
                                         .font(.system(size: 12, weight: .bold, design: .rounded))
-                                        .foregroundStyle(FrisTheme.cyan)
+                                        .foregroundStyle(PepTheme.teal)
                                         .frame(width: 24, height: 24)
-                                        .background(FrisTheme.cyan.opacity(0.12))
+                                        .background(PepTheme.teal.opacity(0.12))
                                         .clipShape(Circle())
 
                                     Text(step)
                                         .font(.subheadline)
-                                        .foregroundStyle(FrisTheme.textPrimary.opacity(0.85))
+                                        .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
                                 }
                             }
                         }
@@ -446,7 +446,7 @@ struct ActiveWorkoutView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Common Mistakes")
                                 .font(.headline.weight(.semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
 
                             ForEach(exercise.commonMistakes, id: \.self) { mistake in
                                 HStack(alignment: .top, spacing: 10) {
@@ -455,7 +455,7 @@ struct ActiveWorkoutView: View {
                                         .foregroundStyle(.orange)
                                     Text(mistake)
                                         .font(.subheadline)
-                                        .foregroundStyle(FrisTheme.textSecondary)
+                                        .foregroundStyle(PepTheme.textSecondary)
                                 }
                             }
                         }
@@ -465,40 +465,40 @@ struct ActiveWorkoutView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack(spacing: 6) {
                                 Image(systemName: "sparkles")
-                                    .foregroundStyle(FrisTheme.violet)
+                                    .foregroundStyle(PepTheme.violet)
                                 Text("Finn's Pro Tips")
                                     .font(.headline.weight(.semibold))
-                                    .foregroundStyle(FrisTheme.textPrimary)
+                                    .foregroundStyle(PepTheme.textPrimary)
                             }
 
                             ForEach(exercise.proTips, id: \.self) { tip in
                                 HStack(alignment: .top, spacing: 10) {
                                     Image(systemName: "lightbulb.fill")
                                         .font(.system(size: 12))
-                                        .foregroundStyle(FrisTheme.violet)
+                                        .foregroundStyle(PepTheme.violet)
                                     Text(tip)
                                         .font(.subheadline)
-                                        .foregroundStyle(FrisTheme.textSecondary)
+                                        .foregroundStyle(PepTheme.textSecondary)
                                 }
                             }
                         }
                         .padding(14)
-                        .background(FrisTheme.violet.opacity(0.06))
+                        .background(PepTheme.violet.opacity(0.06))
                         .clipShape(.rect(cornerRadius: 14))
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
-                                .strokeBorder(FrisTheme.violet.opacity(0.15), lineWidth: 0.5)
+                                .strokeBorder(PepTheme.violet.opacity(0.15), lineWidth: 0.5)
                         )
                     }
                 }
                 .padding()
                 .padding(.bottom, 20)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { viewModel.showExerciseInfo = false }
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
             

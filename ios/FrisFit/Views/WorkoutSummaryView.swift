@@ -16,29 +16,29 @@ struct WorkoutSummaryView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 56))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                         .symbolEffect(.bounce, value: showStats)
 
                     Text("Workout Complete")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     Text(summary.workoutName)
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 VStack(spacing: 6) {
                     Text("\(displayedFP)")
                         .font(.system(size: 64, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                         .monospacedDigit()
                         .contentTransition(.numericText())
 
                     Text("FIT POINTS EARNED")
                         .font(.system(size: 11, weight: .bold))
                         .tracking(1.5)
-                        .foregroundStyle(FrisTheme.cyan.opacity(0.7))
+                        .foregroundStyle(PepTheme.teal.opacity(0.7))
                 }
 
                 if showStats {
@@ -62,14 +62,14 @@ struct WorkoutSummaryView: View {
                             Text("Share Workout")
                                 .font(.subheadline.weight(.semibold))
                         }
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(FrisTheme.cyan.opacity(0.12))
+                        .background(PepTheme.teal.opacity(0.12))
                         .clipShape(.rect(cornerRadius: 14))
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
-                                .strokeBorder(FrisTheme.cyan.opacity(0.3), lineWidth: 0.5)
+                                .strokeBorder(PepTheme.teal.opacity(0.3), lineWidth: 0.5)
                         )
                     }
                     .buttonStyle(.scale)
@@ -80,7 +80,7 @@ struct WorkoutSummaryView: View {
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
-                            .background(FrisTheme.cyan)
+                            .background(PepTheme.teal)
                             .clipShape(.rect(cornerRadius: 14))
                     }
                     .buttonStyle(.scalePrimary)
@@ -90,7 +90,7 @@ struct WorkoutSummaryView: View {
             .padding(.horizontal)
             .padding(.bottom, 40)
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .onAppear {
             animateIn()
             WorkoutState.shared.isWorkoutActive = false
@@ -113,23 +113,23 @@ struct WorkoutSummaryView: View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundStyle(FrisTheme.cyan.opacity(0.8))
+                .foregroundStyle(PepTheme.teal.opacity(0.8))
 
             Text(value)
                 .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             Text(label)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -137,38 +137,38 @@ struct WorkoutSummaryView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "trophy.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 Text("Personal Records")
                     .font(.system(.title3, design: .rounded, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
 
             ForEach(summary.personalRecords) { pr in
                 HStack(spacing: 14) {
                     Image(systemName: "star.fill")
                         .font(.system(size: 14))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                         .frame(width: 32, height: 32)
-                        .background(FrisTheme.amber.opacity(0.12))
+                        .background(PepTheme.amber.opacity(0.12))
                         .clipShape(Circle())
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(pr.exerciseName)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("\(pr.recordType) — \(pr.value)")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.amber)
+                            .foregroundStyle(PepTheme.amber)
                     }
 
                     Spacer()
                 }
                 .padding(12)
-                .background(FrisTheme.amber.opacity(0.06))
+                .background(PepTheme.amber.opacity(0.06))
                 .clipShape(.rect(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(FrisTheme.amber.opacity(0.2), lineWidth: 0.5)
+                        .strokeBorder(PepTheme.amber.opacity(0.2), lineWidth: 0.5)
                 )
             }
         }

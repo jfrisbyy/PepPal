@@ -19,13 +19,13 @@ struct TennisWorkoutBuilderView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Tennis Sessions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
@@ -49,10 +49,10 @@ struct TennisWorkoutBuilderView: View {
                     VStack(spacing: 6) {
                         Image(systemName: "tennis.racket")
                             .font(.title2)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.4))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
                         Text("No saved practice sessions yet")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .padding(.vertical, 14)
                     Spacer()
@@ -64,7 +64,7 @@ struct TennisWorkoutBuilderView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -83,13 +83,13 @@ struct TennisWorkoutBuilderView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(session.name)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 HStack(spacing: 8) {
                     Label("\(session.drills.count) drills", systemImage: "list.bullet")
                     Label("~\(session.totalDuration) min", systemImage: "clock")
                 }
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -101,7 +101,7 @@ struct TennisWorkoutBuilderView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.red.opacity(0.6))
                     .frame(width: 28, height: 28)
-                    .background(FrisTheme.elevated.opacity(0.5))
+                    .background(PepTheme.elevated.opacity(0.5))
                     .clipShape(Circle())
             }
         }
@@ -119,9 +119,9 @@ struct TennisWorkoutBuilderView: View {
 
             TextField("Session Name", text: $sessionName)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .padding(12)
-                .background(FrisTheme.elevated.opacity(0.5))
+                .background(PepTheme.elevated.opacity(0.5))
                 .clipShape(.rect(cornerRadius: 10))
 
             ForEach(Array(drills.enumerated()), id: \.element.id) { index, _ in
@@ -151,7 +151,7 @@ struct TennisWorkoutBuilderView: View {
             saveButton
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -169,23 +169,23 @@ struct TennisWorkoutBuilderView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 14))
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                     }
                 }
             }
 
             TextField("Drill name", text: $drills[index].name)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .padding(10)
-                .background(FrisTheme.elevated.opacity(0.4))
+                .background(PepTheme.elevated.opacity(0.4))
                 .clipShape(.rect(cornerRadius: 8))
 
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Category")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Picker("", selection: $drills[index].category) {
                         ForEach(TennisDrillCategory.allCases) { cat in
                             HStack {
@@ -201,22 +201,22 @@ struct TennisWorkoutBuilderView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Duration")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Stepper("\(drills[index].durationMinutes) min", value: $drills[index].durationMinutes, in: 1...60, step: 5)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
             }
 
             TextField("Notes (optional)", text: $drills[index].notes)
                 .font(.system(size: 12))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .padding(8)
-                .background(FrisTheme.elevated.opacity(0.3))
+                .background(PepTheme.elevated.opacity(0.3))
                 .clipShape(.rect(cornerRadius: 8))
         }
         .padding(12)
-        .background(FrisTheme.elevated.opacity(0.3))
+        .background(PepTheme.elevated.opacity(0.3))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -230,28 +230,28 @@ struct TennisWorkoutBuilderView: View {
                     .foregroundStyle(accentColor)
                 Text("Total Duration")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             VStack(spacing: 2) {
                 Text("\(drills.count)")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text("Drills")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             VStack(spacing: 2) {
                 Text("\(categories)")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text("Categories")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(FrisTheme.elevated.opacity(0.3))
+        .background(PepTheme.elevated.opacity(0.3))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -284,7 +284,7 @@ struct TennisWorkoutBuilderView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

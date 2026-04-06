@@ -29,10 +29,10 @@ struct SwimDrillLibraryView: View {
                         VStack(spacing: 10) {
                             Image(systemName: "magnifyingglass")
                                 .font(.title)
-                                .foregroundStyle(FrisTheme.textSecondary.opacity(0.4))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
                             Text("No drills found")
                                 .font(.subheadline)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 40)
@@ -47,14 +47,14 @@ struct SwimDrillLibraryView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Swim Drills")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search drills...")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
@@ -93,10 +93,10 @@ struct SwimDrillLibraryView: View {
         Button(action: action) {
             Text(label)
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(isSelected ? .black : FrisTheme.textSecondary)
+                .foregroundStyle(isSelected ? .black : PepTheme.textSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(isSelected ? color : FrisTheme.elevated.opacity(0.5))
+                .background(isSelected ? color : PepTheme.elevated.opacity(0.5))
                 .clipShape(Capsule())
         }
     }
@@ -116,7 +116,7 @@ struct SwimDrillLibraryView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(drill.name)
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     HStack(spacing: 8) {
                         Text(drill.category.rawValue)
                             .font(.system(size: 9, weight: .semibold))
@@ -152,13 +152,13 @@ struct SwimDrillLibraryView: View {
                         .foregroundStyle(accentColor)
                     Text("min")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
             Text(drill.description)
                 .font(.system(size: 12))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .lineLimit(2)
 
             HStack(spacing: 4) {
@@ -167,17 +167,17 @@ struct SwimDrillLibraryView: View {
                     .foregroundStyle(accentColor.opacity(0.7))
                 Text(drill.purpose)
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.8))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
                     .lineLimit(1)
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )

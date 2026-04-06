@@ -25,12 +25,12 @@ struct BasketballShotChartInputView: View {
                             }
                         } label: {
                             Circle()
-                                .fill(isSelected ? accentColor : FrisTheme.elevated.opacity(0.8))
+                                .fill(isSelected ? accentColor : PepTheme.elevated.opacity(0.8))
                                 .frame(width: isSelected ? 32 : 26, height: isSelected ? 32 : 26)
                                 .overlay(
                                     Text(zoneAbbreviation(zone))
                                         .font(.system(size: 7, weight: .bold))
-                                        .foregroundStyle(isSelected ? .black : FrisTheme.textSecondary)
+                                        .foregroundStyle(isSelected ? .black : PepTheme.textSecondary)
                                 )
                                 .shadow(color: isSelected ? accentColor.opacity(0.4) : .clear, radius: 6)
                         }
@@ -58,7 +58,7 @@ struct BasketballShotChartInputView: View {
                 HStack(spacing: 12) {
                     Text(zone.rawValue)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     Spacer()
 
@@ -95,7 +95,7 @@ struct BasketballShotChartInputView: View {
                     }
                 }
                 .padding(12)
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 12))
             }
         }
@@ -104,16 +104,16 @@ struct BasketballShotChartInputView: View {
     private func courtLines(width: CGFloat, height: CGFloat) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 4)
-                .stroke(FrisTheme.elevated.opacity(0.6), lineWidth: 1)
+                .stroke(PepTheme.elevated.opacity(0.6), lineWidth: 1)
                 .frame(width: width, height: height)
 
             RoundedRectangle(cornerRadius: 2)
-                .stroke(FrisTheme.elevated.opacity(0.5), lineWidth: 1)
+                .stroke(PepTheme.elevated.opacity(0.5), lineWidth: 1)
                 .frame(width: width * 0.32, height: height * 0.35)
                 .offset(y: height * 0.325)
 
             Circle()
-                .stroke(FrisTheme.elevated.opacity(0.4), lineWidth: 1)
+                .stroke(PepTheme.elevated.opacity(0.4), lineWidth: 1)
                 .frame(width: width * 0.22, height: width * 0.22)
                 .offset(y: height * 0.15)
 
@@ -124,10 +124,10 @@ struct BasketballShotChartInputView: View {
                 let endAngle = Angle(degrees: 20)
                 path.addArc(center: CGPoint(x: centerX, y: height), radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
             }
-            .stroke(FrisTheme.elevated.opacity(0.4), lineWidth: 1)
+            .stroke(PepTheme.elevated.opacity(0.4), lineWidth: 1)
 
             Rectangle()
-                .fill(FrisTheme.elevated.opacity(0.08))
+                .fill(PepTheme.elevated.opacity(0.08))
                 .frame(width: width * 0.32, height: height * 0.35)
                 .offset(y: height * 0.325)
         }

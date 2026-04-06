@@ -27,7 +27,7 @@ struct ProgramBuilderView: View {
 
                 bottomBar
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("New Program")
             .navigationBarTitleDisplayMode(.inline)
             
@@ -36,7 +36,7 @@ struct ProgramBuilderView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
@@ -46,7 +46,7 @@ struct ProgramBuilderView: View {
         HStack(spacing: 8) {
             ForEach(0..<3) { step in
                 Capsule()
-                    .fill(step <= viewModel.currentBuilderStep ? FrisTheme.cyan : FrisTheme.elevated)
+                    .fill(step <= viewModel.currentBuilderStep ? PepTheme.teal : PepTheme.elevated)
                     .frame(height: 3)
                     .animation(.spring(duration: 0.3), value: viewModel.currentBuilderStep)
             }
@@ -64,10 +64,10 @@ struct ProgramBuilderView: View {
                 } label: {
                     Text("Back")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(.rect(cornerRadius: 12))
                 }
             }
@@ -85,7 +85,7 @@ struct ProgramBuilderView: View {
                     .foregroundStyle(viewModel.currentBuilderStep == 2 ? .black : .black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(nextButtonEnabled ? FrisTheme.cyan : FrisTheme.cyan.opacity(0.3))
+                    .background(nextButtonEnabled ? PepTheme.teal : PepTheme.teal.opacity(0.3))
                     .clipShape(.rect(cornerRadius: 12))
             }
             .disabled(!nextButtonEnabled)
@@ -93,9 +93,9 @@ struct ProgramBuilderView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(
-            FrisTheme.cardSurface
+            PepTheme.cardSurface
                 .overlay(alignment: .top) {
-                    Rectangle().fill(FrisTheme.glassBorderTop).frame(height: 0.5)
+                    Rectangle().fill(PepTheme.glassBorderTop).frame(height: 0.5)
                 }
         )
     }

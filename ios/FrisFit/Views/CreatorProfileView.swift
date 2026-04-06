@@ -16,7 +16,7 @@ struct CreatorProfileView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         
     }
@@ -27,7 +27,7 @@ struct CreatorProfileView: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [FrisTheme.cyan.opacity(0.3), FrisTheme.violet.opacity(0.2)],
+                            colors: [PepTheme.teal.opacity(0.3), PepTheme.violet.opacity(0.2)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -36,16 +36,16 @@ struct CreatorProfileView: View {
 
                 Image(systemName: creator.avatarSystemName)
                     .font(.system(size: 44))
-                    .foregroundStyle(FrisTheme.cyan.opacity(0.7))
+                    .foregroundStyle(PepTheme.teal.opacity(0.7))
             }
 
             Text(creator.name)
                 .font(.system(.title2, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             Text(creator.bio)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .padding(.horizontal, 32)
@@ -60,7 +60,7 @@ struct CreatorProfileView: View {
                 .foregroundStyle(.black)
                 .padding(.horizontal, 32)
                 .padding(.vertical, 10)
-                .background(FrisTheme.cyan)
+                .background(PepTheme.teal)
                 .clipShape(Capsule())
             }
             .padding(.top, 4)
@@ -77,13 +77,13 @@ struct CreatorProfileView: View {
             creatorStatItem(value: String(format: "%.1f", creator.averageRating), label: "Avg Rating", valueColor: .yellow)
         }
         .padding(.vertical, 14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -99,14 +99,14 @@ struct CreatorProfileView: View {
             .frame(width: 1, height: 32)
     }
 
-    private func creatorStatItem(value: String, label: String, valueColor: Color = FrisTheme.textPrimary) -> some View {
+    private func creatorStatItem(value: String, label: String, valueColor: Color = PepTheme.textPrimary) -> some View {
         VStack(spacing: 3) {
             Text(value)
                 .font(.headline)
                 .foregroundStyle(valueColor)
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -115,7 +115,7 @@ struct CreatorProfileView: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Programs")
                 .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .padding(.horizontal, 16)
 
             let programs = viewModel.programsBy(creatorId: creator.id)
@@ -124,10 +124,10 @@ struct CreatorProfileView: View {
                 VStack(spacing: 10) {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.title)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Text("No programs yet")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 40)
@@ -178,7 +178,7 @@ struct CreatorProfileView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(program.title)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
@@ -194,18 +194,18 @@ struct CreatorProfileView: View {
                     Spacer()
                     Text("\(program.durationWeeks)w")
                         .font(.caption2)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .padding(10)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
         }
         .clipShape(.rect(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -219,13 +219,13 @@ struct CreatorProfileView: View {
         Group {
             switch type {
             case .workoutSplit:
-                FrisTheme.cyan.frame(height: 3)
+                PepTheme.teal.frame(height: 3)
             case .timedProgram:
-                FrisTheme.amber.frame(height: 3)
+                PepTheme.amber.frame(height: 3)
             case .nutritionPlan:
                 Color.green.frame(height: 3)
             case .bundle:
-                LinearGradient(colors: [FrisTheme.cyan, FrisTheme.amber, FrisTheme.violet], startPoint: .leading, endPoint: .trailing)
+                LinearGradient(colors: [PepTheme.teal, PepTheme.amber, PepTheme.violet], startPoint: .leading, endPoint: .trailing)
                     .frame(height: 3)
             }
         }

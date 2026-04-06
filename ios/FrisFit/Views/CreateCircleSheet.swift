@@ -12,27 +12,27 @@ struct CreateCircleSheet: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Circle Name")
                                 .font(.system(.caption, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             TextField("e.g. Gym Bros", text: $viewModel.createName)
                                 .font(.subheadline)
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
-                                .background(FrisTheme.elevated)
+                                .background(PepTheme.elevated)
                                 .clipShape(.rect(cornerRadius: 12))
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Description")
                                 .font(.system(.caption, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             TextField("What's this circle about?", text: $viewModel.createDescription, axis: .vertical)
                                 .font(.subheadline)
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                                 .lineLimit(3...5)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
-                                .background(FrisTheme.elevated)
+                                .background(PepTheme.elevated)
                                 .clipShape(.rect(cornerRadius: 12))
                         }
                     }
@@ -40,13 +40,13 @@ struct CreateCircleSheet: View {
                     VStack(spacing: 12) {
                         Text("GOALS (OPTIONAL)")
                             .font(.system(.caption2, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .tracking(0.5)
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                         HStack(spacing: 12) {
-                            GoalField(label: "Daily Goal", text: $viewModel.createDailyGoal, icon: "sun.max.fill", color: FrisTheme.amber)
-                            GoalField(label: "Weekly Goal", text: $viewModel.createWeeklyGoal, icon: "calendar", color: FrisTheme.cyan)
+                            GoalField(label: "Daily Goal", text: $viewModel.createDailyGoal, icon: "sun.max.fill", color: PepTheme.amber)
+                            GoalField(label: "Weekly Goal", text: $viewModel.createWeeklyGoal, icon: "calendar", color: PepTheme.teal)
                         }
                     }
 
@@ -54,17 +54,17 @@ struct CreateCircleSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Private Circle")
                                 .font(.system(.subheadline, weight: .medium))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             Text("Only invited members can join")
                                 .font(.caption)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         Spacer()
                         Toggle("", isOn: $viewModel.createIsPrivate)
-                            .tint(FrisTheme.cyan)
+                            .tint(PepTheme.teal)
                     }
                     .padding(14)
-                    .background(FrisTheme.elevated)
+                    .background(PepTheme.elevated)
                     .clipShape(.rect(cornerRadius: 12))
 
                     Button {
@@ -72,13 +72,13 @@ struct CreateCircleSheet: View {
                     } label: {
                         Text("Create Circle")
                             .font(.system(.body, weight: .semibold))
-                            .foregroundStyle(FrisTheme.invertedText)
+                            .foregroundStyle(PepTheme.invertedText)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(
                                 viewModel.createName.trimmingCharacters(in: .whitespaces).isEmpty
-                                    ? FrisTheme.textSecondary.opacity(0.3)
-                                    : FrisTheme.cyan,
+                                    ? PepTheme.textSecondary.opacity(0.3)
+                                    : PepTheme.teal,
                                 in: .rect(cornerRadius: 14)
                             )
                     }
@@ -89,19 +89,19 @@ struct CreateCircleSheet: View {
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
-            .background(FrisTheme.background)
+            .background(PepTheme.background)
             .navigationTitle("Create Circle")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(FrisTheme.background)
+        .presentationBackground(PepTheme.background)
     }
 }
 
@@ -119,15 +119,15 @@ struct GoalField: View {
                     .foregroundStyle(color)
                 Text(label)
                     .font(.system(.caption, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             TextField("0", text: $text)
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .keyboardType(.numberPad)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 10))
         }
     }

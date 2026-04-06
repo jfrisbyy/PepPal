@@ -22,7 +22,7 @@ struct DailyTasksDetailView: View {
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Daily Points")
         .navigationBarTitleDisplayMode(.inline)
         
@@ -42,7 +42,7 @@ struct DailyTasksDetailView: View {
 
             Text("\(viewModel.completedCount) of \(viewModel.dailyTasks.count) tasks completed")
                 .font(.system(.subheadline, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 8)
@@ -70,10 +70,10 @@ struct DailyTasksDetailView: View {
         } label: {
             Text(title)
                 .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(isSelected ? FrisTheme.background : FrisTheme.textPrimary)
+                .foregroundStyle(isSelected ? PepTheme.background : PepTheme.textPrimary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(isSelected ? FrisTheme.cyan : FrisTheme.elevated)
+                .background(isSelected ? PepTheme.teal : PepTheme.elevated)
                 .clipShape(.capsule)
         }
         .buttonStyle(.scale)
@@ -96,7 +96,7 @@ struct DailyTasksDetailView: View {
                     .foregroundStyle(category.color)
                 Text(category.rawValue)
                     .font(.system(.headline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 Spacer()
 
@@ -118,18 +118,18 @@ struct DailyTasksDetailView: View {
 
                     if index < tasks.count - 1 {
                         Divider()
-                            .overlay(FrisTheme.cardOverlay)
+                            .overlay(PepTheme.cardOverlay)
                             .padding(.leading, 44)
                     }
                 }
             }
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(
                         LinearGradient(
-                            colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -153,31 +153,31 @@ struct DailyTasksDetailView: View {
                         .frame(width: 26, height: 26)
                         .overlay(
                             Circle()
-                                .strokeBorder(task.isCompleted ? color : FrisTheme.textSecondary.opacity(0.4), lineWidth: 1.5)
+                                .strokeBorder(task.isCompleted ? color : PepTheme.textSecondary.opacity(0.4), lineWidth: 1.5)
                         )
 
                     if task.isCompleted {
                         Image(systemName: "checkmark")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(FrisTheme.invertedText)
+                            .foregroundStyle(PepTheme.invertedText)
                     }
                 }
 
                 Image(systemName: task.icon)
                     .font(.system(size: 14))
-                    .foregroundStyle(task.isCompleted ? color : FrisTheme.textSecondary)
+                    .foregroundStyle(task.isCompleted ? color : PepTheme.textSecondary)
                     .frame(width: 20)
 
                 Text(task.name)
                     .font(.system(.subheadline, weight: .medium))
-                    .foregroundStyle(task.isCompleted ? FrisTheme.textPrimary : FrisTheme.textPrimary.opacity(0.7))
-                    .strikethrough(task.isCompleted, color: FrisTheme.textSecondary.opacity(0.4))
+                    .foregroundStyle(task.isCompleted ? PepTheme.textPrimary : PepTheme.textPrimary.opacity(0.7))
+                    .strikethrough(task.isCompleted, color: PepTheme.textSecondary.opacity(0.4))
 
                 Spacer()
 
                 Text("+\(task.points)")
                     .font(.system(.caption, design: .rounded, weight: .bold))
-                    .foregroundStyle(task.isCompleted ? color : FrisTheme.textSecondary.opacity(0.6))
+                    .foregroundStyle(task.isCompleted ? color : PepTheme.textSecondary.opacity(0.6))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)

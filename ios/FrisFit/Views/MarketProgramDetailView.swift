@@ -28,7 +28,7 @@ struct MarketProgramDetailView: View {
 
             bottomButton
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         
     }
@@ -112,10 +112,10 @@ struct MarketProgramDetailView: View {
             statDivider
             statItem(value: program.equipment, label: "Equipment")
             statDivider
-            statItem(value: "\(program.totalFP)", label: "Total FP", valueColor: FrisTheme.cyan)
+            statItem(value: "\(program.totalFP)", label: "Total FP", valueColor: PepTheme.teal)
         }
         .padding(.vertical, 14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
     }
 
     private var statDivider: some View {
@@ -124,7 +124,7 @@ struct MarketProgramDetailView: View {
             .frame(width: 1, height: 32)
     }
 
-    private func statItem(value: String, label: String, valueColor: Color = FrisTheme.textPrimary) -> some View {
+    private func statItem(value: String, label: String, valueColor: Color = PepTheme.textPrimary) -> some View {
         VStack(spacing: 3) {
             Text(value)
                 .font(.subheadline.weight(.bold))
@@ -133,7 +133,7 @@ struct MarketProgramDetailView: View {
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -149,9 +149,9 @@ struct MarketProgramDetailView: View {
                     VStack(spacing: 6) {
                         Text(tab.rawValue)
                             .font(.subheadline.weight(selectedTab == tab ? .semibold : .regular))
-                            .foregroundStyle(selectedTab == tab ? FrisTheme.cyan : FrisTheme.textSecondary)
+                            .foregroundStyle(selectedTab == tab ? PepTheme.teal : PepTheme.textSecondary)
                         Rectangle()
-                            .fill(selectedTab == tab ? FrisTheme.cyan : .clear)
+                            .fill(selectedTab == tab ? PepTheme.teal : .clear)
                             .frame(height: 2)
                     }
                 }
@@ -159,7 +159,7 @@ struct MarketProgramDetailView: View {
             }
         }
         .padding(.top, 12)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
     }
 
     @ViewBuilder
@@ -182,10 +182,10 @@ struct MarketProgramDetailView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("About This Program")
                         .font(.headline)
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text(program.overview)
                         .font(.body)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .lineSpacing(4)
                 }
             }
@@ -194,7 +194,7 @@ struct MarketProgramDetailView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("What's Included")
                         .font(.headline)
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     includeRow(icon: "calendar", text: "\(program.durationWeeks) weeks, \(program.daysPerWeek) days/week")
                     includeRow(icon: "figure.strengthtraining.traditional", text: "Detailed exercise instructions")
@@ -210,7 +210,7 @@ struct MarketProgramDetailView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Best For")
                         .font(.headline)
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     HStack(spacing: 8) {
                         tagChip(program.difficulty.rawValue)
                         tagChip(program.itemType.rawValue)
@@ -226,21 +226,21 @@ struct MarketProgramDetailView: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
                 .frame(width: 24)
             Text(text)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
         }
     }
 
     private func tagChip(_ text: String) -> some View {
         Text(text)
             .font(.caption.weight(.medium))
-            .foregroundStyle(FrisTheme.textPrimary)
+            .foregroundStyle(PepTheme.textPrimary)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(FrisTheme.elevated)
+            .background(PepTheme.elevated)
             .clipShape(Capsule())
     }
 
@@ -251,13 +251,13 @@ struct MarketProgramDetailView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "calendar.badge.clock")
                             .font(.title)
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                         Text("Schedule Preview")
                             .font(.headline)
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("\(program.daysPerWeek) training days per week for \(program.durationWeeks) weeks. Get the program to see the full schedule.")
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
@@ -269,18 +269,18 @@ struct MarketProgramDetailView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(day.dayName)
                                     .font(.subheadline.weight(.bold))
-                                    .foregroundStyle(FrisTheme.cyan)
+                                    .foregroundStyle(PepTheme.teal)
                                 Text(day.focus)
                                     .font(.subheadline)
-                                    .foregroundStyle(FrisTheme.textPrimary)
+                                    .foregroundStyle(PepTheme.textPrimary)
                             }
                             Spacer()
                             Text("\(day.exerciseCount) exercises")
                                 .font(.caption)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
-                                .background(FrisTheme.elevated)
+                                .background(PepTheme.elevated)
                                 .clipShape(Capsule())
                         }
                     }
@@ -292,14 +292,14 @@ struct MarketProgramDetailView: View {
                 sectionCard {
                     HStack(spacing: 10) {
                         Image(systemName: "bed.double.fill")
-                            .foregroundStyle(FrisTheme.violet)
+                            .foregroundStyle(PepTheme.violet)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(restDays) Rest Day\(restDays > 1 ? "s" : "")")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             Text("Active recovery recommended")
                                 .font(.caption)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         Spacer()
                     }
@@ -316,11 +316,11 @@ struct MarketProgramDetailView: View {
                     VStack(spacing: 4) {
                         Text(String(format: "%.1f", program.rating))
                             .font(.system(size: 40, weight: .bold, design: .rounded))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         ratingView
                         Text("\(program.reviewCount) ratings")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
@@ -339,7 +339,7 @@ struct MarketProgramDetailView: View {
                         HStack {
                             Text(review.userName)
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             Spacer()
                             HStack(spacing: 2) {
                                 ForEach(1...5, id: \.self) { star in
@@ -351,11 +351,11 @@ struct MarketProgramDetailView: View {
                         }
                         Text(review.text)
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .lineSpacing(3)
                         Text(review.date, style: .relative)
                             .font(.caption2)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
                     }
                 }
             }
@@ -367,12 +367,12 @@ struct MarketProgramDetailView: View {
         HStack(spacing: 4) {
             Text("\(stars)")
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .frame(width: 12)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(FrisTheme.elevated)
+                        .fill(PepTheme.elevated)
                     Capsule()
                         .fill(.yellow)
                         .frame(width: geo.size.width * fill)
@@ -389,15 +389,15 @@ struct MarketProgramDetailView: View {
                     VStack(spacing: 14) {
                         Image(systemName: "person.crop.circle.fill")
                             .font(.system(size: 56))
-                            .foregroundStyle(FrisTheme.cyan.opacity(0.6))
+                            .foregroundStyle(PepTheme.teal.opacity(0.6))
 
                         Text(creator.name)
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
 
                         Text(creator.bio)
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .multilineTextAlignment(.center)
                             .lineSpacing(3)
 
@@ -411,10 +411,10 @@ struct MarketProgramDetailView: View {
                         NavigationLink(value: creator) {
                             Text("View Full Profile")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(FrisTheme.cyan)
+                                .foregroundStyle(PepTheme.teal)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
-                                .background(FrisTheme.cyan.opacity(0.12))
+                                .background(PepTheme.teal.opacity(0.12))
                                 .clipShape(.rect(cornerRadius: 10))
                         }
                     }
@@ -429,10 +429,10 @@ struct MarketProgramDetailView: View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.headline)
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
     }
 
@@ -448,7 +448,7 @@ struct MarketProgramDetailView: View {
             .foregroundStyle(.black)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
-            .background(FrisTheme.cyan)
+            .background(PepTheme.teal)
             .clipShape(.rect(cornerRadius: 14))
         }
         .buttonStyle(.scalePrimary)
@@ -459,7 +459,7 @@ struct MarketProgramDetailView: View {
             LinearGradient(
                 stops: [
                     .init(color: .clear, location: 0),
-                    .init(color: FrisTheme.background, location: 0.3)
+                    .init(color: PepTheme.background, location: 0.3)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -472,13 +472,13 @@ struct MarketProgramDetailView: View {
         content()
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(
                         LinearGradient(
-                            colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -489,10 +489,10 @@ struct MarketProgramDetailView: View {
 
     private func itemTypeBadge(_ type: MarketItemType) -> some View {
         let color: Color = switch type {
-        case .workoutSplit: FrisTheme.cyan
-        case .timedProgram: FrisTheme.amber
+        case .workoutSplit: PepTheme.teal
+        case .timedProgram: PepTheme.amber
         case .nutritionPlan: .green
-        case .bundle: FrisTheme.violet
+        case .bundle: PepTheme.violet
         }
         return Text(type.rawValue)
             .font(.caption.weight(.bold))

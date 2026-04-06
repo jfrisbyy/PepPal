@@ -20,7 +20,7 @@ struct StepDetailView: View {
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Steps")
         .navigationBarTitleDisplayMode(.large)
         .task {
@@ -44,14 +44,14 @@ struct StepDetailView: View {
         VStack(spacing: 20) {
             ZStack {
                 Circle()
-                    .stroke(FrisTheme.elevated, lineWidth: 14)
+                    .stroke(PepTheme.elevated, lineWidth: 14)
                     .frame(width: 160, height: 160)
 
                 Circle()
                     .trim(from: 0, to: animateProgress ? viewModel.todayProgress : 0)
                     .stroke(
                         LinearGradient(
-                            colors: [FrisTheme.cyan, FrisTheme.cyan.opacity(0.6)],
+                            colors: [PepTheme.teal, PepTheme.teal.opacity(0.6)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -63,16 +63,16 @@ struct StepDetailView: View {
                 VStack(spacing: 4) {
                     Image(systemName: "figure.walk")
                         .font(.system(size: 20))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
 
                     Text(formattedNumber(viewModel.todaySteps))
                         .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .contentTransition(.numericText())
 
                     Text("of \(formattedNumber(viewModel.stepGoal)) goal")
                         .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
@@ -87,7 +87,7 @@ struct StepDetailView: View {
                     icon: "arrow.up.right",
                     value: "\(viewModel.todayFlights)",
                     unit: "flights",
-                    color: FrisTheme.amber
+                    color: PepTheme.amber
                 )
                 todayMetric(
                     icon: "flame.fill",
@@ -98,13 +98,13 @@ struct StepDetailView: View {
             }
         }
         .padding(20)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -121,10 +121,10 @@ struct StepDetailView: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(.headline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text(unit)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -141,17 +141,17 @@ struct StepDetailView: View {
                 } label: {
                     Text(period.rawValue)
                         .font(.system(size: 13, weight: viewModel.selectedPeriod == period ? .bold : .medium))
-                        .foregroundStyle(viewModel.selectedPeriod == period ? FrisTheme.invertedText : FrisTheme.textSecondary)
+                        .foregroundStyle(viewModel.selectedPeriod == period ? PepTheme.invertedText : PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .background(viewModel.selectedPeriod == period ? FrisTheme.cyan : Color.clear)
+                        .background(viewModel.selectedPeriod == period ? PepTheme.teal : Color.clear)
                         .clipShape(.capsule)
                 }
                 .sensoryFeedback(.selection, trigger: viewModel.selectedPeriod)
             }
         }
         .padding(3)
-        .background(FrisTheme.elevated)
+        .background(PepTheme.elevated)
         .clipShape(.capsule)
     }
 
@@ -163,11 +163,11 @@ struct StepDetailView: View {
                 HStack {
                     Text(chartTitle)
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
                     Text(chartSubtitle)
                         .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 GeometryReader { geo in
@@ -225,7 +225,7 @@ struct StepDetailView: View {
                     if item.hour % 6 == 0 {
                         Text(item.hourLabel)
                             .font(.system(size: 8, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
             }
@@ -249,7 +249,7 @@ struct StepDetailView: View {
                     if let labelKey = labelKey {
                         Text(item[keyPath: labelKey])
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
             }
@@ -274,7 +274,7 @@ struct StepDetailView: View {
                     if data.firstIndex(where: { $0.id == item.id }).map({ $0 % 4 == 0 }) == true {
                         Text(item.label)
                             .font(.system(size: 8, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
             }
@@ -298,7 +298,7 @@ struct StepDetailView: View {
 
                     Text(item.label)
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
@@ -314,8 +314,8 @@ struct StepDetailView: View {
         let intensity = maxVal > 0 ? Double(value) / Double(maxVal) : 0
         return LinearGradient(
             colors: [
-                FrisTheme.cyan.opacity(0.4 + intensity * 0.6),
-                FrisTheme.cyan.opacity(0.2 + intensity * 0.4)
+                PepTheme.teal.opacity(0.4 + intensity * 0.6),
+                PepTheme.teal.opacity(0.2 + intensity * 0.4)
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -331,14 +331,14 @@ struct StepDetailView: View {
                 value: formattedNumber(viewModel.averageSteps),
                 subtitle: "steps/day",
                 icon: "chart.line.uptrend.xyaxis",
-                color: FrisTheme.cyan
+                color: PepTheme.teal
             )
             statCard(
                 title: "Total",
                 value: formattedCompact(viewModel.totalStepsInPeriod),
                 subtitle: "steps",
                 icon: "sum",
-                color: FrisTheme.violet
+                color: PepTheme.violet
             )
             statCard(
                 title: "Best",
@@ -352,7 +352,7 @@ struct StepDetailView: View {
                 value: formattedNumber(viewModel.minStepsInPeriod),
                 subtitle: periodUnitLabel,
                 icon: "arrow.down",
-                color: FrisTheme.amber
+                color: PepTheme.amber
             )
         }
     }
@@ -374,26 +374,26 @@ struct StepDetailView: View {
                     .foregroundStyle(color)
                 Text(title)
                     .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Text(value)
                 .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
             Text(subtitle)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -405,7 +405,7 @@ struct StepDetailView: View {
                 HStack {
                     Image(systemName: "clock.fill")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     SubheadText(text: "Hourly Breakdown")
                 }
 
@@ -417,10 +417,10 @@ struct StepDetailView: View {
                         VStack(spacing: 8) {
                             Image(systemName: "figure.walk")
                                 .font(.title2)
-                                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                             Text("No step data yet today")
                                 .font(.subheadline)
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         .padding(.vertical, 12)
                         Spacer()
@@ -431,21 +431,21 @@ struct StepDetailView: View {
                         HStack(spacing: 12) {
                             Text(hour.hourLabel)
                                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                                 .frame(width: 44, alignment: .leading)
 
                             GeometryReader { geo in
                                 let maxSteps = top5.map(\.steps).max() ?? 1
                                 let ratio = CGFloat(hour.steps) / CGFloat(max(maxSteps, 1))
                                 RoundedRectangle(cornerRadius: 4)
-                                    .fill(FrisTheme.cyan.opacity(0.3 + Double(ratio) * 0.5))
+                                    .fill(PepTheme.teal.opacity(0.3 + Double(ratio) * 0.5))
                                     .frame(width: geo.size.width * ratio)
                             }
                             .frame(height: 20)
 
                             Text(formattedNumber(hour.steps))
                                 .font(.system(.caption, design: .rounded, weight: .bold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                                 .frame(width: 50, alignment: .trailing)
                         }
                     }
@@ -462,7 +462,7 @@ struct StepDetailView: View {
                 HStack {
                     Image(systemName: "calendar")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     SubheadText(text: "Recent Days")
                 }
 
@@ -473,7 +473,7 @@ struct StepDetailView: View {
                         Spacer()
                         Text("No historical data available")
                             .font(.subheadline)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .padding(.vertical, 12)
                         Spacer()
                     }
@@ -483,10 +483,10 @@ struct StepDetailView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(dayLabel(for: day.date))
                                     .font(.system(.subheadline, weight: .semibold))
-                                    .foregroundStyle(FrisTheme.textPrimary)
+                                    .foregroundStyle(PepTheme.textPrimary)
                                 Text(day.dateLabel)
                                     .font(.system(.caption2, weight: .medium))
-                                    .foregroundStyle(FrisTheme.textSecondary)
+                                    .foregroundStyle(PepTheme.textSecondary)
                             }
                             .frame(width: 80, alignment: .leading)
 
@@ -495,12 +495,12 @@ struct StepDetailView: View {
                                 let ratio = min(CGFloat(day.steps) / CGFloat(max(maxSteps, 1)), 1.0)
                                 ZStack(alignment: .leading) {
                                     RoundedRectangle(cornerRadius: 4)
-                                        .fill(FrisTheme.elevated)
+                                        .fill(PepTheme.elevated)
 
                                     RoundedRectangle(cornerRadius: 4)
                                         .fill(day.steps >= viewModel.stepGoal
                                             ? LinearGradient(colors: [.green, .green.opacity(0.7)], startPoint: .leading, endPoint: .trailing)
-                                            : LinearGradient(colors: [FrisTheme.cyan, FrisTheme.cyan.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
+                                            : LinearGradient(colors: [PepTheme.teal, PepTheme.teal.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
                                         )
                                         .frame(width: geo.size.width * ratio)
                                 }
@@ -509,12 +509,12 @@ struct StepDetailView: View {
 
                             Text(formattedNumber(day.steps))
                                 .font(.system(.caption, design: .rounded, weight: .bold))
-                                .foregroundStyle(day.steps >= viewModel.stepGoal ? .green : FrisTheme.textPrimary)
+                                .foregroundStyle(day.steps >= viewModel.stepGoal ? .green : PepTheme.textPrimary)
                                 .frame(width: 50, alignment: .trailing)
                         }
 
                         if day.id != recent.last?.id {
-                            Divider().overlay(FrisTheme.shimmerHighlight)
+                            Divider().overlay(PepTheme.shimmerHighlight)
                         }
                     }
                 }

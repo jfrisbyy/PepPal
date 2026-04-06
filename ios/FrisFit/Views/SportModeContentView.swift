@@ -52,12 +52,12 @@ struct SportModeContentView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(mode.name)
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     let weekSessions = sport.map { viewModel.sportThisWeek($0).count } ?? 0
                     Text("\(weekSessions) session\(weekSessions == 1 ? "" : "s") this week")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
@@ -68,7 +68,7 @@ struct SportModeContentView: View {
                         .foregroundStyle(accentColor)
                     Text("total")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
@@ -116,22 +116,22 @@ struct SportModeContentView: View {
             HStack {
                 Image(systemName: "star.fill")
                     .font(.system(size: 11))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 Text("\(totalFP) FP earned from \(mode.name)")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 Spacer()
             }
             .padding(.horizontal, 4)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [accentColor.opacity(0.12), FrisTheme.glassBorderBottom],
+                        colors: [accentColor.opacity(0.12), PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -147,14 +147,14 @@ struct SportModeContentView: View {
                 .foregroundStyle(accentColor.opacity(0.7))
             Text(value)
                 .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -176,12 +176,12 @@ struct SportModeContentView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -219,7 +219,7 @@ struct SportModeContentView: View {
         return HStack(spacing: 10) {
             statBubble(value: "\(avgPts)", label: "Avg PTS", color: accentColor)
             statBubble(value: "\(avgAst)", label: "Avg AST", color: .green)
-            statBubble(value: "\(avgReb)", label: "Avg REB", color: FrisTheme.violet)
+            statBubble(value: "\(avgReb)", label: "Avg REB", color: PepTheme.violet)
         }
     }
 
@@ -234,7 +234,7 @@ struct SportModeContentView: View {
         return HStack(spacing: 10) {
             statBubble(value: String(format: "%.1f", totalDist), label: "Total Mi", color: accentColor)
             statBubble(value: String(format: "%.1f", avgPace), label: "Avg Pace", color: .green)
-            statBubble(value: "\(runningSessions.count)", label: "Runs", color: FrisTheme.violet)
+            statBubble(value: "\(runningSessions.count)", label: "Runs", color: PepTheme.violet)
         }
     }
 
@@ -249,7 +249,7 @@ struct SportModeContentView: View {
         return HStack(spacing: 10) {
             statBubble(value: "\(totalLaps)", label: "Total Laps", color: accentColor)
             statBubble(value: "\(avgLaps)", label: "Avg/Session", color: .green)
-            statBubble(value: "\(swimmingSessions.count)", label: "Swims", color: FrisTheme.violet)
+            statBubble(value: "\(swimmingSessions.count)", label: "Swims", color: PepTheme.violet)
         }
     }
 
@@ -304,7 +304,7 @@ struct SportModeContentView: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
@@ -343,12 +343,12 @@ struct SportModeContentView: View {
 
                     VStack(spacing: 4) {
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(distance > 0 ? accentColor : FrisTheme.elevated)
+                            .fill(distance > 0 ? accentColor : PepTheme.elevated)
                             .frame(height: max(CGFloat(distance / maxDist) * 60, 4))
 
                         Text(dayLabel(dayDate))
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -356,12 +356,12 @@ struct SportModeContentView: View {
             .frame(height: 80)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -394,17 +394,17 @@ struct SportModeContentView: View {
 
                     statBubble(value: String(format: "%.1f", best), label: "Best Pace", color: .green)
                     statBubble(value: String(format: "%.1f", avg), label: "Avg Pace", color: accentColor)
-                    statBubble(value: "\(paces.count)", label: "Runs", color: FrisTheme.violet)
+                    statBubble(value: "\(paces.count)", label: "Runs", color: PepTheme.violet)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -423,7 +423,7 @@ struct SportModeContentView: View {
                 Spacer()
                 Text("\(games.count) game\(games.count == 1 ? "" : "s")")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             if games.isEmpty {
@@ -435,12 +435,12 @@ struct SportModeContentView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -451,24 +451,24 @@ struct SportModeContentView: View {
             VStack(spacing: 2) {
                 Text(dayLabel(session.date).uppercased())
                     .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Text("\(Calendar.current.component(.day, from: session.date))")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
             .frame(width: 36)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(session.displayName)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 HStack(spacing: 8) {
                     Label("\(session.durationMinutes)m", systemImage: "clock")
                     Label("\(session.intensity)/10", systemImage: "flame")
                 }
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -530,7 +530,7 @@ struct SportModeContentView: View {
                 if stats.goals == 0 && stats.assists == 0 {
                     Text("\(session.fpEarned) FP")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                 }
             }
         case .tennis(let stats):
@@ -542,13 +542,13 @@ struct SportModeContentView: View {
                 } else {
                     Text("\(session.fpEarned) FP")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                 }
             }
         case .none:
             Text("\(session.fpEarned) FP")
                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.amber)
+                .foregroundStyle(PepTheme.amber)
         }
     }
 
@@ -574,18 +574,18 @@ struct SportModeContentView: View {
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                 careerStatCell(value: "\(totalPts)", label: "Total Points", color: accentColor)
-                careerStatCell(value: "\(highPts)", label: "Season High", color: FrisTheme.amber)
+                careerStatCell(value: "\(highPts)", label: "Season High", color: PepTheme.amber)
                 careerStatCell(value: "\(totalAst)", label: "Total Assists", color: .green)
-                careerStatCell(value: "\(totalReb)", label: "Total Rebounds", color: FrisTheme.violet)
+                careerStatCell(value: "\(totalReb)", label: "Total Rebounds", color: PepTheme.violet)
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -599,11 +599,11 @@ struct SportModeContentView: View {
             Spacer()
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .multilineTextAlignment(.trailing)
         }
         .padding(12)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -636,12 +636,12 @@ struct SportModeContentView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -664,7 +664,7 @@ struct SportModeContentView: View {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .stroke(FrisTheme.elevated, lineWidth: 6)
+                        .stroke(PepTheme.elevated, lineWidth: 6)
                         .frame(width: 56, height: 56)
                     Circle()
                         .trim(from: 0, to: min(CGFloat(weekSessions) / CGFloat(weeklyGoal), 1.0))
@@ -679,7 +679,7 @@ struct SportModeContentView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Weekly Sessions")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     if weekSessions >= weeklyGoal {
                         HStack(spacing: 4) {
@@ -692,7 +692,7 @@ struct SportModeContentView: View {
                     } else {
                         Text("\(weeklyGoal - weekSessions) more to hit your goal")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
 
@@ -700,12 +700,12 @@ struct SportModeContentView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -740,7 +740,7 @@ struct SportModeContentView: View {
                             HStack(spacing: 6) {
                                 Text(session.displayName)
                                     .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(FrisTheme.textPrimary)
+                                    .foregroundStyle(PepTheme.textPrimary)
                                 Text(session.sessionType.rawValue)
                                     .font(.system(size: 9, weight: .semibold))
                                     .foregroundStyle(session.sport.color)
@@ -751,26 +751,26 @@ struct SportModeContentView: View {
                             }
                             Text(session.date.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
                                 .font(.system(size: 10))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
 
                         Spacer()
 
                         Text("\(session.fpEarned) FP")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundStyle(FrisTheme.amber)
+                            .foregroundStyle(PepTheme.amber)
                     }
                     .padding(.vertical, 2)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -805,10 +805,10 @@ struct SportModeContentView: View {
             VStack(spacing: 8) {
                 Image(systemName: "chart.line.downtrend.xyaxis")
                     .font(.title2)
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(.vertical, 16)
             Spacer()

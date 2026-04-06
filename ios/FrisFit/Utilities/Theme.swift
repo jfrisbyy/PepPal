@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum FrisTheme {
+enum PepTheme {
     static let background = Color(UIColor { traits in
         traits.userInterfaceStyle == .dark
             ? UIColor(red: 10/255, green: 10/255, blue: 15/255, alpha: 1)
@@ -19,9 +19,13 @@ enum FrisTheme {
             : UIColor(red: 235/255, green: 235/255, blue: 240/255, alpha: 1)
     })
 
-    static let cyan = Color(red: 0, green: 229/255, blue: 255/255)
+    static let teal = Color(red: 0, green: 201/255, blue: 167/255)
     static let amber = Color(red: 255/255, green: 184/255, blue: 0)
     static let violet = Color(red: 139/255, green: 92/255, blue: 246/255)
+    static let blue = Color(red: 74/255, green: 158/255, blue: 255/255)
+
+    @available(*, deprecated, renamed: "teal")
+    static let cyan = teal
 
     static let textPrimary = Color(UIColor { traits in
         traits.userInterfaceStyle == .dark

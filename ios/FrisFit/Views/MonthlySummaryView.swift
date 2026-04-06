@@ -22,20 +22,20 @@ struct MonthlySummaryView: View {
                 HStack {
                     Image(systemName: "calendar.badge.clock")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     SubheadText(text: monthLabel)
                     Spacer()
                     Text("30 days")
                         .font(.system(.caption2, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 HStack(spacing: 0) {
-                    overviewStat(value: "\(summary.totalWorkouts)", label: "Workouts", icon: "figure.strengthtraining.traditional", color: FrisTheme.cyan)
+                    overviewStat(value: "\(summary.totalWorkouts)", label: "Workouts", icon: "figure.strengthtraining.traditional", color: PepTheme.teal)
                     overviewDivider
                     overviewStat(value: formattedNumber(summary.totalCaloriesBurned), label: "Cal Burned", icon: "flame.fill", color: .orange)
                     overviewDivider
-                    overviewStat(value: "\(summary.totalExerciseMinutes / 60)h", label: "Active", icon: "timer", color: FrisTheme.amber)
+                    overviewStat(value: "\(summary.totalExerciseMinutes / 60)h", label: "Active", icon: "timer", color: PepTheme.amber)
                 }
             }
         }
@@ -69,19 +69,19 @@ struct MonthlySummaryView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Start of Month")
                             .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         Text(String(format: "%.1f lbs", summary.weightStart))
                             .font(.system(.subheadline, design: .rounded, weight: .bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("Current")
                             .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         Text(String(format: "%.1f lbs", summary.weightEnd))
                             .font(.system(.subheadline, design: .rounded, weight: .bold))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                     }
                 }
             }
@@ -94,20 +94,20 @@ struct MonthlySummaryView: View {
                 HStack {
                     Image(systemName: "figure.strengthtraining.traditional")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     SubheadText(text: "Exercise Frequency")
                     Spacer()
                     Text("\(summary.totalWorkouts) total")
                         .font(.system(.caption, design: .rounded, weight: .semibold))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
 
-                MiniBarChart(data: summary.weeklyWorkouts, barColor: FrisTheme.cyan, height: 80)
+                MiniBarChart(data: summary.weeklyWorkouts, barColor: PepTheme.teal, height: 80)
 
                 HStack {
                     Text("Avg \(summary.totalWorkouts / max(summary.weeklyWorkouts.count, 1))/week")
                         .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                 }
             }
@@ -120,17 +120,17 @@ struct MonthlySummaryView: View {
                 HStack {
                     Image(systemName: "fork.knife")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                     SubheadText(text: "Nutrition Trend")
                     Spacer()
                     Text("avg \(summary.avgCaloriesConsumed) cal/day")
                         .font(.system(.caption, design: .rounded, weight: .semibold))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                 }
 
-                MiniLineChart(data: summary.weeklyCalories, lineColor: FrisTheme.amber, height: 80)
+                MiniLineChart(data: summary.weeklyCalories, lineColor: PepTheme.amber, height: 80)
 
-                Divider().overlay(FrisTheme.shimmerHighlight)
+                Divider().overlay(PepTheme.shimmerHighlight)
 
                 HStack(spacing: 16) {
                     Label {
@@ -140,7 +140,7 @@ struct MonthlySummaryView: View {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 10))
                     }
-                    .foregroundStyle(FrisTheme.violet)
+                    .foregroundStyle(PepTheme.violet)
 
                     Spacer()
                 }
@@ -169,10 +169,10 @@ struct MonthlySummaryView: View {
 
     private var monthlyStatsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            summaryStatCard(icon: "bed.double.fill", value: String(format: "%.1f hrs", summary.avgSleepHours), label: "Avg Sleep", color: FrisTheme.violet)
+            summaryStatCard(icon: "bed.double.fill", value: String(format: "%.1f hrs", summary.avgSleepHours), label: "Avg Sleep", color: PepTheme.violet)
             summaryStatCard(icon: "figure.walk", value: formattedNumber(summary.avgStepsPerDay), label: "Avg Steps/Day", color: .green)
             summaryStatCard(icon: "flame.fill", value: formattedNumber(summary.totalCaloriesBurned), label: "Total Cal Burned", color: .orange)
-            summaryStatCard(icon: "clock.fill", value: "\(summary.totalExerciseMinutes) min", label: "Total Active", color: FrisTheme.amber)
+            summaryStatCard(icon: "clock.fill", value: "\(summary.totalExerciseMinutes) min", label: "Total Active", color: PepTheme.amber)
         }
     }
 
@@ -191,7 +191,7 @@ struct MonthlySummaryView: View {
         } else if goal == .weightGain || goal == .bulking {
             return summary.weightChange >= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255)
         }
-        return FrisTheme.cyan
+        return PepTheme.teal
     }
 
     private func overviewStat(value: String, label: String, icon: String, color: Color) -> some View {
@@ -201,19 +201,19 @@ struct MonthlySummaryView: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
 
     private var overviewDivider: some View {
         Rectangle()
-            .fill(FrisTheme.shimmerHighlight)
+            .fill(PepTheme.shimmerHighlight)
             .frame(width: 1, height: 44)
     }
 
@@ -228,7 +228,7 @@ struct MonthlySummaryView: View {
             HStack {
                 Text(value)
                     .font(.system(.headline, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Spacer()
@@ -236,18 +236,18 @@ struct MonthlySummaryView: View {
             HStack {
                 Text(label)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Spacer()
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),

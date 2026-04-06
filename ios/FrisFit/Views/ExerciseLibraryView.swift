@@ -12,7 +12,7 @@ struct ExerciseLibraryView: View {
                     exerciseList
                 }
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .searchable(text: $viewModel.searchText, prompt: "Search exercises...")
             .navigationTitle("Exercise Library")
             
@@ -22,7 +22,7 @@ struct ExerciseLibraryView: View {
                         Button("Clear") {
                             viewModel.clearFilters()
                         }
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     }
                 }
             }
@@ -83,10 +83,10 @@ struct ExerciseLibraryView: View {
         HStack(spacing: 8) {
             Image(systemName: muscle.icon)
                 .font(.caption)
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
             Text(muscle.rawValue.uppercased())
                 .font(.caption.weight(.bold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .tracking(1.2)
             Spacer()
         }
@@ -98,13 +98,13 @@ struct ExerciseLibraryView: View {
         VStack(spacing: 16) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 40))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             Text("No exercises found")
                 .font(.headline)
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text("Try adjusting your search or filters")
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 80)
@@ -124,22 +124,22 @@ private struct MuscleGroupChip: View {
                     .frame(width: 44, height: 44)
                     .background(
                         isSelected
-                            ? FrisTheme.cyan.opacity(0.2)
-                            : FrisTheme.elevated
+                            ? PepTheme.teal.opacity(0.2)
+                            : PepTheme.elevated
                     )
-                    .foregroundStyle(isSelected ? FrisTheme.cyan : FrisTheme.textSecondary)
+                    .foregroundStyle(isSelected ? PepTheme.teal : PepTheme.textSecondary)
                     .clipShape(Circle())
                     .overlay(
                         Circle()
                             .strokeBorder(
-                                isSelected ? FrisTheme.cyan.opacity(0.6) : Color.clear,
+                                isSelected ? PepTheme.teal.opacity(0.6) : Color.clear,
                                 lineWidth: 1.5
                             )
                     )
 
                 Text(group.rawValue)
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(isSelected ? FrisTheme.cyan : FrisTheme.textSecondary)
+                    .foregroundStyle(isSelected ? PepTheme.teal : PepTheme.textSecondary)
                     .lineLimit(1)
             }
             .frame(width: 64)
@@ -154,15 +154,15 @@ private struct ExerciseRow: View {
         HStack(spacing: 14) {
             Image(systemName: exercise.primaryMuscle.icon)
                 .font(.system(size: 16))
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
                 .frame(width: 40, height: 40)
-                .background(FrisTheme.cyan.opacity(0.1))
+                .background(PepTheme.teal.opacity(0.1))
                 .clipShape(.rect(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(exercise.name)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 HStack(spacing: 8) {
                     Label(exercise.equipment.rawValue, systemImage: exercise.equipment.icon)
@@ -170,7 +170,7 @@ private struct ExerciseRow: View {
                     Text(exercise.exerciseType.rawValue)
                 }
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -179,15 +179,15 @@ private struct ExerciseRow: View {
 
             Image(systemName: "chevron.right")
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(FrisTheme.glassBorderTop.opacity(0.4), lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop.opacity(0.4), lineWidth: 0.5)
         )
         .padding(.vertical, 3)
     }

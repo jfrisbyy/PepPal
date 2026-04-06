@@ -28,7 +28,7 @@ struct RunDetailView: View {
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle(run.runType.rawValue)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -36,10 +36,10 @@ struct RunDetailView: View {
                 VStack(spacing: 1) {
                     Text(run.runType.rawValue)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text(run.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
                         .font(.system(size: 10))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
@@ -78,7 +78,7 @@ struct RunDetailView: View {
                 .clipShape(.rect(cornerRadius: 16))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                 )
             } else if run.isTreadmill {
                 HStack {
@@ -86,18 +86,18 @@ struct RunDetailView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "figure.run.treadmill")
                             .font(.system(size: 32))
-                            .foregroundStyle(FrisTheme.violet)
+                            .foregroundStyle(PepTheme.violet)
                         Text("Treadmill Run")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("No route data")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     Spacer()
                 }
                 .padding(.vertical, 32)
-                .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+                .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
                 .clipShape(.rect(cornerRadius: 16))
             }
         }
@@ -119,7 +119,7 @@ struct RunDetailView: View {
 
             HStack(spacing: 10) {
                 bigStatCell(value: "\(run.averageHeartRate) bpm", label: "Avg Heart Rate", color: .red)
-                bigStatCell(value: "\(run.caloriesBurned) kcal", label: "Calories", color: FrisTheme.amber)
+                bigStatCell(value: "\(run.caloriesBurned) kcal", label: "Calories", color: PepTheme.amber)
             }
         }
     }
@@ -133,11 +133,11 @@ struct RunDetailView: View {
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
@@ -170,7 +170,7 @@ struct RunDetailView: View {
                         .frame(width: 50, alignment: .trailing)
                 }
                 .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .padding(.horizontal, 4)
 
                 ForEach(run.splits) { split in
@@ -182,7 +182,7 @@ struct RunDetailView: View {
 
                         Text(split.paceFormatted + " /mi")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .frame(maxWidth: .infinity)
 
                         Text("\(split.avgHeartRate)")
@@ -199,13 +199,13 @@ struct RunDetailView: View {
                     .padding(.horizontal, 4)
 
                     if split.id != run.splits.last?.id {
-                        Divider().overlay(FrisTheme.separatorColor)
+                        Divider().overlay(PepTheme.separatorColor)
                     }
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -247,7 +247,7 @@ struct RunDetailView: View {
 
                             Text("\(split.splitNumber)")
                                 .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -259,20 +259,20 @@ struct RunDetailView: View {
                         Circle().fill(.green).frame(width: 6, height: 6)
                         Text("Faster than avg")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     HStack(spacing: 4) {
                         Circle().fill(.orange).frame(width: 6, height: 6)
                         Text("Slower than avg")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     Spacer()
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -343,7 +343,7 @@ struct RunDetailView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -363,7 +363,7 @@ struct RunDetailView: View {
                         .foregroundStyle(.red.opacity(0.8))
                     Text("Max \(run.maxHeartRate) bpm")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
@@ -378,14 +378,14 @@ struct RunDetailView: View {
                                 .foregroundStyle(dist.zone.color)
                             Text(dist.zone.name)
                                 .font(.system(size: 8, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         .frame(width: 56, alignment: .leading)
 
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
                                 Capsule()
-                                    .fill(FrisTheme.elevated)
+                                    .fill(PepTheme.elevated)
                                     .frame(height: 10)
                                 Capsule()
                                     .fill(dist.zone.color)
@@ -397,10 +397,10 @@ struct RunDetailView: View {
                         VStack(alignment: .trailing, spacing: 1) {
                             Text("\(Int(dist.percentage * 100))%")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             Text(formatZoneDuration(dist.timeInZone))
                                 .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         .frame(width: 44, alignment: .trailing)
                     }
@@ -408,7 +408,7 @@ struct RunDetailView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -419,7 +419,7 @@ struct RunDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "chart.xyaxis.line")
-                    .foregroundStyle(FrisTheme.violet)
+                    .foregroundStyle(PepTheme.violet)
                 HeadlineText(text: "Advanced Metrics")
                 Spacer()
             }
@@ -431,7 +431,7 @@ struct RunDetailView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -443,12 +443,12 @@ struct RunDetailView: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -472,10 +472,10 @@ struct RunDetailView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text("\(shoe.brand) \(shoe.name)")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text(String(format: "%.0f / %.0f mi", shoe.totalMiles, shoe.retirementMiles))
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -485,7 +485,7 @@ struct RunDetailView: View {
                 .foregroundStyle(shoe.statusColor)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -496,15 +496,15 @@ struct RunDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "note.text")
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 HeadlineText(text: "Notes")
             }
             Text(run.notes)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
     }
 
@@ -515,7 +515,7 @@ struct RunDetailView: View {
             Spacer()
             Text(message)
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .padding(.vertical, 12)
             Spacer()
         }
@@ -524,7 +524,7 @@ struct RunDetailView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MiniBarChart: View {
     let data: [DailyDataPoint]
-    var barColor: Color = FrisTheme.cyan
+    var barColor: Color = PepTheme.teal
     var height: CGFloat = 100
 
     private var maxValue: Double {
@@ -25,7 +25,7 @@ struct MiniBarChart: View {
 
                     Text(point.label)
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity)
@@ -37,7 +37,7 @@ struct MiniBarChart: View {
 
 struct MiniLineChart: View {
     let data: [DailyDataPoint]
-    var lineColor: Color = FrisTheme.cyan
+    var lineColor: Color = PepTheme.teal
     var height: CGFloat = 80
 
     private var minValue: Double {
@@ -114,7 +114,7 @@ struct MiniLineChart: View {
                 ForEach(data) { point in
                     Text(point.label)
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .lineLimit(1)
                 }

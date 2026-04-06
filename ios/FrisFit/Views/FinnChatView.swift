@@ -24,7 +24,7 @@ struct FinnChatView: View {
                                 Text(message.timestamp.formatted(.dateTime.hour().minute()))
                                     .font(.caption2)
                                     .fontWeight(.medium)
-                                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                                     .padding(.top, 12)
                                     .padding(.bottom, 4)
                             }
@@ -67,7 +67,7 @@ struct FinnChatView: View {
 
             iMessageInputBar
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
     }
 
     private var iMessageNavBar: some View {
@@ -80,7 +80,7 @@ struct FinnChatView: View {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 18, weight: .semibold))
                     }
-                    .foregroundStyle(FrisTheme.violet)
+                    .foregroundStyle(PepTheme.violet)
                 }
 
                 Spacer()
@@ -89,7 +89,7 @@ struct FinnChatView: View {
                     FinnNavAvatar(size: 32)
                     Text("Finn")
                         .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
 
                 Spacer()
@@ -98,7 +98,7 @@ struct FinnChatView: View {
                 } label: {
                     Image(systemName: "video")
                         .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(FrisTheme.violet)
+                        .foregroundStyle(PepTheme.violet)
                 }
                 .opacity(0)
             }
@@ -106,10 +106,10 @@ struct FinnChatView: View {
             .padding(.vertical, 8)
 
             Rectangle()
-                .fill(FrisTheme.separatorColor)
+                .fill(PepTheme.separatorColor)
                 .frame(height: 0.5)
         }
-        .background(FrisTheme.cardSurface.opacity(0.8))
+        .background(PepTheme.cardSurface.opacity(0.8))
         .background(.ultraThinMaterial)
     }
 
@@ -119,11 +119,11 @@ struct FinnChatView: View {
 
             Text("Finn")
                 .font(.system(.headline, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             Text("AI Coach")
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 16)
@@ -133,7 +133,7 @@ struct FinnChatView: View {
     private var iMessageInputBar: some View {
         VStack(spacing: 0) {
             Rectangle()
-                .fill(FrisTheme.separatorColor)
+                .fill(PepTheme.separatorColor)
                 .frame(height: 0.5)
 
             HStack(alignment: .bottom, spacing: 8) {
@@ -144,7 +144,7 @@ struct FinnChatView: View {
                 } label: {
                     Image(systemName: showQuickActions ? "xmark.circle.fill" : "plus.circle.fill")
                         .font(.system(size: 30))
-                        .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
                         .contentTransition(.symbolEffect(.replace))
                 }
 
@@ -152,7 +152,7 @@ struct FinnChatView: View {
                     TextField("iMessage", text: $viewModel.inputText, axis: .vertical)
                         .lineLimit(1...5)
                         .font(.body)
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .focused($isInputFocused)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
@@ -162,12 +162,12 @@ struct FinnChatView: View {
                         } label: {
                             Image(systemName: "mic.fill")
                                 .font(.system(size: 16))
-                                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                         }
                         .padding(.trailing, 10)
                     }
                 }
-                .background(FrisTheme.elevated)
+                .background(PepTheme.elevated)
                 .clipShape(.capsule)
 
                 if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -176,7 +176,7 @@ struct FinnChatView: View {
                     } label: {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.system(size: 30))
-                            .foregroundStyle(FrisTheme.violet)
+                            .foregroundStyle(PepTheme.violet)
                     }
                     .disabled(viewModel.isGenerating)
                     .sensoryFeedback(.impact(weight: .light), trigger: viewModel.messages.count)
@@ -193,14 +193,14 @@ struct FinnChatView: View {
             }
         }
         .background(
-            FrisTheme.cardSurface
+            PepTheme.cardSurface
                 .ignoresSafeArea(edges: .bottom)
         )
     }
 
     private var quickActionsRow: some View {
         HStack(spacing: 20) {
-            QuickActionButton(icon: "dumbbell.fill", label: "Workout", color: FrisTheme.cyan) {
+            QuickActionButton(icon: "dumbbell.fill", label: "Workout", color: PepTheme.teal) {
                 viewModel.inputText = "What should I train today?"
                 showQuickActions = false
             }
@@ -263,7 +263,7 @@ struct QuickActionButton: View {
 
                 Text(label)
                     .font(.caption2)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
     }
@@ -277,7 +277,7 @@ struct FinnNavAvatar: View {
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [FrisTheme.violet, FrisTheme.violet.opacity(0.7)],
+                        colors: [PepTheme.violet, PepTheme.violet.opacity(0.7)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -307,7 +307,7 @@ struct FinnBubble: View {
             VStack(alignment: .leading, spacing: 0) {
                 buildContent(message.content, exerciseNames: message.exerciseNames)
                     .font(.body)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(finnBubbleBackground)
@@ -405,7 +405,7 @@ struct UserBubble: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(FrisTheme.violet)
+                .background(PepTheme.violet)
                 .clipShape(UserBubbleShape())
         }
     }
@@ -488,7 +488,7 @@ struct TypingDots: View {
         HStack(spacing: 5) {
             ForEach(0..<3, id: \.self) { index in
                 Circle()
-                    .fill(FrisTheme.textSecondary.opacity(phase == index ? 0.9 : 0.35))
+                    .fill(PepTheme.textSecondary.opacity(phase == index ? 0.9 : 0.35))
                     .frame(width: 8, height: 8)
                     .scaleEffect(phase == index ? 1.15 : 1.0)
             }
@@ -574,11 +574,11 @@ struct WrappingTextFlow: View {
             if part.isExercise {
                 result = result + Text(part.text)
                     .fontWeight(.semibold)
-                    .foregroundColor(FrisTheme.cyan)
-                    .underline(color: FrisTheme.cyan.opacity(0.4))
+                    .foregroundColor(PepTheme.teal)
+                    .underline(color: PepTheme.teal.opacity(0.4))
             } else {
                 result = result + Text(part.text)
-                    .foregroundColor(FrisTheme.textPrimary)
+                    .foregroundColor(PepTheme.textPrimary)
             }
         }
 

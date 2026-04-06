@@ -60,7 +60,7 @@ struct UserProfileView: View {
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -69,8 +69,8 @@ struct UserProfileView: View {
             LinearGradient(
                 colors: [
                     user.avatarColor.opacity(0.3),
-                    FrisTheme.violet.opacity(0.1),
-                    FrisTheme.background
+                    PepTheme.violet.opacity(0.1),
+                    PepTheme.background
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -78,7 +78,7 @@ struct UserProfileView: View {
             .frame(height: 120)
 
             Circle()
-                .fill(FrisTheme.background)
+                .fill(PepTheme.background)
                 .frame(width: 88, height: 88)
                 .overlay {
                     Circle()
@@ -107,11 +107,11 @@ struct UserProfileView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(user.name)
                         .font(.system(.title2, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     Text("@\(user.username)")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
@@ -125,14 +125,14 @@ struct UserProfileView: View {
                     } label: {
                         Text(isFollowing ? "Following" : "Follow")
                             .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(isFollowing ? FrisTheme.textPrimary : .black)
+                            .foregroundStyle(isFollowing ? PepTheme.textPrimary : .black)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
-                            .background(isFollowing ? FrisTheme.elevated : FrisTheme.cyan)
+                            .background(isFollowing ? PepTheme.elevated : PepTheme.teal)
                             .clipShape(.capsule)
                             .overlay(
                                 Capsule().strokeBorder(
-                                    isFollowing ? FrisTheme.glassBorderTop : .clear,
+                                    isFollowing ? PepTheme.glassBorderTop : .clear,
                                     lineWidth: 0.5
                                 )
                             )
@@ -151,10 +151,10 @@ struct UserProfileView: View {
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(friendIconColor)
                             .frame(width: 34, height: 34)
-                            .background(FrisTheme.elevated)
+                            .background(PepTheme.elevated)
                             .clipShape(Circle())
                             .overlay(
-                                Circle().strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                                Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                             )
                     }
                     .sensoryFeedback(.impact(weight: .light), trigger: friendBounce)
@@ -166,10 +166,10 @@ struct UserProfileView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "figure.run")
                         .font(.caption2)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     Text("Running \(program)")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
                 .padding(.top, 4)
             }
@@ -178,19 +178,19 @@ struct UserProfileView: View {
                 HStack(spacing: 4) {
                     Text("\(Int.random(in: 100...500))")
                         .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Following")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 HStack(spacing: 4) {
                     Text("\(Int.random(in: 200...2000))")
                         .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Followers")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .padding(.top, 8)
@@ -209,9 +209,9 @@ struct UserProfileView: View {
 
     private var friendIconColor: Color {
         switch friendStatus {
-        case .none: FrisTheme.textPrimary
-        case .pending: FrisTheme.amber
-        case .accepted: FrisTheme.cyan
+        case .none: PepTheme.textPrimary
+        case .pending: PepTheme.amber
+        case .accepted: PepTheme.teal
         }
     }
 
@@ -227,7 +227,7 @@ struct UserProfileView: View {
                 Text("Friend request sent")
                     .font(.caption)
             }
-            .foregroundStyle(FrisTheme.amber)
+            .foregroundStyle(PepTheme.amber)
             .padding(.top, 4)
         case .accepted:
             HStack(spacing: 6) {
@@ -236,23 +236,23 @@ struct UserProfileView: View {
                 Text("Friends")
                     .font(.caption)
             }
-            .foregroundStyle(FrisTheme.cyan)
+            .foregroundStyle(PepTheme.teal)
             .padding(.top, 4)
         }
     }
 
     private var quickStats: some View {
         HStack(spacing: 0) {
-            ProfileQuickStat(value: formatNumber(user.totalFP), label: "Total FP", icon: "bolt.fill", color: FrisTheme.cyan)
-            ProfileQuickStat(value: "\(user.streak)", label: "Day Streak", icon: "flame.fill", color: FrisTheme.amber)
+            ProfileQuickStat(value: formatNumber(user.totalFP), label: "Total FP", icon: "bolt.fill", color: PepTheme.teal)
+            ProfileQuickStat(value: "\(user.streak)", label: "Day Streak", icon: "flame.fill", color: PepTheme.amber)
         }
         .padding(.vertical, 14)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -270,11 +270,11 @@ struct UserProfileView: View {
                         VStack(spacing: 8) {
                             Text(tab.rawValue)
                                 .font(.system(.subheadline, weight: selectedTab == tab ? .bold : .medium))
-                                .foregroundStyle(selectedTab == tab ? FrisTheme.textPrimary : FrisTheme.textSecondary)
+                                .foregroundStyle(selectedTab == tab ? PepTheme.textPrimary : PepTheme.textSecondary)
                                 .frame(maxWidth: .infinity)
 
                             Rectangle()
-                                .fill(selectedTab == tab ? FrisTheme.cyan : .clear)
+                                .fill(selectedTab == tab ? PepTheme.teal : .clear)
                                 .frame(height: 2)
                                 .clipShape(.capsule)
                         }
@@ -285,7 +285,7 @@ struct UserProfileView: View {
             .padding(.horizontal, 16)
 
             Divider()
-                .overlay(FrisTheme.separatorColor)
+                .overlay(PepTheme.separatorColor)
 
             switch selectedTab {
             case .posts:
@@ -302,7 +302,7 @@ struct UserProfileView: View {
         LazyVStack(spacing: 0) {
             ForEach(mockPosts) { post in
                 userPostRow(post)
-                Divider().overlay(FrisTheme.separatorColor)
+                Divider().overlay(PepTheme.separatorColor)
             }
         }
     }
@@ -328,31 +328,31 @@ struct UserProfileView: View {
                 HStack(spacing: 6) {
                     Text(user.name)
                         .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     Text("@\(user.username)")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     Text("·")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     Text(post.timestamp.timeAgoDisplay())
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Text(post.content)
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineSpacing(3)
 
                 if let attachment = post.workoutAttachment {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(attachment.workoutName)
                             .font(.system(.caption, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
 
                         HStack(spacing: 14) {
                             HStack(spacing: 3) {
@@ -370,21 +370,21 @@ struct UserProfileView: View {
                             HStack(spacing: 3) {
                                 Image(systemName: "bolt.fill")
                                     .font(.system(size: 10))
-                                    .foregroundStyle(FrisTheme.cyan)
+                                    .foregroundStyle(PepTheme.teal)
                                 Text("\(attachment.fpEarned) FP")
                                     .font(.system(.caption2, weight: .semibold))
-                                    .foregroundStyle(FrisTheme.cyan)
+                                    .foregroundStyle(PepTheme.teal)
                             }
                         }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(FrisTheme.elevated.opacity(0.6))
+                    .background(PepTheme.elevated.opacity(0.6))
                     .clipShape(.rect(cornerRadius: 10))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                            .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                     )
                 }
 
@@ -395,7 +395,7 @@ struct UserProfileView: View {
                         Text("\(post.likeCount)")
                             .font(.caption)
                     }
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
 
                     HStack(spacing: 5) {
                         Image(systemName: "bubble.left")
@@ -403,7 +403,7 @@ struct UserProfileView: View {
                         Text("\(post.commentCount)")
                             .font(.caption)
                     }
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
 
                     Spacer()
                 }
@@ -437,23 +437,23 @@ struct UserProfileView: View {
         HStack(spacing: 14) {
             Image(systemName: icon)
                 .font(.body)
-                .foregroundStyle(FrisTheme.cyan)
+                .foregroundStyle(PepTheme.teal)
                 .frame(width: 28)
             Text(label)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             Spacer()
             Text(value)
                 .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
         }
         .padding(14)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -463,13 +463,13 @@ struct UserProfileView: View {
         VStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 36))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
             Text(title)
                 .font(.system(.headline, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             Text(message)
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.7))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                 .multilineTextAlignment(.center)
         }
         .padding(.vertical, 48)

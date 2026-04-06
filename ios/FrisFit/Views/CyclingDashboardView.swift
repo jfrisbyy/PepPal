@@ -42,10 +42,10 @@ struct CyclingDashboardView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Cycling")
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("\(cyclingVM.thisWeekRides.count) ride\(cyclingVM.thisWeekRides.count == 1 ? "" : "s") this week · \(String(format: "%.1f", cyclingVM.thisWeekMiles)) mi")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -55,9 +55,9 @@ struct CyclingDashboardView: View {
                     } label: {
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: 14))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .frame(width: 32, height: 32)
-                            .background(FrisTheme.elevated.opacity(0.6))
+                            .background(PepTheme.elevated.opacity(0.6))
                             .clipShape(Circle())
                     }
                 }
@@ -79,16 +79,16 @@ struct CyclingDashboardView: View {
                 .foregroundStyle(accentColor.opacity(0.7))
             Text(value)
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -109,10 +109,10 @@ struct CyclingDashboardView: View {
                                     .font(.system(size: 8, weight: .semibold))
                                     .lineLimit(1)
                             }
-                            .foregroundStyle(cyclingVM.selectedRideType == type ? .black : FrisTheme.textSecondary)
+                            .foregroundStyle(cyclingVM.selectedRideType == type ? .black : PepTheme.textSecondary)
                             .frame(width: 68)
                             .padding(.vertical, 10)
-                            .background(cyclingVM.selectedRideType == type ? type.color : FrisTheme.elevated.opacity(0.5))
+                            .background(cyclingVM.selectedRideType == type ? type.color : PepTheme.elevated.opacity(0.5))
                             .clipShape(.rect(cornerRadius: 10))
                         }
                     }
@@ -125,7 +125,7 @@ struct CyclingDashboardView: View {
                 Toggle(isOn: $cyclingVM.isIndoorMode) {
                     Label("Indoor", systemImage: "figure.indoor.cycle")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 .toggleStyle(.switch)
                 .tint(accentColor)
@@ -149,10 +149,10 @@ struct CyclingDashboardView: View {
                             Text(cyclingVM.selectedBikeId.flatMap { id in cyclingVM.bikes.first { $0.id == id }?.name } ?? "Select Bike")
                                 .font(.system(size: 11, weight: .medium))
                         }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(FrisTheme.elevated.opacity(0.5))
+                        .background(PepTheme.elevated.opacity(0.5))
                         .clipShape(Capsule())
                     }
                 }
@@ -181,12 +181,12 @@ struct CyclingDashboardView: View {
             .buttonStyle(.scalePrimary)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [accentColor.opacity(0.15), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [accentColor.opacity(0.15), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -215,19 +215,19 @@ struct CyclingDashboardView: View {
                         VStack(spacing: 4) {
                             Text(String(format: "%.0f", week.totalMiles))
                                 .font(.system(size: 8, weight: .bold, design: .rounded))
-                                .foregroundStyle(week.totalMiles > 0 ? accentColor : FrisTheme.textSecondary.opacity(0.4))
+                                .foregroundStyle(week.totalMiles > 0 ? accentColor : PepTheme.textSecondary.opacity(0.4))
 
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(
                                     week.totalMiles > 0 ?
                                     LinearGradient(colors: [accentColor, accentColor.opacity(0.5)], startPoint: .top, endPoint: .bottom) :
-                                    LinearGradient(colors: [FrisTheme.elevated, FrisTheme.elevated], startPoint: .top, endPoint: .bottom)
+                                    LinearGradient(colors: [PepTheme.elevated, PepTheme.elevated], startPoint: .top, endPoint: .bottom)
                                 )
                                 .frame(width: 24, height: max(CGFloat(week.totalMiles / maxMiles) * 80, 4))
 
                             Text(weekLabel(week.weekStart))
                                 .font(.system(size: 8, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
@@ -241,7 +241,7 @@ struct CyclingDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -254,15 +254,15 @@ struct CyclingDashboardView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
                     .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text(label)
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(Capsule())
     }
 
@@ -277,7 +277,7 @@ struct CyclingDashboardView: View {
                 Spacer()
                 Text("\(cyclingVM.completedRides.count) total")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             if cyclingVM.completedRides.isEmpty {
@@ -294,7 +294,7 @@ struct CyclingDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -314,14 +314,14 @@ struct CyclingDashboardView: View {
                 HStack(spacing: 6) {
                     Text(ride.rideType.rawValue)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     if ride.isIndoor {
                         Text("INDOOR")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(FrisTheme.violet)
+                            .foregroundStyle(PepTheme.violet)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
-                            .background(FrisTheme.violet.opacity(0.12))
+                            .background(PepTheme.violet.opacity(0.12))
                             .clipShape(Capsule())
                     }
                     if let cat = ride.climbCategory {
@@ -336,7 +336,7 @@ struct CyclingDashboardView: View {
                 }
                 Text(ride.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))
                     .font(.system(size: 10))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -347,12 +347,12 @@ struct CyclingDashboardView: View {
                     .foregroundStyle(accentColor)
                 Text(String(format: "%.1f mph", ride.averageSpeed))
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
         }
         .padding(.vertical, 4)
     }
@@ -407,7 +407,7 @@ struct CyclingDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -419,7 +419,7 @@ struct CyclingDashboardView: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -486,7 +486,7 @@ struct CyclingDashboardView: View {
                 HStack {
                     Text("↑ Higher = Faster")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     if let first = data.first, let last = data.last {
                         let diff = last.speed - first.speed
@@ -502,7 +502,7 @@ struct CyclingDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -544,7 +544,7 @@ struct CyclingDashboardView: View {
                             HStack(spacing: 6) {
                                 Text(bike.name)
                                     .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(FrisTheme.textPrimary)
+                                    .foregroundStyle(PepTheme.textPrimary)
                                 Text(bike.type)
                                     .font(.system(size: 9, weight: .semibold))
                                     .foregroundStyle(accentColor)
@@ -556,7 +556,7 @@ struct CyclingDashboardView: View {
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
                                     Capsule()
-                                        .fill(FrisTheme.elevated)
+                                        .fill(PepTheme.elevated)
                                         .frame(height: 4)
                                     Capsule()
                                         .fill(bike.maintenanceStatusColor)
@@ -574,7 +574,7 @@ struct CyclingDashboardView: View {
                                 .foregroundStyle(bike.maintenanceStatusColor)
                             Text(String(format: "%.0f mi to service", bike.maintenanceIntervalMiles - bike.milesSinceLastMaintenance))
                                 .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                     .padding(.vertical, 4)
@@ -582,7 +582,7 @@ struct CyclingDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -593,7 +593,7 @@ struct CyclingDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "trophy.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Personal Records")
                 Spacer()
             }
@@ -623,7 +623,7 @@ struct CyclingDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -635,12 +635,12 @@ struct CyclingDashboardView: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -667,20 +667,20 @@ struct CyclingDashboardView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Create Ride Workout")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Build interval, sweet spot & power workouts")
                         .font(.system(size: 11))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 16))
             .overlay(cardBorder())
         }
@@ -693,10 +693,10 @@ struct CyclingDashboardView: View {
             VStack(spacing: 8) {
                 Image(systemName: "chart.line.downtrend.xyaxis")
                     .font(.title2)
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(.vertical, 16)
             Spacer()
@@ -706,7 +706,7 @@ struct CyclingDashboardView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

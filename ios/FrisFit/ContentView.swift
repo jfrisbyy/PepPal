@@ -68,7 +68,7 @@ struct ContentView: View {
                     ProfileView()
                 }
             }
-            .tint(FrisTheme.cyan)
+            .tint(PepTheme.teal)
 
             if workoutState.isWorkoutActive {
                 workoutIndicatorBar
@@ -106,19 +106,19 @@ struct ContentView: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Rectangle()
-                        .fill(FrisTheme.cyan.opacity(0.15))
+                        .fill(PepTheme.teal.opacity(0.15))
                         .frame(height: 2.5)
 
                     Rectangle()
-                        .fill(FrisTheme.cyan)
+                        .fill(PepTheme.teal)
                         .frame(width: geo.size.width * workoutState.workoutProgress, height: 2.5)
                         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: workoutState.workoutProgress)
 
                     Rectangle()
-                        .fill(FrisTheme.cyan)
+                        .fill(PepTheme.teal)
                         .frame(width: 20, height: 2.5)
                         .offset(x: geo.size.width * workoutState.workoutProgress - 10)
-                        .shadow(color: FrisTheme.cyan.opacity(0.8), radius: 4)
+                        .shadow(color: PepTheme.teal.opacity(0.8), radius: 4)
                 }
             }
             .frame(height: 2.5)
@@ -136,14 +136,14 @@ struct ContentView: View {
                 Circle()
                     .fill(
                         RadialGradient(
-                            colors: [FrisTheme.violet, FrisTheme.violet.opacity(0.7)],
+                            colors: [PepTheme.violet, PepTheme.violet.opacity(0.7)],
                             center: .center,
                             startRadius: 0,
                             endRadius: 28
                         )
                     )
                     .frame(width: 52, height: 52)
-                    .shadow(color: FrisTheme.violet.opacity(0.5), radius: 12, x: 0, y: 4)
+                    .shadow(color: PepTheme.violet.opacity(0.5), radius: 12, x: 0, y: 4)
 
                 Image(systemName: "message.fill")
                     .font(.system(size: 22, weight: .semibold))
@@ -159,20 +159,20 @@ struct ContentView: View {
     private func configureTabBarAppearance() {
         let appearance = UITabBarAppearance()
         appearance.configureWithDefaultBackground()
-        appearance.backgroundColor = UIColor(FrisTheme.cardSurface).withAlphaComponent(0.85)
+        appearance.backgroundColor = UIColor(PepTheme.cardSurface).withAlphaComponent(0.85)
         appearance.backgroundEffect = UIBlurEffect(style: .systemMaterial)
 
-        let normalColor = UIColor(FrisTheme.textSecondary).withAlphaComponent(0.5)
+        let normalColor = UIColor(PepTheme.textSecondary).withAlphaComponent(0.5)
         let normalAttributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: normalColor
         ]
         let selectedAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: UIColor(FrisTheme.cyan)
+            .foregroundColor: UIColor(PepTheme.teal)
         ]
 
         appearance.stackedLayoutAppearance.normal.iconColor = normalColor
         appearance.stackedLayoutAppearance.normal.titleTextAttributes = normalAttributes
-        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(FrisTheme.cyan)
+        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(PepTheme.teal)
         appearance.stackedLayoutAppearance.selected.titleTextAttributes = selectedAttributes
 
         UITabBar.appearance().standardAppearance = appearance

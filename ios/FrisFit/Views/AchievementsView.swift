@@ -23,7 +23,7 @@ struct AchievementsView: View {
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Achievements")
         .navigationBarTitleDisplayMode(.large)
         
@@ -34,36 +34,36 @@ struct AchievementsView: View {
         return HStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .stroke(FrisTheme.elevated, lineWidth: 6)
+                    .stroke(PepTheme.elevated, lineWidth: 6)
                     .frame(width: 56, height: 56)
                 Circle()
                     .trim(from: 0, to: totalCount > 0 ? Double(viewModel.unlockedCount) / Double(totalCount) : 0)
-                    .stroke(FrisTheme.amber, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .stroke(PepTheme.amber, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .frame(width: 56, height: 56)
                     .rotationEffect(.degrees(-90))
                 Text("\(viewModel.unlockedCount)")
                     .font(.system(.body, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(viewModel.unlockedCount) of \(totalCount)")
                     .font(.system(.title3, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text("achievements unlocked")
                     .font(.subheadline)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -73,10 +73,10 @@ struct AchievementsView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "flame.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 Text("Streak Milestones")
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
 
             HStack(spacing: 8) {
@@ -85,27 +85,27 @@ struct AchievementsView: View {
                     VStack(spacing: 6) {
                         ZStack {
                             Circle()
-                                .fill(reached ? FrisTheme.amber.opacity(0.15) : FrisTheme.elevated)
+                                .fill(reached ? PepTheme.amber.opacity(0.15) : PepTheme.elevated)
                                 .frame(width: 44, height: 44)
                             Image(systemName: milestone.badgeIcon)
                                 .font(.system(size: 18))
-                                .foregroundStyle(reached ? FrisTheme.amber : FrisTheme.textSecondary.opacity(0.3))
+                                .foregroundStyle(reached ? PepTheme.amber : PepTheme.textSecondary.opacity(0.3))
                         }
                         Text("\(milestone.rawValue)d")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(reached ? FrisTheme.amber : FrisTheme.textSecondary.opacity(0.4))
+                            .foregroundStyle(reached ? PepTheme.amber : PepTheme.textSecondary.opacity(0.4))
                     }
                     .frame(maxWidth: .infinity)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -117,9 +117,9 @@ private struct AchievementCard: View {
 
     private var accentColor: Color {
         switch achievement.accentColor {
-        case .cyan: FrisTheme.cyan
-        case .amber: FrisTheme.amber
-        case .violet: FrisTheme.violet
+        case .cyan: PepTheme.teal
+        case .amber: PepTheme.amber
+        case .violet: PepTheme.violet
         case .green: Color.green
         }
     }
@@ -128,17 +128,17 @@ private struct AchievementCard: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(achievement.isUnlocked ? accentColor.opacity(0.15) : FrisTheme.elevated)
+                    .fill(achievement.isUnlocked ? accentColor.opacity(0.15) : PepTheme.elevated)
                     .frame(width: 52, height: 52)
 
                 Image(systemName: achievement.icon)
                     .font(.title3)
-                    .foregroundStyle(achievement.isUnlocked ? accentColor : FrisTheme.textSecondary.opacity(0.4))
+                    .foregroundStyle(achievement.isUnlocked ? accentColor : PepTheme.textSecondary.opacity(0.4))
 
                 if !achievement.isUnlocked {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 10))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .offset(x: 18, y: 18)
                 }
             }
@@ -146,13 +146,13 @@ private struct AchievementCard: View {
             VStack(spacing: 4) {
                 Text(achievement.name)
                     .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(achievement.isUnlocked ? FrisTheme.textPrimary : FrisTheme.textSecondary.opacity(0.6))
+                    .foregroundStyle(achievement.isUnlocked ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.6))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
 
                 Text(achievement.description)
                     .font(.system(size: 10))
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(achievement.isUnlocked ? 0.8 : 0.4))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(achievement.isUnlocked ? 0.8 : 0.4))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
             }
@@ -168,14 +168,14 @@ private struct AchievementCard: View {
         .frame(maxWidth: .infinity)
         .background(
             achievement.isUnlocked
-                ? FrisTheme.cardSurface.overlay(accentColor.opacity(0.03))
-                : FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay)
+                ? PepTheme.cardSurface.overlay(accentColor.opacity(0.03))
+                : PepTheme.cardSurface.overlay(PepTheme.cardOverlay)
         )
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
-                    achievement.isUnlocked ? accentColor.opacity(0.15) : FrisTheme.glassBorderBottom,
+                    achievement.isUnlocked ? accentColor.opacity(0.15) : PepTheme.glassBorderBottom,
                     lineWidth: 0.5
                 )
         )

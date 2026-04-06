@@ -20,13 +20,13 @@ struct CyclingWorkoutBuilderView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Ride Workouts")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
@@ -50,10 +50,10 @@ struct CyclingWorkoutBuilderView: View {
                     VStack(spacing: 6) {
                         Image(systemName: "figure.outdoor.cycle")
                             .font(.title2)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.4))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
                         Text("No saved ride workouts yet")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .padding(.vertical, 14)
                     Spacer()
@@ -65,7 +65,7 @@ struct CyclingWorkoutBuilderView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -84,14 +84,14 @@ struct CyclingWorkoutBuilderView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(workout.name)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 HStack(spacing: 8) {
                     Label(workout.type.rawValue, systemImage: workout.type.icon)
                     Label("\(workout.intervals.count) blocks", systemImage: "repeat")
                     Label("~\(workout.estimatedDurationMinutes) min", systemImage: "clock")
                 }
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -103,7 +103,7 @@ struct CyclingWorkoutBuilderView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.red.opacity(0.6))
                     .frame(width: 28, height: 28)
-                    .background(FrisTheme.elevated.opacity(0.5))
+                    .background(PepTheme.elevated.opacity(0.5))
                     .clipShape(Circle())
             }
         }
@@ -121,15 +121,15 @@ struct CyclingWorkoutBuilderView: View {
 
             TextField("Workout Name", text: $workoutName)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .padding(12)
-                .background(FrisTheme.elevated.opacity(0.5))
+                .background(PepTheme.elevated.opacity(0.5))
                 .clipShape(.rect(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("TYPE")
                     .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .tracking(1)
 
                 ScrollView(.horizontal) {
@@ -144,10 +144,10 @@ struct CyclingWorkoutBuilderView: View {
                                     Text(type.rawValue)
                                         .font(.system(size: 11, weight: .semibold))
                                 }
-                                .foregroundStyle(workoutType == type ? .black : FrisTheme.textSecondary)
+                                .foregroundStyle(workoutType == type ? .black : PepTheme.textSecondary)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 7)
-                                .background(workoutType == type ? accentColor : FrisTheme.elevated)
+                                .background(workoutType == type ? accentColor : PepTheme.elevated)
                                 .clipShape(Capsule())
                             }
                             .buttonStyle(.plain)
@@ -185,7 +185,7 @@ struct CyclingWorkoutBuilderView: View {
             saveButton
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -203,7 +203,7 @@ struct CyclingWorkoutBuilderView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 14))
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                     }
                 }
             }
@@ -212,16 +212,16 @@ struct CyclingWorkoutBuilderView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Reps")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Stepper("\(intervals[index].repetitions)x", value: $intervals[index].repetitions, in: 1...20)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Duration")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Picker("", selection: $intervals[index].durationMinutes) {
                         ForEach([1, 2, 3, 5, 8, 10, 15, 20, 30], id: \.self) { d in
                             Text("\(d) min").tag(d)
@@ -236,18 +236,18 @@ struct CyclingWorkoutBuilderView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Power (W)")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     HStack(spacing: 4) {
                         TextField("Low", value: $intervals[index].targetPowerLow, format: .number)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .frame(width: 44)
                             .keyboardType(.numberPad)
                         Text("-")
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         TextField("High", value: $intervals[index].targetPowerHigh, format: .number)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .frame(width: 44)
                             .keyboardType(.numberPad)
                     }
@@ -256,10 +256,10 @@ struct CyclingWorkoutBuilderView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Rest")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Stepper("\(intervals[index].restMinutes) min", value: $intervals[index].restMinutes, in: 0...10)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
             }
 
@@ -267,18 +267,18 @@ struct CyclingWorkoutBuilderView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Cadence (RPM)")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     HStack(spacing: 4) {
                         TextField("Low", value: $intervals[index].cadenceLow, format: .number)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .frame(width: 40)
                             .keyboardType(.numberPad)
                         Text("-")
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         TextField("High", value: $intervals[index].cadenceHigh, format: .number)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .frame(width: 40)
                             .keyboardType(.numberPad)
                     }
@@ -288,11 +288,11 @@ struct CyclingWorkoutBuilderView: View {
 
             Text(intervals[index].description)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(12)
-        .background(FrisTheme.elevated.opacity(0.3))
+        .background(PepTheme.elevated.opacity(0.3))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -306,20 +306,20 @@ struct CyclingWorkoutBuilderView: View {
                     .foregroundStyle(accentColor)
                 Text("Est. Duration")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             VStack(spacing: 2) {
                 Text("\(totalSets)")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text("Total Reps")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(FrisTheme.elevated.opacity(0.3))
+        .background(PepTheme.elevated.opacity(0.3))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -353,7 +353,7 @@ struct CyclingWorkoutBuilderView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

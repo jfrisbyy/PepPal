@@ -17,7 +17,7 @@ struct BasketballShotChartView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Shot Chart")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -47,12 +47,12 @@ struct BasketballShotChartView: View {
             summaryRing(label: "3PT", value: threePct, made: threesMade, total: threes.count, color: .blue)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -62,7 +62,7 @@ struct BasketballShotChartView: View {
         VStack(spacing: 8) {
             ZStack {
                 Circle()
-                    .stroke(FrisTheme.elevated, lineWidth: 5)
+                    .stroke(PepTheme.elevated, lineWidth: 5)
                     .frame(width: 56, height: 56)
                 Circle()
                     .trim(from: 0, to: min(value / 100, 1.0))
@@ -75,10 +75,10 @@ struct BasketballShotChartView: View {
             }
             Text(label)
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text("\(made)/\(total)")
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -95,7 +95,7 @@ struct BasketballShotChartView: View {
                     let stats = bbVM.shotZoneStats(for: zone)
                     if stats.attempted > 0 {
                         let pos = zone.position
-                        let heatColor: Color = stats.percentage >= 50 ? .green : stats.percentage >= 35 ? FrisTheme.amber : .red
+                        let heatColor: Color = stats.percentage >= 50 ? .green : stats.percentage >= 35 ? PepTheme.amber : .red
 
                         VStack(spacing: 2) {
                             Circle()
@@ -108,7 +108,7 @@ struct BasketballShotChartView: View {
                                             .foregroundStyle(heatColor)
                                         Text("\(stats.made)/\(stats.attempted)")
                                             .font(.system(size: 7, weight: .semibold))
-                                            .foregroundStyle(FrisTheme.textSecondary)
+                                            .foregroundStyle(PepTheme.textSecondary)
                                     }
                                 )
                         }
@@ -120,12 +120,12 @@ struct BasketballShotChartView: View {
         }
         .frame(height: 280)
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -134,16 +134,16 @@ struct BasketballShotChartView: View {
     private func courtShape(width: CGFloat, height: CGFloat) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 4)
-                .stroke(FrisTheme.elevated.opacity(0.6), lineWidth: 1)
+                .stroke(PepTheme.elevated.opacity(0.6), lineWidth: 1)
                 .frame(width: width, height: height)
 
             RoundedRectangle(cornerRadius: 2)
-                .stroke(FrisTheme.elevated.opacity(0.5), lineWidth: 1)
+                .stroke(PepTheme.elevated.opacity(0.5), lineWidth: 1)
                 .frame(width: width * 0.32, height: height * 0.35)
                 .offset(y: height * 0.325)
 
             Circle()
-                .stroke(FrisTheme.elevated.opacity(0.4), lineWidth: 1)
+                .stroke(PepTheme.elevated.opacity(0.4), lineWidth: 1)
                 .frame(width: width * 0.22, height: width * 0.22)
                 .offset(y: height * 0.15)
 
@@ -152,7 +152,7 @@ struct BasketballShotChartView: View {
                 let radius = width * 0.42
                 path.addArc(center: CGPoint(x: centerX, y: height), radius: radius, startAngle: .degrees(160), endAngle: .degrees(20), clockwise: true)
             }
-            .stroke(FrisTheme.elevated.opacity(0.4), lineWidth: 1)
+            .stroke(PepTheme.elevated.opacity(0.4), lineWidth: 1)
         }
     }
 
@@ -173,25 +173,25 @@ struct BasketballShotChartView: View {
                     Spacer()
                     Text("No shots recorded")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                 }
                 .padding(.vertical, 16)
             } else {
                 ForEach(sortedZones) { zone in
                     let stats = bbVM.shotZoneStats(for: zone)
-                    let color: Color = stats.percentage >= 50 ? .green : stats.percentage >= 35 ? FrisTheme.amber : .red
+                    let color: Color = stats.percentage >= 50 ? .green : stats.percentage >= 35 ? PepTheme.amber : .red
 
                     HStack(spacing: 12) {
                         Text(zone.rawValue)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                             .frame(width: 90, alignment: .leading)
 
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
                                 Capsule()
-                                    .fill(FrisTheme.elevated)
+                                    .fill(PepTheme.elevated)
                                     .frame(height: 8)
                                 Capsule()
                                     .fill(color)
@@ -207,19 +207,19 @@ struct BasketballShotChartView: View {
 
                         Text("\(stats.made)/\(stats.attempted)")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .frame(width: 32, alignment: .trailing)
                     }
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )

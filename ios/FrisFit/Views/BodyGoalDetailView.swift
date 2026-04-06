@@ -28,7 +28,7 @@ struct BodyGoalDetailView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Body & Goals")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $viewModel.showWeighInSheet) {
@@ -50,7 +50,7 @@ struct BodyGoalDetailView: View {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .stroke(FrisTheme.elevated, lineWidth: 6)
+                        .stroke(PepTheme.elevated, lineWidth: 6)
                         .frame(width: 80, height: 80)
                     Circle()
                         .trim(from: 0, to: viewModel.progressToGoal)
@@ -95,13 +95,13 @@ struct BodyGoalDetailView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -115,10 +115,10 @@ struct BodyGoalDetailView: View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.system(.caption, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
     }
 
@@ -126,7 +126,7 @@ struct BodyGoalDetailView: View {
         HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .stroke(FrisTheme.elevated, lineWidth: 3)
+                    .stroke(PepTheme.elevated, lineWidth: 3)
                     .frame(width: 36, height: 36)
                 Circle()
                     .trim(from: 0, to: min(viewModel.bmi.value / 40.0, 1.0))
@@ -140,7 +140,7 @@ struct BodyGoalDetailView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text("BMI")
                     .font(.system(.caption2, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text(viewModel.bmi.category)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(viewModel.bmi.color)
@@ -148,7 +148,7 @@ struct BodyGoalDetailView: View {
             Spacer()
         }
         .padding(12)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 12))
     }
 
@@ -156,7 +156,7 @@ struct BodyGoalDetailView: View {
         HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .fill(FrisTheme.elevated)
+                    .fill(PepTheme.elevated)
                     .frame(width: 36, height: 36)
                 Image(systemName: viewModel.weeklyChange <= 0 ? "arrow.down.right" : "arrow.up.right")
                     .font(.system(size: 14, weight: .bold))
@@ -165,15 +165,15 @@ struct BodyGoalDetailView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(String(format: "%.1f lbs", abs(viewModel.weeklyChange)))
                     .font(.system(.caption2, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text("This week")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             Spacer()
         }
         .padding(12)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 12))
     }
 
@@ -189,17 +189,17 @@ struct BodyGoalDetailView: View {
                 } label: {
                     Text(tab.rawValue)
                         .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(selectedTab == tab ? FrisTheme.invertedText : FrisTheme.textSecondary)
+                        .foregroundStyle(selectedTab == tab ? PepTheme.invertedText : PepTheme.textSecondary)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(selectedTab == tab ? FrisTheme.cyan : FrisTheme.elevated.opacity(0.5))
+                        .background(selectedTab == tab ? PepTheme.teal : PepTheme.elevated.opacity(0.5))
                         .clipShape(.capsule)
                 }
                 .sensoryFeedback(.selection, trigger: selectedTab)
             }
         }
         .padding(4)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.capsule)
     }
 
@@ -218,10 +218,10 @@ struct BodyGoalDetailView: View {
                     Text("Log Weigh-In")
                         .font(.system(.subheadline, weight: .semibold))
                 }
-                .foregroundStyle(FrisTheme.invertedText)
+                .foregroundStyle(PepTheme.invertedText)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(FrisTheme.cyan, in: .rect(cornerRadius: 12))
+                .background(PepTheme.teal, in: .rect(cornerRadius: 12))
             }
             .buttonStyle(.scale)
 
@@ -235,7 +235,7 @@ struct BodyGoalDetailView: View {
                 HStack {
                     Text("Weight Trend")
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
                     Text(String(format: "%.1f lbs total", abs(viewModel.totalChange)))
                         .font(.system(.caption, design: .rounded, weight: .bold))
@@ -249,10 +249,10 @@ struct BodyGoalDetailView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "chart.line.uptrend.xyaxis")
                             .font(.title)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.4))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
                         Text("Log more weigh-ins to see your trend")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 120)
@@ -265,7 +265,7 @@ struct BodyGoalDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("History")
                 .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             ForEach(viewModel.weightEntries.reversed()) { entry in
                 weightEntryRow(entry)
@@ -282,21 +282,21 @@ struct BodyGoalDetailView: View {
             VStack(spacing: 2) {
                 Text(entry.date.formatted(.dateTime.day()))
                     .font(.system(.caption, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text(entry.date.formatted(.dateTime.month(.abbreviated)))
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .frame(width: 36)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(String(format: "%.1f lbs", entry.weight))
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 if !entry.note.isEmpty {
                     Text(entry.note)
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
@@ -319,11 +319,11 @@ struct BodyGoalDetailView: View {
             }
         }
         .padding(12)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -340,10 +340,10 @@ struct BodyGoalDetailView: View {
                     Text("Log Measurements")
                         .font(.system(.subheadline, weight: .semibold))
                 }
-                .foregroundStyle(FrisTheme.invertedText)
+                .foregroundStyle(PepTheme.invertedText)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(FrisTheme.cyan, in: .rect(cornerRadius: 12))
+                .background(PepTheme.teal, in: .rect(cornerRadius: 12))
             }
             .buttonStyle(.scale)
 
@@ -370,7 +370,7 @@ struct BodyGoalDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text(measurement.date.formatted(.dateTime.month(.wide).day().year()))
                     .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     if let v = measurement.chest { measurementStat(label: "Chest", value: v) }
@@ -391,10 +391,10 @@ struct BodyGoalDetailView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.system(.caption2, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Text(String(format: "%.1f\"", value))
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
             Spacer()
         }
@@ -409,10 +409,10 @@ struct BodyGoalDetailView: View {
                 HStack {
                     Image(systemName: "arrow.left.arrow.right")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.violet)
+                        .foregroundStyle(PepTheme.violet)
                     Text("Changes")
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
@@ -434,14 +434,14 @@ struct BodyGoalDetailView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.system(.caption2, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 HStack(spacing: 3) {
                     Image(systemName: change < 0 ? "arrow.down" : (change > 0 ? "arrow.up" : "minus"))
                         .font(.system(size: 8, weight: .bold))
                     Text(String(format: "%.1f\"", abs(change)))
                         .font(.system(.caption, design: .rounded, weight: .bold))
                 }
-                .foregroundStyle(change == 0 ? FrisTheme.textSecondary : (change < 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : FrisTheme.amber))
+                .foregroundStyle(change == 0 ? PepTheme.textSecondary : (change < 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : PepTheme.amber))
             }
             Spacer()
         }
@@ -471,23 +471,23 @@ struct BodyGoalDetailView: View {
 
     private func photoCard(_ photo: ProgressPhoto) -> some View {
         VStack(spacing: 0) {
-            Color(FrisTheme.elevated)
+            Color(PepTheme.elevated)
                 .frame(height: 180)
                 .overlay {
                     VStack(spacing: 8) {
                         Image(systemName: "person.fill")
                             .font(.system(size: 32))
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.3))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.3))
                         Text(photo.label)
                             .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                     }
                 }
                 .clipShape(.rect(cornerRadius: 12))
 
             Text(photo.date.formatted(.dateTime.month(.abbreviated).day()))
                 .font(.system(.caption2, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
                 .padding(.top, 6)
         }
     }
@@ -495,22 +495,22 @@ struct BodyGoalDetailView: View {
     private var addPhotoCard: some View {
         Button {
         } label: {
-            Color(FrisTheme.elevated.opacity(0.3))
+            Color(PepTheme.elevated.opacity(0.3))
                 .frame(height: 180)
                 .overlay {
                     VStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 28))
-                            .foregroundStyle(FrisTheme.cyan.opacity(0.6))
+                            .foregroundStyle(PepTheme.teal.opacity(0.6))
                         Text("Add Photo")
                             .font(.system(.caption2, weight: .semibold))
-                            .foregroundStyle(FrisTheme.cyan.opacity(0.8))
+                            .foregroundStyle(PepTheme.teal.opacity(0.8))
                     }
                 }
                 .clipShape(.rect(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(FrisTheme.cyan.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                        .strokeBorder(PepTheme.teal.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
                 )
         }
         .buttonStyle(.scale)
@@ -540,12 +540,12 @@ struct WeightChartView: View {
                         path.move(to: CGPoint(x: 0, y: y))
                         path.addLine(to: CGPoint(x: geo.size.width, y: y))
                     }
-                    .stroke(FrisTheme.shimmerHighlight, lineWidth: 0.5)
+                    .stroke(PepTheme.shimmerHighlight, lineWidth: 0.5)
 
                     let labelValue = adjustedMin + adjustedRange * (Double(i) / 3.0)
                     Text(String(format: "%.0f", labelValue))
                         .font(.system(size: 8, weight: .medium, design: .rounded))
-                        .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                         .position(x: 16, y: y - 8)
                 }
 

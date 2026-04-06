@@ -18,7 +18,7 @@ struct NutritionView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Nutrition")
         
         .toolbar {
@@ -29,7 +29,7 @@ struct NutritionView: View {
                 } label: {
                     Image(systemName: "plus.circle.fill")
                         .font(.title3)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
         }
@@ -63,13 +63,13 @@ struct NutritionView: View {
         VStack(spacing: 8) {
             ZStack {
                 Circle()
-                    .stroke(FrisTheme.elevated, lineWidth: 16)
+                    .stroke(PepTheme.elevated, lineWidth: 16)
 
                 Circle()
                     .trim(from: 0, to: animatedCalorieProgress)
                     .stroke(
                         AngularGradient(
-                            colors: [FrisTheme.cyan.opacity(0.5), FrisTheme.cyan],
+                            colors: [PepTheme.teal.opacity(0.5), PepTheme.teal],
                             center: .center,
                             startAngle: .degrees(0),
                             endAngle: .degrees(360 * animatedCalorieProgress)
@@ -77,20 +77,20 @@ struct NutritionView: View {
                         style: StrokeStyle(lineWidth: 16, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
-                    .shadow(color: FrisTheme.cyan.opacity(0.35), radius: 8)
+                    .shadow(color: PepTheme.teal.opacity(0.35), radius: 8)
 
                 VStack(spacing: 2) {
                     Text("\(viewModel.totalCalories)")
                         .font(.system(size: 44, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
 
                     Text("/ \(viewModel.dailyTarget.calories) cal")
                         .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     Text("\(viewModel.caloriesRemaining) remaining")
                         .font(.caption2)
-                        .foregroundStyle(FrisTheme.textSecondary.opacity(0.7))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                         .padding(.top, 2)
                 }
             }
@@ -99,7 +99,7 @@ struct NutritionView: View {
 
             Text("Daily Calories")
                 .font(.system(.subheadline, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
@@ -111,7 +111,7 @@ struct NutritionView: View {
                 HStack {
                     Image(systemName: "chart.bar.fill")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     SubheadText(text: "Macros")
                 }
 
@@ -120,7 +120,7 @@ struct NutritionView: View {
                     current: viewModel.totalProtein,
                     target: Double(viewModel.dailyTarget.protein),
                     progress: viewModel.proteinProgress,
-                    color: FrisTheme.cyan
+                    color: PepTheme.teal
                 )
 
                 macroRow(
@@ -128,7 +128,7 @@ struct NutritionView: View {
                     current: viewModel.totalCarbs,
                     target: Double(viewModel.dailyTarget.carbs),
                     progress: viewModel.carbsProgress,
-                    color: FrisTheme.amber
+                    color: PepTheme.amber
                 )
 
                 macroRow(
@@ -136,7 +136,7 @@ struct NutritionView: View {
                     current: viewModel.totalFat,
                     target: Double(viewModel.dailyTarget.fat),
                     progress: viewModel.fatProgress,
-                    color: FrisTheme.violet
+                    color: PepTheme.violet
                 )
             }
         }
@@ -151,23 +151,23 @@ struct NutritionView: View {
 
                 Text(label)
                     .font(.system(.subheadline, weight: .medium))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 Spacer()
 
                 Text("\(Int(current))g")
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 +
                 Text(" / \(Int(target))g")
                     .font(.system(.caption, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(FrisTheme.elevated)
+                        .fill(PepTheme.elevated)
                         .frame(height: 8)
 
                     Capsule()
@@ -191,26 +191,26 @@ struct NutritionView: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(FrisTheme.amber.opacity(0.15))
+                        .fill(PepTheme.amber.opacity(0.15))
                         .frame(width: 44, height: 44)
                     Image(systemName: "star.fill")
                         .font(.system(size: 20))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Nutrition FP Bonus")
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
 
                     if viewModel.fpBonus > 0 {
                         Text("+\(viewModel.fpBonus) FP earned from hitting targets")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.amber)
+                            .foregroundStyle(PepTheme.amber)
                     } else {
                         Text("Hit your macro targets to earn bonus FP")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
 
@@ -218,7 +218,7 @@ struct NutritionView: View {
 
                 Text("+\(viewModel.fpBonus)")
                     .font(.system(.title2, design: .rounded, weight: .bold))
-                    .foregroundStyle(viewModel.fpBonus > 0 ? FrisTheme.amber : FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(viewModel.fpBonus > 0 ? PepTheme.amber : PepTheme.textSecondary.opacity(0.5))
             }
         }
     }
@@ -248,7 +248,7 @@ struct NutritionView: View {
 
                 Text(mealTime.rawValue)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 Spacer()
 
@@ -270,7 +270,7 @@ struct NutritionView: View {
                 if sectionCalories > 0 {
                     Text("\(sectionCalories) cal")
                         .font(.system(.caption, design: .rounded, weight: .bold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .padding(.horizontal, 14)
@@ -287,7 +287,7 @@ struct NutritionView: View {
                         Text("Add \(mealTime.rawValue)")
                             .font(.system(.subheadline, weight: .medium))
                     }
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                 }
@@ -298,7 +298,7 @@ struct NutritionView: View {
 
                         if meal.id != meals.last?.id {
                             Divider()
-                                .overlay(FrisTheme.cardOverlay)
+                                .overlay(PepTheme.cardOverlay)
                                 .padding(.leading, 14)
                         }
                     }
@@ -316,19 +316,19 @@ struct NutritionView: View {
                         Text("Add more")
                             .font(.system(.caption, weight: .medium))
                     }
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                 }
             }
         }
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -342,12 +342,12 @@ struct NutritionView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(meal.food.name)
                     .font(.system(.subheadline, weight: .medium))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
 
                 HStack(spacing: 8) {
                     if meal.servings != 1.0 {
                         Text(String(format: "%.1fx", meal.servings))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                     }
                     Text(meal.food.servingSize)
                     Text("·")
@@ -356,18 +356,18 @@ struct NutritionView: View {
                     Text("F: \(Int(meal.totalFat))g")
                 }
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
 
             Text("\(meal.totalCalories)")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             +
             Text(" cal")
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

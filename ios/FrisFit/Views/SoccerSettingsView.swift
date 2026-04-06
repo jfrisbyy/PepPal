@@ -16,7 +16,7 @@ struct SoccerSettingsView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Soccer Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -39,7 +39,7 @@ struct SoccerSettingsView: View {
 
             Text("Your dashboard will show stats tailored to your position.")
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                 ForEach(SoccerPosition.allCases) { pos in
@@ -59,22 +59,22 @@ struct SoccerSettingsView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
                         }
-                        .foregroundStyle(isSelected ? .black : FrisTheme.textSecondary)
+                        .foregroundStyle(isSelected ? .black : PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(isSelected ? accentColor : FrisTheme.elevated)
+                        .background(isSelected ? accentColor : PepTheme.elevated)
                         .clipShape(.rect(cornerRadius: 12))
                     }
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -84,7 +84,7 @@ struct SoccerSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Season Summary")
                 Spacer()
             }
@@ -96,10 +96,10 @@ struct SoccerSettingsView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "soccerball")
                             .font(.title2)
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                         Text("No matches played yet")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .padding(.vertical, 16)
                     Spacer()
@@ -118,12 +118,12 @@ struct SoccerSettingsView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -133,11 +133,11 @@ struct SoccerSettingsView: View {
         HStack {
             Text(label)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             Spacer()
             Text(value)
                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
         }
         .padding(.vertical, 2)
     }

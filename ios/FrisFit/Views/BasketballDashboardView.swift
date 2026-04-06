@@ -43,10 +43,10 @@ struct BasketballDashboardView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Basketball")
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("\(bbVM.thisWeekSessions) session\(bbVM.thisWeekSessions == 1 ? "" : "s") this week · \(bbVM.totalWins)W-\(bbVM.totalLosses)L")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -58,7 +58,7 @@ struct BasketballDashboardView: View {
                                 .foregroundStyle(bbVM.winPercentage >= 50 ? .green : .orange)
                             Text("Win %")
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
@@ -80,16 +80,16 @@ struct BasketballDashboardView: View {
                 .foregroundStyle(accentColor.opacity(0.7))
             Text(value)
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -110,10 +110,10 @@ struct BasketballDashboardView: View {
                                     .font(.system(size: 8, weight: .semibold))
                                     .lineLimit(1)
                             }
-                            .foregroundStyle(bbVM.selectedSessionType == type ? .black : FrisTheme.textSecondary)
+                            .foregroundStyle(bbVM.selectedSessionType == type ? .black : PepTheme.textSecondary)
                             .frame(width: 72)
                             .padding(.vertical, 10)
-                            .background(bbVM.selectedSessionType == type ? accentColor : FrisTheme.elevated.opacity(0.5))
+                            .background(bbVM.selectedSessionType == type ? accentColor : PepTheme.elevated.opacity(0.5))
                             .clipShape(.rect(cornerRadius: 10))
                         }
                     }
@@ -145,12 +145,12 @@ struct BasketballDashboardView: View {
             .buttonStyle(.scalePrimary)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [accentColor.opacity(0.15), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [accentColor.opacity(0.15), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -167,7 +167,7 @@ struct BasketballDashboardView: View {
                 Spacer()
                 Text("\(bbVM.games.count) total")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             if bbVM.games.isEmpty {
@@ -184,7 +184,7 @@ struct BasketballDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -210,16 +210,16 @@ struct BasketballDashboardView: View {
                 HStack(spacing: 6) {
                     Text(game.sessionType.rawValue)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     if let ts = game.teamScore, let os = game.opponentScore {
                         Text("\(ts)-\(os)")
                             .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundStyle(game.result?.color ?? FrisTheme.textSecondary)
+                            .foregroundStyle(game.result?.color ?? PepTheme.textSecondary)
                     }
                 }
                 Text(game.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
                     .font(.system(size: 10))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -231,17 +231,17 @@ struct BasketballDashboardView: View {
                         .foregroundStyle(accentColor)
                     Text("\(game.stats.totalRebounds)r · \(game.stats.assists)a")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             } else {
                 Text("\(game.fpEarned) FP")
                     .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
             }
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
         }
         .padding(.vertical, 4)
     }
@@ -263,12 +263,12 @@ struct BasketballDashboardView: View {
                 HStack(spacing: 8) {
                     shootingRing(label: "FG%", value: bbVM.overallFGPercentage, color: accentColor)
                     shootingRing(label: "3PT%", value: bbVM.overall3PTPercentage, color: .green)
-                    shootingRing(label: "FT%", value: bbVM.overallFTPercentage, color: FrisTheme.amber)
+                    shootingRing(label: "FT%", value: bbVM.overallFTPercentage, color: PepTheme.amber)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -277,7 +277,7 @@ struct BasketballDashboardView: View {
         VStack(spacing: 8) {
             ZStack {
                 Circle()
-                    .stroke(FrisTheme.elevated, lineWidth: 6)
+                    .stroke(PepTheme.elevated, lineWidth: 6)
                     .frame(width: 56, height: 56)
                 Circle()
                     .trim(from: 0, to: min(value / 100, 1.0))
@@ -290,7 +290,7 @@ struct BasketballDashboardView: View {
             }
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -363,7 +363,7 @@ struct BasketballDashboardView: View {
                 HStack {
                     Text("Last \(data.count) games")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     if let first = data.first, let last = data.last {
                         let diff = last.points - first.points
@@ -379,7 +379,7 @@ struct BasketballDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -409,7 +409,7 @@ struct BasketballDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -432,7 +432,7 @@ struct BasketballDashboardView: View {
                             Text("\(stats.made)/\(stats.attempted)")
                                 .font(.system(size: 7, weight: .medium))
                         }
-                        .foregroundStyle(stats.percentage >= 50 ? .green : stats.percentage >= 35 ? FrisTheme.amber : .red)
+                        .foregroundStyle(stats.percentage >= 50 ? .green : stats.percentage >= 35 ? PepTheme.amber : .red)
                         .position(x: w * pos.x, y: h * pos.y)
                     }
                 }
@@ -445,16 +445,16 @@ struct BasketballDashboardView: View {
     private func courtShape(width: CGFloat, height: CGFloat) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 4)
-                .stroke(FrisTheme.elevated.opacity(0.6), lineWidth: 1)
+                .stroke(PepTheme.elevated.opacity(0.6), lineWidth: 1)
                 .frame(width: width, height: height)
 
             RoundedRectangle(cornerRadius: 2)
-                .stroke(FrisTheme.elevated.opacity(0.5), lineWidth: 1)
+                .stroke(PepTheme.elevated.opacity(0.5), lineWidth: 1)
                 .frame(width: width * 0.32, height: height * 0.35)
                 .offset(y: height * 0.325)
 
             Circle()
-                .stroke(FrisTheme.elevated.opacity(0.4), lineWidth: 1)
+                .stroke(PepTheme.elevated.opacity(0.4), lineWidth: 1)
                 .frame(width: width * 0.22, height: width * 0.22)
                 .offset(y: height * 0.15)
 
@@ -465,7 +465,7 @@ struct BasketballDashboardView: View {
                 let endAngle = Angle(degrees: 20)
                 path.addArc(center: CGPoint(x: centerX, y: height), radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
             }
-            .stroke(FrisTheme.elevated.opacity(0.4), lineWidth: 1)
+            .stroke(PepTheme.elevated.opacity(0.4), lineWidth: 1)
         }
     }
 
@@ -475,12 +475,12 @@ struct BasketballDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Season Averages")
                 Spacer()
                 Text("\(bbVM.totalGamesPlayed) games")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             if bbVM.totalGamesPlayed == 0 {
@@ -495,14 +495,14 @@ struct BasketballDashboardView: View {
                     avgStatCell(value: String(format: "%.1f", bbVM.averagePoints), label: "PTS", color: accentColor)
                     avgStatCell(value: String(format: "%.1f", bbVM.averageRebounds), label: "REB", color: .green)
                     avgStatCell(value: String(format: "%.1f", bbVM.averageAssists), label: "AST", color: .blue)
-                    avgStatCell(value: String(format: "%.1f", avgSteals), label: "STL", color: FrisTheme.amber)
+                    avgStatCell(value: String(format: "%.1f", avgSteals), label: "STL", color: PepTheme.amber)
                     avgStatCell(value: String(format: "%.1f", avgBlocks), label: "BLK", color: .red)
-                    avgStatCell(value: String(format: "%.1f", avgTO), label: "TO", color: FrisTheme.textSecondary)
+                    avgStatCell(value: String(format: "%.1f", avgTO), label: "TO", color: PepTheme.textSecondary)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -514,7 +514,7 @@ struct BasketballDashboardView: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -528,7 +528,7 @@ struct BasketballDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "brain.head.profile.fill")
-                    .foregroundStyle(FrisTheme.violet)
+                    .foregroundStyle(PepTheme.violet)
                 HeadlineText(text: "Mental Game")
                 Spacer()
             }
@@ -551,19 +551,19 @@ struct BasketballDashboardView: View {
                                 .foregroundStyle(.green)
                             Text("High Confidence")
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         Text(String(format: "%.0f%%", highAvgFG))
                             .font(.system(.title2, design: .rounded, weight: .bold))
                             .foregroundStyle(.green)
                         Text("FG%")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
 
                     Rectangle()
-                        .fill(FrisTheme.elevated)
+                        .fill(PepTheme.elevated)
                         .frame(width: 1, height: 50)
 
                     VStack(spacing: 6) {
@@ -573,14 +573,14 @@ struct BasketballDashboardView: View {
                                 .foregroundStyle(.orange)
                             Text("Low Confidence")
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         Text(String(format: "%.0f%%", lowAvgFG))
                             .font(.system(.title2, design: .rounded, weight: .bold))
                             .foregroundStyle(.orange)
                         Text("FG%")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -590,21 +590,21 @@ struct BasketballDashboardView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "lightbulb.fill")
                             .font(.system(size: 11))
-                            .foregroundStyle(FrisTheme.violet)
+                            .foregroundStyle(PepTheme.violet)
                         Text("Your FG% jumps \(String(format: "%.0f%%", diff)) when confidence is 7+. Stay confident!")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.violet.opacity(0.12), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.violet.opacity(0.12), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -645,24 +645,24 @@ struct BasketballDashboardView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(plan.name)
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             Text("\(plan.drills.count) drills · \(plan.totalDuration) min")
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
 
                         Spacer()
 
                         Image(systemName: "chevron.right")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                     }
                     .padding(.vertical, 4)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -680,18 +680,18 @@ struct BasketballDashboardView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Drill Library")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("\(BasketballDrillLibrary.all.count) drills across \(DrillCategory.allCases.count) categories")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 16))
             .overlay(cardBorder())
         }
@@ -717,20 +717,20 @@ struct BasketballDashboardView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Create Practice Plan")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Build custom drill sessions")
                         .font(.system(size: 11))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 16))
             .overlay(cardBorder())
         }
@@ -745,10 +745,10 @@ struct BasketballDashboardView: View {
             VStack(spacing: 8) {
                 Image(systemName: "chart.line.downtrend.xyaxis")
                     .font(.title2)
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(.vertical, 16)
             Spacer()
@@ -758,7 +758,7 @@ struct BasketballDashboardView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

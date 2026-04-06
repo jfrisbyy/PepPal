@@ -12,17 +12,17 @@ struct CompetitionChallengeSheet: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("OPPONENT CIRCLE")
                             .font(.system(.caption2, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .tracking(0.5)
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Invite Code")
                                 .font(.system(.caption, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             HStack {
                                 TextField("Enter code...", text: $viewModel.challengeInviteCode)
                                     .font(.system(.subheadline, design: .monospaced))
-                                    .foregroundStyle(FrisTheme.textPrimary)
+                                    .foregroundStyle(PepTheme.textPrimary)
                                     .textCase(.uppercase)
                                     .autocorrectionDisabled()
                                 Button {
@@ -30,12 +30,12 @@ struct CompetitionChallengeSheet: View {
                                 } label: {
                                     Text("Look Up")
                                         .font(.system(.caption, weight: .semibold))
-                                        .foregroundStyle(FrisTheme.cyan)
+                                        .foregroundStyle(PepTheme.teal)
                                 }
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .background(FrisTheme.elevated)
+                            .background(PepTheme.elevated)
                             .clipShape(.rect(cornerRadius: 10))
 
                             if let result = lookupResult {
@@ -45,7 +45,7 @@ struct CompetitionChallengeSheet: View {
                                         .foregroundStyle(.green)
                                     Text(result)
                                         .font(.caption)
-                                        .foregroundStyle(FrisTheme.textPrimary)
+                                        .foregroundStyle(PepTheme.textPrimary)
                                 }
                                 .padding(.top, 4)
                             }
@@ -55,32 +55,32 @@ struct CompetitionChallengeSheet: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("COMPETITION DETAILS")
                             .font(.system(.caption2, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .tracking(0.5)
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Name")
                                 .font(.system(.caption, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             TextField("e.g. January Showdown", text: $viewModel.challengeName)
                                 .font(.subheadline)
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
-                                .background(FrisTheme.elevated)
+                                .background(PepTheme.elevated)
                                 .clipShape(.rect(cornerRadius: 10))
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Description")
                                 .font(.system(.caption, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             TextField("What's the challenge?", text: $viewModel.challengeDescription)
                                 .font(.subheadline)
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
-                                .background(FrisTheme.elevated)
+                                .background(PepTheme.elevated)
                                 .clipShape(.rect(cornerRadius: 10))
                         }
                     }
@@ -88,7 +88,7 @@ struct CompetitionChallengeSheet: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("TYPE")
                             .font(.system(.caption2, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .tracking(0.5)
 
                         HStack(spacing: 8) {
@@ -98,11 +98,11 @@ struct CompetitionChallengeSheet: View {
                                 } label: {
                                     Text(type.rawValue)
                                         .font(.system(.caption, weight: .semibold))
-                                        .foregroundStyle(viewModel.challengeType == type ? FrisTheme.invertedText : FrisTheme.textSecondary)
+                                        .foregroundStyle(viewModel.challengeType == type ? PepTheme.invertedText : PepTheme.textSecondary)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
                                         .background(
-                                            viewModel.challengeType == type ? FrisTheme.cyan : FrisTheme.elevated,
+                                            viewModel.challengeType == type ? PepTheme.teal : PepTheme.elevated,
                                             in: .capsule
                                         )
                                 }
@@ -113,14 +113,14 @@ struct CompetitionChallengeSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Target Points")
                                     .font(.system(.caption, weight: .medium))
-                                    .foregroundStyle(FrisTheme.textSecondary)
+                                    .foregroundStyle(PepTheme.textSecondary)
                                 TextField("e.g. 50000", text: $viewModel.challengeTargetPoints)
                                     .font(.system(.subheadline, design: .rounded))
-                                    .foregroundStyle(FrisTheme.textPrimary)
+                                    .foregroundStyle(PepTheme.textPrimary)
                                     .keyboardType(.numberPad)
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 10)
-                                    .background(FrisTheme.elevated)
+                                    .background(PepTheme.elevated)
                                     .clipShape(.rect(cornerRadius: 10))
                             }
                         }
@@ -129,10 +129,10 @@ struct CompetitionChallengeSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("End Date")
                                     .font(.system(.caption, weight: .medium))
-                                    .foregroundStyle(FrisTheme.textSecondary)
+                                    .foregroundStyle(PepTheme.textSecondary)
                                 DatePicker("", selection: $viewModel.challengeEndDate, in: Date()..., displayedComponents: .date)
                                     .datePickerStyle(.compact)
-                                    .tint(FrisTheme.cyan)
+                                    .tint(PepTheme.teal)
                             }
                         }
                     }
@@ -142,10 +142,10 @@ struct CompetitionChallengeSheet: View {
                     } label: {
                         Text("Send Challenge")
                             .font(.system(.body, weight: .semibold))
-                            .foregroundStyle(FrisTheme.invertedText)
+                            .foregroundStyle(PepTheme.invertedText)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(FrisTheme.cyan, in: .rect(cornerRadius: 14))
+                            .background(PepTheme.teal, in: .rect(cornerRadius: 14))
                     }
                     .buttonStyle(.scalePrimary)
                 }
@@ -153,18 +153,18 @@ struct CompetitionChallengeSheet: View {
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
-            .background(FrisTheme.background)
+            .background(PepTheme.background)
             .navigationTitle("Challenge")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(FrisTheme.background)
+        .presentationBackground(PepTheme.background)
     }
 }

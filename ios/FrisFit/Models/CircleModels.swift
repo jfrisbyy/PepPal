@@ -7,9 +7,9 @@ nonisolated enum CircleRole: String, Sendable, CaseIterable {
 
     var color: Color {
         switch self {
-        case .owner: return FrisTheme.amber
-        case .admin: return FrisTheme.violet
-        case .member: return FrisTheme.cyan
+        case .owner: return PepTheme.amber
+        case .admin: return PepTheme.violet
+        case .member: return PepTheme.teal
         }
     }
 

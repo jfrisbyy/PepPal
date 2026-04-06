@@ -50,7 +50,7 @@ final class CirclesViewModel {
         SocialUser(id: UUID(), name: "Morgan Davis", username: "morgfit", avatarInitial: "M", avatarColor: Color(red: 0.3, green: 0.7, blue: 0.8), activeProgramName: "Full Body 3x", streak: 33, totalFP: 15200),
     ]
 
-    private let meUser = SocialUser(id: UUID(), name: "You", username: "me", avatarInitial: "Y", avatarColor: FrisTheme.cyan, activeProgramName: "Push Pull Legs", streak: 12, totalFP: 7200)
+    private let meUser = SocialUser(id: UUID(), name: "You", username: "me", avatarInitial: "Y", avatarColor: PepTheme.teal, activeProgramName: "Push Pull Legs", streak: 12, totalFP: 7200)
 
     init() {
         loadMockData()
@@ -99,7 +99,7 @@ final class CirclesViewModel {
             inviteCode: String(UUID().uuidString.prefix(8)).uppercased(),
             createdAt: Date(),
             members: members,
-            accentColor: [FrisTheme.cyan, FrisTheme.violet, FrisTheme.amber, Color.green, Color.pink].randomElement()!
+            accentColor: [PepTheme.teal, PepTheme.violet, PepTheme.amber, Color.green, Color.pink].randomElement()!
         )
         myCircles.append(circle)
         resetCreateFields()

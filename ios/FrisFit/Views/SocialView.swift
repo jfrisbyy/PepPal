@@ -55,7 +55,7 @@ struct SocialView: View {
                     composeButton
                 }
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Social")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -65,14 +65,14 @@ struct SocialView: View {
                                 circlesViewModel.showCreateCircle = true
                             } label: {
                                 Image(systemName: "plus.circle.fill")
-                                    .foregroundStyle(FrisTheme.cyan)
+                                    .foregroundStyle(PepTheme.teal)
                             }
                         }
                         NavigationLink {
                             FindFriendsView(viewModel: viewModel)
                         } label: {
                             Image(systemName: "person.badge.plus")
-                                .foregroundStyle(FrisTheme.cyan)
+                                .foregroundStyle(PepTheme.teal)
                         }
                     }
                 }
@@ -131,13 +131,13 @@ struct SocialView: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [FrisTheme.cyan, FrisTheme.cyan.opacity(0.8)],
+                            colors: [PepTheme.teal, PepTheme.teal.opacity(0.8)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 56, height: 56)
-                    .shadow(color: FrisTheme.cyan.opacity(0.4), radius: 12, x: 0, y: 4)
+                    .shadow(color: PepTheme.teal.opacity(0.4), radius: 12, x: 0, y: 4)
 
                 Image(systemName: "square.and.pencil")
                     .font(.system(size: 22, weight: .semibold))
@@ -212,13 +212,13 @@ struct SocialView: View {
                         } label: {
                             Text(filter.rawValue)
                                 .font(.system(.subheadline, weight: viewModel.feedFilter == filter ? .bold : .medium))
-                                .foregroundStyle(viewModel.feedFilter == filter ? FrisTheme.invertedText : FrisTheme.textSecondary)
+                                .foregroundStyle(viewModel.feedFilter == filter ? PepTheme.invertedText : PepTheme.textSecondary)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 8)
                                 .background(
                                     viewModel.feedFilter == filter
-                                        ? AnyShapeStyle(FrisTheme.cyan)
-                                        : AnyShapeStyle(FrisTheme.elevated)
+                                        ? AnyShapeStyle(PepTheme.teal)
+                                        : AnyShapeStyle(PepTheme.elevated)
                                 )
                                 .clipShape(.capsule)
                         }
@@ -257,21 +257,21 @@ struct SocialView: View {
                 if viewModel.feedFilter == .tags && activeCount > 0 {
                     Text("\(activeCount)")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                         .frame(width: 18, height: 18)
-                        .background(FrisTheme.invertedText.opacity(0.2))
+                        .background(PepTheme.invertedText.opacity(0.2))
                         .clipShape(.circle)
                 }
                 Image(systemName: viewModel.isTagsExpanded ? "chevron.up" : "chevron.down")
                     .font(.system(size: 10, weight: .semibold))
             }
-            .foregroundStyle(viewModel.feedFilter == .tags ? FrisTheme.invertedText : FrisTheme.textSecondary)
+            .foregroundStyle(viewModel.feedFilter == .tags ? PepTheme.invertedText : PepTheme.textSecondary)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
                 viewModel.feedFilter == .tags
-                    ? AnyShapeStyle(FrisTheme.cyan)
-                    : AnyShapeStyle(FrisTheme.elevated)
+                    ? AnyShapeStyle(PepTheme.teal)
+                    : AnyShapeStyle(PepTheme.elevated)
             )
             .clipShape(.capsule)
         }
@@ -298,19 +298,19 @@ struct SocialView: View {
                             Text(tag.rawValue)
                                 .font(.system(.caption, weight: .semibold))
                         }
-                        .foregroundStyle(isSelected ? FrisTheme.invertedText : FrisTheme.textPrimary)
+                        .foregroundStyle(isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
                         .background(
                             isSelected
-                                ? AnyShapeStyle(FrisTheme.cyan)
-                                : AnyShapeStyle(FrisTheme.cardSurface)
+                                ? AnyShapeStyle(PepTheme.teal)
+                                : AnyShapeStyle(PepTheme.cardSurface)
                         )
                         .clipShape(.capsule)
                         .overlay(
                             Capsule()
                                 .strokeBorder(
-                                    isSelected ? FrisTheme.cyan : FrisTheme.separatorColor,
+                                    isSelected ? PepTheme.teal : PepTheme.separatorColor,
                                     lineWidth: 1
                                 )
                         )

@@ -15,7 +15,7 @@ struct LiveRunView: View {
 
     var body: some View {
         ZStack {
-            FrisTheme.background.ignoresSafeArea()
+            PepTheme.background.ignoresSafeArea()
 
             if countdownActive {
                 countdownOverlay
@@ -53,7 +53,7 @@ struct LiveRunView: View {
                 .contentTransition(.numericText())
             Text("Get Ready")
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             Spacer()
         }
     }
@@ -125,7 +125,7 @@ struct LiveRunView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(FrisTheme.violet.opacity(0.9))
+                    .background(PepTheme.violet.opacity(0.9))
                     .clipShape(Capsule())
                 }
 
@@ -155,7 +155,7 @@ struct LiveRunView: View {
                         .foregroundStyle(runVM.currentHeartRateZone.color)
                     Text("\(runVM.currentHeartRate) bpm")
                         .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Z\(runVM.currentHeartRateZone.rawValue)")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(runVM.currentHeartRateZone.color)
@@ -184,7 +184,7 @@ struct LiveRunView: View {
             )
 
             Rectangle()
-                .fill(FrisTheme.separatorColor)
+                .fill(PepTheme.separatorColor)
                 .frame(width: 0.5, height: 50)
 
             metricBlock(
@@ -194,7 +194,7 @@ struct LiveRunView: View {
             )
 
             Rectangle()
-                .fill(FrisTheme.separatorColor)
+                .fill(PepTheme.separatorColor)
                 .frame(width: 0.5, height: 50)
 
             metricBlock(
@@ -204,12 +204,12 @@ struct LiveRunView: View {
             )
         }
         .padding(.vertical, 16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [accentColor.opacity(0.12), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [accentColor.opacity(0.12), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -220,16 +220,16 @@ struct LiveRunView: View {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
                     .font(.system(size: 28, weight: .heavy, design: .rounded))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 if !unit.isEmpty {
                     Text(unit)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -252,18 +252,18 @@ struct LiveRunView: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -283,7 +283,7 @@ struct LiveRunView: View {
                     Spacer()
                     Text("First split at 1 \(runVM.settings.distanceUnit.splitLabel)...")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                 }
                 .padding(.vertical, 12)
@@ -298,13 +298,13 @@ struct LiveRunView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(split.paceFormatted + " /\(runVM.settings.distanceUnit.abbreviation)")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             HStack(spacing: 8) {
                                 Label("\(split.avgHeartRate) bpm", systemImage: "heart.fill")
                                 Label(String(format: "%+.0f ft", split.elevationChange), systemImage: "arrow.up.right")
                             }
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         }
 
                         Spacer()
@@ -316,11 +316,11 @@ struct LiveRunView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(FrisTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
     }
 
@@ -334,7 +334,7 @@ struct LiveRunView: View {
             Text(String(format: "%+.1f", diff))
                 .font(.system(size: 10, weight: .bold, design: .rounded))
         }
-        .foregroundStyle(diff < -0.1 ? .green : diff > 0.1 ? .red : FrisTheme.textSecondary)
+        .foregroundStyle(diff < -0.1 ? .green : diff > 0.1 ? .red : PepTheme.textSecondary)
     }
 
     // MARK: - Control Bar
@@ -371,7 +371,7 @@ struct LiveRunView: View {
                         .font(.system(size: 24))
                         .foregroundStyle(.white)
                         .frame(width: 64, height: 64)
-                        .background(FrisTheme.elevated)
+                        .background(PepTheme.elevated)
                         .clipShape(Circle())
                         .overlay(Circle().strokeBorder(accentColor.opacity(0.3), lineWidth: 2))
                 }
@@ -403,7 +403,7 @@ struct RunSummarySheet: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Run Complete")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -423,11 +423,11 @@ struct RunSummarySheet: View {
 
             Text(run.runType.rawValue)
                 .font(.title2.weight(.bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             Text("+\(run.fpEarned) FP")
                 .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.amber)
+                .foregroundStyle(PepTheme.amber)
         }
         .padding(.top, 12)
     }
@@ -438,8 +438,8 @@ struct RunSummarySheet: View {
             summaryCell(value: run.durationFormatted, label: "Duration", color: .green)
             summaryCell(value: run.averagePaceFormatted, label: "Avg Pace", color: .orange)
             summaryCell(value: "\(run.averageHeartRate)", label: "Avg HR", color: .red)
-            summaryCell(value: "\(run.cadence)", label: "Cadence", color: FrisTheme.violet)
-            summaryCell(value: "\(run.caloriesBurned)", label: "Calories", color: FrisTheme.amber)
+            summaryCell(value: "\(run.cadence)", label: "Cadence", color: PepTheme.violet)
+            summaryCell(value: "\(run.caloriesBurned)", label: "Calories", color: PepTheme.amber)
         }
     }
 
@@ -450,7 +450,7 @@ struct RunSummarySheet: View {
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
@@ -465,7 +465,7 @@ struct RunSummarySheet: View {
                 HStack {
                     Text("Mile \(split.splitNumber)")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
                     Text(split.paceFormatted + " /mi")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -474,7 +474,7 @@ struct RunSummarySheet: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
     }
 
@@ -491,7 +491,7 @@ struct RunSummarySheet: View {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule()
-                                .fill(FrisTheme.elevated)
+                                .fill(PepTheme.elevated)
                                 .frame(height: 8)
                             Capsule()
                                 .fill(dist.zone.color)
@@ -502,13 +502,13 @@ struct RunSummarySheet: View {
 
                     Text("\(Int(dist.percentage * 100))%")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(width: 32, alignment: .trailing)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
     }
 }

@@ -30,15 +30,15 @@ struct PostComposerView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
 
-                Divider().overlay(FrisTheme.separatorColor)
+                Divider().overlay(PepTheme.separatorColor)
                 attachmentBar
             }
-            .background(FrisTheme.background)
+            .background(PepTheme.background)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -46,10 +46,10 @@ struct PostComposerView: View {
                     } label: {
                         Text("Post")
                             .font(.system(.subheadline, weight: .bold))
-                            .foregroundStyle(viewModel.canPost && !viewModel.isOverLimit ? FrisTheme.invertedText : FrisTheme.textSecondary)
+                            .foregroundStyle(viewModel.canPost && !viewModel.isOverLimit ? PepTheme.invertedText : PepTheme.textSecondary)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 8)
-                            .background(viewModel.canPost && !viewModel.isOverLimit ? FrisTheme.cyan : FrisTheme.elevated)
+                            .background(viewModel.canPost && !viewModel.isOverLimit ? PepTheme.teal : PepTheme.elevated)
                             .clipShape(.capsule)
                     }
                     .disabled(!viewModel.canPost || viewModel.isOverLimit)
@@ -91,10 +91,10 @@ struct PostComposerView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(currentUser.name)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                 Text("@\(currentUser.username)")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -110,13 +110,13 @@ struct PostComposerView: View {
     private var characterCounter: some View {
         ZStack {
             Circle()
-                .stroke(FrisTheme.elevated, lineWidth: 2)
+                .stroke(PepTheme.elevated, lineWidth: 2)
                 .frame(width: 28, height: 28)
 
             Circle()
                 .trim(from: 0, to: min(viewModel.characterProgress, 1.0))
                 .stroke(
-                    viewModel.isOverLimit ? Color.red : (viewModel.characterProgress > 0.9 ? FrisTheme.amber : FrisTheme.cyan),
+                    viewModel.isOverLimit ? Color.red : (viewModel.characterProgress > 0.9 ? PepTheme.amber : PepTheme.teal),
                     style: StrokeStyle(lineWidth: 2, lineCap: .round)
                 )
                 .frame(width: 28, height: 28)
@@ -133,7 +133,7 @@ struct PostComposerView: View {
     private var textEditor: some View {
         TextField("What's on your mind?", text: $viewModel.textContent, axis: .vertical)
             .font(.system(.body))
-            .foregroundStyle(FrisTheme.textPrimary)
+            .foregroundStyle(PepTheme.textPrimary)
             .lineLimit(1...20)
             .padding(.horizontal, 16)
             .padding(.top, 12)
@@ -208,12 +208,12 @@ struct PostComposerView: View {
 
             Text(formatDuration(viewModel.voiceRecordingDuration))
                 .font(.system(.subheadline, design: .monospaced, weight: .medium))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             HStack(spacing: 2) {
                 ForEach(0..<12, id: \.self) { i in
                     RoundedRectangle(cornerRadius: 1)
-                        .fill(FrisTheme.cyan)
+                        .fill(PepTheme.teal)
                         .frame(width: 3, height: CGFloat.random(in: 8...24))
                 }
             }
@@ -229,7 +229,7 @@ struct PostComposerView: View {
             }
         }
         .padding(14)
-        .background(FrisTheme.elevated)
+        .background(PepTheme.elevated)
         .clipShape(.rect(cornerRadius: 12))
     }
 
@@ -238,20 +238,20 @@ struct PostComposerView: View {
             Button { } label: {
                 Image(systemName: "play.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(FrisTheme.cyan)
+                    .foregroundStyle(PepTheme.teal)
             }
 
             HStack(spacing: 1.5) {
                 ForEach(0..<30, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 1)
-                        .fill(FrisTheme.cyan.opacity(0.5))
+                        .fill(PepTheme.teal.opacity(0.5))
                         .frame(width: 2.5, height: CGFloat.random(in: 4...20))
                 }
             }
 
             Text(formatDuration(viewModel.voiceRecordingDuration))
                 .font(.system(.caption, design: .monospaced, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
 
             Spacer()
 
@@ -261,11 +261,11 @@ struct PostComposerView: View {
                 }
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
         .padding(14)
-        .background(FrisTheme.elevated)
+        .background(PepTheme.elevated)
         .clipShape(.rect(cornerRadius: 12))
     }
 
@@ -289,7 +289,7 @@ struct PostComposerView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(program.title)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: 4) {
@@ -298,7 +298,7 @@ struct PostComposerView: View {
                     Text("Market · \(program.creatorName)")
                         .font(.caption)
                 }
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -309,29 +309,29 @@ struct PostComposerView: View {
                 }
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
         .padding(12)
-        .background(FrisTheme.elevated)
+        .background(PepTheme.elevated)
         .clipShape(.rect(cornerRadius: 12))
     }
 
     private func workoutLogPreview(_ log: WorkoutLogAttachment) -> some View {
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 8)
-                .fill(FrisTheme.cyan.opacity(0.15))
+                .fill(PepTheme.teal.opacity(0.15))
                 .frame(width: 48, height: 48)
                 .overlay {
                     Image(systemName: "figure.strengthtraining.traditional")
                         .font(.title3)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(log.workoutName)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: 8) {
@@ -339,7 +339,7 @@ struct PostComposerView: View {
                     Label("\(log.exerciseCount) exercises", systemImage: "dumbbell")
                 }
                 .font(.caption)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -350,11 +350,11 @@ struct PostComposerView: View {
                 }
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
         .padding(12)
-        .background(FrisTheme.elevated)
+        .background(PepTheme.elevated)
         .clipShape(.rect(cornerRadius: 12))
     }
 
@@ -373,14 +373,14 @@ struct PostComposerView: View {
                     Image(systemName: viewModel.showTagPicker ? "chevron.up" : "chevron.down")
                         .font(.system(size: 10, weight: .semibold))
                 }
-                .foregroundStyle(viewModel.selectedTags.isEmpty ? FrisTheme.textSecondary : FrisTheme.cyan)
+                .foregroundStyle(viewModel.selectedTags.isEmpty ? PepTheme.textSecondary : PepTheme.teal)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
                 .background {
                     if viewModel.selectedTags.isEmpty {
-                        FrisTheme.elevated
+                        PepTheme.elevated
                     } else {
-                        FrisTheme.cyan.opacity(0.12)
+                        PepTheme.teal.opacity(0.12)
                     }
                 }
                 .clipShape(.capsule)
@@ -422,11 +422,11 @@ struct PostComposerView: View {
                             .font(.system(.caption, weight: .semibold))
                             .lineLimit(1)
                     }
-                    .foregroundStyle(isSelected ? FrisTheme.invertedText : FrisTheme.textPrimary)
+                    .foregroundStyle(isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 7)
                     .frame(maxWidth: .infinity)
-                    .background(isSelected ? AnyShapeStyle(FrisTheme.cyan) : AnyShapeStyle(FrisTheme.elevated))
+                    .background(isSelected ? AnyShapeStyle(PepTheme.teal) : AnyShapeStyle(PepTheme.elevated))
                     .clipShape(.capsule)
                 }
                 .sensoryFeedback(.impact(weight: .light), trigger: isSelected)
@@ -460,10 +460,10 @@ struct PostComposerView: View {
                     .font(.system(size: 8, weight: .bold))
             }
         }
-        .foregroundStyle(FrisTheme.cyan)
+        .foregroundStyle(PepTheme.teal)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background { FrisTheme.cyan.opacity(0.12) }
+        .background { PepTheme.teal.opacity(0.12) }
         .clipShape(.capsule)
     }
 
@@ -474,7 +474,7 @@ struct PostComposerView: View {
             } label: {
                 Image(systemName: "photo.on.rectangle.angled")
                     .font(.system(size: 18))
-                    .foregroundStyle(viewModel.loadedImages.count >= 4 ? FrisTheme.textSecondary.opacity(0.4) : FrisTheme.cyan)
+                    .foregroundStyle(viewModel.loadedImages.count >= 4 ? PepTheme.textSecondary.opacity(0.4) : PepTheme.teal)
                     .frame(width: 44, height: 44)
             }
             .disabled(viewModel.loadedImages.count >= 4)
@@ -488,7 +488,7 @@ struct PostComposerView: View {
             } label: {
                 Image(systemName: viewModel.isRecordingVoice ? "mic.fill" : "mic")
                     .font(.system(size: 18))
-                    .foregroundStyle(viewModel.isRecordingVoice ? .red : (viewModel.hasVoiceRecording ? FrisTheme.textSecondary.opacity(0.4) : FrisTheme.cyan))
+                    .foregroundStyle(viewModel.isRecordingVoice ? .red : (viewModel.hasVoiceRecording ? PepTheme.textSecondary.opacity(0.4) : PepTheme.teal))
                     .frame(width: 44, height: 44)
             }
             .disabled(viewModel.hasVoiceRecording && !viewModel.isRecordingVoice)
@@ -498,7 +498,7 @@ struct PostComposerView: View {
             } label: {
                 Image(systemName: "bag")
                     .font(.system(size: 18))
-                    .foregroundStyle(viewModel.selectedMarketProgram != nil ? FrisTheme.textSecondary.opacity(0.4) : FrisTheme.cyan)
+                    .foregroundStyle(viewModel.selectedMarketProgram != nil ? PepTheme.textSecondary.opacity(0.4) : PepTheme.teal)
                     .frame(width: 44, height: 44)
             }
             .disabled(viewModel.selectedMarketProgram != nil)
@@ -508,7 +508,7 @@ struct PostComposerView: View {
             } label: {
                 Image(systemName: "figure.run")
                     .font(.system(size: 18))
-                    .foregroundStyle(viewModel.selectedWorkoutLog != nil ? FrisTheme.textSecondary.opacity(0.4) : FrisTheme.cyan)
+                    .foregroundStyle(viewModel.selectedWorkoutLog != nil ? PepTheme.textSecondary.opacity(0.4) : PepTheme.teal)
                     .frame(width: 44, height: 44)
             }
             .disabled(viewModel.selectedWorkoutLog != nil)
@@ -517,7 +517,7 @@ struct PostComposerView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
     }
 
     private func postAction() {

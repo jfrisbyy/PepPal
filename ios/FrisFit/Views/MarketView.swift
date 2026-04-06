@@ -27,7 +27,7 @@ struct MarketView: View {
                 }
             }
             .scrollIndicators(.hidden)
-            .background(FrisTheme.background.ignoresSafeArea())
+            .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Market")
             
             .searchable(text: $viewModel.searchText, prompt: "Search programs, plans & creators")
@@ -113,7 +113,7 @@ struct MarketView: View {
                     Spacer()
                     Text("\(program.totalFP) FP")
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
             }
             .padding(20)
@@ -137,7 +137,7 @@ struct MarketView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.system(.title3, design: .rounded, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .padding(.horizontal, 16)
 
             ScrollView(.horizontal) {
@@ -188,13 +188,13 @@ struct MarketView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(program.title)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
                 Text(program.creatorName)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
 
                 HStack(spacing: 4) {
                     ratingStars(program.rating, size: .caption2)
@@ -202,12 +202,12 @@ struct MarketView: View {
                     if program.totalFP > 0 {
                         Text("\(program.totalFP) FP")
                             .font(.caption2.weight(.bold))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                     }
                 }
             }
             .padding(10)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
         }
         .frame(width: 160)
         .clipShape(.rect(cornerRadius: 14))
@@ -215,7 +215,7 @@ struct MarketView: View {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -229,13 +229,13 @@ struct MarketView: View {
         Group {
             switch type {
             case .workoutSplit:
-                FrisTheme.cyan.frame(height: 3)
+                PepTheme.teal.frame(height: 3)
             case .timedProgram:
-                FrisTheme.amber.frame(height: 3)
+                PepTheme.amber.frame(height: 3)
             case .nutritionPlan:
                 Color.green.frame(height: 3)
             case .bundle:
-                LinearGradient(colors: [FrisTheme.cyan, FrisTheme.amber, FrisTheme.violet], startPoint: .leading, endPoint: .trailing)
+                LinearGradient(colors: [PepTheme.teal, PepTheme.amber, PepTheme.violet], startPoint: .leading, endPoint: .trailing)
                     .frame(height: 3)
             }
         }
@@ -243,10 +243,10 @@ struct MarketView: View {
 
     private func itemTypeBadge(_ type: MarketItemType) -> some View {
         let color: Color = switch type {
-        case .workoutSplit: FrisTheme.cyan
-        case .timedProgram: FrisTheme.amber
+        case .workoutSplit: PepTheme.teal
+        case .timedProgram: PepTheme.amber
         case .nutritionPlan: .green
-        case .bundle: FrisTheme.violet
+        case .bundle: PepTheme.violet
         }
         return Text(type.rawValue)
             .font(.caption.weight(.bold))

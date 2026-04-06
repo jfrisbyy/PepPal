@@ -24,7 +24,7 @@ struct WorkoutHistoryView: View {
                 .padding(.bottom, 32)
             }
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Workout History")
         .navigationBarTitleDisplayMode(.large)
         
@@ -40,31 +40,31 @@ private struct WorkoutHistoryRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(workout.name)
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                         .multilineTextAlignment(.leading)
                     Text(workout.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             HStack(spacing: 16) {
                 HistoryStatPill(icon: "clock", value: "\(workout.durationMinutes)m")
                 HistoryStatPill(icon: "scalemass", value: "\(formatVolume(workout.totalVolume)) lbs")
-                HistoryStatPill(icon: "bolt.fill", value: "\(workout.fpEarned) FP", color: FrisTheme.cyan)
+                HistoryStatPill(icon: "bolt.fill", value: "\(workout.fpEarned) FP", color: PepTheme.teal)
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -81,7 +81,7 @@ private struct WorkoutHistoryRow: View {
 private struct HistoryStatPill: View {
     let icon: String
     let value: String
-    var color: Color = FrisTheme.textSecondary
+    var color: Color = PepTheme.textSecondary
 
     var body: some View {
         HStack(spacing: 4) {

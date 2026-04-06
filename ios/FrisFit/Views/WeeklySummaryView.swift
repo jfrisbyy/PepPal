@@ -22,20 +22,20 @@ struct WeeklySummaryView: View {
                 HStack {
                     Image(systemName: "chart.bar.xaxis")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     SubheadText(text: "This Week")
                     Spacer()
                     Text(weekDateRange)
                         .font(.system(.caption2, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 HStack(spacing: 0) {
-                    overviewStat(value: "\(summary.totalWorkouts)", label: "Workouts", icon: "figure.strengthtraining.traditional", color: FrisTheme.cyan)
+                    overviewStat(value: "\(summary.totalWorkouts)", label: "Workouts", icon: "figure.strengthtraining.traditional", color: PepTheme.teal)
                     overviewDivider
                     overviewStat(value: "\(summary.totalCaloriesBurned)", label: "Cal Burned", icon: "flame.fill", color: .orange)
                     overviewDivider
-                    overviewStat(value: "\(summary.totalExerciseMinutes)", label: "Minutes", icon: "timer", color: FrisTheme.amber)
+                    overviewStat(value: "\(summary.totalExerciseMinutes)", label: "Minutes", icon: "timer", color: PepTheme.amber)
                 }
             }
         }
@@ -67,31 +67,31 @@ struct WeeklySummaryView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Start")
                             .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         Text(String(format: "%.1f", summary.weightStart))
                             .font(.system(.title3, design: .rounded, weight: .bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("lbs")
                             .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     VStack(spacing: 4) {
                         Image(systemName: "arrow.right")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.4))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Current")
                             .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         Text(String(format: "%.1f", summary.weightEnd))
                             .font(.system(.title3, design: .rounded, weight: .bold))
-                            .foregroundStyle(FrisTheme.cyan)
+                            .foregroundStyle(PepTheme.teal)
                         Text("lbs")
                             .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -99,13 +99,13 @@ struct WeeklySummaryView: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("Goal")
                             .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         Text(String(format: "%.0f", bodyGoalViewModel.targetWeight))
                             .font(.system(.title3, design: .rounded, weight: .bold))
-                            .foregroundStyle(FrisTheme.amber)
+                            .foregroundStyle(PepTheme.amber)
                         Text("lbs")
                             .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
             }
@@ -118,15 +118,15 @@ struct WeeklySummaryView: View {
                 HStack {
                     Image(systemName: "figure.strengthtraining.traditional")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                     SubheadText(text: "Workouts")
                     Spacer()
                     Text("\(summary.totalWorkouts) total")
                         .font(.system(.caption, design: .rounded, weight: .semibold))
-                        .foregroundStyle(FrisTheme.cyan)
+                        .foregroundStyle(PepTheme.teal)
                 }
 
-                MiniBarChart(data: summary.dailyWorkouts, barColor: FrisTheme.cyan, height: 80)
+                MiniBarChart(data: summary.dailyWorkouts, barColor: PepTheme.teal, height: 80)
             }
         }
     }
@@ -137,32 +137,32 @@ struct WeeklySummaryView: View {
                 HStack {
                     Image(systemName: "fork.knife")
                         .font(.subheadline)
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                     SubheadText(text: "Nutrition")
                     Spacer()
                     Text("avg \(summary.avgCaloriesConsumed) cal/day")
                         .font(.system(.caption, design: .rounded, weight: .semibold))
-                        .foregroundStyle(FrisTheme.amber)
+                        .foregroundStyle(PepTheme.amber)
                 }
 
-                MiniBarChart(data: summary.dailyCalories, barColor: FrisTheme.amber, height: 80)
+                MiniBarChart(data: summary.dailyCalories, barColor: PepTheme.amber, height: 80)
 
-                Divider().overlay(FrisTheme.shimmerHighlight)
+                Divider().overlay(PepTheme.shimmerHighlight)
 
                 HStack {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 12))
-                        .foregroundStyle(FrisTheme.violet)
+                        .foregroundStyle(PepTheme.violet)
                     Text("Protein")
                         .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     Text("avg \(summary.avgProtein)g/day")
                         .font(.system(.caption, design: .rounded, weight: .semibold))
-                        .foregroundStyle(FrisTheme.violet)
+                        .foregroundStyle(PepTheme.violet)
                 }
 
-                MiniBarChart(data: summary.dailyProtein, barColor: FrisTheme.violet, height: 60)
+                MiniBarChart(data: summary.dailyProtein, barColor: PepTheme.violet, height: 60)
             }
         }
     }
@@ -188,10 +188,10 @@ struct WeeklySummaryView: View {
 
     private var weeklyStatsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            summaryStatCard(icon: "bed.double.fill", value: String(format: "%.1f hrs", summary.avgSleepHours), label: "Avg Sleep", color: FrisTheme.violet)
+            summaryStatCard(icon: "bed.double.fill", value: String(format: "%.1f hrs", summary.avgSleepHours), label: "Avg Sleep", color: PepTheme.violet)
             summaryStatCard(icon: "figure.walk", value: formattedNumber(summary.totalSteps), label: "Total Steps", color: .green)
             summaryStatCard(icon: "flame.fill", value: "\(summary.totalCaloriesBurned)", label: "Calories Burned", color: .orange)
-            summaryStatCard(icon: "clock.fill", value: "\(summary.totalExerciseMinutes) min", label: "Active Time", color: FrisTheme.amber)
+            summaryStatCard(icon: "clock.fill", value: "\(summary.totalExerciseMinutes) min", label: "Active Time", color: PepTheme.amber)
         }
     }
 
@@ -212,7 +212,7 @@ struct WeeklySummaryView: View {
         } else if goal == .weightGain || goal == .bulking {
             return summary.weightChange >= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255)
         }
-        return FrisTheme.cyan
+        return PepTheme.teal
     }
 
     private func overviewStat(value: String, label: String, icon: String, color: Color) -> some View {
@@ -222,19 +222,19 @@ struct WeeklySummaryView: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
 
     private var overviewDivider: some View {
         Rectangle()
-            .fill(FrisTheme.shimmerHighlight)
+            .fill(PepTheme.shimmerHighlight)
             .frame(width: 1, height: 44)
     }
 
@@ -249,7 +249,7 @@ struct WeeklySummaryView: View {
             HStack {
                 Text(value)
                     .font(.system(.headline, design: .rounded, weight: .bold))
-                    .foregroundStyle(FrisTheme.textPrimary)
+                    .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Spacer()
@@ -257,18 +257,18 @@ struct WeeklySummaryView: View {
             HStack {
                 Text(label)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Spacer()
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface)
+        .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom],
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),

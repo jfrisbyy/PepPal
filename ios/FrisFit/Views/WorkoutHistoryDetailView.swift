@@ -12,7 +12,7 @@ struct WorkoutHistoryDetailView: View {
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .background(FrisTheme.background.ignoresSafeArea())
+        .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Workout Details")
         .navigationBarTitleDisplayMode(.inline)
         
@@ -22,30 +22,30 @@ struct WorkoutHistoryDetailView: View {
         VStack(spacing: 16) {
             Text(workout.name)
                 .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .multilineTextAlignment(.center)
 
             Text(workout.date.formatted(.dateTime.weekday(.wide).month(.wide).day().year()))
                 .font(.subheadline)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
 
             HStack(spacing: 0) {
                 SummaryStatItem(value: "\(workout.durationMinutes)", unit: "min", label: "Duration")
                 SummaryStatItem(value: formatVolume(workout.totalVolume), unit: "lbs", label: "Volume")
-                SummaryStatItem(value: "\(workout.fpEarned)", unit: "FP", label: "Earned", valueColor: FrisTheme.cyan)
+                SummaryStatItem(value: "\(workout.fpEarned)", unit: "FP", label: "Earned", valueColor: PepTheme.teal)
                 SummaryStatItem(value: "\(workout.exercises.count)", unit: "", label: "Exercises")
             }
             .padding(.vertical, 14)
-            .background(FrisTheme.elevated)
+            .background(PepTheme.elevated)
             .clipShape(.rect(cornerRadius: 12))
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -71,7 +71,7 @@ private struct SummaryStatItem: View {
     let value: String
     let unit: String
     let label: String
-    var valueColor: Color = FrisTheme.textPrimary
+    var valueColor: Color = PepTheme.textPrimary
 
     var body: some View {
         VStack(spacing: 4) {
@@ -82,12 +82,12 @@ private struct SummaryStatItem: View {
                 if !unit.isEmpty {
                     Text(unit)
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -100,7 +100,7 @@ private struct ExerciseDetailCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(exercise.exerciseName)
                 .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
 
             HStack {
                 Text("SET")
@@ -113,7 +113,7 @@ private struct ExerciseDetailCard: View {
                     .frame(maxWidth: .infinity)
             }
             .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(FrisTheme.textSecondary)
+            .foregroundStyle(PepTheme.textSecondary)
 
             ForEach(exercise.sets) { set in
                 HStack {
@@ -125,19 +125,19 @@ private struct ExerciseDetailCard: View {
                         .frame(maxWidth: .infinity)
                     Text("\(Int(set.weight) * set.reps)")
                         .frame(maxWidth: .infinity)
-                        .foregroundStyle(FrisTheme.cyan.opacity(0.8))
+                        .foregroundStyle(PepTheme.teal.opacity(0.8))
                 }
                 .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
             }
         }
         .padding(14)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
-                    LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )

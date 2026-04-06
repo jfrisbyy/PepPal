@@ -40,10 +40,10 @@ struct SwimmingDashboardView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Swimming")
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("\(swimVM.thisWeekSwims.count) swim\(swimVM.thisWeekSwims.count == 1 ? "" : "s") this week · \(SwimFormatters.formatDistance(swimVM.thisWeekMeters))")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -53,9 +53,9 @@ struct SwimmingDashboardView: View {
                     } label: {
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: 14))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .frame(width: 32, height: 32)
-                            .background(FrisTheme.elevated.opacity(0.6))
+                            .background(PepTheme.elevated.opacity(0.6))
                             .clipShape(Circle())
                     }
                 }
@@ -77,16 +77,16 @@ struct SwimmingDashboardView: View {
                 .foregroundStyle(accentColor.opacity(0.7))
             Text(value)
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -105,10 +105,10 @@ struct SwimmingDashboardView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
                         }
-                        .foregroundStyle(swimVM.selectedSessionType == type ? .black : FrisTheme.textSecondary)
+                        .foregroundStyle(swimVM.selectedSessionType == type ? .black : PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(swimVM.selectedSessionType == type ? type.color : FrisTheme.elevated.opacity(0.5))
+                        .background(swimVM.selectedSessionType == type ? type.color : PepTheme.elevated.opacity(0.5))
                         .clipShape(.rect(cornerRadius: 10))
                     }
                 }
@@ -124,10 +124,10 @@ struct SwimmingDashboardView: View {
                         Text("Drills")
                             .font(.system(size: 11, weight: .medium))
                     }
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(FrisTheme.elevated.opacity(0.5))
+                    .background(PepTheme.elevated.opacity(0.5))
                     .clipShape(Capsule())
                 }
 
@@ -140,10 +140,10 @@ struct SwimmingDashboardView: View {
                         Text("Workouts")
                             .font(.system(size: 11, weight: .medium))
                     }
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(FrisTheme.elevated.opacity(0.5))
+                    .background(PepTheme.elevated.opacity(0.5))
                     .clipShape(Capsule())
                 }
 
@@ -156,10 +156,10 @@ struct SwimmingDashboardView: View {
                         Text("CSS Test")
                             .font(.system(size: 11, weight: .medium))
                     }
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(FrisTheme.elevated.opacity(0.5))
+                    .background(PepTheme.elevated.opacity(0.5))
                     .clipShape(Capsule())
                 }
 
@@ -172,7 +172,7 @@ struct SwimmingDashboardView: View {
                     .foregroundStyle(accentColor.opacity(0.6))
                 Text("Swim data syncs from Apple Watch via HealthKit")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Spacer()
                 Button {
                     Task { await swimVM.importSwimDataFromHealthKit() }
@@ -198,12 +198,12 @@ struct SwimmingDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [accentColor.opacity(0.15), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [accentColor.opacity(0.15), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -230,19 +230,19 @@ struct SwimmingDashboardView: View {
                         VStack(spacing: 4) {
                             Text(SwimFormatters.formatDistance(week.totalMeters))
                                 .font(.system(size: 7, weight: .bold, design: .rounded))
-                                .foregroundStyle(week.totalMeters > 0 ? accentColor : FrisTheme.textSecondary.opacity(0.4))
+                                .foregroundStyle(week.totalMeters > 0 ? accentColor : PepTheme.textSecondary.opacity(0.4))
 
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(
                                     week.totalMeters > 0 ?
                                     LinearGradient(colors: [accentColor, accentColor.opacity(0.5)], startPoint: .top, endPoint: .bottom) :
-                                    LinearGradient(colors: [FrisTheme.elevated, FrisTheme.elevated], startPoint: .top, endPoint: .bottom)
+                                    LinearGradient(colors: [PepTheme.elevated, PepTheme.elevated], startPoint: .top, endPoint: .bottom)
                                 )
                                 .frame(width: 24, height: max(CGFloat(week.totalMeters / maxMeters) * 80, 4))
 
                             Text(weekLabel(week.weekStart))
                                 .font(.system(size: 8, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
@@ -251,7 +251,7 @@ struct SwimmingDashboardView: View {
             .contentMargins(.horizontal, 4)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -316,7 +316,7 @@ struct SwimmingDashboardView: View {
                 HStack {
                     Text("↓ Lower = More Efficient")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     if let first = data.first, let last = data.last {
                         let diff = first.swolf - last.swolf
@@ -332,7 +332,7 @@ struct SwimmingDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -369,21 +369,21 @@ struct SwimmingDashboardView: View {
                                 .frame(width: 8, height: 8)
                             Text(breakdown.strokeType.rawValue)
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             Spacer()
                             Text("\(Int(breakdown.percentage * 100))%")
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
                                 .foregroundStyle(breakdown.strokeType.color)
                             Text(SwimFormatters.formatPace(breakdown.averagePace) + "/100m")
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -392,7 +392,7 @@ struct SwimmingDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "speedometer")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Critical Swim Speed")
                 Spacer()
             }
@@ -405,7 +405,7 @@ struct SwimmingDashboardView: View {
                             .foregroundStyle(accentColor)
                         Text("/100m")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -416,22 +416,22 @@ struct SwimmingDashboardView: View {
                         HStack(spacing: 6) {
                             Text("400m:")
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             Text(SwimFormatters.formatDuration(css.time400m))
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                         }
                         HStack(spacing: 6) {
                             Text("200m:")
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             Text(SwimFormatters.formatDuration(css.time200m))
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                         }
                         Text("Tested \(css.date.formatted(.dateTime.month(.abbreviated).day()))")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -455,7 +455,7 @@ struct SwimmingDashboardView: View {
                 VStack(spacing: 8) {
                     Text("Take a CSS test to unlock pace zones")
                         .font(.caption)
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Button {
                         swimVM.showCSSTest = true
                     } label: {
@@ -468,7 +468,7 @@ struct SwimmingDashboardView: View {
                         .foregroundStyle(.black)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
-                        .background(FrisTheme.amber)
+                        .background(PepTheme.amber)
                         .clipShape(Capsule())
                     }
                 }
@@ -477,7 +477,7 @@ struct SwimmingDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -491,7 +491,7 @@ struct SwimmingDashboardView: View {
                 Spacer()
                 Text("\(swimVM.completedSwims.count) total")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             if swimVM.completedSwims.isEmpty {
@@ -508,7 +508,7 @@ struct SwimmingDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -528,7 +528,7 @@ struct SwimmingDashboardView: View {
                 HStack(spacing: 6) {
                     Text(swim.sessionType.rawValue)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     if swim.isOpenWater {
                         Text("GPS")
                             .font(.system(size: 8, weight: .bold))
@@ -541,7 +541,7 @@ struct SwimmingDashboardView: View {
                 }
                 Text(swim.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))
                     .font(.system(size: 10))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -554,17 +554,17 @@ struct SwimmingDashboardView: View {
                     if swim.totalLaps > 0 {
                         Text("\(swim.totalLaps) laps")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                     Text(swim.averagePaceFormatted + "/100m")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
         }
         .padding(.vertical, 4)
     }
@@ -573,7 +573,7 @@ struct SwimmingDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "trophy.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Personal Bests")
                 Spacer()
             }
@@ -590,21 +590,21 @@ struct SwimmingDashboardView: View {
                             .frame(width: 50, alignment: .leading)
                         Text(pb.timeFormatted)
                             .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Spacer()
                         Text(SwimFormatters.formatPace(pb.pace) + "/100m")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                         Text(pb.date.formatted(.dateTime.month(.abbreviated).day()))
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(FrisTheme.textSecondary.opacity(0.6))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
                     }
                     .padding(.vertical, 4)
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -630,10 +630,10 @@ struct SwimmingDashboardView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(zone.name)
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             Text(zone.paceRange + " /100m")
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                         Spacer()
                     }
@@ -642,7 +642,7 @@ struct SwimmingDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -653,10 +653,10 @@ struct SwimmingDashboardView: View {
             VStack(spacing: 8) {
                 Image(systemName: "chart.line.downtrend.xyaxis")
                     .font(.title2)
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(.vertical, 16)
             Spacer()
@@ -666,7 +666,7 @@ struct SwimmingDashboardView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }

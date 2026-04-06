@@ -104,7 +104,7 @@ nonisolated struct BMIData: Sendable {
         guard heightM > 0 else {
             self.value = 0
             self.category = "Unknown"
-            self.color = FrisTheme.textSecondary
+            self.color = PepTheme.textSecondary
             return
         }
         self.value = weight / (heightM * heightM)

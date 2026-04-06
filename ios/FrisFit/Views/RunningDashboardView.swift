@@ -42,10 +42,10 @@ struct RunningDashboardView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Running")
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(FrisTheme.textPrimary)
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("\(runVM.thisWeekRuns.count) run\(runVM.thisWeekRuns.count == 1 ? "" : "s") this week · \(String(format: "%.1f", runVM.thisWeekMiles)) mi")
                             .font(.caption)
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
@@ -55,9 +55,9 @@ struct RunningDashboardView: View {
                     } label: {
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: 14))
-                            .foregroundStyle(FrisTheme.textSecondary)
+                            .foregroundStyle(PepTheme.textSecondary)
                             .frame(width: 32, height: 32)
-                            .background(FrisTheme.elevated.opacity(0.6))
+                            .background(PepTheme.elevated.opacity(0.6))
                             .clipShape(Circle())
                     }
                 }
@@ -79,16 +79,16 @@ struct RunningDashboardView: View {
                 .foregroundStyle(accentColor.opacity(0.7))
             Text(value)
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(FrisTheme.elevated.opacity(0.5))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 10))
     }
 
@@ -107,10 +107,10 @@ struct RunningDashboardView: View {
                             Text(type.rawValue)
                                 .font(.system(size: 9, weight: .semibold))
                         }
-                        .foregroundStyle(runVM.selectedRunType == type ? .black : FrisTheme.textSecondary)
+                        .foregroundStyle(runVM.selectedRunType == type ? .black : PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(runVM.selectedRunType == type ? type.color : FrisTheme.elevated.opacity(0.5))
+                        .background(runVM.selectedRunType == type ? type.color : PepTheme.elevated.opacity(0.5))
                         .clipShape(.rect(cornerRadius: 10))
                     }
                 }
@@ -120,7 +120,7 @@ struct RunningDashboardView: View {
                 Toggle(isOn: $runVM.isTreadmillMode) {
                     Label("Treadmill", systemImage: "figure.run.treadmill")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 .toggleStyle(.switch)
                 .tint(accentColor)
@@ -144,10 +144,10 @@ struct RunningDashboardView: View {
                             Text(runVM.selectedShoeId.flatMap { id in runVM.shoes.first { $0.id == id }?.name } ?? "Select Shoe")
                                 .font(.system(size: 11, weight: .medium))
                         }
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(FrisTheme.elevated.opacity(0.5))
+                        .background(PepTheme.elevated.opacity(0.5))
                         .clipShape(Capsule())
                     }
                 }
@@ -176,12 +176,12 @@ struct RunningDashboardView: View {
             .buttonStyle(.scalePrimary)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    LinearGradient(colors: [accentColor.opacity(0.15), FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [accentColor.opacity(0.15), PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
         )
@@ -210,19 +210,19 @@ struct RunningDashboardView: View {
                         VStack(spacing: 4) {
                             Text(String(format: "%.0f", week.totalMiles))
                                 .font(.system(size: 8, weight: .bold, design: .rounded))
-                                .foregroundStyle(week.totalMiles > 0 ? accentColor : FrisTheme.textSecondary.opacity(0.4))
+                                .foregroundStyle(week.totalMiles > 0 ? accentColor : PepTheme.textSecondary.opacity(0.4))
 
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(
                                     week.totalMiles > 0 ?
                                     LinearGradient(colors: [accentColor, accentColor.opacity(0.5)], startPoint: .top, endPoint: .bottom) :
-                                    LinearGradient(colors: [FrisTheme.elevated, FrisTheme.elevated], startPoint: .top, endPoint: .bottom)
+                                    LinearGradient(colors: [PepTheme.elevated, PepTheme.elevated], startPoint: .top, endPoint: .bottom)
                                 )
                                 .frame(width: 24, height: max(CGFloat(week.totalMiles / maxMiles) * 80, 4))
 
                             Text(weekLabel(week.weekStart))
                                 .font(.system(size: 8, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                 }
@@ -231,7 +231,7 @@ struct RunningDashboardView: View {
             .contentMargins(.horizontal, 4)
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -247,7 +247,7 @@ struct RunningDashboardView: View {
                 Spacer()
                 Text("\(runVM.completedRuns.count) total")
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             if runVM.completedRuns.isEmpty {
@@ -264,7 +264,7 @@ struct RunningDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -284,20 +284,20 @@ struct RunningDashboardView: View {
                 HStack(spacing: 6) {
                     Text(run.runType.rawValue)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     if run.isTreadmill {
                         Text("TREADMILL")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(FrisTheme.violet)
+                            .foregroundStyle(PepTheme.violet)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
-                            .background(FrisTheme.violet.opacity(0.12))
+                            .background(PepTheme.violet.opacity(0.12))
                             .clipShape(Capsule())
                     }
                 }
                 Text(run.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))
                     .font(.system(size: 10))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -308,12 +308,12 @@ struct RunningDashboardView: View {
                     .foregroundStyle(accentColor)
                 Text(run.averagePaceFormatted + " /mi")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
         }
         .padding(.vertical, 4)
     }
@@ -324,7 +324,7 @@ struct RunningDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "flag.checkered")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Race Predictions")
                 Spacer()
             }
@@ -338,29 +338,29 @@ struct RunningDashboardView: View {
                         VStack(spacing: 6) {
                             Text(pred.raceName)
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                             Text(pred.predictedTimeFormatted)
                                 .font(.system(.title3, design: .rounded, weight: .bold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             HStack(spacing: 3) {
                                 Circle()
                                     .fill(pred.confidence > 0.7 ? .green : pred.confidence > 0.5 ? .yellow : .orange)
                                     .frame(width: 5, height: 5)
                                 Text("\(Int(pred.confidence * 100))% confidence")
                                     .font(.system(size: 9, weight: .medium))
-                                    .foregroundStyle(FrisTheme.textSecondary)
+                                    .foregroundStyle(PepTheme.textSecondary)
                             }
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(FrisTheme.elevated.opacity(0.5))
+                        .background(PepTheme.elevated.opacity(0.5))
                         .clipShape(.rect(cornerRadius: 12))
                     }
                 }
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -427,7 +427,7 @@ struct RunningDashboardView: View {
                 HStack {
                     Text("↓ Lower = Faster")
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     if let first = data.first, let last = data.last {
                         let diff = first.pace - last.pace
@@ -443,7 +443,7 @@ struct RunningDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -484,11 +484,11 @@ struct RunningDashboardView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("\(shoe.brand) \(shoe.name)")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(FrisTheme.textPrimary)
+                                .foregroundStyle(PepTheme.textPrimary)
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
                                     Capsule()
-                                        .fill(FrisTheme.elevated)
+                                        .fill(PepTheme.elevated)
                                         .frame(height: 4)
                                     Capsule()
                                         .fill(shoe.statusColor)
@@ -506,7 +506,7 @@ struct RunningDashboardView: View {
                                 .foregroundStyle(shoe.statusColor)
                             Text(String(format: "%.0f mi left", shoe.milesRemaining))
                                 .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(FrisTheme.textSecondary)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
                     .padding(.vertical, 4)
@@ -514,7 +514,7 @@ struct RunningDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -525,7 +525,7 @@ struct RunningDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "trophy.fill")
-                    .foregroundStyle(FrisTheme.amber)
+                    .foregroundStyle(PepTheme.amber)
                 HeadlineText(text: "Personal Records")
                 Spacer()
             }
@@ -551,7 +551,7 @@ struct RunningDashboardView: View {
             }
         }
         .padding(16)
-        .background(FrisTheme.cardSurface.overlay(FrisTheme.cardOverlay))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(cardBorder())
     }
@@ -563,12 +563,12 @@ struct RunningDashboardView: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(FrisTheme.textPrimary)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(FrisTheme.textSecondary)
+                .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -595,20 +595,20 @@ struct RunningDashboardView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Create Run Workout")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FrisTheme.textPrimary)
+                        .foregroundStyle(PepTheme.textPrimary)
                     Text("Build interval, tempo & custom workouts")
                         .font(.system(size: 11))
-                        .foregroundStyle(FrisTheme.textSecondary)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(16)
-            .background(FrisTheme.cardSurface)
+            .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 16))
             .overlay(cardBorder())
         }
@@ -623,10 +623,10 @@ struct RunningDashboardView: View {
             VStack(spacing: 8) {
                 Image(systemName: "chart.line.downtrend.xyaxis")
                     .font(.title2)
-                    .foregroundStyle(FrisTheme.textSecondary.opacity(0.5))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(FrisTheme.textSecondary)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(.vertical, 16)
             Spacer()
@@ -636,7 +636,7 @@ struct RunningDashboardView: View {
     private func cardBorder() -> some View {
         RoundedRectangle(cornerRadius: 16)
             .strokeBorder(
-                LinearGradient(colors: [FrisTheme.glassBorderTop, FrisTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 0.5
             )
     }
