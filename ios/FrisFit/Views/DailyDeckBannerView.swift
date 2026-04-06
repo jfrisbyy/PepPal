@@ -4,27 +4,24 @@ struct DailyDeckBannerView: View {
     @Bindable var viewModel: HomeViewModel
     @State private var isExpanded: Bool = false
     @State private var toggleTrigger: Int = 0
+    @State private var collapsedCategories: Set<TaskCategory> = []
+    @State private var showAddTask: Bool = false
+
+    private var todaysTasks: [DailyTask] {
+        viewModel.todaysTasks
+    }
 
     private var completedCount: Int {
-        viewModel.dailyTasks.filter(\.isCompleted).count
+        todaysTasks.filter(\.isCompleted).count
     }
 
     private var totalCount: Int {
-        viewModel.dailyTasks.count
+        todaysTasks.count
     }
 
     private var progress: Double {
         guard totalCount > 0 else { return 0 }
         return Double(completedCount) / Double(totalCount)
-    }
-
-    private var dayGreeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 0..<12: return "Morning Deck"
-        case 12..<17: return "Afternoon Deck"
-        default: return "Evening Deck"
-        }
     }
 
     var body: some View {
@@ -43,6 +40,9 @@ struct DailyDeckBannerView: View {
                 expandedContent
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
+        }
+        .sheet(isPresented: $showAddTask) {
+            AddEditTaskView(viewModel: viewModel)
         }
     }
 
@@ -69,7 +69,7 @@ struct DailyDeckBannerView: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(dayGreeting)
+                Text("Daily Deck")
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .foregroundStyle(PepTheme.textPrimary)
 
@@ -78,13 +78,7 @@ struct DailyDeckBannerView: View {
                         .font(.system(.caption2, weight: .medium))
                         .foregroundStyle(PepTheme.textSecondary)
 
-                    if completedCount > 0 && completedCount < totalCount {
-                        Text("·")
-                            .foregroundStyle(PepTheme.textSecondary)
-                        Text("\(viewModel.earnedPoints) pts")
-                            .font(.system(.caption2, design: .rounded, weight: .semibold))
-                            .foregroundStyle(PepTheme.teal)
-                    } else if completedCount == totalCount && totalCount > 0 {
+                    if completedCount == totalCount && totalCount > 0 {
                         Text("·")
                             .foregroundStyle(PepTheme.textSecondary)
                         Text("All done!")
@@ -139,11 +133,26 @@ struct DailyDeckBannerView: View {
     private var expandedContent: some View {
         VStack(spacing: 0) {
             ForEach(TaskCategory.allCases) { category in
-                let tasks = viewModel.tasks(for: category)
+                let tasks = viewModel.todaysTasks(for: category)
                 if !tasks.isEmpty {
                     categorySection(category, tasks: tasks)
                 }
             }
+
+            Button {
+                showAddTask = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 14))
+                    Text("Add Task")
+                        .font(.system(.caption, weight: .semibold))
+                }
+                .foregroundStyle(PepTheme.teal)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+            }
+            .sensoryFeedback(.impact(weight: .light), trigger: showAddTask)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
@@ -168,36 +177,63 @@ struct DailyDeckBannerView: View {
     }
 
     private func categorySection(_ category: TaskCategory, tasks: [DailyTask]) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: category.icon)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(category.color)
-                Text(category.rawValue.uppercased())
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-                    .tracking(0.5)
+        let isCollapsed = collapsedCategories.contains(category)
+        let catCompleted = tasks.filter(\.isCompleted).count
 
-                let catCompleted = tasks.filter(\.isCompleted).count
-                if catCompleted == tasks.count && !tasks.isEmpty {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(PepTheme.teal)
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    if isCollapsed {
+                        collapsedCategories.remove(category)
+                    } else {
+                        collapsedCategories.insert(category)
+                    }
                 }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: category.icon)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(category.color)
+                    Text(category.rawValue.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                        .tracking(0.5)
 
-                Spacer()
+                    Text("\(catCompleted)/\(tasks.count)")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundStyle(catCompleted == tasks.count ? PepTheme.teal : PepTheme.textSecondary.opacity(0.5))
+
+                    if catCompleted == tasks.count && !tasks.isEmpty {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(PepTheme.teal)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                        .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                }
+                .padding(.top, 10)
+                .padding(.bottom, 6)
+                .padding(.horizontal, 4)
+                .contentShape(.rect)
             }
-            .padding(.top, 8)
-            .padding(.horizontal, 4)
+            .buttonStyle(.plain)
 
-            ForEach(tasks) { task in
-                taskRow(task)
+            if !isCollapsed {
+                ForEach(tasks) { task in
+                    taskRow(task)
+                }
             }
         }
     }
 
     private func taskRow(_ task: DailyTask) -> some View {
         Button {
+            guard task.actionLink == .none else { return }
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                 viewModel.toggleTask(task)
                 toggleTrigger += 1
@@ -234,9 +270,11 @@ struct DailyDeckBannerView: View {
 
                 Spacer()
 
-                Text("+\(task.points)")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(task.isCompleted ? PepTheme.teal.opacity(0.4) : PepTheme.amber.opacity(0.8))
+                if task.actionLink != .none {
+                    Image(systemName: "link")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(PepTheme.teal.opacity(0.5))
+                }
             }
             .padding(.vertical, 7)
             .padding(.horizontal, 8)
@@ -246,6 +284,8 @@ struct DailyDeckBannerView: View {
             .clipShape(.rect(cornerRadius: 8))
         }
         .sensoryFeedback(.impact(weight: .light), trigger: toggleTrigger)
+        .allowsHitTesting(task.actionLink == .none)
+        .opacity(task.actionLink != .none && !task.isCompleted ? 0.85 : 1)
     }
 
     private var progressGradient: LinearGradient {

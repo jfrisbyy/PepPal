@@ -149,25 +149,16 @@ final class HomeViewModel {
         return NutritionSnapshot(caloriesConsumed: 0, caloriesTarget: nutrition.caloriesTarget, proteinConsumed: 0, proteinTarget: nutrition.proteinTarget)
     }
 
-    var earnedPoints: Int {
-        dailyTasks.filter(\.isCompleted).reduce(0) { $0 + $1.points }
+    var todaysTasks: [DailyTask] {
+        dailyTasks.filter { $0.isScheduledForToday() }
     }
 
-    var totalPoints: Int {
-        dailyTasks.reduce(0) { $0 + $1.points }
-    }
-
-    var pointsProgress: Double {
-        guard totalPoints > 0 else { return 0 }
-        return Double(earnedPoints) / Double(totalPoints)
-    }
-
-    var recentlyCompleted: [DailyTask] {
-        Array(dailyTasks.filter(\.isCompleted).prefix(3))
+    func todaysTasks(for category: TaskCategory) -> [DailyTask] {
+        todaysTasks.filter { $0.category == category }
     }
 
     var completedCount: Int {
-        dailyTasks.filter(\.isCompleted).count
+        todaysTasks.filter(\.isCompleted).count
     }
 
     func toggleTask(_ task: DailyTask) {
@@ -177,6 +168,52 @@ final class HomeViewModel {
 
     func tasks(for category: TaskCategory) -> [DailyTask] {
         dailyTasks.filter { $0.category == category }
+    }
+
+    func addTask(_ task: DailyTask) {
+        dailyTasks.append(task)
+    }
+
+    func updateTask(_ task: DailyTask) {
+        guard let index = dailyTasks.firstIndex(where: { $0.id == task.id }) else { return }
+        let wasCompleted = dailyTasks[index].isCompleted
+        dailyTasks[index] = task
+        dailyTasks[index].isCompleted = wasCompleted
+    }
+
+    func deleteTask(_ task: DailyTask) {
+        dailyTasks.removeAll { $0.id == task.id }
+    }
+
+    func checkActionLinkedTasks() {
+        for index in dailyTasks.indices {
+            let task = dailyTasks[index]
+            guard !task.isCompleted, task.isScheduledForToday() else { continue }
+
+            switch task.actionLink {
+            case .none:
+                break
+            case .stepCounter:
+                let goal = task.actionTarget > 0 ? task.actionTarget : 10000
+                if healthKit.steps >= goal {
+                    dailyTasks[index].isCompleted = true
+                }
+            case .proteinGoal:
+                if nutrition.proteinConsumed >= nutrition.proteinTarget {
+                    dailyTasks[index].isCompleted = true
+                }
+            case .calorieGoal:
+                if nutrition.caloriesConsumed >= nutrition.caloriesTarget {
+                    dailyTasks[index].isCompleted = true
+                }
+            case .workoutCompleted:
+                if !healthKit.workoutsToday.isEmpty || streakManager.activityLog.contains(where: { Calendar.current.isDateInToday($0.date) && $0.type == .workout }) {
+                    dailyTasks[index].isCompleted = true
+                }
+            case .waterIntake:
+                break
+            }
+        }
     }
 
     var isPlanExpanded: Bool = false
@@ -309,6 +346,7 @@ final class HomeViewModel {
                 }
             }
         }
+        checkActionLinkedTasks()
         if isLoading {
             Task {
                 try? await Task.sleep(for: .milliseconds(600))
@@ -323,6 +361,7 @@ final class HomeViewModel {
         if healthKit.isAuthorized {
             await healthKit.fetchAllData()
         }
+        checkActionLinkedTasks()
         try? await Task.sleep(for: .seconds(1))
     }
 
