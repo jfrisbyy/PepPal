@@ -3,36 +3,36 @@ import SwiftUI
 struct DiscoverView: View {
     @State private var viewModel = DiscoverViewModel()
     @State private var showBeginnersGuide: Bool = false
+    @State private var heroAppeared: Bool = false
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                segmentPicker
-                    .padding(.horizontal)
-                    .padding(.top, 8)
+            ScrollView {
+                VStack(spacing: 20) {
+                    segmentPicker
+                        .padding(.horizontal)
 
-                ScrollView {
-                    VStack(spacing: 16) {
+                    if viewModel.selectedSegment == .compounds {
                         searchBar
                             .padding(.horizontal)
 
-                        if viewModel.selectedSegment == .compounds {
-                            beginnersGuideCard
-                                .padding(.horizontal)
+                        featuredHeroBanner
 
-                            categoryPills
+                        categoryPills
 
-                            compoundsList
-                                .padding(.horizontal)
-                        } else {
-                            vendorsList
-                                .padding(.horizontal)
-                        }
+                        compoundsGrid
+                            .padding(.horizontal)
+                    } else {
+                        searchBar
+                            .padding(.horizontal)
+
+                        vendorsList
+                            .padding(.horizontal)
                     }
-                    .padding(.bottom, 24)
                 }
-                .scrollIndicators(.hidden)
+                .padding(.bottom, 24)
             }
+            .scrollIndicators(.hidden)
             .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Discover")
             .navigationBarTitleDisplayMode(.large)
@@ -44,6 +44,11 @@ struct DiscoverView: View {
             }
             .sheet(isPresented: $showBeginnersGuide) {
                 BeginnersGuideView()
+            }
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.8)) {
+                    heroAppeared = true
+                }
             }
         }
     }
@@ -98,55 +103,88 @@ struct DiscoverView: View {
         .clipShape(.capsule)
     }
 
-    private var beginnersGuideCard: some View {
-        Button {
-            showBeginnersGuide = true
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(
-                            LinearGradient(
-                                colors: [PepTheme.teal, PepTheme.blue],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 52, height: 52)
-
-                    Image(systemName: "book.fill")
-                        .font(.title3)
-                        .foregroundStyle(.white)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Beginner's Guide")
-                        .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("Learn the basics — reconstitution, injection technique, storage & COAs")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .lineLimit(2)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-            .padding(14)
-            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-            .clipShape(.rect(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(
-                        LinearGradient(colors: [PepTheme.teal.opacity(0.3), PepTheme.blue.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                        lineWidth: 0.5
+    private var featuredHeroBanner: some View {
+        VStack(spacing: 12) {
+            Button {
+                showBeginnersGuide = true
+            } label: {
+                ZStack(alignment: .bottomLeading) {
+                    MeshGradient(
+                        width: 3, height: 3,
+                        points: [
+                            [0, 0], [0.5, 0], [1, 0],
+                            [0, 0.5], [0.5, 0.5], [1, 0.5],
+                            [0, 1], [0.5, 1], [1, 1]
+                        ],
+                        colors: [
+                            PepTheme.teal.opacity(0.8), PepTheme.blue.opacity(0.6), PepTheme.violet.opacity(0.5),
+                            PepTheme.teal.opacity(0.6), PepTheme.blue.opacity(0.4), PepTheme.violet.opacity(0.7),
+                            PepTheme.teal.opacity(0.3), PepTheme.blue.opacity(0.5), PepTheme.violet.opacity(0.4)
+                        ]
                     )
-            )
+                    .frame(height: 160)
+                    .overlay {
+                        VStack {
+                            Spacer()
+                            LinearGradient(
+                                colors: [.black.opacity(0.6), .clear],
+                                startPoint: .bottom,
+                                endPoint: .top
+                            )
+                            .frame(height: 100)
+                        }
+                    }
+                    .overlay(alignment: .topTrailing) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 60, weight: .ultraLight))
+                            .foregroundStyle(.white.opacity(0.15))
+                            .rotationEffect(.degrees(-15))
+                            .offset(x: -20, y: 15)
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "book.fill")
+                                .font(.system(size: 13))
+                            Text("BEGINNER'S GUIDE")
+                                .font(.system(.caption2, weight: .heavy))
+                                .tracking(1.2)
+                        }
+                        .foregroundStyle(.white.opacity(0.8))
+
+                        Text("Master the Basics")
+                            .font(.system(.title3, weight: .bold))
+                            .foregroundStyle(.white)
+
+                        Text("Reconstitution, injection technique, storage & reading COAs")
+                            .font(.system(.caption, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .lineLimit(1)
+                    }
+                    .padding(16)
+                }
+                .clipShape(.rect(cornerRadius: 20))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(.white.opacity(0.1), lineWidth: 0.5)
+                )
+            }
+            .buttonStyle(.scale)
+            .padding(.horizontal)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(viewModel.featuredCompounds) { compound in
+                        NavigationLink(value: compound) {
+                            FeaturedCompoundPill(compound: compound)
+                        }
+                        .buttonStyle(.scale)
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+            .contentMargins(.horizontal, 0)
         }
-        .buttonStyle(.scale)
     }
 
     private var categoryPills: some View {
@@ -182,8 +220,8 @@ struct DiscoverView: View {
         .contentMargins(.horizontal, 0)
     }
 
-    private var compoundsList: some View {
-        LazyVStack(spacing: 10) {
+    private var compoundsGrid: some View {
+        LazyVStack(spacing: 12) {
             ForEach(viewModel.filteredCompounds) { compound in
                 NavigationLink(value: compound) {
                     CompoundCardView(compound: compound)
@@ -194,7 +232,7 @@ struct DiscoverView: View {
     }
 
     private var vendorsList: some View {
-        LazyVStack(spacing: 10) {
+        LazyVStack(spacing: 12) {
             ForEach(viewModel.filteredVendors) { vendor in
                 NavigationLink(value: vendor) {
                     VendorCardView(vendor: vendor)
@@ -205,71 +243,155 @@ struct DiscoverView: View {
     }
 }
 
+struct FeaturedCompoundPill: View {
+    let compound: CompoundProfile
+
+    private var accentColor: Color {
+        compound.categories.first?.color ?? PepTheme.teal
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(accentColor.opacity(0.2))
+                    .frame(width: 36, height: 36)
+                Image(systemName: compound.iconName)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(accentColor)
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(compound.name)
+                    .font(.system(.caption, weight: .bold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                HStack(spacing: 3) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 8))
+                        .foregroundStyle(.yellow)
+                    Text(String(format: "%.1f", compound.averageRating))
+                        .font(.system(.caption2, weight: .semibold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.capsule)
+        .overlay(
+            Capsule().strokeBorder(
+                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
+                lineWidth: 0.5
+            )
+        )
+    }
+}
+
 struct CompoundCardView: View {
     let compound: CompoundProfile
 
+    private var accentColor: Color {
+        compound.categories.first?.color ?? PepTheme.teal
+    }
+
     var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(compound.categories.first?.color.opacity(0.15) ?? PepTheme.teal.opacity(0.15))
-                    .frame(width: 50, height: 50)
+        HStack(spacing: 0) {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [accentColor, accentColor.opacity(0.4)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 4)
 
-                Image(systemName: compound.iconName)
-                    .font(.title3)
-                    .foregroundStyle(compound.categories.first?.color ?? PepTheme.teal)
-            }
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(
+                            LinearGradient(
+                                colors: [accentColor.opacity(0.2), accentColor.opacity(0.08)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 52, height: 52)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(compound.name)
-                    .font(.system(.subheadline, weight: .bold))
-                    .foregroundStyle(PepTheme.textPrimary)
+                    Image(systemName: compound.iconName)
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(accentColor)
+                        .symbolRenderingMode(.hierarchical)
+                }
 
-                Text(compound.peptideType)
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(compound.name)
+                        .font(.system(.subheadline, weight: .bold))
+                        .foregroundStyle(PepTheme.textPrimary)
 
-                HStack(spacing: 10) {
-                    HStack(spacing: 3) {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.yellow)
-                        Text(String(format: "%.1f", compound.averageRating))
-                            .font(.system(.caption2, weight: .semibold))
-                            .foregroundStyle(PepTheme.textSecondary)
+                    Text(compound.peptideType)
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .lineLimit(1)
+
+                    HStack(spacing: 12) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.yellow)
+                            Text(String(format: "%.1f", compound.averageRating))
+                                .font(.system(.caption2, weight: .bold))
+                                .foregroundStyle(PepTheme.textPrimary)
+                        }
+
+                        HStack(spacing: 3) {
+                            Image(systemName: "person.2.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(accentColor.opacity(0.7))
+                            Text("\(compound.communityUsers)")
+                                .font(.system(.caption2, weight: .medium))
+                                .foregroundStyle(PepTheme.textSecondary)
+                        }
+
+                        if !compound.sideEffects.isEmpty {
+                            HStack(spacing: 3) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(.orange.opacity(0.7))
+                                Text("\(compound.sideEffects.count)")
+                                    .font(.system(.caption2, weight: .medium))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                        }
                     }
+                }
 
-                    HStack(spacing: 3) {
-                        Image(systemName: "person.2.fill")
-                            .font(.system(size: 9))
-                            .foregroundStyle(PepTheme.teal)
-                        Text("\(compound.communityUsers)")
-                            .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    ForEach(compound.categories.prefix(2)) { cat in
+                        Text(cat.rawValue)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(cat.color)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(cat.color.opacity(0.12))
+                            .clipShape(.capsule)
                     }
                 }
             }
-
-            Spacer()
-
-            HStack(spacing: 4) {
-                ForEach(compound.categories.prefix(2)) { cat in
-                    Text(cat.rawValue)
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(cat.color)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(cat.color.opacity(0.12))
-                        .clipShape(.capsule)
-                }
-            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
         }
-        .padding(14)
         .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 14))
+        .clipShape(.rect(cornerRadius: 16))
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
@@ -285,15 +407,23 @@ struct VendorCardView: View {
         HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(vendor.isVerified ? PepTheme.teal.opacity(0.15) : PepTheme.elevated)
-                    .frame(width: 50, height: 50)
+                    .fill(
+                        LinearGradient(
+                            colors: vendor.isVerified
+                                ? [PepTheme.teal.opacity(0.2), PepTheme.teal.opacity(0.08)]
+                                : [PepTheme.elevated, PepTheme.elevated],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 52, height: 52)
 
                 Image(systemName: vendor.isVerified ? "checkmark.shield.fill" : "building.2.fill")
-                    .font(.title3)
+                    .font(.system(size: 22))
                     .foregroundStyle(vendor.isVerified ? PepTheme.teal : PepTheme.textSecondary)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
                     Text(vendor.name)
                         .font(.system(.subheadline, weight: .bold))
@@ -306,35 +436,41 @@ struct VendorCardView: View {
                     }
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     HStack(spacing: 3) {
                         Image(systemName: "star.fill")
                             .font(.system(size: 9))
                             .foregroundStyle(.yellow)
                         Text(String(format: "%.1f", vendor.rating))
-                            .font(.system(.caption2, weight: .semibold))
+                            .font(.system(.caption2, weight: .bold))
+                            .foregroundStyle(PepTheme.textPrimary)
                         Text("(\(vendor.reviewCount))")
                             .font(.caption2)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
-                    .foregroundStyle(PepTheme.textSecondary)
 
-                    Text("\(vendor.compoundsCarried.count) compounds")
-                        .font(.caption2)
-                        .foregroundStyle(PepTheme.textSecondary)
+                    HStack(spacing: 3) {
+                        Image(systemName: "pill.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(PepTheme.teal.opacity(0.7))
+                        Text("\(vendor.compoundsCarried.count) compounds")
+                            .font(.caption2)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
                 }
             }
 
             Spacer()
 
             Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(PepTheme.textSecondary)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
         }
         .padding(14)
         .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 14))
+        .clipShape(.rect(cornerRadius: 16))
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5

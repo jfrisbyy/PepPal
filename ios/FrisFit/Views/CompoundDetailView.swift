@@ -3,20 +3,34 @@ import SwiftUI
 struct CompoundDetailView: View {
     let compound: CompoundProfile
     @State private var selectedTab: CompoundTab = .overview
+    @State private var headerVisible: Bool = false
+
+    private var accentColor: Color {
+        compound.categories.first?.color ?? PepTheme.teal
+    }
 
     private enum CompoundTab: String, CaseIterable {
         case overview = "Overview"
         case protocols = "Protocols"
         case community = "Community"
         case sourcing = "Sourcing"
+
+        var icon: String {
+            switch self {
+            case .overview: return "info.circle.fill"
+            case .protocols: return "list.bullet.clipboard.fill"
+            case .community: return "person.3.fill"
+            case .sourcing: return "building.2.fill"
+            }
+        }
     }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                headerSection
+                heroHeader
                 tabBar
-                    .padding(.top, 16)
+                    .padding(.top, 8)
 
                 switch selectedTab {
                 case .overview:
@@ -34,186 +48,211 @@ struct CompoundDetailView: View {
         .scrollIndicators(.hidden)
         .background(PepTheme.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private var headerSection: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                (compound.categories.first?.color ?? PepTheme.teal).opacity(0.2),
-                                PepTheme.background
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .frame(height: 140)
-
-                VStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill((compound.categories.first?.color ?? PepTheme.teal).opacity(0.15))
-                            .frame(width: 72, height: 72)
-
-                        Image(systemName: compound.iconName)
-                            .font(.system(size: 32))
-                            .foregroundStyle(compound.categories.first?.color ?? PepTheme.teal)
-                    }
-
-                    VStack(spacing: 4) {
-                        Text(compound.name)
-                            .font(.system(.title2, design: .rounded, weight: .bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-
-                        Text(compound.peptideType)
-                            .font(.subheadline)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                }
-                .offset(y: 20)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.6)) {
+                headerVisible = true
             }
-
-            HStack(spacing: 6) {
-                ForEach(compound.categories) { cat in
-                    HStack(spacing: 4) {
-                        Image(systemName: cat.icon)
-                            .font(.system(size: 10))
-                        Text(cat.rawValue)
-                            .font(.system(.caption, weight: .semibold))
-                    }
-                    .foregroundStyle(cat.color)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(cat.color.opacity(0.12))
-                    .clipShape(.capsule)
-                }
-            }
-            .padding(.top, 24)
-
-            HStack(spacing: 24) {
-                VStack(spacing: 2) {
-                    HStack(spacing: 3) {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.yellow)
-                        Text(String(format: "%.1f", compound.averageRating))
-                            .font(.system(.headline, design: .rounded, weight: .bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-                    Text("Rating")
-                        .font(.caption2)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-
-                Rectangle()
-                    .fill(PepTheme.separatorColor)
-                    .frame(width: 1, height: 32)
-
-                VStack(spacing: 2) {
-                    Text("\(compound.communityUsers)")
-                        .font(.system(.headline, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("Tracking")
-                        .font(.caption2)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-
-                Rectangle()
-                    .fill(PepTheme.separatorColor)
-                    .frame(width: 1, height: 32)
-
-                VStack(spacing: 2) {
-                    Text("\(compound.sideEffects.count)")
-                        .font(.system(.headline, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("Side Effects")
-                        .font(.caption2)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-            }
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity)
-            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-            .clipShape(.rect(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-            )
-            .padding(.horizontal)
         }
     }
 
-    private var tabBar: some View {
+    private var heroHeader: some View {
+        ZStack(alignment: .bottom) {
+            MeshGradient(
+                width: 3, height: 3,
+                points: [
+                    [0, 0], [0.5, 0], [1, 0],
+                    [0, 0.5], [0.6, 0.4], [1, 0.5],
+                    [0, 1], [0.5, 1], [1, 1]
+                ],
+                colors: [
+                    accentColor.opacity(0.6), accentColor.opacity(0.3), PepTheme.violet.opacity(0.3),
+                    accentColor.opacity(0.4), accentColor.opacity(0.5), PepTheme.blue.opacity(0.3),
+                    PepTheme.background, PepTheme.background, PepTheme.background
+                ]
+            )
+            .frame(height: 260)
+
+            VStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 76, height: 76)
+                    Circle()
+                        .fill(accentColor.opacity(0.15))
+                        .frame(width: 76, height: 76)
+                    Image(systemName: compound.iconName)
+                        .font(.system(size: 34, weight: .medium))
+                        .foregroundStyle(accentColor)
+                        .symbolRenderingMode(.hierarchical)
+                }
+                .opacity(headerVisible ? 1 : 0)
+                .offset(y: headerVisible ? 0 : 10)
+
+                VStack(spacing: 5) {
+                    Text(compound.name)
+                        .font(.system(.title2, weight: .bold))
+                        .foregroundStyle(PepTheme.textPrimary)
+
+                    Text(compound.peptideType)
+                        .font(.system(.subheadline, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .opacity(headerVisible ? 1 : 0)
+
+                HStack(spacing: 6) {
+                    ForEach(compound.categories) { cat in
+                        HStack(spacing: 4) {
+                            Image(systemName: cat.icon)
+                                .font(.system(size: 9))
+                            Text(cat.rawValue)
+                                .font(.system(.caption2, weight: .bold))
+                        }
+                        .foregroundStyle(cat.color)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(cat.color.opacity(0.12))
+                        .clipShape(.capsule)
+                    }
+                }
+
+                statsRow
+                    .padding(.top, 4)
+            }
+            .padding(.bottom, 16)
+        }
+    }
+
+    private var statsRow: some View {
         HStack(spacing: 0) {
+            statItem(
+                value: String(format: "%.1f", compound.averageRating),
+                label: "Rating",
+                icon: "star.fill",
+                iconColor: .yellow
+            )
+
+            statDivider
+
+            statItem(
+                value: formatNumber(compound.communityUsers),
+                label: "Tracking",
+                icon: "person.2.fill",
+                iconColor: accentColor
+            )
+
+            statDivider
+
+            statItem(
+                value: "\(compound.sideEffects.count)",
+                label: "Side Effects",
+                icon: "exclamationmark.triangle.fill",
+                iconColor: .orange
+            )
+
+            statDivider
+
+            statItem(
+                value: "\(compound.stackPartners.count)",
+                label: "Stacks",
+                icon: "link",
+                iconColor: PepTheme.violet
+            )
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 8)
+        .background(.ultraThinMaterial)
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+        .padding(.horizontal, 16)
+    }
+
+    private func statItem(value: String, label: String, icon: String, iconColor: Color) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+                .foregroundStyle(iconColor)
+            Text(value)
+                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text(label)
+                .font(.system(.caption2, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var statDivider: some View {
+        Rectangle()
+            .fill(PepTheme.separatorColor)
+            .frame(width: 1, height: 36)
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 4) {
             ForEach(CompoundTab.allCases, id: \.self) { tab in
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         selectedTab = tab
                     }
                 } label: {
-                    VStack(spacing: 8) {
+                    HStack(spacing: 4) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 10))
                         Text(tab.rawValue)
                             .font(.system(.caption, weight: selectedTab == tab ? .bold : .medium))
-                            .foregroundStyle(selectedTab == tab ? PepTheme.textPrimary : PepTheme.textSecondary)
-                            .frame(maxWidth: .infinity)
-
-                        Rectangle()
-                            .fill(selectedTab == tab ? PepTheme.teal : .clear)
-                            .frame(height: 2)
-                            .clipShape(.capsule)
                     }
+                    .foregroundStyle(selectedTab == tab ? accentColor : PepTheme.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(selectedTab == tab ? accentColor.opacity(0.1) : .clear)
+                    .clipShape(.rect(cornerRadius: 10))
                 }
                 .sensoryFeedback(.selection, trigger: selectedTab)
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 16)
     }
 
+    // MARK: - Overview
+
     private var overviewSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             disclaimerBanner
 
             GlassCard {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundStyle(PepTheme.teal)
-                        Text("About")
-                            .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
+                VStack(alignment: .leading, spacing: 12) {
+                    sectionHeader(icon: "doc.text.fill", title: "About", color: accentColor)
 
                     Text(compound.overview)
                         .font(.subheadline)
                         .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                        .lineSpacing(4)
+                        .lineSpacing(5)
                 }
             }
 
             if !compound.sideEffects.isEmpty {
                 GlassCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                            Text("Commonly Reported Side Effects")
-                                .font(.system(.subheadline, weight: .semibold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                        }
+                    VStack(alignment: .leading, spacing: 12) {
+                        sectionHeader(icon: "exclamationmark.triangle.fill", title: "Commonly Reported Side Effects", color: .orange)
 
-                        VStack(alignment: .leading, spacing: 6) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 8)], spacing: 8) {
                             ForEach(compound.sideEffects, id: \.self) { effect in
-                                HStack(spacing: 8) {
+                                HStack(spacing: 6) {
                                     Circle()
                                         .fill(.orange.opacity(0.6))
                                         .frame(width: 5, height: 5)
                                     Text(effect)
-                                        .font(.subheadline)
+                                        .font(.system(.caption, weight: .medium))
                                         .foregroundStyle(PepTheme.textPrimary.opacity(0.8))
+                                    Spacer()
                                 }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(.orange.opacity(0.06))
+                                .clipShape(.rect(cornerRadius: 8))
                             }
                         }
                     }
@@ -222,28 +261,31 @@ struct CompoundDetailView: View {
 
             if !compound.stackPartners.isEmpty {
                 GlassCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "link")
-                                .foregroundStyle(PepTheme.violet)
-                            Text("Common Stack Partners")
-                                .font(.system(.subheadline, weight: .semibold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                        }
+                    VStack(alignment: .leading, spacing: 12) {
+                        sectionHeader(icon: "link", title: "Common Stack Partners", color: PepTheme.violet)
 
                         HStack(spacing: 8) {
                             ForEach(compound.stackPartners, id: \.self) { partner in
-                                HStack(spacing: 4) {
+                                HStack(spacing: 5) {
                                     Image(systemName: "pill.fill")
                                         .font(.system(size: 10))
                                     Text(partner)
-                                        .font(.system(.caption, weight: .semibold))
+                                        .font(.system(.caption, weight: .bold))
                                 }
                                 .foregroundStyle(PepTheme.violet)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(PepTheme.violet.opacity(0.1))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    LinearGradient(
+                                        colors: [PepTheme.violet.opacity(0.12), PepTheme.violet.opacity(0.06)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
                                 .clipShape(.capsule)
+                                .overlay(
+                                    Capsule().strokeBorder(PepTheme.violet.opacity(0.15), lineWidth: 0.5)
+                                )
                             }
                         }
                     }
@@ -254,153 +296,201 @@ struct CompoundDetailView: View {
         .padding(.top, 12)
     }
 
-    private var disclaimerBanner: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.shield.fill")
-                .font(.title3)
-                .foregroundStyle(PepTheme.amber)
-
-            Text("This information is for educational and research purposes only. It is not medical advice. Consult a healthcare professional before using any peptide.")
-                .font(.caption)
-                .foregroundStyle(PepTheme.textSecondary)
-                .lineSpacing(2)
-        }
-        .padding(12)
-        .background(PepTheme.amber.opacity(0.08))
-        .clipShape(.rect(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(PepTheme.amber.opacity(0.2), lineWidth: 0.5)
-        )
-    }
+    // MARK: - Protocols
 
     private var protocolsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             disclaimerBanner
 
-            ForEach(compound.protocols) { proto in
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(proto.goalName)
-                            .font(.system(.subheadline, weight: .bold))
-                            .foregroundStyle(PepTheme.teal)
+            if compound.protocols.isEmpty {
+                emptyStateCard(
+                    icon: "doc.text.magnifyingglass",
+                    title: "No Protocol Data Yet",
+                    subtitle: "Community-sourced protocols coming soon"
+                )
+            } else {
+                ForEach(compound.protocols) { proto in
+                    GlassCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 8) {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(accentColor)
+                                    .frame(width: 4, height: 20)
+                                Text(proto.goalName)
+                                    .font(.system(.subheadline, weight: .bold))
+                                    .foregroundStyle(accentColor)
+                            }
 
-                        Text(proto.description)
-                            .font(.subheadline)
-                            .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                            Text(proto.description)
+                                .font(.subheadline)
+                                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                                .lineSpacing(3)
 
-                        HStack(spacing: 16) {
-                            protocolStat(label: "Dose", value: proto.typicalDose)
-                            protocolStat(label: "Frequency", value: proto.frequency)
-                            protocolStat(label: "Duration", value: proto.duration)
+                            HStack(spacing: 0) {
+                                protocolMetric(icon: "syringe.fill", label: "Dose", value: proto.typicalDose, color: accentColor)
+                                protocolMetric(icon: "clock.fill", label: "Frequency", value: proto.frequency, color: PepTheme.blue)
+                                protocolMetric(icon: "calendar", label: "Duration", value: proto.duration, color: PepTheme.violet)
+                            }
+                            .padding(10)
+                            .background(PepTheme.elevated.opacity(0.5))
+                            .clipShape(.rect(cornerRadius: 12))
                         }
                     }
                 }
             }
-
-            if compound.protocols.isEmpty {
-                GlassCard {
-                    VStack(spacing: 8) {
-                        Image(systemName: "doc.text.magnifyingglass")
-                            .font(.title2)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                        Text("No protocol data available yet")
-                            .font(.subheadline)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                }
-            }
         }
         .padding(.horizontal)
         .padding(.top, 12)
     }
 
-    private func protocolStat(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.system(.caption2, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
-            Text(value)
-                .font(.system(.caption, weight: .semibold))
-                .foregroundStyle(PepTheme.textPrimary)
-        }
-    }
-
-    private var communitySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            GlassCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "chart.bar.fill")
-                            .foregroundStyle(PepTheme.teal)
-                        Text("Community Stats")
-                            .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-
-                    HStack(spacing: 0) {
-                        communityStat(value: "\(compound.communityUsers)", label: "Users Tracking", icon: "person.2.fill", color: PepTheme.teal)
-                        communityStat(value: String(format: "%.1f", compound.averageRating), label: "Avg Rating", icon: "star.fill", color: .yellow)
-                        communityStat(value: "\(compound.stackPartners.count)", label: "Stack Partners", icon: "link", color: PepTheme.violet)
-                    }
-                }
-            }
-
-            GlassCard {
-                VStack(spacing: 12) {
-                    Image(systemName: "person.3.fill")
-                        .font(.title2)
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                    Text("Community reviews coming soon")
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.textSecondary)
-                    Text("Rate and review this compound to help others in the community.")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-            }
-        }
-        .padding(.horizontal)
-        .padding(.top, 12)
-    }
-
-    private func communityStat(value: String, label: String, icon: String, color: Color) -> some View {
+    private func protocolMetric(icon: String, label: String, value: String, color: Color) -> some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.caption)
+                .font(.system(size: 12))
                 .foregroundStyle(color)
             Text(value)
-                .font(.system(.headline, design: .rounded, weight: .bold))
+                .font(.system(.caption, weight: .bold))
                 .foregroundStyle(PepTheme.textPrimary)
+                .multilineTextAlignment(.center)
             Text(label)
-                .font(.caption2)
+                .font(.system(.caption2, weight: .medium))
                 .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - Community
+
+    private var communitySection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            GlassCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    sectionHeader(icon: "chart.bar.fill", title: "Community Stats", color: accentColor)
+
+                    HStack(spacing: 0) {
+                        communityMetric(
+                            value: formatNumber(compound.communityUsers),
+                            label: "Users",
+                            icon: "person.2.fill",
+                            color: accentColor
+                        )
+                        communityMetric(
+                            value: String(format: "%.1f", compound.averageRating),
+                            label: "Rating",
+                            icon: "star.fill",
+                            color: .yellow
+                        )
+                        communityMetric(
+                            value: "\(compound.stackPartners.count)",
+                            label: "Stacks",
+                            icon: "link",
+                            color: PepTheme.violet
+                        )
+                        communityMetric(
+                            value: "\(compound.protocols.count)",
+                            label: "Protocols",
+                            icon: "list.bullet",
+                            color: PepTheme.blue
+                        )
+                    }
+                }
+            }
+
+            ratingBreakdownCard
+
+            emptyStateCard(
+                icon: "bubble.left.and.bubble.right.fill",
+                title: "Community Reviews Coming Soon",
+                subtitle: "Rate and review this compound to help others"
+            )
+        }
+        .padding(.horizontal)
+        .padding(.top, 12)
+    }
+
+    private var ratingBreakdownCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "star.fill", title: "Rating Breakdown", color: .yellow)
+
+                VStack(spacing: 6) {
+                    ForEach((1...5).reversed(), id: \.self) { star in
+                        let percentage = ratingPercentage(for: star)
+                        HStack(spacing: 8) {
+                            Text("\(star)")
+                                .font(.system(.caption2, weight: .bold))
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .frame(width: 12)
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.yellow)
+
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(PepTheme.elevated)
+                                        .frame(height: 6)
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(.yellow.opacity(0.7))
+                                        .frame(width: geo.size.width * percentage, height: 6)
+                                }
+                            }
+                            .frame(height: 6)
+
+                            Text("\(Int(percentage * 100))%")
+                                .font(.system(.caption2, weight: .medium))
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .frame(width: 32, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func ratingPercentage(for star: Int) -> Double {
+        let rating = compound.averageRating
+        switch star {
+        case 5: return min(1.0, max(0, (rating - 4.0) / 1.0) * 0.6)
+        case 4: return min(1.0, max(0, rating / 5.0) * 0.3)
+        case 3: return 0.07
+        case 2: return 0.02
+        default: return 0.01
+        }
+    }
+
+    private func communityMetric(value: String, label: String, icon: String, color: Color) -> some View {
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.12))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(color)
+            }
+            Text(value)
+                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text(label)
+                .font(.system(.caption2, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Sourcing
+
     private var sourcingSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             let matchingVendors = CompoundDatabase.vendors(for: compound.name)
 
             if matchingVendors.isEmpty {
-                GlassCard {
-                    VStack(spacing: 8) {
-                        Image(systemName: "building.2")
-                            .font(.title2)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                        Text("No verified vendors listed yet")
-                            .font(.subheadline)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                }
+                emptyStateCard(
+                    icon: "building.2",
+                    title: "No Verified Vendors",
+                    subtitle: "Verified vendor listings coming soon"
+                )
             } else {
                 ForEach(matchingVendors) { vendor in
                     NavigationLink(value: vendor) {
@@ -412,5 +502,69 @@ struct CompoundDetailView: View {
         }
         .padding(.horizontal)
         .padding(.top, 12)
+    }
+
+    // MARK: - Helpers
+
+    private var disclaimerBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.shield.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(PepTheme.amber)
+
+            Text("For educational and research purposes only. Not medical advice. Consult a healthcare professional.")
+                .font(.caption)
+                .foregroundStyle(PepTheme.textSecondary)
+                .lineSpacing(2)
+        }
+        .padding(12)
+        .background(PepTheme.amber.opacity(0.08))
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(PepTheme.amber.opacity(0.15), lineWidth: 0.5)
+        )
+    }
+
+    private func sectionHeader(icon: String, title: String, color: Color) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: icon)
+                .font(.system(size: 13))
+                .foregroundStyle(color)
+            Text(title)
+                .font(.system(.subheadline, weight: .bold))
+                .foregroundStyle(PepTheme.textPrimary)
+        }
+    }
+
+    private func emptyStateCard(icon: String, title: String, subtitle: String) -> some View {
+        GlassCard {
+            VStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(PepTheme.elevated)
+                        .frame(width: 52, height: 52)
+                    Image(systemName: icon)
+                        .font(.system(size: 22))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                }
+                Text(title)
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+    }
+
+    private func formatNumber(_ num: Int) -> String {
+        if num >= 1000 {
+            return String(format: "%.1fK", Double(num) / 1000.0)
+        }
+        return "\(num)"
     }
 }

@@ -13,6 +13,10 @@ final class DiscoverViewModel {
         case vendors = "Vendors"
     }
 
+    var featuredCompounds: [CompoundProfile] {
+        Array(compounds.sorted { $0.communityUsers > $1.communityUsers }.prefix(5))
+    }
+
     var filteredCompounds: [CompoundProfile] {
         var result = selectedCategory == .all ? compounds : compounds.filter { $0.categories.contains(selectedCategory) }
         if !searchText.isEmpty {
