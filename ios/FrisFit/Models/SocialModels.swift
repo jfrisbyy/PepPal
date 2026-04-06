@@ -6,9 +6,32 @@ nonisolated struct SocialUser: Identifiable, Hashable, Sendable {
     let username: String
     let avatarInitial: String
     let avatarColor: Color
+    let avatarURL: String?
     let activeProgramName: String?
     let streak: Int
     let totalFP: Int
+
+    init(
+        id: UUID,
+        name: String,
+        username: String,
+        avatarInitial: String,
+        avatarColor: Color,
+        avatarURL: String? = nil,
+        activeProgramName: String?,
+        streak: Int,
+        totalFP: Int
+    ) {
+        self.id = id
+        self.name = name
+        self.username = username
+        self.avatarInitial = avatarInitial
+        self.avatarColor = avatarColor
+        self.avatarURL = avatarURL
+        self.activeProgramName = activeProgramName
+        self.streak = streak
+        self.totalFP = totalFP
+    }
 
     nonisolated func hash(into hasher: inout Hasher) {
         hasher.combine(id)

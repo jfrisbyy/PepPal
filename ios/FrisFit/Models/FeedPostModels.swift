@@ -156,6 +156,7 @@ nonisolated struct FeedPost: Identifiable, Sendable {
 
     let tags: [FeedTag]
     let isFollowing: Bool
+    let supabaseId: String?
 
     init(
         id: UUID = UUID(),
@@ -168,7 +169,8 @@ nonisolated struct FeedPost: Identifiable, Sendable {
         comments: [PostComment] = [],
         repostCount: Int = 0,
         tags: [FeedTag] = [],
-        isFollowing: Bool = false
+        isFollowing: Bool = false,
+        supabaseId: String? = nil
     ) {
         self.id = id
         self.user = user
@@ -181,6 +183,7 @@ nonisolated struct FeedPost: Identifiable, Sendable {
         self.repostCount = repostCount
         self.tags = tags
         self.isFollowing = isFollowing
+        self.supabaseId = supabaseId
     }
 
     var hasMedia: Bool { !media.isEmpty }

@@ -4,18 +4,8 @@ import PhotosUI
 struct PostComposerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = PostComposerViewModel()
-    let onPost: (FeedPost) -> Void
-
-    private let currentUser = SocialUser(
-        id: UUID(),
-        name: "You",
-        username: "me",
-        avatarInitial: "Y",
-        avatarColor: Color(red: 0, green: 229/255, blue: 255/255),
-        activeProgramName: nil,
-        streak: 12,
-        totalFP: 7200
-    )
+    @State private var isPosting: Bool = false
+    let socialViewModel: SocialViewModel
 
     var body: some View {
         NavigationStack {
@@ -44,15 +34,22 @@ struct PostComposerView: View {
                     Button {
                         postAction()
                     } label: {
-                        Text("Post")
-                            .font(.system(.subheadline, weight: .bold))
-                            .foregroundStyle(viewModel.canPost && !viewModel.isOverLimit ? PepTheme.invertedText : PepTheme.textSecondary)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 8)
-                            .background(viewModel.canPost && !viewModel.isOverLimit ? PepTheme.teal : PepTheme.elevated)
-                            .clipShape(.capsule)
+                        if isPosting {
+                            ProgressView()
+                                .tint(.white)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 8)
+                        } else {
+                            Text("Post")
+                                .font(.system(.subheadline, weight: .bold))
+                                .foregroundStyle(viewModel.canPost && !viewModel.isOverLimit ? PepTheme.invertedText : PepTheme.textSecondary)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 8)
+                                .background(viewModel.canPost && !viewModel.isOverLimit ? PepTheme.teal : PepTheme.elevated)
+                                .clipShape(.capsule)
+                        }
                     }
-                    .disabled(!viewModel.canPost || viewModel.isOverLimit)
+                    .disabled(!viewModel.canPost || viewModel.isOverLimit || isPosting)
                 }
             }
             .photosPicker(
@@ -80,21 +77,18 @@ struct PostComposerView: View {
     private var composerHeader: some View {
         HStack(alignment: .top, spacing: 12) {
             Circle()
-                .fill(currentUser.avatarColor.opacity(0.2))
+                .fill(Color(red: 0, green: 0.9, blue: 1).opacity(0.2))
                 .frame(width: 40, height: 40)
                 .overlay {
-                    Text(currentUser.avatarInitial)
-                        .font(.system(.headline, design: .rounded, weight: .bold))
-                        .foregroundStyle(currentUser.avatarColor)
+                    Image(systemName: "person.fill")
+                        .font(.system(.headline))
+                        .foregroundStyle(Color(red: 0, green: 0.9, blue: 1))
                 }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(currentUser.name)
+                Text("New Post")
                     .font(.system(.subheadline, weight: .semibold))
                     .foregroundStyle(PepTheme.textPrimary)
-                Text("@\(currentUser.username)")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -521,11 +515,16 @@ struct PostComposerView: View {
     }
 
     private func postAction() {
-        guard viewModel.canPost, !viewModel.isOverLimit else { return }
-        viewModel.isPosting = true
-        let post = viewModel.createPost(user: currentUser)
-        onPost(post)
-        dismiss()
+        guard viewModel.canPost, !viewModel.isOverLimit, !isPosting else { return }
+        isPosting = true
+        Task {
+            _ = await socialViewModel.createPost(
+                textContent: viewModel.textContent.trimmingCharacters(in: .whitespacesAndNewlines),
+                images: viewModel.loadedImages,
+                tags: Array(viewModel.selectedTags)
+            )
+            dismiss()
+        }
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {

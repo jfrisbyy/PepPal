@@ -82,4 +82,11 @@ final class AuthService {
         errorMessage = nil
         try await supabase.auth.resetPasswordForEmail(email)
     }
+
+    func currentUserId() throws -> String {
+        guard let session else {
+            throw NSError(domain: "AuthService", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+        }
+        return session.user.id.uuidString
+    }
 }

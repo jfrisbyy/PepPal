@@ -60,21 +60,19 @@ struct SocialView: View {
                     }
                 }
             }
+            .sheet(item: $commentFeedPost) { post in
+                FeedCommentsSheet(post: post, viewModel: viewModel)
+            }
             .sheet(isPresented: $showComposer) {
-                PostComposerView { post in
-                    viewModel.addFeedPost(post)
-                }
+                PostComposerView(socialViewModel: viewModel)
             }
             .navigationDestination(for: SocialUser.self) { user in
                 UserProfileView(user: user, viewModel: profileViewModel)
             }
-            .onAppear {
-                if isLoading {
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(500))
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                            isLoading = false
-                        }
+            .onChange(of: viewModel.isLoadingFeed) { _, newValue in
+                if !newValue && isLoading {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        isLoading = false
                     }
                 }
             }
@@ -151,7 +149,7 @@ struct SocialView: View {
         }
         .scrollIndicators(.hidden)
         .refreshable {
-            try? await Task.sleep(for: .seconds(1))
+            await viewModel.refreshFeed()
         }
     }
 
