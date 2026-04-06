@@ -2,17 +2,42 @@ import SwiftUI
 
 struct DailyTasksDetailView: View {
     @Bindable var viewModel: HomeViewModel
-    @State private var selectedCategory: TaskCategory? = nil
+    @State private var selectedCategory: String? = nil
     @State private var toggleTrigger: Int = 0
-    @State private var collapsedCategories: Set<TaskCategory> = []
+    @State private var collapsedCategories: Set<String> = []
     @State private var showAddTask: Bool = false
     @State private var editingTask: DailyTask? = nil
 
-    private var filteredCategories: [TaskCategory] {
-        if let selected = selectedCategory {
-            return [selected]
+    private struct CategoryInfo: Identifiable {
+        let id: String
+        let name: String
+        let icon: String
+        let color: Color
+        let tasks: [DailyTask]
+    }
+
+    private var allCategoryInfos: [CategoryInfo] {
+        var infos: [CategoryInfo] = []
+        for cat in TaskCategory.builtInCases {
+            let tasks = viewModel.todaysTasks(for: cat)
+            if !tasks.isEmpty {
+                infos.append(CategoryInfo(id: cat.rawValue, name: cat.rawValue, icon: cat.icon, color: cat.color, tasks: tasks))
+            }
         }
-        return TaskCategory.allCases
+        for custom in viewModel.customCategories {
+            let tasks = viewModel.todaysTasks(forCustom: custom.id)
+            if !tasks.isEmpty {
+                infos.append(CategoryInfo(id: custom.id.uuidString, name: custom.name, icon: custom.icon, color: custom.color, tasks: tasks))
+            }
+        }
+        return infos
+    }
+
+    private var filteredInfos: [CategoryInfo] {
+        if let sel = selectedCategory {
+            return allCategoryInfos.filter { $0.id == sel }
+        }
+        return allCategoryInfos
     }
 
     private var todaysTasks: [DailyTask] {
@@ -84,20 +109,23 @@ struct DailyTasksDetailView: View {
     private var categoryFilter: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                categoryPill(title: "All", category: nil)
-                ForEach(TaskCategory.allCases) { category in
-                    categoryPill(title: category.rawValue, category: category)
+                categoryPill(title: "All", key: nil)
+                ForEach(TaskCategory.builtInCases) { category in
+                    categoryPill(title: category.rawValue, key: category.rawValue)
+                }
+                ForEach(viewModel.customCategories) { custom in
+                    categoryPill(title: custom.name, key: custom.id.uuidString)
                 }
             }
         }
         .contentMargins(.horizontal, 16)
     }
 
-    private func categoryPill(title: String, category: TaskCategory?) -> some View {
-        let isSelected = selectedCategory == category
+    private func categoryPill(title: String, key: String?) -> some View {
+        let isSelected = selectedCategory == key
         return Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                selectedCategory = category
+                selectedCategory = key
             }
         } label: {
             Text(title)
@@ -113,46 +141,43 @@ struct DailyTasksDetailView: View {
 
     private var tasksList: some View {
         VStack(spacing: 20) {
-            ForEach(filteredCategories) { category in
-                let tasks = viewModel.todaysTasks(for: category)
-                if !tasks.isEmpty {
-                    categorySection(category, tasks: tasks)
-                }
+            ForEach(filteredInfos) { info in
+                categorySection(info)
             }
         }
         .padding(.horizontal)
     }
 
-    private func categorySection(_ category: TaskCategory, tasks: [DailyTask]) -> some View {
-        let isCollapsed = collapsedCategories.contains(category)
-        let completed = tasks.filter(\.isCompleted).count
+    private func categorySection(_ info: CategoryInfo) -> some View {
+        let isCollapsed = collapsedCategories.contains(info.id)
+        let completed = info.tasks.filter(\.isCompleted).count
 
         return VStack(alignment: .leading, spacing: 0) {
             Button {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                     if isCollapsed {
-                        collapsedCategories.remove(category)
+                        collapsedCategories.remove(info.id)
                     } else {
-                        collapsedCategories.insert(category)
+                        collapsedCategories.insert(info.id)
                     }
                 }
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: category.icon)
+                    Image(systemName: info.icon)
                         .font(.subheadline)
-                        .foregroundStyle(category.color)
-                    Text(category.rawValue)
+                        .foregroundStyle(info.color)
+                    Text(info.name)
                         .font(.system(.headline, weight: .semibold))
                         .foregroundStyle(PepTheme.textPrimary)
 
                     Spacer()
 
-                    Text("\(completed)/\(tasks.count)")
+                    Text("\(completed)/\(info.tasks.count)")
                         .font(.system(.caption, design: .rounded, weight: .bold))
-                        .foregroundStyle(category.color)
+                        .foregroundStyle(info.color)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(category.color.opacity(0.15))
+                        .background(info.color.opacity(0.15))
                         .clipShape(.capsule)
 
                     Image(systemName: "chevron.right")
@@ -168,10 +193,10 @@ struct DailyTasksDetailView: View {
 
             if !isCollapsed {
                 VStack(spacing: 0) {
-                    ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
-                        taskRow(task: task, color: category.color)
+                    ForEach(Array(info.tasks.enumerated()), id: \.element.id) { index, task in
+                        taskRow(task: task, color: info.color)
 
-                        if index < tasks.count - 1 {
+                        if index < info.tasks.count - 1 {
                             Divider()
                                 .overlay(PepTheme.cardOverlay)
                                 .padding(.leading, 44)
@@ -238,6 +263,12 @@ struct DailyTasksDetailView: View {
                                 .font(.system(size: 8))
                             Text(task.actionLink.rawValue)
                                 .font(.system(size: 9, weight: .medium))
+                            if let goalStr = viewModel.goalDisplayString(for: task.actionLink, target: task.actionTarget) {
+                                Text("·")
+                                    .font(.system(size: 8))
+                                Text(goalStr)
+                                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                            }
                         }
                         .foregroundStyle(PepTheme.teal.opacity(0.6))
                     }

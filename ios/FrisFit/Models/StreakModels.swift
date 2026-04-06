@@ -13,6 +13,14 @@ nonisolated struct ActivityLog: Identifiable, Sendable {
     let id: UUID
     let date: Date
     let type: ActivityType
+    let sport: Sport?
+
+    init(id: UUID, date: Date, type: ActivityType, sport: Sport? = nil) {
+        self.id = id
+        self.date = date
+        self.type = type
+        self.sport = sport
+    }
 }
 
 nonisolated enum ActivityType: String, Sendable {

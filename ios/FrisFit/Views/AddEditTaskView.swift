@@ -8,11 +8,14 @@ struct AddEditTaskView: View {
     @State private var name: String = ""
     @State private var selectedIcon: String = "star.fill"
     @State private var selectedCategory: TaskCategory = .fitness
+    @State private var selectedCustomCategoryId: UUID? = nil
     @State private var scheduleType: TaskScheduleType = .daily
     @State private var selectedDays: Set<Weekday> = Set(Weekday.allCases)
     @State private var oneTimeDate: Date = Date()
     @State private var actionLink: TaskActionLink = .none
     @State private var actionTarget: String = ""
+    @State private var expandedGroup: ActionLinkGroup? = nil
+    @State private var showCreateCategory: Bool = false
 
     private let iconOptions: [String] = [
         "star.fill", "dumbbell.fill", "figure.walk", "figure.run",
@@ -67,11 +70,19 @@ struct AddEditTaskView: View {
                     name = task.name
                     selectedIcon = task.icon
                     selectedCategory = task.category
+                    selectedCustomCategoryId = task.customCategoryId
                     scheduleType = task.scheduleType
                     selectedDays = task.scheduledDays
                     oneTimeDate = task.oneTimeDate ?? Date()
                     actionLink = task.actionLink
                     actionTarget = task.actionTarget > 0 ? "\(task.actionTarget)" : ""
+                    expandedGroup = actionLink.group
+                }
+            }
+            .sheet(isPresented: $showCreateCategory) {
+                CreateCategorySheet(viewModel: viewModel) { newCategory in
+                    selectedCategory = .custom
+                    selectedCustomCategoryId = newCategory.id
                 }
             }
         }
@@ -135,25 +146,78 @@ struct AddEditTaskView: View {
                 .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                 .tracking(0.5)
 
-            HStack(spacing: 8) {
-                ForEach(TaskCategory.allCases) { category in
+            let builtIn = TaskCategory.builtInCases
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: min(builtIn.count, 4))
+
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(builtIn) { category in
                     Button {
                         selectedCategory = category
+                        selectedCustomCategoryId = nil
                     } label: {
+                        let isSelected = selectedCategory == category && selectedCustomCategoryId == nil
                         VStack(spacing: 6) {
                             Image(systemName: category.icon)
                                 .font(.system(size: 14))
-                                .foregroundStyle(selectedCategory == category ? PepTheme.invertedText : category.color)
+                                .foregroundStyle(isSelected ? PepTheme.invertedText : category.color)
                             Text(category.rawValue)
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(selectedCategory == category ? PepTheme.invertedText : PepTheme.textSecondary)
+                                .foregroundStyle(isSelected ? PepTheme.invertedText : PepTheme.textSecondary)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(selectedCategory == category ? category.color : PepTheme.elevated)
+                        .background(isSelected ? category.color : PepTheme.elevated)
                         .clipShape(.rect(cornerRadius: 10))
                     }
                 }
+            }
+
+            if !viewModel.customCategories.isEmpty {
+                VStack(spacing: 6) {
+                    ForEach(viewModel.customCategories) { custom in
+                        Button {
+                            selectedCategory = .custom
+                            selectedCustomCategoryId = custom.id
+                        } label: {
+                            let isSelected = selectedCustomCategoryId == custom.id
+                            HStack(spacing: 10) {
+                                Image(systemName: custom.icon)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(isSelected ? PepTheme.invertedText : custom.color)
+                                    .frame(width: 24)
+                                Text(custom.name)
+                                    .font(.system(.subheadline, weight: .medium))
+                                    .foregroundStyle(isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
+                                Spacer()
+                                if isSelected {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(PepTheme.invertedText)
+                                }
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(isSelected ? custom.color : PepTheme.elevated)
+                            .clipShape(.rect(cornerRadius: 10))
+                        }
+                    }
+                }
+            }
+
+            Button {
+                showCreateCategory = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 13))
+                    Text("New Category")
+                        .font(.system(.caption, weight: .semibold))
+                }
+                .foregroundStyle(PepTheme.teal)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(PepTheme.teal.opacity(0.08))
+                .clipShape(.rect(cornerRadius: 10))
             }
         }
     }
@@ -247,47 +311,8 @@ struct AddEditTaskView: View {
                 .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
 
             VStack(spacing: 0) {
-                ForEach(TaskActionLink.allCases) { link in
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            actionLink = link
-                        }
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: link.icon)
-                                .font(.system(size: 14))
-                                .foregroundStyle(actionLink == link ? PepTheme.teal : PepTheme.textSecondary)
-                                .frame(width: 24)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(link.rawValue)
-                                    .font(.system(.subheadline, weight: .medium))
-                                    .foregroundStyle(actionLink == link ? PepTheme.textPrimary : PepTheme.textPrimary.opacity(0.7))
-                                Text(link.description)
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
-                                    .lineLimit(1)
-                            }
-
-                            Spacer()
-
-                            if actionLink == link {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(PepTheme.teal)
-                            }
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain)
-
-                    if link != TaskActionLink.allCases.last {
-                        Divider()
-                            .overlay(PepTheme.cardOverlay)
-                            .padding(.leading, 50)
-                    }
+                ForEach(ActionLinkGroup.allCases) { group in
+                    actionLinkGroupSection(group)
                 }
             }
             .background(PepTheme.cardSurface)
@@ -297,26 +322,142 @@ struct AddEditTaskView: View {
                     .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
 
-            if actionLink == .stepCounter {
-                HStack(spacing: 8) {
-                    Text("Step Goal")
-                        .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary)
-                    TextField("10000", text: $actionTarget)
-                        .font(.system(.body, design: .rounded, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                }
-                .padding(12)
-                .background(PepTheme.cardSurface)
-                .clipShape(.rect(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-                )
+            if actionLink.hasCustomTarget {
+                targetInputField
             }
         }
+    }
+
+    private func actionLinkGroupSection(_ group: ActionLinkGroup) -> some View {
+        let isGroupExpanded = expandedGroup == group
+        let groupContainsSelected = group.links.contains(actionLink)
+
+        return VStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    expandedGroup = isGroupExpanded ? nil : group
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Text(group.rawValue.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(groupContainsSelected ? PepTheme.teal : PepTheme.textSecondary.opacity(0.7))
+                        .tracking(0.5)
+
+                    if groupContainsSelected && !isGroupExpanded {
+                        HStack(spacing: 4) {
+                            Image(systemName: actionLink.icon)
+                                .font(.system(size: 9))
+                            Text(actionLink.rawValue)
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .foregroundStyle(PepTheme.teal)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(PepTheme.teal.opacity(0.12))
+                        .clipShape(.capsule)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                        .rotationEffect(.degrees(isGroupExpanded ? 90 : 0))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+
+            if isGroupExpanded {
+                ForEach(group.links) { link in
+                    actionLinkRow(link)
+                }
+            }
+
+            if group != ActionLinkGroup.allCases.last {
+                Divider()
+                    .overlay(PepTheme.cardOverlay)
+            }
+        }
+    }
+
+    private func actionLinkRow(_ link: TaskActionLink) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                actionLink = link
+                if !link.hasCustomTarget {
+                    actionTarget = ""
+                }
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: link.icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(actionLink == link ? PepTheme.teal : PepTheme.textSecondary)
+                    .frame(width: 24)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(link.rawValue)
+                        .font(.system(.subheadline, weight: .medium))
+                        .foregroundStyle(actionLink == link ? PepTheme.textPrimary : PepTheme.textPrimary.opacity(0.7))
+                    Text(link.description)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                if link.hasCustomTarget {
+                    let displayTarget = Int(actionTarget) ?? viewModel.defaultTarget(for: link)
+                    Text("\(displayTarget) \(link.targetUnit)")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                }
+
+                if actionLink == link {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(PepTheme.teal)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(actionLink == link ? PepTheme.teal.opacity(0.04) : Color.clear)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var targetInputField: some View {
+        HStack(spacing: 8) {
+            Text(actionLink.targetLabel)
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+
+            Spacer()
+
+            TextField(actionLink.targetPlaceholder, text: $actionTarget)
+                .font(.system(.body, design: .rounded, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 100)
+
+            Text(actionLink.targetUnit)
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+        }
+        .padding(12)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
     }
 
     private var deleteButton: some View {
@@ -351,6 +492,7 @@ struct AddEditTaskView: View {
             updated.name = trimmedName
             updated.icon = selectedIcon
             updated.category = selectedCategory
+            updated.customCategoryId = selectedCategory == .custom ? selectedCustomCategoryId : nil
             updated.scheduleType = scheduleType
             updated.scheduledDays = selectedDays
             updated.oneTimeDate = scheduleType == .oneTime ? oneTimeDate : nil
@@ -362,6 +504,7 @@ struct AddEditTaskView: View {
                 name: trimmedName,
                 icon: selectedIcon,
                 category: selectedCategory,
+                customCategoryId: selectedCategory == .custom ? selectedCustomCategoryId : nil,
                 scheduleType: scheduleType,
                 scheduledDays: selectedDays,
                 oneTimeDate: scheduleType == .oneTime ? oneTimeDate : nil,

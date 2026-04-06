@@ -4,7 +4,7 @@ struct DailyDeckBannerView: View {
     @Bindable var viewModel: HomeViewModel
     @State private var isExpanded: Bool = false
     @State private var toggleTrigger: Int = 0
-    @State private var collapsedCategories: Set<TaskCategory> = []
+    @State private var collapsedCategories: Set<String> = []
     @State private var showAddTask: Bool = false
 
     private var todaysTasks: [DailyTask] {
@@ -132,10 +132,17 @@ struct DailyDeckBannerView: View {
 
     private var expandedContent: some View {
         VStack(spacing: 0) {
-            ForEach(TaskCategory.allCases) { category in
+            ForEach(TaskCategory.builtInCases) { category in
                 let tasks = viewModel.todaysTasks(for: category)
                 if !tasks.isEmpty {
-                    categorySection(category, tasks: tasks)
+                    categorySection(name: category.rawValue, icon: category.icon, color: category.color, tasks: tasks, key: category.rawValue)
+                }
+            }
+
+            ForEach(viewModel.customCategories) { custom in
+                let tasks = viewModel.todaysTasks(forCustom: custom.id)
+                if !tasks.isEmpty {
+                    categorySection(name: custom.name, icon: custom.icon, color: custom.color, tasks: tasks, key: custom.id.uuidString)
                 }
             }
 
@@ -176,25 +183,25 @@ struct DailyDeckBannerView: View {
         .padding(.top, -6)
     }
 
-    private func categorySection(_ category: TaskCategory, tasks: [DailyTask]) -> some View {
-        let isCollapsed = collapsedCategories.contains(category)
+    private func categorySection(name: String, icon: String, color: Color, tasks: [DailyTask], key: String) -> some View {
+        let isCollapsed = collapsedCategories.contains(key)
         let catCompleted = tasks.filter(\.isCompleted).count
 
         return VStack(alignment: .leading, spacing: 0) {
             Button {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                     if isCollapsed {
-                        collapsedCategories.remove(category)
+                        collapsedCategories.remove(key)
                     } else {
-                        collapsedCategories.insert(category)
+                        collapsedCategories.insert(key)
                     }
                 }
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: category.icon)
+                    Image(systemName: icon)
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(category.color)
-                    Text(category.rawValue.uppercased())
+                        .foregroundStyle(color)
+                    Text(name.uppercased())
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                         .tracking(0.5)

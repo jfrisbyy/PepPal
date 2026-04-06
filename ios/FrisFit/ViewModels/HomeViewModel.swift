@@ -3,6 +3,7 @@ import SwiftUI
 @Observable
 final class HomeViewModel {
     var dailyTasks: [DailyTask] = DailyTaskLibrary.defaultTasks()
+    var customCategories: [CustomTaskCategory] = []
     var isLoading: Bool = true
     var selectedDate: Date = Date()
     var selectedTimePeriod: HomeTimePeriod = .daily
@@ -154,7 +155,11 @@ final class HomeViewModel {
     }
 
     func todaysTasks(for category: TaskCategory) -> [DailyTask] {
-        todaysTasks.filter { $0.category == category }
+        todaysTasks.filter { $0.category == category && $0.customCategoryId == nil }
+    }
+
+    func todaysTasks(forCustom categoryId: UUID) -> [DailyTask] {
+        todaysTasks.filter { $0.customCategoryId == categoryId }
     }
 
     var completedCount: Int {
@@ -167,7 +172,41 @@ final class HomeViewModel {
     }
 
     func tasks(for category: TaskCategory) -> [DailyTask] {
-        dailyTasks.filter { $0.category == category }
+        dailyTasks.filter { $0.category == category && $0.customCategoryId == nil }
+    }
+
+    func addCustomCategory(_ category: CustomTaskCategory) {
+        customCategories.append(category)
+    }
+
+    func updateCustomCategory(_ category: CustomTaskCategory) {
+        guard let index = customCategories.firstIndex(where: { $0.id == category.id }) else { return }
+        customCategories[index] = category
+    }
+
+    func deleteCustomCategory(_ category: CustomTaskCategory) {
+        dailyTasks.removeAll { $0.customCategoryId == category.id }
+        customCategories.removeAll { $0.id == category.id }
+    }
+
+    func goalDisplayString(for link: TaskActionLink, target: Int) -> String? {
+        guard link.hasCustomTarget else { return nil }
+        let value = target > 0 ? target : defaultTarget(for: link)
+        return "\(value.formatted()) \(link.targetUnit)"
+    }
+
+    func defaultTarget(for link: TaskActionLink) -> Int {
+        switch link {
+        case .stepCounter: return 10000
+        case .proteinGoal: return nutrition.proteinTarget
+        case .calorieGoal: return nutrition.caloriesTarget
+        case .carbGoal: return 250
+        case .fatGoal: return 70
+        case .fiberGoal: return 30
+        case .sugarGoal: return 50
+        case .waterIntake: return 128
+        default: return 0
+        }
     }
 
     func addTask(_ task: DailyTask) {
@@ -186,6 +225,8 @@ final class HomeViewModel {
     }
 
     func checkActionLinkedTasks() {
+        let todayActivities = streakManager.activityLog.filter { Calendar.current.isDateInToday($0.date) }
+
         for index in dailyTasks.indices {
             let task = dailyTasks[index]
             guard !task.isCompleted, task.isScheduledForToday() else { continue }
@@ -199,18 +240,52 @@ final class HomeViewModel {
                     dailyTasks[index].isCompleted = true
                 }
             case .proteinGoal:
-                if nutrition.proteinConsumed >= nutrition.proteinTarget {
+                let target = task.actionTarget > 0 ? task.actionTarget : nutrition.proteinTarget
+                if nutrition.proteinConsumed >= target {
                     dailyTasks[index].isCompleted = true
                 }
             case .calorieGoal:
-                if nutrition.caloriesConsumed >= nutrition.caloriesTarget {
+                let target = task.actionTarget > 0 ? task.actionTarget : nutrition.caloriesTarget
+                if nutrition.caloriesConsumed >= target {
                     dailyTasks[index].isCompleted = true
                 }
+            case .carbGoal, .fatGoal, .fiberGoal, .sugarGoal:
+                break
             case .workoutCompleted:
-                if !healthKit.workoutsToday.isEmpty || streakManager.activityLog.contains(where: { Calendar.current.isDateInToday($0.date) && $0.type == .workout }) {
+                if !healthKit.workoutsToday.isEmpty || todayActivities.contains(where: { $0.type == .workout }) {
                     dailyTasks[index].isCompleted = true
                 }
             case .waterIntake:
+                break
+            case .runningSession:
+                if todayActivities.contains(where: { $0.type == .sportSession && $0.sport == .running }) {
+                    dailyTasks[index].isCompleted = true
+                }
+            case .cyclingSession:
+                if todayActivities.contains(where: { $0.type == .sportSession && $0.sport == .cycling }) {
+                    dailyTasks[index].isCompleted = true
+                }
+            case .swimmingSession:
+                if todayActivities.contains(where: { $0.type == .sportSession && $0.sport == .swimming }) {
+                    dailyTasks[index].isCompleted = true
+                }
+            case .basketballSession:
+                if todayActivities.contains(where: { $0.type == .sportSession && $0.sport == .basketball }) {
+                    dailyTasks[index].isCompleted = true
+                }
+            case .soccerSession:
+                if todayActivities.contains(where: { $0.type == .sportSession && $0.sport == .soccer }) {
+                    dailyTasks[index].isCompleted = true
+                }
+            case .tennisSession:
+                if todayActivities.contains(where: { $0.type == .sportSession && $0.sport == .tennis }) {
+                    dailyTasks[index].isCompleted = true
+                }
+            case .footballSession:
+                if todayActivities.contains(where: { $0.type == .sportSession && $0.sport == .football }) {
+                    dailyTasks[index].isCompleted = true
+                }
+            case .yogaSession:
                 break
             }
         }
