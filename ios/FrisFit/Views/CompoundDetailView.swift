@@ -111,6 +111,19 @@ struct CompoundDetailView: View {
                 .opacity(headerVisible ? 1 : 0)
 
                 HStack(spacing: 6) {
+                    if compound.isWADAProhibited {
+                        HStack(spacing: 4) {
+                            Image(systemName: "nosign")
+                                .font(.system(size: 9))
+                            Text("WADA")
+                                .font(.system(.caption2, weight: .bold))
+                        }
+                        .foregroundStyle(.red)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(.red.opacity(0.12))
+                        .clipShape(.capsule)
+                    }
                     ForEach(compound.categories) { cat in
                         HStack(spacing: 4) {
                             Image(systemName: cat.icon)
@@ -237,7 +250,15 @@ struct CompoundDetailView: View {
         VStack(alignment: .leading, spacing: 14) {
             disclaimerBanner
 
+            if compound.isWADAProhibited && !compound.wadaCategory.isEmpty {
+                wadaBanner
+            }
+
             quickReferenceCard
+
+            if !compound.primaryUseCases.isEmpty {
+                primaryUseCasesCard
+            }
 
             keyFactsCard
 
@@ -256,8 +277,22 @@ struct CompoundDetailView: View {
                 sideEffectsCard
             }
 
-            if !compound.stackPartners.isEmpty {
+            if !compound.detailedSideEffects.contraindications.isEmpty {
+                contraindicationsCard
+            }
+
+            if !compound.stackDetails.isEmpty {
+                stackDetailsCard
+            } else if !compound.stackPartners.isEmpty {
                 stackPartnersCard
+            }
+
+            if !compound.beginnerTips.isEmpty {
+                beginnerTipsCard
+            }
+
+            if compound.evidence.level != "\u{2014}" {
+                evidenceCard
             }
         }
         .padding(.horizontal)
@@ -490,13 +525,21 @@ struct CompoundDetailView: View {
         VStack(alignment: .leading, spacing: 14) {
             disclaimerBanner
 
-            if compound.protocols.isEmpty {
+            if !compound.tieredDosing.isEmpty {
+                tieredDosingCard
+            }
+
+            if !compound.cycleLength.isEmpty || compound.loadingProtocol != "No" || !compound.onOffCycling.isEmpty {
+                cycleInfoCard
+            }
+
+            if compound.protocols.isEmpty && compound.tieredDosing.isEmpty {
                 emptyStateCard(
                     icon: "doc.text.magnifyingglass",
                     title: "No Protocol Data Yet",
                     subtitle: "Community-sourced protocols coming soon"
                 )
-            } else {
+            } else if !compound.protocols.isEmpty {
                 ForEach(compound.protocols) { proto in
                     GlassCard {
                         VStack(alignment: .leading, spacing: 12) {
@@ -526,6 +569,18 @@ struct CompoundDetailView: View {
                     }
                 }
             }
+
+            if compound.reconstitutionGuide.typicalVialSize != "\u{2014}" {
+                reconstitutionCard
+            }
+
+            if !compound.bloodworkMarkers.isEmpty {
+                bloodworkCard
+            }
+
+            if !compound.nutritionalSupport.isEmpty {
+                nutritionalSupportCard
+            }
         }
         .padding(.horizontal)
         .padding(.top, 12)
@@ -545,6 +600,219 @@ struct CompoundDetailView: View {
                 .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Tiered Dosing
+
+    private var tieredDosingCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "chart.bar.fill", title: "Dosing Tiers", color: accentColor)
+
+                VStack(spacing: 8) {
+                    ForEach(compound.tieredDosing) { tier in
+                        HStack(spacing: 12) {
+                            Text(tier.tier)
+                                .font(.system(.caption, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 80)
+                                .padding(.vertical, 6)
+                                .background(
+                                    tier.tier.contains("Beginner") ? .green.opacity(0.7) :
+                                    tier.tier.contains("Intermediate") ? PepTheme.amber.opacity(0.7) :
+                                    accentColor.opacity(0.7)
+                                )
+                                .clipShape(.rect(cornerRadius: 8))
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(spacing: 4) {
+                                    Text(tier.dose)
+                                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                                        .foregroundStyle(PepTheme.textPrimary)
+                                    Text("·")
+                                        .foregroundStyle(PepTheme.textSecondary)
+                                    Text(tier.frequency)
+                                        .font(.system(.caption, weight: .medium))
+                                        .foregroundStyle(PepTheme.textSecondary)
+                                }
+                                Text(tier.timingNotes)
+                                    .font(.system(.caption2, weight: .medium))
+                                    .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                            }
+
+                            Spacer()
+                        }
+                        .padding(10)
+                        .background(PepTheme.elevated.opacity(0.3))
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Cycle Info
+
+    private var cycleInfoCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "arrow.trianglehead.2.clockwise", title: "Cycle Information", color: PepTheme.blue)
+
+                VStack(spacing: 8) {
+                    if !compound.cycleLength.isEmpty {
+                        cycleInfoRow(icon: "calendar.badge.clock", label: "Cycle Length", value: compound.cycleLength)
+                    }
+                    cycleInfoRow(icon: "arrow.up.right", label: "Loading Protocol", value: compound.loadingProtocol)
+                    if !compound.onOffCycling.isEmpty {
+                        cycleInfoRow(icon: "repeat", label: "On/Off Cycling", value: compound.onOffCycling)
+                    }
+                }
+            }
+        }
+    }
+
+    private func cycleInfoRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundStyle(PepTheme.blue)
+                .frame(width: 20)
+            Text(label)
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+            Spacer()
+            Text(value)
+                .font(.system(.caption, weight: .bold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(10)
+        .background(PepTheme.elevated.opacity(0.3))
+        .clipShape(.rect(cornerRadius: 10))
+    }
+
+    // MARK: - Reconstitution Guide
+
+    private var reconstitutionCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "drop.fill", title: "Reconstitution Guide", color: PepTheme.blue)
+
+                VStack(spacing: 8) {
+                    reconRow(label: "Vial Size", value: compound.reconstitutionGuide.typicalVialSize)
+                    reconRow(label: "Diluent", value: compound.reconstitutionGuide.diluent)
+                    if compound.reconstitutionGuide.reconstitutionMath != "\u{2014}" {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Mixing Math")
+                                .font(.system(.caption2, weight: .medium))
+                                .foregroundStyle(PepTheme.textSecondary)
+                            Text(compound.reconstitutionGuide.reconstitutionMath)
+                                .font(.system(.caption, design: .monospaced, weight: .medium))
+                                .foregroundStyle(PepTheme.textPrimary)
+                                .lineSpacing(4)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(PepTheme.elevated.opacity(0.3))
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+                    reconRow(label: "Storage (Powder)", value: compound.reconstitutionGuide.storageLyophilized)
+                    reconRow(label: "Storage (Mixed)", value: compound.reconstitutionGuide.storageReconstituted)
+                    reconRow(label: "Handling", value: compound.reconstitutionGuide.handlingNotes)
+                }
+            }
+        }
+    }
+
+    private func reconRow(label: String, value: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(label)
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+                .frame(width: 90, alignment: .leading)
+            Text(value)
+                .font(.system(.caption, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+            Spacer()
+        }
+        .padding(10)
+        .background(PepTheme.elevated.opacity(0.3))
+        .clipShape(.rect(cornerRadius: 10))
+    }
+
+    // MARK: - Bloodwork Markers
+
+    private var bloodworkCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "heart.text.clipboard.fill", title: "Bloodwork Monitoring", color: .red)
+
+                VStack(spacing: 8) {
+                    ForEach(compound.bloodworkMarkers) { marker in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text(marker.marker)
+                                    .font(.system(.subheadline, weight: .bold))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                                Spacer()
+                                HStack(spacing: 8) {
+                                    priorityBadge(label: "Pre", value: marker.baseline)
+                                    priorityBadge(label: "On", value: marker.onCycle)
+                                }
+                            }
+                            Text(marker.reason)
+                                .font(.caption)
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .lineSpacing(2)
+                        }
+                        .padding(10)
+                        .background(PepTheme.elevated.opacity(0.3))
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+                }
+            }
+        }
+    }
+
+    private func priorityBadge(label: String, value: String) -> some View {
+        let color: Color = value == "Required" ? .red : value == "Recommended" ? .orange : PepTheme.textSecondary
+        return HStack(spacing: 3) {
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+            Circle()
+                .fill(color)
+                .frame(width: 5, height: 5)
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(color.opacity(0.1))
+        .clipShape(.capsule)
+    }
+
+    // MARK: - Nutritional Support
+
+    private var nutritionalSupportCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "leaf.fill", title: "Nutritional Support", color: .green)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(compound.nutritionalSupport.enumerated()), id: \.offset) { _, item in
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.green)
+                                .padding(.top, 2)
+                            Text(item)
+                                .font(.caption)
+                                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                                .lineSpacing(3)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Community
@@ -690,6 +958,208 @@ struct CompoundDetailView: View {
         }
         .padding(.horizontal)
         .padding(.top, 12)
+    }
+
+    // MARK: - WADA Banner
+
+    private var wadaBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "nosign")
+                .font(.system(size: 18))
+                .foregroundStyle(.red)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("WADA Prohibited")
+                    .font(.system(.caption, weight: .bold))
+                    .foregroundStyle(.red)
+                Text(compound.wadaCategory)
+                    .font(.caption2)
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(.red.opacity(0.08))
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(.red.opacity(0.15), lineWidth: 0.5)
+        )
+    }
+
+    // MARK: - Primary Use Cases
+
+    private var primaryUseCasesCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "target", title: "Primary Use Cases", color: accentColor)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(compound.primaryUseCases.enumerated()), id: \.offset) { _, useCase in
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(accentColor)
+                                .frame(width: 6, height: 6)
+                            Text(useCase)
+                                .font(.system(.subheadline, weight: .medium))
+                                .foregroundStyle(PepTheme.textPrimary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Contraindications
+
+    private var contraindicationsCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "xmark.shield.fill", title: "Contraindications", color: .red)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(compound.detailedSideEffects.contraindications.enumerated()), id: \.offset) { _, item in
+                        HStack(spacing: 8) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.red)
+                            Text(item)
+                                .font(.system(.subheadline, weight: .medium))
+                                .foregroundStyle(PepTheme.textPrimary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Stack Details
+
+    private var stackDetailsCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "link", title: "Common Stacks", color: PepTheme.violet)
+
+                VStack(spacing: 8) {
+                    ForEach(compound.stackDetails) { stack in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "pill.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(PepTheme.violet)
+                                Text(stack.partner)
+                                    .font(.system(.subheadline, weight: .bold))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                                Spacer()
+                                Text(stack.purpose)
+                                    .font(.system(.caption2, weight: .bold))
+                                    .foregroundStyle(PepTheme.violet)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(PepTheme.violet.opacity(0.12))
+                                    .clipShape(.capsule)
+                            }
+                            if !stack.notes.isEmpty {
+                                Text(stack.notes)
+                                    .font(.caption)
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                    .lineSpacing(2)
+                            }
+                        }
+                        .padding(10)
+                        .background(PepTheme.elevated.opacity(0.3))
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Beginner Tips
+
+    private var beginnerTipsCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "lightbulb.fill", title: "Tips & Insights", color: PepTheme.amber)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(compound.beginnerTips.enumerated()), id: \.offset) { _, tip in
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(PepTheme.amber)
+                                .padding(.top, 2)
+                            Text(tip)
+                                .font(.caption)
+                                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                                .lineSpacing(3)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Evidence Card
+
+    private var evidenceCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "book.fill", title: "Research Evidence", color: PepTheme.blue)
+
+                HStack(spacing: 8) {
+                    Text("Evidence Level:")
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Text(compound.evidence.level)
+                        .font(.system(.caption, weight: .bold))
+                        .foregroundStyle(evidenceLevelColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(evidenceLevelColor.opacity(0.12))
+                        .clipShape(.capsule)
+                }
+
+                if !compound.evidence.keyStudies.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Key Studies")
+                            .font(.system(.caption2, weight: .bold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        ForEach(Array(compound.evidence.keyStudies.enumerated()), id: \.offset) { _, study in
+                            HStack(alignment: .top, spacing: 6) {
+                                Image(systemName: "doc.text.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(PepTheme.blue)
+                                    .padding(.top, 2)
+                                Text(study)
+                                    .font(.caption)
+                                    .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                                    .lineSpacing(2)
+                            }
+                        }
+                    }
+                }
+
+                if !compound.evidence.researchGaps.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Research Gaps")
+                            .font(.system(.caption2, weight: .bold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Text(compound.evidence.researchGaps)
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                            .lineSpacing(2)
+                    }
+                }
+            }
+        }
+    }
+
+    private var evidenceLevelColor: Color {
+        let level = compound.evidence.level.lowercased()
+        if level.contains("strong") { return .green }
+        if level.contains("moderate") { return .orange }
+        return PepTheme.textSecondary
     }
 
     // MARK: - Helpers

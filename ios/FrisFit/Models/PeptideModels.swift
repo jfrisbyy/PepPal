@@ -101,6 +101,103 @@ nonisolated struct CompoundKeyFacts: Sendable {
     }
 }
 
+nonisolated struct TieredDose: Identifiable, Sendable {
+    let id: UUID
+    let tier: String
+    let dose: String
+    let frequency: String
+    let timingNotes: String
+
+    init(tier: String, dose: String, frequency: String, timingNotes: String) {
+        self.id = UUID()
+        self.tier = tier
+        self.dose = dose
+        self.frequency = frequency
+        self.timingNotes = timingNotes
+    }
+}
+
+nonisolated struct ReconstitutionGuide: Sendable {
+    let typicalVialSize: String
+    let diluent: String
+    let reconstitutionMath: String
+    let storageLyophilized: String
+    let storageReconstituted: String
+    let handlingNotes: String
+
+    init(
+        typicalVialSize: String = "—",
+        diluent: String = "Bacteriostatic Water",
+        reconstitutionMath: String = "—",
+        storageLyophilized: String = "Freezer (-20°C)",
+        storageReconstituted: String = "Fridge (2-8°C)",
+        handlingNotes: String = "Do not shake; swirl gently to dissolve."
+    ) {
+        self.typicalVialSize = typicalVialSize
+        self.diluent = diluent
+        self.reconstitutionMath = reconstitutionMath
+        self.storageLyophilized = storageLyophilized
+        self.storageReconstituted = storageReconstituted
+        self.handlingNotes = handlingNotes
+    }
+}
+
+nonisolated struct BloodworkMarker: Identifiable, Sendable {
+    let id: UUID
+    let marker: String
+    let baseline: String
+    let onCycle: String
+    let reason: String
+
+    init(marker: String, baseline: String, onCycle: String, reason: String) {
+        self.id = UUID()
+        self.marker = marker
+        self.baseline = baseline
+        self.onCycle = onCycle
+        self.reason = reason
+    }
+}
+
+nonisolated struct StackDetail: Identifiable, Sendable {
+    let id: UUID
+    let partner: String
+    let purpose: String
+    let notes: String
+
+    init(partner: String, purpose: String, notes: String = "") {
+        self.id = UUID()
+        self.partner = partner
+        self.purpose = purpose
+        self.notes = notes
+    }
+}
+
+nonisolated struct EvidenceSummary: Sendable {
+    let level: String
+    let keyStudies: [String]
+    let researchGaps: String
+
+    init(level: String = "—", keyStudies: [String] = [], researchGaps: String = "") {
+        self.level = level
+        self.keyStudies = keyStudies
+        self.researchGaps = researchGaps
+    }
+}
+
+nonisolated struct DetailedSideEffects: Sendable {
+    let common: [String]
+    let uncommon: [String]
+    let rare: [String]
+    let contraindications: [String]
+
+    init(common: [String] = [], uncommon: [String] = [], rare: [String] = [], contraindications: [String] = []) {
+        self.common = common
+        self.uncommon = uncommon
+        self.rare = rare
+        self.contraindications = contraindications
+    }
+}
+
 nonisolated struct CompoundProfile: Identifiable, Sendable {
     let id: UUID
     let name: String
@@ -115,6 +212,20 @@ nonisolated struct CompoundProfile: Identifiable, Sendable {
     let stackPartners: [String]
     let iconName: String
     let keyFacts: CompoundKeyFacts
+    let primaryUseCases: [String]
+    let tieredDosing: [TieredDose]
+    let cycleLength: String
+    let loadingProtocol: String
+    let onOffCycling: String
+    let reconstitutionGuide: ReconstitutionGuide
+    let bloodworkMarkers: [BloodworkMarker]
+    let nutritionalSupport: [String]
+    let beginnerTips: [String]
+    let evidence: EvidenceSummary
+    let stackDetails: [StackDetail]
+    let detailedSideEffects: DetailedSideEffects
+    let isWADAProhibited: Bool
+    let wadaCategory: String
 
     init(
         name: String,
@@ -128,7 +239,21 @@ nonisolated struct CompoundProfile: Identifiable, Sendable {
         averageRating: Double = 0,
         stackPartners: [String] = [],
         iconName: String = "pill.fill",
-        keyFacts: CompoundKeyFacts = CompoundKeyFacts()
+        keyFacts: CompoundKeyFacts = CompoundKeyFacts(),
+        primaryUseCases: [String] = [],
+        tieredDosing: [TieredDose] = [],
+        cycleLength: String = "",
+        loadingProtocol: String = "No",
+        onOffCycling: String = "",
+        reconstitutionGuide: ReconstitutionGuide = ReconstitutionGuide(),
+        bloodworkMarkers: [BloodworkMarker] = [],
+        nutritionalSupport: [String] = [],
+        beginnerTips: [String] = [],
+        evidence: EvidenceSummary = EvidenceSummary(),
+        stackDetails: [StackDetail] = [],
+        detailedSideEffects: DetailedSideEffects = DetailedSideEffects(),
+        isWADAProhibited: Bool = false,
+        wadaCategory: String = ""
     ) {
         self.id = UUID()
         self.name = name
@@ -143,6 +268,20 @@ nonisolated struct CompoundProfile: Identifiable, Sendable {
         self.stackPartners = stackPartners
         self.iconName = iconName
         self.keyFacts = keyFacts
+        self.primaryUseCases = primaryUseCases
+        self.tieredDosing = tieredDosing
+        self.cycleLength = cycleLength
+        self.loadingProtocol = loadingProtocol
+        self.onOffCycling = onOffCycling
+        self.reconstitutionGuide = reconstitutionGuide
+        self.bloodworkMarkers = bloodworkMarkers
+        self.nutritionalSupport = nutritionalSupport
+        self.beginnerTips = beginnerTips
+        self.evidence = evidence
+        self.stackDetails = stackDetails
+        self.detailedSideEffects = detailedSideEffects
+        self.isWADAProhibited = isWADAProhibited
+        self.wadaCategory = wadaCategory
     }
 }
 

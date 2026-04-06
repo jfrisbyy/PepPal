@@ -24,7 +24,38 @@ enum CompoundDatabase {
             averageRating: 4.3,
             stackPartners: ["Ipamorelin", "GHRP-2"],
             iconName: "arrow.up.heart.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "3,358 Da", administrationRoute: "Subcutaneous", halfLife: "10-20 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "200-300 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "3,358 Da", administrationRoute: "Subcutaneous", halfLife: "10-20 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "200-300 mcg"),
+            primaryUseCases: ["Anti-aging and longevity", "Improved sleep quality", "Enhanced recovery and tissue repair", "Mild body composition improvements"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "200 mcg", frequency: "1x daily", timingNotes: "Pre-bed, fasted"),
+                TieredDose(tier: "Intermediate", dose: "300 mcg", frequency: "1x daily", timingNotes: "Pre-bed, fasted"),
+                TieredDose(tier: "Advanced", dose: "300 mcg", frequency: "2x daily", timingNotes: "Morning fasted, pre-bed fasted"),
+            ],
+            cycleLength: "12-24 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "5 days on / 2 days off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "2 mg, 5 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 2 mg vial → 100 mcg per 0.1 mL (10 IU). Draw 20 IU = 200 mcg, 30 IU = 300 mcg", storageLyophilized: "Freezer (-20°C) long-term, fridge (2-8°C) short-term", storageReconstituted: "Fridge (2-8°C) for up to 30 days", handlingNotes: "Do not shake; swirl gently to dissolve. Avoid heat."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "IGF-1", baseline: "Recommended", onCycle: "Recommended", reason: "Primary indicator of GH elevation"),
+                BloodworkMarker(marker: "Fasting Glucose", baseline: "Recommended", onCycle: "Recommended", reason: "GH elevation can impact insulin sensitivity"),
+            ],
+            nutritionalSupport: [
+                "Zinc & Magnesium: Essential minerals for natural growth hormone production and deep sleep optimization.",
+                "Vitamin D3 + K2: Supports bone density and works synergistically with GH for tissue repair.",
+                "Protein Intake: High protein intake (1g per lb of body weight) is required for GH-induced muscle hypertrophy.",
+                "Fasting Window: Do not consume carbohydrates or fats within 2 hours of injection, as insulin blunts the GH pulse.",
+            ],
+            beginnerTips: [
+                "Always inject on an empty stomach (at least 2 hours after eating) to maximize the GH pulse, as insulin blunts GH release.",
+                "The 5 days on / 2 days off protocol is widely used to prevent pituitary desensitization.",
+                "Sermorelin is considered the mildest GHRH analog, making it an excellent starting point for beginners.",
+            ],
+            evidence: EvidenceSummary(level: "Strong", keyStudies: ["Corpas et al. (1993): Demonstrated that Sermorelin effectively increases GH and IGF-1 levels in aging men."], researchGaps: "Long-term safety data beyond 12 months of continuous use in healthy adults."),
+            stackDetails: [
+                StackDetail(partner: "Ipamorelin", purpose: "Synergistic GH pulse", notes: "Combines GHRH and GHRP for amplified effect"),
+                StackDetail(partner: "GHRP-2", purpose: "Enhanced GH release", notes: "Stronger pulse but higher appetite stimulation"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction", "Flushing", "Mild headache"], uncommon: ["Water retention", "Lethargy", "Numbness/tingling in extremities"], rare: ["Insulin resistance (with prolonged high doses)"], contraindications: ["Active malignancy", "Benign intracranial hypertension"])
         ),
         CompoundProfile(
             name: "CJC-1295",
@@ -47,7 +78,42 @@ enum CompoundDatabase {
             averageRating: 4.4,
             stackPartners: ["Ipamorelin", "MK-677", "GHRP-6"],
             iconName: "arrow.up.right",
-            keyFacts: CompoundKeyFacts(molecularWeight: "3,367 Da", administrationRoute: "Subcutaneous", halfLife: "~30 min (no DAC) / ~8 days (DAC)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100 mcg (no DAC) / 1-2 mg (DAC)")
+            keyFacts: CompoundKeyFacts(molecularWeight: "3,367 Da", administrationRoute: "Subcutaneous", halfLife: "~30 min (no DAC) / ~8 days (DAC)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100 mcg (no DAC) / 1-2 mg (DAC)"),
+            primaryUseCases: ["Muscle growth and fat loss", "Enhanced recovery", "Anti-aging", "Sustained IGF-1 elevation (DAC version)"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "100 mcg", frequency: "1x daily", timingNotes: "Pre-bed, fasted (No DAC)"),
+                TieredDose(tier: "Intermediate", dose: "100 mcg", frequency: "2x daily", timingNotes: "Morning fasted, pre-bed fasted (No DAC)"),
+                TieredDose(tier: "Advanced", dose: "100 mcg / 2 mg", frequency: "3x daily (No DAC) or 1x weekly (DAC)", timingNotes: "Morning, post-workout, pre-bed (all fasted)"),
+            ],
+            cycleLength: "12-16 weeks (No DAC) / 8-12 weeks (DAC)",
+            loadingProtocol: "No",
+            onOffCycling: "5 days on / 2 days off (No DAC) / Continuous (DAC)",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "2 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 2 mg vial → 100 mcg per 0.1 mL (10 IU). Draw 10 IU = 100 mcg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C) for up to 30 days", handlingNotes: "Swirl gently. Do not shake."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "IGF-1", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks efficacy of GH elevation"),
+                BloodworkMarker(marker: "Fasting Glucose", baseline: "Recommended", onCycle: "Recommended", reason: "Monitors insulin sensitivity"),
+                BloodworkMarker(marker: "HbA1c", baseline: "Recommended", onCycle: "Recommended", reason: "Higher risk of insulin resistance with DAC version"),
+            ],
+            nutritionalSupport: [
+                "Zinc & Magnesium: Essential for natural GH production and deep sleep.",
+                "Vitamin D3 + K2: Supports bone density and tissue repair.",
+                "Protein Intake: 1g per lb of body weight for GH-induced hypertrophy.",
+                "Fasting Window: No carbs/fats within 2 hours of injection.",
+            ],
+            beginnerTips: [
+                "The 'head rush' feeling immediately after injection is normal and indicates the peptide is active.",
+                "Often referred to as 'Mod GRF 1-29' to distinguish it from the DAC version.",
+                "Best used in combination with a GHRP (like Ipamorelin) rather than standalone.",
+                "The continuous 'GH bleed' from the DAC version is controversial; many experts prefer pulsatile release of the No DAC version.",
+                "Water retention is much more common and severe with the DAC version.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Teichman et al. (2006): Showed prolonged stimulation of GH and IGF-1 with CJC-1295."], researchGaps: "Direct head-to-head clinical trials against Sermorelin for body composition. Long-term effects of continuous vs. pulsatile GH elevation."),
+            stackDetails: [
+                StackDetail(partner: "Ipamorelin", purpose: "Synergistic GH pulse", notes: "The most popular 'clean' GH stack"),
+                StackDetail(partner: "GHRP-6", purpose: "Mass gain / Appetite", notes: "Significant hunger increase"),
+                StackDetail(partner: "MK-677", purpose: "Continuous GH elevation", notes: "Extreme caution required for insulin resistance"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Head rush/flushing post-injection", "Injection site reaction", "Water retention"], uncommon: ["Vivid dreams", "Lethargy", "Carpal tunnel symptoms (DAC)"], rare: ["Decreased insulin sensitivity", "Pituitary exhaustion (DAC)"], contraindications: ["Active cancer", "Pre-diabetes/diabetes (DAC version)"])
         ),
         CompoundProfile(
             name: "Ipamorelin",
@@ -67,7 +133,37 @@ enum CompoundDatabase {
             averageRating: 4.6,
             stackPartners: ["CJC-1295", "Tesamorelin", "BPC-157"],
             iconName: "figure.strengthtraining.traditional",
-            keyFacts: CompoundKeyFacts(molecularWeight: "711 Da", administrationRoute: "Subcutaneous", halfLife: "~2 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-300 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "711 Da", administrationRoute: "Subcutaneous", halfLife: "~2 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-300 mcg"),
+            primaryUseCases: ["Fat loss and body composition", "Anti-aging", "Recovery and sleep improvement"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "100 mcg", frequency: "1x daily", timingNotes: "Pre-bed, fasted"),
+                TieredDose(tier: "Intermediate", dose: "200 mcg", frequency: "2x daily", timingNotes: "Morning fasted, pre-bed fasted"),
+                TieredDose(tier: "Advanced", dose: "300 mcg", frequency: "3x daily", timingNotes: "Morning, post-workout, pre-bed (all fasted)"),
+            ],
+            cycleLength: "12-16 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "5 days on / 2 days off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "2 mg, 5 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 2 mg vial → 100 mcg per 0.1 mL (10 IU). Draw 10 IU = 100 mcg, 20 IU = 200 mcg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "IGF-1", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks efficacy of GH elevation"),
+            ],
+            nutritionalSupport: [
+                "Zinc & Magnesium: Essential for natural GH production and deep sleep.",
+                "Vitamin D3 + K2: Supports bone density synergistically with GH.",
+                "Protein Intake: 1g per lb of body weight for muscle hypertrophy.",
+                "Fasting Window: No carbs/fats within 2 hours of injection.",
+            ],
+            beginnerTips: [
+                "Ipamorelin is widely considered the 'cleanest' GHRP because it doesn't spike hunger, cortisol, or prolactin.",
+                "Almost always stacked with a GHRH (like CJC-1295 No DAC) because the synergy produces a GH pulse much larger than either compound alone.",
+                "Fasting for 2 hours before and 30 minutes after injection is critical for efficacy.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Raun et al. (1998): Demonstrated Ipamorelin's high selectivity for GH release without affecting cortisol or prolactin."], researchGaps: "Long-term human trials for body composition."),
+            stackDetails: [
+                StackDetail(partner: "CJC-1295 (No DAC)", purpose: "Synergistic GH pulse", notes: "The gold standard anti-aging stack"),
+                StackDetail(partner: "BPC-157", purpose: "Injury recovery", notes: "Combines systemic GH with local healing"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Mild head rush", "Slight injection site redness"], uncommon: ["Mild water retention"], rare: [], contraindications: ["Active cancer"])
         ),
         CompoundProfile(
             name: "Tesamorelin",
@@ -88,7 +184,37 @@ enum CompoundDatabase {
             averageRating: 4.5,
             stackPartners: ["Ipamorelin", "CJC-1295"],
             iconName: "flame.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "5,136 Da", administrationRoute: "Subcutaneous", halfLife: "~26-38 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1-2 mg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "5,136 Da", administrationRoute: "Subcutaneous", halfLife: "~26-38 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1-2 mg"),
+            primaryUseCases: ["Targeted visceral fat reduction", "Body recomposition", "GH optimization"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "1 mg", frequency: "1x daily", timingNotes: "Morning, fasted"),
+                TieredDose(tier: "Intermediate", dose: "2 mg", frequency: "1x daily", timingNotes: "Morning, fasted"),
+                TieredDose(tier: "Advanced", dose: "2 mg", frequency: "1x daily", timingNotes: "Morning, fasted (often combined with Ipamorelin pre-bed)"),
+            ],
+            cycleLength: "12-16 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "Continuous during cycle",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "2 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 2 mg vial → 100 mcg per 0.1 mL (10 IU). Draw 100 IU (full syringe) = 1 mg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C) — use within 7 days (degrades faster)", handlingNotes: "Swirl gently. More fragile than other peptides once reconstituted."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "IGF-1", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks GH elevation efficacy"),
+                BloodworkMarker(marker: "Fasting Glucose", baseline: "Recommended", onCycle: "Recommended", reason: "Monitors insulin sensitivity"),
+            ],
+            nutritionalSupport: [
+                "High Protein: Critical for body recomposition during visceral fat loss.",
+                "L-Carnitine: Shuttles mobilized fatty acids into mitochondria to be burned.",
+                "Fasting Window: No carbs/fats within 2 hours of injection.",
+            ],
+            beginnerTips: [
+                "Tesamorelin degrades significantly faster once reconstituted. Mix only what you can use within 7 days.",
+                "It is the only GHRH clinically proven to specifically reduce visceral fat.",
+                "Most effective when administered fasted in the morning.",
+            ],
+            evidence: EvidenceSummary(level: "Strong (FDA Approved)", keyStudies: ["FDA approval data for Egrifta: Demonstrated significant visceral fat reduction in HIV lipodystrophy patients."], researchGaps: "Long-term efficacy data in non-HIV populations for body composition."),
+            stackDetails: [
+                StackDetail(partner: "Ipamorelin", purpose: "Synergistic GH pulse", notes: "Combines targeted fat loss with broad GH benefits"),
+                StackDetail(partner: "CJC-1295", purpose: "Enhanced GH output", notes: "For users needing maximum GH stimulation"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site reactions", "Joint pain", "Peripheral edema"], uncommon: ["Carpal tunnel symptoms", "Flushing"], rare: ["Insulin resistance with prolonged high doses"], contraindications: ["Active cancer", "Pregnancy"])
         ),
         CompoundProfile(
             name: "MK-677",
@@ -110,7 +236,42 @@ enum CompoundDatabase {
             averageRating: 4.2,
             stackPartners: ["CJC-1295", "Ipamorelin", "LGD-4033"],
             iconName: "pills.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "528 Da", administrationRoute: "Oral", halfLife: "~24 hours", storageTemp: "Room Temp", reconstitution: "N/A (oral)", typicalDoseRange: "10-25 mg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "528 Da", administrationRoute: "Oral", halfLife: "~24 hours", storageTemp: "Room Temp", reconstitution: "N/A (oral)", typicalDoseRange: "10-25 mg"),
+            primaryUseCases: ["Muscle mass gain", "Bone density improvement", "Appetite stimulation", "Oral convenience"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "10 mg", frequency: "1x daily", timingNotes: "Pre-bed (to sleep through hunger)"),
+                TieredDose(tier: "Intermediate", dose: "20 mg", frequency: "1x daily", timingNotes: "Pre-bed or morning"),
+                TieredDose(tier: "Advanced", dose: "25 mg", frequency: "1x daily", timingNotes: "Pre-bed or morning"),
+            ],
+            cycleLength: "12-24 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "Continuous or 5 days on / 2 days off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "N/A (oral liquid or capsules)", diluent: "N/A", reconstitutionMath: "N/A — taken orally", storageLyophilized: "Room temperature, away from sunlight", storageReconstituted: "N/A", handlingNotes: "Shake liquid suspensions before use."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Fasting Glucose", baseline: "Required", onCycle: "Required", reason: "High risk of elevated blood sugar"),
+                BloodworkMarker(marker: "HbA1c", baseline: "Required", onCycle: "Required", reason: "Long-term insulin sensitivity marker"),
+                BloodworkMarker(marker: "IGF-1", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks efficacy"),
+            ],
+            nutritionalSupport: [
+                "Berberine or Metformin: Many users take insulin-sensitizing agents alongside MK-677 to counteract glucose elevation.",
+                "Zinc & Magnesium: Supports GH production and deep sleep.",
+                "Protein Intake: High protein to capitalize on GH elevation.",
+                "Monitor carb intake: Especially important given blood sugar impact.",
+            ],
+            beginnerTips: [
+                "The biggest risk with MK-677 is insulin resistance. Monitoring fasting blood glucose every 2-4 weeks is mandatory.",
+                "Taking it before bed helps sleep through the intense hunger spike that hits 30-60 minutes after dosing.",
+                "Some users combine with Berberine to counteract glucose elevation.",
+                "Water retention can be dramatic (5-10 lbs) — this is water, not fat. It resolves after discontinuation.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Nass et al. (2008): Demonstrated sustained GH and IGF-1 elevation with oral MK-677 over 12 months."], researchGaps: "Long-term impact on insulin sensitivity and diabetes risk."),
+            stackDetails: [
+                StackDetail(partner: "CJC-1295 (with DAC)", purpose: "Maximum sustained GH", notes: "Extreme caution required for insulin resistance"),
+                StackDetail(partner: "SARMs (LGD-4033, RAD-140)", purpose: "Bulking", notes: "Common oral stack for mass gain"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Intense appetite increase", "Water retention", "Numbness/tingling"], uncommon: ["Lethargy", "Joint pain", "Elevated blood sugar"], rare: ["Insulin resistance", "Carpal tunnel symptoms"], contraindications: ["Pre-diabetes", "Diabetes", "Active cancer"]),
+            isWADAProhibited: true,
+            wadaCategory: "S2 Peptide Hormones"
         ),
         CompoundProfile(
             name: "GHRP-2",
@@ -131,7 +292,37 @@ enum CompoundDatabase {
             averageRating: 4.1,
             stackPartners: ["CJC-1295"],
             iconName: "bolt.heart.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "818 Da", administrationRoute: "Subcutaneous", halfLife: "15-30 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-150 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "818 Da", administrationRoute: "Subcutaneous", halfLife: "15-30 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-150 mcg"),
+            primaryUseCases: ["Muscle growth", "Appetite stimulation (mild)", "Injury recovery"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "100 mcg", frequency: "1x daily", timingNotes: "Pre-bed, fasted"),
+                TieredDose(tier: "Intermediate", dose: "100 mcg", frequency: "2x daily", timingNotes: "Morning fasted, pre-bed fasted"),
+                TieredDose(tier: "Advanced", dose: "150 mcg", frequency: "3x daily", timingNotes: "Morning, post-workout, pre-bed (all fasted)"),
+            ],
+            cycleLength: "8-12 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "5 days on / 2 days off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "5 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2.5 mL of BW to a 5 mg vial → 200 mcg per 0.1 mL (10 IU). Draw 5 IU = 100 mcg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "IGF-1", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks efficacy"),
+                BloodworkMarker(marker: "Prolactin", baseline: "Recommended", onCycle: "Recommended", reason: "Can elevate on GHRP-2"),
+                BloodworkMarker(marker: "Cortisol", baseline: "Optional", onCycle: "Recommended", reason: "Can elevate on GHRP-2"),
+            ],
+            nutritionalSupport: [
+                "Zinc & Magnesium: Essential for GH production and deep sleep.",
+                "Vitamin D3 + K2: Supports bone density with GH.",
+                "Protein Intake: 1g per lb of body weight.",
+                "Fasting Window: No carbs/fats within 2 hours of injection.",
+            ],
+            beginnerTips: [
+                "GHRP-2 is stronger than Ipamorelin but comes with more side effects (hunger, water retention).",
+                "If the hunger is too intense, switch to Ipamorelin; if you want more hunger for a bulking phase, consider GHRP-6.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Bowers et al. (1993): Established the potent GH-releasing activity of GHRP-2."], researchGaps: "Long-term impact of mild cortisol/prolactin elevation."),
+            stackDetails: [
+                StackDetail(partner: "CJC-1295 (No DAC)", purpose: "Synergistic GH pulse", notes: "Maximizes GH output"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Increased appetite", "Water retention", "Flushing"], uncommon: ["Lethargy", "Elevated prolactin/cortisol"], rare: ["Insulin resistance"], contraindications: ["Active cancer", "Prolactinoma"])
         ),
         CompoundProfile(
             name: "GHRP-6",
@@ -152,7 +343,37 @@ enum CompoundDatabase {
             averageRating: 3.8,
             stackPartners: ["CJC-1295"],
             iconName: "fork.knife",
-            keyFacts: CompoundKeyFacts(molecularWeight: "873 Da", administrationRoute: "Subcutaneous", halfLife: "15-30 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-150 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "873 Da", administrationRoute: "Subcutaneous", halfLife: "15-30 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-150 mcg"),
+            primaryUseCases: ["Extreme appetite stimulation (bulking)", "Muscle growth", "Gastric motility improvement"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "100 mcg", frequency: "1x daily", timingNotes: "Pre-meal (for appetite)"),
+                TieredDose(tier: "Intermediate", dose: "100 mcg", frequency: "2x daily", timingNotes: "Pre-meal"),
+                TieredDose(tier: "Advanced", dose: "150 mcg", frequency: "3x daily", timingNotes: "Pre-meal"),
+            ],
+            cycleLength: "8-12 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "5 days on / 2 days off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "5 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2.5 mL of BW to a 5 mg vial → 200 mcg per 0.1 mL (10 IU). Draw 5 IU = 100 mcg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "IGF-1", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks efficacy"),
+                BloodworkMarker(marker: "Prolactin", baseline: "Recommended", onCycle: "Recommended", reason: "High risk of elevation"),
+            ],
+            nutritionalSupport: [
+                "Zinc & Magnesium: Supports GH production.",
+                "Protein Intake: Essential for bulking — capitalize on extreme appetite.",
+                "Fast-acting carbs: Have ready in case of hypoglycemia after injection.",
+            ],
+            beginnerTips: [
+                "GHRP-6 causes agonizing, uncontrollable hunger within 20-30 minutes of injection. It is exclusively used by bodybuilders who need to consume 4,000+ calories a day.",
+                "It physically speeds up gastric emptying — food moves through the stomach faster.",
+                "If you inject GHRP-6 and do not eat within 45 minutes, you may experience mild hypoglycemia.",
+                "Largely abandoned by anti-aging and longevity communities in favor of Ipamorelin.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Bowers et al. (1984): Initial characterization of GHRP-6."], researchGaps: "Modern comparative trials against newer GHRPs."),
+            stackDetails: [
+                StackDetail(partner: "CJC-1295 (No DAC)", purpose: "Synergistic GH pulse", notes: "Standard bulking stack"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Extreme hunger", "Water retention", "Flushing"], uncommon: ["Lethargy", "Gynecomastia (due to prolactin)"], rare: ["Insulin resistance"], contraindications: ["Active cancer", "Prolactinoma"])
         ),
         CompoundProfile(
             name: "Hexarelin",
@@ -173,7 +394,36 @@ enum CompoundDatabase {
             averageRating: 3.9,
             stackPartners: ["CJC-1295"],
             iconName: "bolt.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "887 Da", administrationRoute: "Subcutaneous", halfLife: "1-2 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-200 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "887 Da", administrationRoute: "Subcutaneous", halfLife: "1-2 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-200 mcg"),
+            primaryUseCases: ["Maximum GH/IGF-1 elevation", "Rapid injury recovery", "Short-term blasting"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "100 mcg", frequency: "1x daily", timingNotes: "Pre-bed, fasted"),
+                TieredDose(tier: "Intermediate", dose: "100 mcg", frequency: "2x daily", timingNotes: "Morning fasted, pre-bed fasted"),
+                TieredDose(tier: "Advanced", dose: "200 mcg", frequency: "2x daily", timingNotes: "Morning fasted, pre-bed fasted"),
+            ],
+            cycleLength: "4-8 weeks (max)",
+            loadingProtocol: "No",
+            onOffCycling: "5 days on / 2 days off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "2 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 2 mg vial → 100 mcg per 0.1 mL (10 IU). Draw 10 IU = 100 mcg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "IGF-1", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks efficacy"),
+                BloodworkMarker(marker: "Prolactin", baseline: "Recommended", onCycle: "Required", reason: "High risk of elevation"),
+                BloodworkMarker(marker: "Cortisol", baseline: "Recommended", onCycle: "Required", reason: "High risk of elevation"),
+            ],
+            nutritionalSupport: [
+                "Zinc & Magnesium: Supports GH production.",
+                "Vitamin D3 + K2: Bone density support.",
+                "Protein Intake: 1g per lb of body weight.",
+            ],
+            beginnerTips: [
+                "Hexarelin should not be used for more than 4-8 weeks because it rapidly desensitizes the pituitary, rendering it ineffective.",
+                "Reserved for advanced users needing maximum GH output for a short period, such as recovering from a severe injury.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Imbimbo et al. (1994): Demonstrated the extreme potency and half-life of Hexarelin in humans."], researchGaps: "Strategies to mitigate rapid desensitization."),
+            stackDetails: [
+                StackDetail(partner: "CJC-1295 (No DAC)", purpose: "Maximum GH pulse", notes: "The strongest possible GHS stack"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Water retention", "Flushing", "Lethargy"], uncommon: ["Elevated prolactin/cortisol", "Carpal tunnel symptoms"], rare: ["Pituitary desensitization", "Insulin resistance"], contraindications: ["Active cancer", "Prolactinoma"])
         ),
 
         // MARK: - Category 2: Healing & Recovery
@@ -197,7 +447,39 @@ enum CompoundDatabase {
             averageRating: 4.7,
             stackPartners: ["TB-500", "GHK-Cu", "KPV"],
             iconName: "cross.case.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "1,419 Da", administrationRoute: "SubQ / Oral (Arginate)", halfLife: "<30 min (effects longer)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "250-500 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "1,419 Da", administrationRoute: "SubQ / Oral (Arginate)", halfLife: "<30 min (effects longer)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "250-500 mcg"),
+            primaryUseCases: ["Tendon and ligament repair", "Muscle tear recovery", "Gut health (Leaky Gut, IBS, Crohn's)", "Systemic inflammation reduction"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "250 mcg", frequency: "1x daily", timingNotes: "Any time"),
+                TieredDose(tier: "Intermediate", dose: "250 mcg", frequency: "2x daily", timingNotes: "Morning and evening"),
+                TieredDose(tier: "Advanced", dose: "500 mcg", frequency: "2x daily", timingNotes: "Morning and evening"),
+            ],
+            cycleLength: "4-8 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "Continuous during cycle",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "5 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 5 mg vial → 250 mcg per 0.1 mL (10 IU). Draw 10 IU = 250 mcg, 20 IU = 500 mcg", storageLyophilized: "Fridge (2-8°C) or Room Temp (highly stable)", storageReconstituted: "Fridge (2-8°C) for up to 30 days", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "CRP / ESR", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks reduction in systemic inflammation"),
+            ],
+            nutritionalSupport: [
+                "Collagen Peptides: Raw materials for tendon and ligament repair (glycine, proline, hydroxyproline).",
+                "Vitamin C: Mandatory co-factor for collagen synthesis. BPC-157 will not work optimally without adequate Vitamin C.",
+                "Omega-3 Fatty Acids (High EPA/DHA): Reduces systemic inflammation for better healing environment.",
+                "Curcumin / Turmeric: Natural anti-inflammatory that synergizes with healing peptides.",
+            ],
+            beginnerTips: [
+                "For musculoskeletal injuries, inject SubQ as close to the injury site as comfortably possible, though systemic absorption still occurs.",
+                "For gut issues, oral administration is far superior. Ensure you are using the Arginate salt form — Acetate form degrades in stomach acid.",
+                "BPC-157 can blunt the effects of stimulants (caffeine, amphetamines) due to its modulating effect on dopaminergic and GABAergic systems.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Extensive animal data, limited formal human trials)", keyStudies: ["Sikiric et al. (2010): Demonstrated BPC-157's profound healing effects on transected Achilles tendons in rats."], researchGaps: "Large-scale, double-blind human clinical trials for musculoskeletal repair."),
+            stackDetails: [
+                StackDetail(partner: "TB-500", purpose: "\"Wolverine Stack\"", notes: "Ultimate tissue repair synergy — BPC builds blood vessels, TB-500 builds tissue"),
+                StackDetail(partner: "GHK-Cu", purpose: "Skin/Tissue regeneration", notes: "Enhances collagen synthesis"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site reaction"], uncommon: ["Lethargy", "Mild headache", "Changes in bowel movements (oral)"], rare: ["Potential promotion of existing tumor angiogenesis (theoretical)"], contraindications: ["Active cancer (due to angiogenic properties)"]),
+            isWADAProhibited: true,
+            wadaCategory: "S2 Peptide Hormones"
         ),
         CompoundProfile(
             name: "TB-500",
@@ -218,7 +500,38 @@ enum CompoundDatabase {
             averageRating: 4.5,
             stackPartners: ["BPC-157", "GHK-Cu"],
             iconName: "bandage.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "4,963 Da", administrationRoute: "Subcutaneous / IM", halfLife: "1-2 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "2-2.5 mg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "4,963 Da", administrationRoute: "Subcutaneous / IM", halfLife: "1-2 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "2-2.5 mg"),
+            primaryUseCases: ["Muscle tear and strain recovery", "Reducing scar tissue and adhesions", "Improving flexibility and joint mobility", "Hair growth (anecdotal)"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "2 mg", frequency: "2x weekly", timingNotes: "e.g., Monday / Thursday"),
+                TieredDose(tier: "Intermediate", dose: "2.5 mg", frequency: "2x weekly", timingNotes: "e.g., Monday / Thursday"),
+                TieredDose(tier: "Advanced", dose: "2.5 mg", frequency: "3x weekly", timingNotes: "e.g., Mon / Wed / Fri"),
+            ],
+            cycleLength: "4-6 weeks loading, followed by maintenance",
+            loadingProtocol: "Yes (4-6 weeks of 4-7.5 mg total per week)",
+            onOffCycling: "Maintenance: 2-2.5 mg once per week or twice per month",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "2 mg, 5 mg, 10 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 1 mL of BW to a 5 mg vial → 500 mcg per 0.1 mL (10 IU). Draw 50 IU = 2.5 mg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C) for up to 14 days", handlingNotes: "Swirl gently. Degrades faster than BPC-157 once reconstituted."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "CRP / ESR", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks inflammation reduction"),
+            ],
+            nutritionalSupport: [
+                "Collagen Peptides: Raw materials for tissue repair.",
+                "Vitamin C: Mandatory co-factor for collagen synthesis.",
+                "Omega-3 Fatty Acids: Reduces systemic inflammation.",
+                "Curcumin / Turmeric: Natural anti-inflammatory synergy.",
+            ],
+            beginnerTips: [
+                "Unlike BPC-157, TB-500 is highly systemic. No need to inject near the injury site — standard abdominal SubQ works perfectly.",
+                "The loading phase is critical. Most users run 5-7 mg per week for the first month, then drop to maintenance.",
+                "Many users report significant lethargy after injecting TB-500, so pinning before bed is highly recommended.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Goldstein et al. (2012): Outlined the role of Thymosin Beta-4 in tissue repair, wound healing, and anti-inflammatory processes."], researchGaps: "Long-term safety of high-dose loading phases in humans."),
+            stackDetails: [
+                StackDetail(partner: "BPC-157", purpose: "\"Wolverine Stack\"", notes: "BPC builds blood vessels; TB-500 builds tissue"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Lethargy/tiredness post-injection"], uncommon: ["Head rush", "Mild flu-like symptoms"], rare: ["Theoretical risk of accelerating existing cancer growth"], contraindications: ["Active cancer"]),
+            isWADAProhibited: true,
+            wadaCategory: "S2 Peptide Hormones"
         ),
         CompoundProfile(
             name: "GHK-Cu",
@@ -240,7 +553,39 @@ enum CompoundDatabase {
             averageRating: 4.3,
             stackPartners: ["BPC-157", "Epithalon", "Zinc"],
             iconName: "sparkles",
-            keyFacts: CompoundKeyFacts(molecularWeight: "403 Da", administrationRoute: "SubQ / Topical", halfLife: "~1 hour", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1-2 mg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "403 Da", administrationRoute: "SubQ / Topical", halfLife: "~1 hour", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1-2 mg"),
+            primaryUseCases: ["Skin rejuvenation and anti-aging", "Hair growth stimulation", "Wound healing and scar reduction", "Systemic inflammation reduction"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "1 mg", frequency: "1x daily", timingNotes: "SubQ, any time"),
+                TieredDose(tier: "Intermediate", dose: "2 mg", frequency: "1x daily", timingNotes: "SubQ, any time"),
+                TieredDose(tier: "Advanced", dose: "2 mg", frequency: "2x daily", timingNotes: "SubQ, morning and evening"),
+            ],
+            cycleLength: "4-8 weeks (SubQ) / Continuous (Topical)",
+            loadingProtocol: "No",
+            onOffCycling: "30 days on / 30 days off (to prevent copper toxicity)",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "50 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 5 mL of BW to a 50 mg vial → 1 mg per 0.1 mL (10 IU). Draw 10 IU = 1 mg, 20 IU = 2 mg", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C) for up to 30 days", handlingNotes: "GHK-Cu is bright blue. If the powder or liquid is not blue, it is not GHK-Cu."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Serum Copper", baseline: "Recommended", onCycle: "Required", reason: "Prevents copper toxicity"),
+                BloodworkMarker(marker: "Serum Zinc", baseline: "Recommended", onCycle: "Required", reason: "Copper and zinc compete for absorption"),
+            ],
+            nutritionalSupport: [
+                "Zinc (15-30 mg daily): MANDATORY — GHK-Cu introduces copper which depletes zinc.",
+                "Collagen Peptides: Raw materials for skin and tissue repair.",
+                "Vitamin C: Co-factor for collagen synthesis.",
+                "Omega-3 Fatty Acids: Reduces inflammation.",
+            ],
+            beginnerTips: [
+                "Notorious for intense Post-Injection Pain (PIP) and large red welts. Dilute further or draw BPC-157 into the same syringe to mitigate.",
+                "Supplementing with 15-30 mg of Zinc daily while on cycle is mandatory to prevent copper-induced zinc depletion.",
+                "For facial anti-aging, topical creams (0.05% to 2%) are highly effective and avoid injection pain.",
+                "More is not better with topical GHK-Cu — concentrations above 2-3% can cause 'copper uglies' (temporary worsening of skin).",
+            ],
+            evidence: EvidenceSummary(level: "Strong (especially for topical use)", keyStudies: ["Pickart et al. (2015): Comprehensive review showing GHK-Cu's ability to modulate over 4,000 human genes toward a healthier state."], researchGaps: "Optimal systemic dosing to avoid copper toxicity while maximizing regenerative effects."),
+            stackDetails: [
+                StackDetail(partner: "BPC-157", purpose: "Pain mitigation", notes: "BPC-157 is often mixed in the same syringe to reduce GHK-Cu injection pain"),
+                StackDetail(partner: "Zinc", purpose: "Mineral balance", notes: "Prevents copper-induced zinc depletion"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Severe injection site pain (PIP)", "Welts and redness"], uncommon: ["Nausea", "Headaches"], rare: ["Copper toxicity (prolonged high-dose use)"], contraindications: ["Wilson's disease", "Existing copper toxicity"])
         ),
         CompoundProfile(
             name: "KPV",
@@ -260,7 +605,36 @@ enum CompoundDatabase {
             averageRating: 4.2,
             stackPartners: ["BPC-157", "Thymosin Alpha-1", "GHK-Cu"],
             iconName: "leaf.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "357 Da", administrationRoute: "Oral / Subcutaneous", halfLife: "Minutes (effects prolonged)", storageTemp: "2-8°C", reconstitution: "BAC Water / Oral capsule", typicalDoseRange: "200-500 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "357 Da", administrationRoute: "Oral / Subcutaneous", halfLife: "Minutes (effects prolonged)", storageTemp: "2-8°C", reconstitution: "BAC Water / Oral capsule", typicalDoseRange: "200-500 mcg"),
+            primaryUseCases: ["Inflammatory Bowel Disease (IBD, Crohn's, UC)", "Systemic inflammation and autoimmune conditions", "Mold toxicity / CIRS recovery", "Skin conditions (Psoriasis, Eczema)"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "200 mcg", frequency: "1x daily", timingNotes: "SubQ, any time"),
+                TieredDose(tier: "Intermediate", dose: "250 mcg", frequency: "2x daily", timingNotes: "SubQ, morning and evening"),
+                TieredDose(tier: "Advanced", dose: "500 mcg", frequency: "2x daily", timingNotes: "Oral (for gut issues)"),
+            ],
+            cycleLength: "4-8 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "Continuous during cycle",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "10 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 10 mg vial → 500 mcg per 0.1 mL (10 IU). Draw 4 IU = 200 mcg, 5 IU = 250 mcg", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "CRP / ESR", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks systemic inflammation reduction"),
+            ],
+            nutritionalSupport: [
+                "Collagen Peptides: Supports gut lining repair.",
+                "Vitamin C: Co-factor for tissue healing.",
+                "Omega-3 Fatty Acids: Anti-inflammatory synergy.",
+                "Curcumin / Turmeric: Additional anti-inflammatory support.",
+            ],
+            beginnerTips: [
+                "For gut-specific issues like Crohn's or UC, oral KPV capsules are significantly more effective than SubQ injections — delivers directly to inflamed mucosal lining.",
+                "Highly regarded in the mold toxicity (CIRS) community for combating systemic fungal colonization and reducing mast cell activation.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Dalmasso et al. (2008): Demonstrated KPV's ability to significantly reduce intestinal inflammation in murine models of colitis."], researchGaps: "Large-scale human trials for IBD."),
+            stackDetails: [
+                StackDetail(partner: "BPC-157 (Oral)", purpose: "Ultimate Gut Healing", notes: "KPV reduces inflammation; BPC repairs the lining"),
+                StackDetail(partner: "Thymosin Alpha-1", purpose: "Immune modulation", notes: "Powerful combo for autoimmune/mold issues"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site reaction"], uncommon: ["Mild fatigue"], rare: [], contraindications: [])
         ),
         CompoundProfile(
             name: "Thymosin Alpha-1",
@@ -280,7 +654,36 @@ enum CompoundDatabase {
             averageRating: 4.4,
             stackPartners: ["BPC-157", "LL-37", "KPV"],
             iconName: "shield.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "3,108 Da", administrationRoute: "Subcutaneous", halfLife: "~2 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1.5 mg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "3,108 Da", administrationRoute: "Subcutaneous", halfLife: "~2 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1.5 mg"),
+            primaryUseCases: ["Viral infections (EBV, Lyme, COVID recovery)", "Autoimmune disease management", "Mold toxicity (CIRS)", "General immune system boosting"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "1.5 mg", frequency: "2x weekly", timingNotes: "e.g., Monday / Thursday"),
+                TieredDose(tier: "Intermediate", dose: "1.5 mg", frequency: "3x weekly", timingNotes: "e.g., Mon / Wed / Fri"),
+                TieredDose(tier: "Advanced", dose: "1.5 mg", frequency: "1x daily", timingNotes: "For acute severe infections"),
+            ],
+            cycleLength: "4-12 weeks (or longer for chronic conditions)",
+            loadingProtocol: "No",
+            onOffCycling: "Continuous during cycle",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "10 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 10 mg vial → 500 mcg per 0.1 mL (10 IU). Draw 30 IU = 1.5 mg", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C) for up to 30 days", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "CBC with Differential", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks white blood cell and T-cell counts"),
+                BloodworkMarker(marker: "CRP / ESR", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks inflammation"),
+            ],
+            nutritionalSupport: [
+                "Vitamin C: Supports immune function.",
+                "Vitamin D3: Essential for immune regulation.",
+                "Zinc: Supports T-cell function and immune response.",
+            ],
+            beginnerTips: [
+                "If using Ta1 to treat a chronic infection (like Lyme or EBV), you may experience a 'Herxheimer reaction' (feeling worse before feeling better) as the immune system wakes up.",
+                "Ta1 is unique because it is an immune modulator, not just a stimulator — safe and effective for autoimmune conditions where the immune system is overactive.",
+            ],
+            evidence: EvidenceSummary(level: "Strong (FDA Orphan Drug status as Zadaxin)", keyStudies: ["Garaci et al. (2012): Reviewed clinical use of Ta1 in treating viral hepatitis, HIV, and as a vaccine adjuvant."], researchGaps: "Optimal dosing protocols for specific autoimmune conditions."),
+            stackDetails: [
+                StackDetail(partner: "BPC-157", purpose: "Systemic recovery", notes: "Combines immune modulation with tissue repair"),
+                StackDetail(partner: "LL-37", purpose: "Infection clearing", notes: "Ta1 boosts T-cells; LL-37 directly kills pathogens"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site redness"], uncommon: ["Flu-like symptoms (Herxheimer reaction/die-off)"], rare: ["Overstimulation of immune system (rare)"], contraindications: ["Organ transplant recipients (risk of rejection)"])
         ),
         CompoundProfile(
             name: "LL-37",
@@ -300,7 +703,34 @@ enum CompoundDatabase {
             averageRating: 4.1,
             stackPartners: ["Thymosin Alpha-1", "BPC-157"],
             iconName: "microbe.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "4,493 Da", administrationRoute: "Subcutaneous", halfLife: "Minutes to hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-200 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "4,493 Da", administrationRoute: "Subcutaneous", halfLife: "Minutes to hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-200 mcg"),
+            primaryUseCases: ["Chronic, treatment-resistant infections (Lyme, EBV)", "Biofilm disruption", "Gut dysbiosis and SIBO", "Wound healing"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "100 mcg", frequency: "1x daily", timingNotes: "Any time"),
+                TieredDose(tier: "Intermediate", dose: "250 mcg", frequency: "1x daily", timingNotes: "Any time"),
+                TieredDose(tier: "Advanced", dose: "500 mcg", frequency: "1x daily", timingNotes: "Any time"),
+            ],
+            cycleLength: "4-6 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "Continuous during cycle",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "2 mg, 5 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 2 mg vial → 100 mcg per 0.1 mL (10 IU). Draw 10 IU = 100 mcg, 25 IU = 250 mcg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Liver Enzymes (AST/ALT)", baseline: "Recommended", onCycle: "Recommended", reason: "Processing pathogen die-off can stress the liver"),
+            ],
+            nutritionalSupport: [
+                "Activated Charcoal / Zeolite: Binder to mop up toxins released during die-off (take away from meals).",
+                "Vitamin C: Supports immune function.",
+                "Omega-3 Fatty Acids: Anti-inflammatory support.",
+            ],
+            beginnerTips: [
+                "Notorious for causing severe 'die-off' (Herxheimer) reactions. As it breaks down biofilms and kills bacteria, endotoxins are released. Start at a very low dose (50-100 mcg) and titrate up slowly.",
+                "Using a binder (like activated charcoal or zeolite) away from meals can help mop up toxins and reduce die-off symptoms.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Vandamme et al. (2012): Detailed the mechanisms by which LL-37 disrupts bacterial membranes and neutralizes LPS."], researchGaps: "Systemic safety of long-term administration in humans."),
+            stackDetails: [
+                StackDetail(partner: "Thymosin Alpha-1", purpose: "Ultimate Infection Protocol", notes: "Ta1 boosts T-cells; LL-37 breaks biofilms and kills pathogens"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site pain", "Herxheimer reaction (flu-like symptoms, fatigue, brain fog)"], uncommon: ["Nausea", "Mild fever"], rare: ["Autoimmune flare-up (theoretical)"], contraindications: ["Severe autoimmune disease (without physician supervision)"])
         ),
         CompoundProfile(
             name: "Pentadecapeptide (BPC-157 Arginate)",
@@ -319,7 +749,38 @@ enum CompoundDatabase {
             averageRating: 4.3,
             stackPartners: ["KPV", "Butyrate"],
             iconName: "pill.circle.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "1,419 Da", administrationRoute: "Oral", halfLife: "<30 min (effects longer)", storageTemp: "Room Temp", reconstitution: "N/A (oral capsule)", typicalDoseRange: "250-500 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "1,419 Da", administrationRoute: "Oral", halfLife: "<30 min (effects longer)", storageTemp: "Room Temp", reconstitution: "N/A (oral capsule)", typicalDoseRange: "250-500 mcg"),
+            primaryUseCases: ["Severe gastrointestinal repair (Leaky Gut, Crohn's, UC)", "Systemic tissue repair without injections", "Neuroprotection and cognitive recovery"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "250 mcg", frequency: "1x daily", timingNotes: "Fasted, morning"),
+                TieredDose(tier: "Intermediate", dose: "500 mcg", frequency: "1x daily", timingNotes: "Fasted, morning"),
+                TieredDose(tier: "Advanced", dose: "500 mcg", frequency: "2x daily", timingNotes: "Fasted, morning and pre-bed"),
+            ],
+            cycleLength: "4-8 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "Continuous during cycle",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "N/A (oral capsules or liquid drops)", diluent: "N/A", reconstitutionMath: "N/A — taken orally", storageLyophilized: "Room temperature, away from sunlight and moisture", storageReconstituted: "N/A", handlingNotes: "Keep capsules sealed in original container."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "CRP / ESR", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks systemic inflammation reduction"),
+            ],
+            nutritionalSupport: [
+                "Collagen Peptides: Supports gut lining repair.",
+                "Vitamin C: Co-factor for collagen synthesis.",
+                "Omega-3 Fatty Acids: Anti-inflammatory support.",
+            ],
+            beginnerTips: [
+                "You MUST ensure it is the Arginate (PDA) form. Standard BPC-157 Acetate is destroyed by stomach acid before absorption.",
+                "Always take oral PDA on an empty stomach to maximize absorption and allow it to coat the gastric lining.",
+                "Many users report that oral PDA is just as effective as injectable BPC-157 for systemic joint and tendon pain.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Sikiric et al. (various): Demonstrated the enhanced stability and efficacy of the arginate salt form of BPC-157 in gastric juice."], researchGaps: "Direct human head-to-head trials comparing oral Arginate vs. injectable Acetate."),
+            stackDetails: [
+                StackDetail(partner: "KPV (Oral)", purpose: "Gut Restoration", notes: "PDA repairs the mucosal lining; KPV halts the inflammation"),
+                StackDetail(partner: "Tributyrin / Butyrate", purpose: "Microbiome support", notes: "Feeds colonocytes while PDA repairs tight junctions"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Mild changes in bowel habits"], uncommon: ["Lethargy", "Mild headache"], rare: ["Potential promotion of existing tumor angiogenesis (theoretical)"], contraindications: ["Active cancer"]),
+            isWADAProhibited: true,
+            wadaCategory: "S2 Peptide Hormones"
         ),
 
         // MARK: - Category 3: Fat Loss & Metabolic
@@ -344,7 +805,39 @@ enum CompoundDatabase {
             averageRating: 4.6,
             stackPartners: ["BPC-157", "CJC-1295/Ipamorelin"],
             iconName: "scalemass.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "4,114 Da", administrationRoute: "Subcutaneous", halfLife: "~7 days", storageTemp: "2-8°C", reconstitution: "Pre-filled pen / BAC Water", typicalDoseRange: "0.25-2.4 mg weekly")
+            keyFacts: CompoundKeyFacts(molecularWeight: "4,114 Da", administrationRoute: "Subcutaneous", halfLife: "~7 days", storageTemp: "2-8°C", reconstitution: "Pre-filled pen / BAC Water", typicalDoseRange: "0.25-2.4 mg weekly"),
+            primaryUseCases: ["Significant weight loss / Obesity treatment", "Type 2 Diabetes management", "Cardiovascular risk reduction"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner (Month 1)", dose: "0.25 mg", frequency: "1x weekly", timingNotes: "Same day each week"),
+                TieredDose(tier: "Intermediate (Month 2)", dose: "0.5 mg", frequency: "1x weekly", timingNotes: "Same day each week"),
+                TieredDose(tier: "Advanced (Maintenance)", dose: "1.0 - 2.4 mg", frequency: "1x weekly", timingNotes: "Titrate up slowly based on tolerance"),
+            ],
+            cycleLength: "Long-term / Indefinite",
+            loadingProtocol: "Yes (Requires slow titration over months to mitigate nausea)",
+            onOffCycling: "Continuous",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "2 mg, 5 mg (compounded/lyophilized)", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 5 mg vial → 2.5 mg per 1 mL (250 mcg per 10 IU). Draw 10 IU = 0.25 mg, 20 IU = 0.5 mg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C) for up to 56 days", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "HbA1c", baseline: "Required", onCycle: "Required", reason: "Primary marker for blood sugar control"),
+                BloodworkMarker(marker: "Lipase / Amylase", baseline: "Recommended", onCycle: "Recommended", reason: "Monitors pancreatic health"),
+                BloodworkMarker(marker: "Thyroid Panel", baseline: "Recommended", onCycle: "Recommended", reason: "Due to theoretical thyroid risks"),
+            ],
+            nutritionalSupport: [
+                "High Protein Intake: Critical to prevent muscle wasting during rapid weight loss. Aim for 1.2g per lb of lean body mass.",
+                "Electrolytes (Sodium, Potassium, Magnesium): GLP-1 agonists cause reduced food intake leading to electrolyte depletion.",
+                "Digestive Enzymes & Probiotics: Helps manage GI side effects (nausea, constipation).",
+                "L-Carnitine: Synergizes with fat-loss by shuttling mobilized fatty acids into mitochondria.",
+            ],
+            beginnerTips: [
+                "The titration schedule is not a suggestion — it is mandatory. Jumping to a high dose will result in severe, debilitating nausea.",
+                "Eat small, frequent, high-protein meals. Semaglutide slows gastric emptying — large/heavy/fatty meals cause significant GI distress.",
+                "'Ozempic Face' and muscle loss are common complaints. Prioritize protein intake and resistance training.",
+            ],
+            evidence: EvidenceSummary(level: "Strong (FDA Approved as Ozempic/Wegovy)", keyStudies: ["STEP Clinical Trial Program: Demonstrated average weight loss of ~15% of body weight over 68 weeks."], researchGaps: "Long-term effects of decades-long use on gastrointestinal motility."),
+            stackDetails: [
+                StackDetail(partner: "BPC-157", purpose: "Nausea mitigation", notes: "BPC-157 can help soothe the gastric distress caused by GLP-1s"),
+                StackDetail(partner: "CJC-1295/Ipamorelin", purpose: "Muscle preservation", notes: "Helps prevent muscle wasting from rapid weight loss"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Vomiting", "Diarrhea", "Constipation", "Fatigue"], uncommon: ["Acid reflux", "Dizziness", "Hair loss (rapid weight loss)"], rare: ["Pancreatitis", "Gallbladder disease", "Gastroparesis (stomach paralysis)"], contraindications: ["Personal or family history of Medullary Thyroid Carcinoma (MTC)", "Multiple Endocrine Neoplasia syndrome type 2 (MEN 2)"])
         ),
         CompoundProfile(
             name: "Tirzepatide",
@@ -365,7 +858,37 @@ enum CompoundDatabase {
             averageRating: 4.7,
             stackPartners: ["Tesamorelin", "BPC-157"],
             iconName: "arrow.down.right",
-            keyFacts: CompoundKeyFacts(molecularWeight: "4,814 Da", administrationRoute: "Subcutaneous", halfLife: "~5 days", storageTemp: "2-8°C", reconstitution: "Pre-filled pen / BAC Water", typicalDoseRange: "2.5-15 mg weekly")
+            keyFacts: CompoundKeyFacts(molecularWeight: "4,814 Da", administrationRoute: "Subcutaneous", halfLife: "~5 days", storageTemp: "2-8°C", reconstitution: "Pre-filled pen / BAC Water", typicalDoseRange: "2.5-15 mg weekly"),
+            primaryUseCases: ["Severe obesity treatment", "Type 2 Diabetes management", "Overcoming weight-loss stalls on Semaglutide"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner (Month 1)", dose: "2.5 mg", frequency: "1x weekly", timingNotes: "Same day each week"),
+                TieredDose(tier: "Intermediate (Month 2)", dose: "5.0 mg", frequency: "1x weekly", timingNotes: "Same day each week"),
+                TieredDose(tier: "Advanced (Maintenance)", dose: "7.5 - 15.0 mg", frequency: "1x weekly", timingNotes: "Titrate up by 2.5 mg every 4 weeks as needed"),
+            ],
+            cycleLength: "Long-term / Indefinite",
+            loadingProtocol: "Yes (Requires slow titration)",
+            onOffCycling: "Continuous",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "5 mg, 10 mg, 15 mg (compounded/lyophilized)", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 1 mL of BW to a 10 mg vial → 1 mg per 0.1 mL (10 IU). Draw 25 IU = 2.5 mg, 50 IU = 5.0 mg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C) for up to 30 days", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "HbA1c", baseline: "Required", onCycle: "Required", reason: "Primary marker for blood sugar control"),
+                BloodworkMarker(marker: "Lipase / Amylase", baseline: "Recommended", onCycle: "Recommended", reason: "Monitors pancreatic health"),
+            ],
+            nutritionalSupport: [
+                "High Protein Intake: Critical to prevent muscle wasting. Aim for 1.2g per lb of lean body mass.",
+                "Electrolytes: Reduced food intake leads to electrolyte depletion.",
+                "Digestive Enzymes & Probiotics: Helps manage GI side effects.",
+                "L-Carnitine: Shuttles mobilized fatty acids into mitochondria to be burned.",
+            ],
+            beginnerTips: [
+                "Generally milder side-effect profile (less nausea) than Semaglutide despite causing more weight loss, due to GIP receptor activation.",
+                "Some users split their dose (injecting half every 3.5 days) for more stable blood levels and fewer peak-dose side effects.",
+                "Muscle loss is a severe risk due to profound appetite suppression. Tracking protein macros is essential.",
+            ],
+            evidence: EvidenceSummary(level: "Strong (FDA Approved as Mounjaro/Zepbound)", keyStudies: ["SURMOUNT Clinical Trial Program: Demonstrated average weight loss of up to 22.5% of body weight over 72 weeks."], researchGaps: "Long-term maintenance strategies post-discontinuation."),
+            stackDetails: [
+                StackDetail(partner: "Tesamorelin", purpose: "Body Recomposition", notes: "Tirzepatide drops overall weight; Tesamorelin targets visceral fat and preserves muscle"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Diarrhea", "Decreased appetite", "Fatigue"], uncommon: ["Injection site reactions", "Constipation"], rare: ["Pancreatitis", "Gallbladder disease"], contraindications: ["Personal or family history of MTC", "MEN 2"])
         ),
         CompoundProfile(
             name: "Retatrutide",
@@ -386,7 +909,39 @@ enum CompoundDatabase {
             averageRating: 4.3,
             stackPartners: ["AOD-9604", "BPC-157"],
             iconName: "chart.line.downtrend.xyaxis",
-            keyFacts: CompoundKeyFacts(molecularWeight: "4,605 Da", administrationRoute: "Subcutaneous", halfLife: "~6 days", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "2-12 mg weekly")
+            keyFacts: CompoundKeyFacts(molecularWeight: "4,605 Da", administrationRoute: "Subcutaneous", halfLife: "~6 days", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "2-12 mg weekly"),
+            primaryUseCases: ["Severe obesity and extreme weight loss", "Overcoming weight-loss plateaus on Semaglutide or Tirzepatide", "Reversing non-alcoholic fatty liver disease (NAFLD)"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "2 mg", frequency: "1x weekly", timingNotes: "Same day each week"),
+                TieredDose(tier: "Intermediate", dose: "4-8 mg", frequency: "1x weekly", timingNotes: "Same day each week"),
+                TieredDose(tier: "Advanced", dose: "12 mg", frequency: "1x weekly", timingNotes: "Same day each week"),
+            ],
+            cycleLength: "Continuous until goal weight reached",
+            loadingProtocol: "Yes (Strict 4-week dose escalation)",
+            onOffCycling: "Continuous — long-term maintenance",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "5 mg, 10 mg, 15 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 1 mL of BW to a 10 mg vial → 1 mg per 0.1 mL (10 IU). Draw 20 IU = 2 mg, 40 IU = 4 mg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Fasting Glucose & HbA1c", baseline: "Required", onCycle: "Required", reason: "Tracks insulin sensitivity improvements"),
+                BloodworkMarker(marker: "Resting Heart Rate", baseline: "Required", onCycle: "Required", reason: "Glucagon agonism can cause mild tachycardia"),
+                BloodworkMarker(marker: "Liver Enzymes (AST/ALT)", baseline: "Recommended", onCycle: "Recommended", reason: "Retatrutide rapidly clears fat from the liver"),
+            ],
+            nutritionalSupport: [
+                "High Protein Intake: 1.2g per lb of lean body mass — critical for muscle preservation.",
+                "Electrolytes: Reduced food intake causes depletion.",
+                "Digestive Enzymes & Probiotics: For GI side effects.",
+                "L-Carnitine: Synergizes with fat-burning mechanism.",
+            ],
+            beginnerTips: [
+                "The glucagon agonism makes users feel 'warmer' and more energetic — the body is actively burning fat for energy.",
+                "Never skip the titration schedule. GI side effects are severe if you dose too high too fast.",
+                "Monitor resting heart rate — mild tachycardia is common but should stabilize.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Phase 2 trials)", keyStudies: ["Phase 2 trial (Eli Lilly): Demonstrated unprecedented 24.2% weight loss at 48 weeks at the highest dose."], researchGaps: "Phase 3 confirmatory trials and long-term safety data."),
+            stackDetails: [
+                StackDetail(partner: "AOD-9604", purpose: "Extreme Fat Loss", notes: "Retatrutide provides systemic metabolic shift; AOD targets stubborn deposits"),
+                StackDetail(partner: "BPC-157", purpose: "GI Support", notes: "Mitigates nausea and gastric distress from GLP-1 agonism"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Diarrhea", "Constipation", "Suppressed appetite", "Mild increased heart rate"], uncommon: ["Vomiting", "Injection site reactions", "Hair shedding"], rare: ["Pancreatitis"], contraindications: ["Personal or family history of MTC", "MEN 2"])
         ),
         CompoundProfile(
             name: "AOD-9604",
@@ -405,7 +960,38 @@ enum CompoundDatabase {
             averageRating: 3.9,
             stackPartners: ["Tesamorelin", "BPC-157", "CJC-1295"],
             iconName: "flame",
-            keyFacts: CompoundKeyFacts(molecularWeight: "1,815 Da", administrationRoute: "Subcutaneous", halfLife: "Minutes (effects sustained)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "250-300 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "1,815 Da", administrationRoute: "Subcutaneous", halfLife: "Minutes (effects sustained)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "250-300 mcg"),
+            primaryUseCases: ["Targeted fat loss", "Cartilage and joint repair (emerging use)", "Weight management without hormonal disruption"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "250 mcg", frequency: "1x daily", timingNotes: "Morning, fasted"),
+                TieredDose(tier: "Intermediate", dose: "300 mcg", frequency: "1x daily", timingNotes: "Morning, fasted"),
+                TieredDose(tier: "Advanced", dose: "250 mcg", frequency: "2x daily", timingNotes: "Morning fasted, pre-workout fasted"),
+            ],
+            cycleLength: "12-24 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "Continuous during cycle",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "2 mg, 5 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 2 mg vial → 100 mcg per 0.1 mL (10 IU). Draw 25 IU = 250 mcg, 30 IU = 300 mcg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C) for up to 30 days", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Fasting Glucose", baseline: "Recommended", onCycle: "Recommended", reason: "To ensure metabolic stability (rarely affects it)"),
+            ],
+            nutritionalSupport: [
+                "High Protein Intake: Prevents muscle wasting during fat loss.",
+                "L-Carnitine: Shuttles mobilized fatty acids into mitochondria to be burned.",
+                "Fasting Window: MANDATORY — wait 45-60 minutes after injection before consuming calories.",
+            ],
+            beginnerTips: [
+                "Highly dependent on a fasted state. Injecting when insulin is elevated completely blunts its mechanism.",
+                "Does NOT increase IGF-1 — much safer option for long-term fat loss without insulin resistance or cellular proliferation risks.",
+                "Often preferred over standard HGH Fragment 176-191 because the added Tyrosine makes the molecule more stable.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Stier et al. (2013): Demonstrated safety and tolerability, confirming it does not negatively impact IGF-1 or insulin sensitivity."], researchGaps: "Large-scale efficacy trials compared to modern GLP-1 agonists."),
+            stackDetails: [
+                StackDetail(partner: "Tesamorelin", purpose: "Ultimate Fat Loss", notes: "AOD burns systemic fat; Tesamorelin targets visceral fat"),
+                StackDetail(partner: "BPC-157", purpose: "Joint Repair", notes: "AOD has synergistic cartilage repair properties with BPC"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site redness"], uncommon: ["Headache", "Mild indigestion"], rare: [], contraindications: ["Active cancer"]),
+            isWADAProhibited: true,
+            wadaCategory: "S2 Peptide Hormones"
         ),
         CompoundProfile(
             name: "Cagrilintide",
@@ -425,7 +1011,33 @@ enum CompoundDatabase {
             averageRating: 4.1,
             stackPartners: ["Semaglutide"],
             iconName: "brain.filled.head.profile",
-            keyFacts: CompoundKeyFacts(molecularWeight: "3,990 Da", administrationRoute: "Subcutaneous", halfLife: "~7-8 days", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "0.25-2.4 mg weekly")
+            keyFacts: CompoundKeyFacts(molecularWeight: "3,990 Da", administrationRoute: "Subcutaneous", halfLife: "~7-8 days", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "0.25-2.4 mg weekly"),
+            primaryUseCases: ["Profound satiety and hedonic appetite reduction", "Muscle-preserving weight loss", "Synergistic stacking with Semaglutide"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "0.25 mg", frequency: "1x weekly", timingNotes: "Same day each week, with Semaglutide"),
+                TieredDose(tier: "Intermediate", dose: "1.0 mg", frequency: "1x weekly", timingNotes: "Titrate up every 4 weeks"),
+                TieredDose(tier: "Advanced", dose: "2.4 mg", frequency: "1x weekly", timingNotes: "Maximum dose"),
+            ],
+            cycleLength: "Long-term / Indefinite",
+            loadingProtocol: "Yes (Titration required)",
+            onOffCycling: "Continuous",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "5 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Varies by vial concentration", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "HbA1c", baseline: "Recommended", onCycle: "Recommended", reason: "Blood sugar monitoring"),
+            ],
+            nutritionalSupport: [
+                "High Protein Intake: Critical for muscle preservation during weight loss.",
+                "Electrolytes: Compensate for reduced food intake.",
+            ],
+            beginnerTips: [
+                "Rarely used alone — almost exclusively stacked with Semaglutide ('CagriSema') for dual-pathway appetite suppression.",
+                "Preserves lean muscle mass better than GLP-1 agonists alone during weight loss.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Phase 3 trials)", keyStudies: ["CagriSema Phase 3 trials: Demonstrated superior weight loss vs. Semaglutide alone with better muscle preservation."], researchGaps: "Long-term cardiovascular outcome data."),
+            stackDetails: [
+                StackDetail(partner: "Semaglutide", purpose: "CagriSema Protocol", notes: "Attacks appetite from two completely different brain pathways"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Constipation", "Injection site reactions"], uncommon: ["Fatigue"], rare: ["Pancreatitis (theoretical)"], contraindications: ["Personal or family history of MTC"])
         ),
         CompoundProfile(
             name: "MOTS-c",
@@ -444,7 +1056,38 @@ enum CompoundDatabase {
             averageRating: 4.0,
             stackPartners: ["5-Amino-1MQ", "AOD-9604"],
             iconName: "bolt.ring.closed",
-            keyFacts: CompoundKeyFacts(molecularWeight: "2,174 Da", administrationRoute: "Subcutaneous", halfLife: "Short (effects prolonged)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "5-10 mg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "2,174 Da", administrationRoute: "Subcutaneous", halfLife: "Short (effects prolonged)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "5-10 mg"),
+            primaryUseCases: ["Enhancing mitochondrial function", "Overcoming weight-loss plateaus", "Improving exercise endurance", "Insulin sensitivity improvement"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "5 mg", frequency: "1x weekly", timingNotes: "Pre-workout"),
+                TieredDose(tier: "Intermediate", dose: "5 mg", frequency: "2x weekly", timingNotes: "Pre-workout days"),
+                TieredDose(tier: "Advanced", dose: "10 mg", frequency: "2x weekly", timingNotes: "Pre-workout days"),
+            ],
+            cycleLength: "4-8 weeks on / 4 weeks off",
+            loadingProtocol: "No",
+            onOffCycling: "4-8 weeks on / 4 weeks off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "10 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 1 mL of BW to a 10 mg vial → 1 mg per 0.1 mL (10 IU). Draw 50 IU = 5 mg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Fasting Glucose", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks insulin sensitivity improvement"),
+            ],
+            nutritionalSupport: [
+                "NAD+ Boosters (NMN or NR): Synergizes with mitochondrial function enhancement.",
+                "CoQ10: Supports mitochondrial ATP production.",
+                "L-Carnitine: Shuttles fatty acids into mitochondria.",
+            ],
+            beginnerTips: [
+                "Acts as an 'exercise mimetic' — activates similar metabolic pathways to exercise.",
+                "Best taken pre-workout to maximize the metabolic shift.",
+                "Effects build over the cycle — don't expect immediate results.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Lee et al. (2015): Discovered MOTS-c's role as a mitochondrial-encoded exercise mimetic."], researchGaps: "Human clinical trials for obesity and metabolic syndrome."),
+            stackDetails: [
+                StackDetail(partner: "5-Amino-1MQ", purpose: "Metabolic Enhancement", notes: "Both target different metabolic pathways for fat loss"),
+                StackDetail(partner: "AOD-9604", purpose: "Fat Loss", notes: "MOTS-c enhances metabolism; AOD targets fat directly"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction"], uncommon: ["Mild fatigue"], rare: [], contraindications: []),
+            isWADAProhibited: true,
+            wadaCategory: "S4 Hormone and Metabolic Modulators"
         ),
 
         // MARK: - Category 4: Cognitive & Nootropic
@@ -467,7 +1110,34 @@ enum CompoundDatabase {
             averageRating: 4.4,
             stackPartners: ["Selank", "Epithalon"],
             iconName: "brain.head.profile",
-            keyFacts: CompoundKeyFacts(molecularWeight: "813 Da", administrationRoute: "Intranasal", halfLife: "Minutes (effects 20-24h)", storageTemp: "2-8°C", reconstitution: "Pre-mixed nasal spray", typicalDoseRange: "200-600 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "813 Da", administrationRoute: "Intranasal", halfLife: "Minutes (effects 20-24h)", storageTemp: "2-8°C", reconstitution: "Pre-mixed nasal spray", typicalDoseRange: "200-600 mcg"),
+            primaryUseCases: ["Cognitive enhancement and focus", "Memory improvement", "Neuroprotection", "ADHD support (off-label)"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "200 mcg", frequency: "1x daily", timingNotes: "Morning, intranasal"),
+                TieredDose(tier: "Intermediate", dose: "400 mcg", frequency: "1x daily", timingNotes: "Morning, intranasal"),
+                TieredDose(tier: "Advanced", dose: "600 mcg", frequency: "2x daily", timingNotes: "Morning and early afternoon"),
+            ],
+            cycleLength: "10-30 days on / 30 days off",
+            loadingProtocol: "No",
+            onOffCycling: "10-30 days on / 30 days off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "Pre-mixed nasal spray", diluent: "N/A (pre-mixed)", reconstitutionMath: "Typically 200-300 mcg per spray. Follow product labeling.", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Keep refrigerated. Prime spray before first use."),
+            bloodworkMarkers: [],
+            nutritionalSupport: [
+                "Omega-3 Fatty Acids: Supports neuronal membrane health.",
+                "B-Complex Vitamins: Supports neurotransmitter synthesis.",
+                "Magnesium L-Threonate: Crosses blood-brain barrier for cognitive support.",
+            ],
+            beginnerTips: [
+                "Stimulating — do not take late in the day or insomnia may result.",
+                "Intranasal administration bypasses the blood-brain barrier via the olfactory nerve for rapid onset.",
+                "The N-Acetyl Semax Amidate version is preferred for increased potency and stability.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Approved in Russia as a prescription drug)", keyStudies: ["Ashmarin et al.: Extensive Russian clinical data on cognitive enhancement and neuroprotection."], researchGaps: "Western clinical trials and direct comparison with standard nootropics."),
+            stackDetails: [
+                StackDetail(partner: "Selank", purpose: "Focus + Calm", notes: "Semax stimulates; Selank provides anxiolytic balance"),
+                StackDetail(partner: "Epithalon", purpose: "Brain + Longevity", notes: "Cognitive enhancement with telomere support"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Nasal irritation", "Overstimulation"], uncommon: ["Insomnia (if taken late)", "Hair loss (anecdotal, rare)"], rare: [], contraindications: [])
         ),
         CompoundProfile(
             name: "Selank",
@@ -486,7 +1156,33 @@ enum CompoundDatabase {
             averageRating: 4.3,
             stackPartners: ["Semax"],
             iconName: "brain",
-            keyFacts: CompoundKeyFacts(molecularWeight: "751 Da", administrationRoute: "Intranasal", halfLife: "Minutes (effects 12-24h)", storageTemp: "2-8°C", reconstitution: "Pre-mixed nasal spray", typicalDoseRange: "200-600 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "751 Da", administrationRoute: "Intranasal", halfLife: "Minutes (effects 12-24h)", storageTemp: "2-8°C", reconstitution: "Pre-mixed nasal spray", typicalDoseRange: "200-600 mcg"),
+            primaryUseCases: ["Anxiety relief without sedation", "Focus and cognitive clarity", "Stress management", "Mood stabilization"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "200 mcg", frequency: "1x daily", timingNotes: "Morning or as needed"),
+                TieredDose(tier: "Intermediate", dose: "400 mcg", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Advanced", dose: "600 mcg", frequency: "2x daily", timingNotes: "Morning and afternoon"),
+            ],
+            cycleLength: "10-30 days on / 30 days off",
+            loadingProtocol: "No",
+            onOffCycling: "10-30 days on / 30 days off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "Pre-mixed nasal spray", diluent: "N/A (pre-mixed)", reconstitutionMath: "Typically 200-300 mcg per spray", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Keep refrigerated."),
+            bloodworkMarkers: [],
+            nutritionalSupport: [
+                "Magnesium L-Threonate: Crosses blood-brain barrier for calm and focus.",
+                "L-Theanine: Synergistic anxiolytic effect.",
+                "B-Complex Vitamins: Supports neurotransmitter synthesis.",
+            ],
+            beginnerTips: [
+                "Provides 'clean calm' — removes anxiety without making you feel drugged or sleepy, unlike benzodiazepines.",
+                "No addiction potential, no cognitive impairment, no withdrawal symptoms.",
+                "Effective acutely before stressful situations (presentations, interviews).",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Approved in Russia as a prescription drug)", keyStudies: ["Seredenin et al.: Russian clinical data showing anxiolytic effects comparable to benzodiazepines without sedation."], researchGaps: "Western clinical trials."),
+            stackDetails: [
+                StackDetail(partner: "Semax", purpose: "Focus + Calm", notes: "The classic Russian nootropic stack — Semax for focus, Selank for calm"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Mild nasal irritation"], uncommon: ["Mild fatigue (if dose too high)"], rare: [], contraindications: [])
         ),
         CompoundProfile(
             name: "Dihexa",
@@ -506,7 +1202,34 @@ enum CompoundDatabase {
             averageRating: 4.0,
             stackPartners: ["Cerebrolysin"],
             iconName: "brain.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "507 Da", administrationRoute: "Oral / SubQ / Transdermal", halfLife: "~12.6 days", storageTemp: "Room Temp / 2-8°C", reconstitution: "BAC Water / Oral capsule", typicalDoseRange: "5-20 mg weekly")
+            keyFacts: CompoundKeyFacts(molecularWeight: "507 Da", administrationRoute: "Oral / SubQ / Transdermal", halfLife: "~12.6 days", storageTemp: "Room Temp / 2-8°C", reconstitution: "BAC Water / Oral capsule", typicalDoseRange: "5-20 mg weekly"),
+            primaryUseCases: ["Extreme cognitive enhancement", "Synaptogenesis (new synapse formation)", "Memory formation", "TBI recovery"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "5 mg", frequency: "1x weekly", timingNotes: "Morning, oral or SubQ"),
+                TieredDose(tier: "Intermediate", dose: "10 mg", frequency: "1x weekly", timingNotes: "Morning"),
+                TieredDose(tier: "Advanced", dose: "20 mg", frequency: "1x weekly", timingNotes: "Morning"),
+            ],
+            cycleLength: "4-8 weeks on / 1-2 months off",
+            loadingProtocol: "No — long half-life means it accumulates rapidly",
+            onOffCycling: "4-8 weeks on / 1-2 months off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "Oral capsules or solution", diluent: "N/A or BAC Water for SubQ", reconstitutionMath: "Varies by form", storageLyophilized: "Room Temp / Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Start very low — accumulation is significant."),
+            bloodworkMarkers: [],
+            nutritionalSupport: [
+                "Omega-3 Fatty Acids: Supports new synapse membrane formation.",
+                "B-Complex Vitamins: Neurotransmitter synthesis.",
+                "Magnesium L-Threonate: Brain-bioavailable magnesium.",
+            ],
+            beginnerTips: [
+                "Has a 12.6-day half-life — accumulates rapidly. Start with very low doses.",
+                "Activates c-Met pathway — NEVER use with active malignancies.",
+                "Cognitive effects build over weeks — this is not an acute stimulant.",
+                "Orders of magnitude more potent than BDNF at promoting dendritic spine growth.",
+            ],
+            evidence: EvidenceSummary(level: "Limited (Preclinical)", keyStudies: ["McCoy et al. (2013): Showed Dihexa restores cognitive function in animal models of dementia."], researchGaps: "No human clinical trials. Long-term safety unknown."),
+            stackDetails: [
+                StackDetail(partner: "Cerebrolysin", purpose: "Neuro-regeneration", notes: "Both promote neuronal growth through different mechanisms"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Overstimulation", "Jitteriness"], uncommon: ["Insomnia", "Brain fog (if dose too high)"], rare: ["Potential tumor promotion via c-Met pathway"], contraindications: ["Active malignancy (any cancer)", "History of cancer"])
         ),
         CompoundProfile(
             name: "Cerebrolysin",
@@ -526,7 +1249,33 @@ enum CompoundDatabase {
             averageRating: 4.2,
             stackPartners: ["Cortagen", "Pinealon"],
             iconName: "brain.head.profile.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "Mixture", administrationRoute: "IM / IV", halfLife: "Hours (effects long-lasting)", storageTemp: "Room Temp", reconstitution: "Pre-mixed ampoules", typicalDoseRange: "2-5 mL daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "Mixture", administrationRoute: "IM / IV", halfLife: "Hours (effects long-lasting)", storageTemp: "Room Temp", reconstitution: "Pre-mixed ampoules", typicalDoseRange: "2-5 mL daily"),
+            primaryUseCases: ["Stroke recovery", "Traumatic brain injury", "Dementia and cognitive decline", "Neuroprotection"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "2 mL", frequency: "1x daily", timingNotes: "IM injection, morning"),
+                TieredDose(tier: "Intermediate", dose: "5 mL", frequency: "1x daily", timingNotes: "IM injection, morning"),
+                TieredDose(tier: "Advanced", dose: "5 mL", frequency: "1x daily", timingNotes: "IM or IV (clinical setting)"),
+            ],
+            cycleLength: "10-21 days on / 2-3 months off",
+            loadingProtocol: "No",
+            onOffCycling: "10-21 days on / 2-3 months off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "Pre-mixed glass ampoules (1 mL, 5 mL, 10 mL)", diluent: "N/A (pre-mixed)", reconstitutionMath: "N/A — use directly from ampoule", storageLyophilized: "Room temperature", storageReconstituted: "N/A", handlingNotes: "MUST use a filter needle from glass ampoules to prevent glass shards from injection."),
+            bloodworkMarkers: [],
+            nutritionalSupport: [
+                "Omega-3 Fatty Acids: Supports brain membrane health.",
+                "B-Complex Vitamins: Neurotransmitter synthesis.",
+            ],
+            beginnerTips: [
+                "Requires large IM injection volumes (2-5 mL) — too much for SubQ. Must be injected intramuscularly.",
+                "Must use a filter needle from glass ampoules to prevent glass shards.",
+                "Approved as a prescription drug in 50+ countries — extensive safety data.",
+            ],
+            evidence: EvidenceSummary(level: "Strong (Approved in 50+ countries)", keyStudies: ["Multiple clinical trials for stroke and TBI showing significant neurological improvement."], researchGaps: "Not FDA-approved. Limited Western clinical trial data."),
+            stackDetails: [
+                StackDetail(partner: "Cortagen", purpose: "Cerebral cortex repair", notes: "Both target neuronal regeneration"),
+                StackDetail(partner: "Pinealon", purpose: "Brain bioregulation", notes: "Complementary neuroprotective mechanisms"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site pain (large volume)"], uncommon: ["Mild fever", "Agitation", "Dizziness"], rare: ["Allergic reaction (porcine-derived)"], contraindications: ["Epilepsy", "Severe renal insufficiency"])
         ),
         CompoundProfile(
             name: "Pinealon",
@@ -544,7 +1293,33 @@ enum CompoundDatabase {
             averageRating: 4.0,
             stackPartners: ["Cortagen", "Semax"],
             iconName: "memorychip.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "389 Da", administrationRoute: "Oral / SubQ", halfLife: "Minutes (epigenetic effects months)", storageTemp: "2-8°C", reconstitution: "BAC Water / Oral capsule", typicalDoseRange: "10-20 mg oral")
+            keyFacts: CompoundKeyFacts(molecularWeight: "389 Da", administrationRoute: "Oral / SubQ", halfLife: "Minutes (epigenetic effects months)", storageTemp: "2-8°C", reconstitution: "BAC Water / Oral capsule", typicalDoseRange: "10-20 mg oral"),
+            primaryUseCases: ["Memory improvement", "Neuroprotection from oxidative stress", "Cognitive recovery after TBI", "Anti-aging for the brain"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "10 mg oral", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Intermediate", dose: "20 mg oral", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Advanced", dose: "2 mg SubQ", frequency: "1x daily", timingNotes: "Morning"),
+            ],
+            cycleLength: "10-30 days on / 3-6 months off",
+            loadingProtocol: "No",
+            onOffCycling: "10-30 days on / 3-6 months off (epigenetic effects persist)",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "Oral capsules or 10 mg vial", diluent: "BAC Water (for SubQ) or N/A (oral)", reconstitutionMath: "For SubQ: Add 1 mL of BW to 10 mg vial → 1 mg per 0.1 mL", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Oral capsules preferred for convenience."),
+            bloodworkMarkers: [],
+            nutritionalSupport: [
+                "NAD+ Boosters (NMN/NR): Supports cellular energy and DNA repair.",
+                "Omega-3 Fatty Acids: Brain membrane support.",
+            ],
+            beginnerTips: [
+                "Effects are epigenetic — benefits build over the cycle and persist for months after stopping.",
+                "Oral capsules are effective, avoiding the need for injections.",
+                "Part of the Khavinson bioregulator family — short cycles with long gaps between.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Russian bioregulator research)", keyStudies: ["Khavinson et al.: Demonstrated neuroprotective and gene-regulating effects of Pinealon."], researchGaps: "Western clinical trials."),
+            stackDetails: [
+                StackDetail(partner: "Cortagen", purpose: "Cerebral cortex repair", notes: "Complementary brain bioregulators"),
+                StackDetail(partner: "Semax", purpose: "Cognitive enhancement", notes: "Acute cognitive boost + long-term protection"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild headache"], rare: [], contraindications: [])
         ),
         CompoundProfile(
             name: "Cortagen",
@@ -562,7 +1337,32 @@ enum CompoundDatabase {
             averageRating: 4.0,
             stackPartners: ["Pinealon", "Cerebrolysin"],
             iconName: "head.profile.arrow.forward.and.visionpro",
-            keyFacts: CompoundKeyFacts(molecularWeight: "418 Da", administrationRoute: "SubQ / IM", halfLife: "Minutes (epigenetic effects months)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1-2 mg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "418 Da", administrationRoute: "SubQ / IM", halfLife: "Minutes (epigenetic effects months)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1-2 mg daily"),
+            primaryUseCases: ["TBI recovery", "Reversing stress-induced cognitive decline", "Enhancing learning", "Cerebral cortex regeneration"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "1 mg", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Intermediate", dose: "2 mg", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Advanced", dose: "2 mg", frequency: "1x daily", timingNotes: "Morning"),
+            ],
+            cycleLength: "10-20 days on / 3-6 months off",
+            loadingProtocol: "No",
+            onOffCycling: "10-20 days on / 3-6 months off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "10 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 1 mL of BW to a 10 mg vial → 1 mg per 0.1 mL (10 IU). Draw 10 IU = 1 mg", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [],
+            nutritionalSupport: [
+                "NAD+ Boosters: Supports cellular repair.",
+                "Omega-3 Fatty Acids: Brain membrane support.",
+            ],
+            beginnerTips: [
+                "Run for 10-20 days only; brain-healing benefits last up to 6 months.",
+                "Part of the Khavinson bioregulator family — designed for short, infrequent cycles.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Russian bioregulator research)", keyStudies: ["Khavinson et al.: Demonstrated cortical neuron repair and antioxidant effects."], researchGaps: "Western clinical trials."),
+            stackDetails: [
+                StackDetail(partner: "Pinealon", purpose: "Brain bioregulation", notes: "Complementary mechanisms for neuronal protection"),
+                StackDetail(partner: "Cerebrolysin", purpose: "Neuro-recovery", notes: "Combines bioregulation with neurotrophic factors"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild fatigue (first few days)"], rare: [], contraindications: [])
         ),
         CompoundProfile(
             name: "DSIP",
@@ -581,7 +1381,33 @@ enum CompoundDatabase {
             averageRating: 4.0,
             stackPartners: ["Semax", "Selank"],
             iconName: "moon.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "849 Da", administrationRoute: "SubQ / Intranasal", halfLife: "~15 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-300 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "849 Da", administrationRoute: "SubQ / Intranasal", halfLife: "~15 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-300 mcg"),
+            primaryUseCases: ["Sleep optimization", "Chronic insomnia", "Improving sleep architecture (delta wave)", "Stress reduction"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "100 mcg", frequency: "1x daily", timingNotes: "30 min before bed"),
+                TieredDose(tier: "Intermediate", dose: "200 mcg", frequency: "1x daily", timingNotes: "30 min before bed"),
+                TieredDose(tier: "Advanced", dose: "300 mcg", frequency: "1x daily", timingNotes: "30 min before bed"),
+            ],
+            cycleLength: "2-4 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "2-4 weeks on / 2 weeks off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "5 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2.5 mL of BW to a 5 mg vial → 200 mcg per 0.1 mL (10 IU). Draw 5 IU = 100 mcg", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [],
+            nutritionalSupport: [
+                "Magnesium Glycinate: Synergistic sleep support.",
+                "L-Theanine: Calming effect before bed.",
+            ],
+            beginnerTips: [
+                "Promotes deep delta wave sleep — the most restorative phase of the sleep cycle.",
+                "May cause very vivid dreams, which some users enjoy and others find disruptive.",
+                "Morning grogginess is common — start with a low dose to assess response.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Schoenenberger & Monnier: Original discovery of DSIP and its role in sleep regulation."], researchGaps: "Modern clinical trials with standardized endpoints."),
+            stackDetails: [
+                StackDetail(partner: "Semax", purpose: "Daytime focus + nighttime sleep", notes: "Semax in the morning, DSIP at night"),
+                StackDetail(partner: "Selank", purpose: "Anxiety + Sleep", notes: "Addresses both daytime anxiety and sleep quality"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Morning grogginess", "Vivid dreams"], uncommon: [], rare: [], contraindications: [])
         ),
 
         // MARK: - Category 5: Sexual Health
@@ -605,7 +1431,30 @@ enum CompoundDatabase {
             averageRating: 4.1,
             stackPartners: ["Tadalafil (Cialis)"],
             iconName: "heart.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "1,025 Da", administrationRoute: "Subcutaneous", halfLife: "~2.7 hours (effects 16h)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1-2 mg as needed")
+            keyFacts: CompoundKeyFacts(molecularWeight: "1,025 Da", administrationRoute: "Subcutaneous", halfLife: "~2.7 hours (effects 16h)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1-2 mg as needed"),
+            primaryUseCases: ["Sexual arousal and desire enhancement", "HSDD in women (FDA-approved)", "Erectile dysfunction (works differently than PDE5 inhibitors)"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "0.5-1 mg", frequency: "As needed", timingNotes: "2-4 hours before activity, start low"),
+                TieredDose(tier: "Intermediate", dose: "1.5 mg", frequency: "As needed", timingNotes: "2-4 hours before activity"),
+                TieredDose(tier: "Advanced", dose: "2 mg", frequency: "As needed (max 8x/month)", timingNotes: "2-4 hours before activity"),
+            ],
+            cycleLength: "As needed",
+            loadingProtocol: "No",
+            onOffCycling: "As needed (max 8x/month)",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "10 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 10 mg vial → 500 mcg per 0.1 mL (10 IU). Draw 20 IU = 1 mg, 40 IU = 2 mg", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [],
+            nutritionalSupport: [],
+            beginnerTips: [
+                "Unlike Viagra/Cialis which work on blood flow, PT-141 triggers actual sexual arousal and desire via the brain.",
+                "Nausea is the #1 reason people stop — take anti-nausea medication 30 min prior or inject before bed.",
+                "Onset is highly variable (30 min to 4-6 hours) — experiment to find your timing.",
+                "Start at a low dose (0.5 mg) to assess nausea tolerance.",
+            ],
+            evidence: EvidenceSummary(level: "Strong (FDA Approved as Vyleesi)", keyStudies: ["FDA approval data: Demonstrated efficacy for HSDD in premenopausal women."], researchGaps: "Long-term safety data with frequent use."),
+            stackDetails: [
+                StackDetail(partner: "Tadalafil (Cialis)", purpose: "Desire + Blood Flow", notes: "PT-141 provides arousal/desire; Cialis provides the vascular component"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea (often severe)", "Flushing", "Headache"], uncommon: ["Increased blood pressure", "Injection site reaction"], rare: ["Skin darkening (melanocortin effect)"], contraindications: ["Uncontrolled hypertension", "Cardiovascular disease"])
         ),
         CompoundProfile(
             name: "Kisspeptin-10",
@@ -624,7 +1473,35 @@ enum CompoundDatabase {
             averageRating: 4.0,
             stackPartners: ["Enclomiphene"],
             iconName: "arrow.triangle.2.circlepath",
-            keyFacts: CompoundKeyFacts(molecularWeight: "1,302 Da", administrationRoute: "Subcutaneous", halfLife: "~30 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-500 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "1,302 Da", administrationRoute: "Subcutaneous", halfLife: "~30 min", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "100-500 mcg"),
+            primaryUseCases: ["HPTA recovery after SARM/steroid cycles", "Fertility support (alternative to HCG)", "Natural testosterone restoration"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "100 mcg", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Intermediate", dose: "300 mcg", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Advanced", dose: "500 mcg", frequency: "2x daily", timingNotes: "Morning and evening"),
+            ],
+            cycleLength: "2-4 weeks",
+            loadingProtocol: "No",
+            onOffCycling: "Used during PCT period",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "5 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2.5 mL of BW to a 5 mg vial → 200 mcg per 0.1 mL (10 IU). Draw 5 IU = 100 mcg", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Testosterone (Total & Free)", baseline: "Required", onCycle: "Required", reason: "Tracks hormonal recovery"),
+                BloodworkMarker(marker: "LH / FSH", baseline: "Required", onCycle: "Required", reason: "Confirms HPTA stimulation"),
+            ],
+            nutritionalSupport: [
+                "Zinc: Essential for testosterone production.",
+                "Vitamin D3: Supports hormonal health.",
+                "Ashwagandha: May support natural testosterone levels.",
+            ],
+            beginnerTips: [
+                "Does not shut down the HPTA — it stimulates it. The opposite of exogenous testosterone.",
+                "Used as an alternative to HCG for fertility support after suppressive compounds.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Dhillo et al. (2005): Demonstrated that Kisspeptin acutely stimulates LH and testosterone release in men."], researchGaps: "Optimal PCT protocols and direct comparison with HCG."),
+            stackDetails: [
+                StackDetail(partner: "Enclomiphene", purpose: "PCT Protocol", notes: "Dual-pathway HPTA restoration"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction"], uncommon: ["Mild headache"], rare: [], contraindications: [])
         ),
 
         // MARK: - Category 6: Tanning & Skin
@@ -647,7 +1524,15 @@ enum CompoundDatabase {
             averageRating: 4.2,
             stackPartners: ["Melanotan II"],
             iconName: "sun.max.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "1,647 Da", administrationRoute: "Subcutaneous", halfLife: "~1 hour", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "0.5-1 mg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "1,647 Da", administrationRoute: "Subcutaneous", halfLife: "~1 hour", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "0.5-1 mg"),
+            primaryUseCases: ["Natural-looking tan", "Skin protection from UV", "Erythropoietic protoporphyria (approved in EU)"],
+            beginnerTips: [
+                "More selective than Melanotan II with fewer sexual side effects.",
+                "Provides a more gradual, natural-looking tan vs. MT-II.",
+                "Still requires some UV exposure to activate melanocytes — it does not tan you without sunlight.",
+                "Monitor moles carefully — any new or changing moles should be evaluated by a dermatologist.",
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Facial flushing"], uncommon: ["Headache", "Darkened moles"], rare: ["Melanoma promotion (theoretical with UV exposure)"], contraindications: ["History of melanoma", "Numerous atypical moles"])
         ),
         CompoundProfile(
             name: "Melanotan II",
@@ -669,7 +1554,15 @@ enum CompoundDatabase {
             averageRating: 4.0,
             stackPartners: ["PT-141"],
             iconName: "sun.max.trianglebadge.exclamationmark.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "1,024 Da", administrationRoute: "Subcutaneous", halfLife: "~1 hour", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "250-500 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "1,024 Da", administrationRoute: "Subcutaneous", halfLife: "~1 hour", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "250-500 mcg"),
+            primaryUseCases: ["Rapid tanning", "Sexual arousal (MC4R)", "Appetite suppression"],
+            beginnerTips: [
+                "PT-141 was developed as a metabolite of MT-II to isolate the sexual effects.",
+                "Nausea and facial flushing are very common during loading — usually diminish after the first week.",
+                "Monitor moles carefully — any new or changing moles must be evaluated by a dermatologist.",
+                "Start at 250 mcg to assess nausea tolerance before increasing.",
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Facial flushing", "Increased libido", "Darkened moles"], uncommon: ["Appetite suppression", "Headache", "Spontaneous erections"], rare: ["Melanoma promotion (theoretical with UV)"], contraindications: ["History of melanoma", "Numerous atypical moles"])
         ),
         CompoundProfile(
             name: "Snap-8",
@@ -687,7 +1580,13 @@ enum CompoundDatabase {
             averageRating: 3.8,
             stackPartners: ["GHK-Cu (Topical)"],
             iconName: "face.smiling",
-            keyFacts: CompoundKeyFacts(molecularWeight: "1,075 Da", administrationRoute: "Topical", halfLife: "N/A (topical)", storageTemp: "Room Temp", reconstitution: "N/A (serum)", typicalDoseRange: "3-10% serum")
+            keyFacts: CompoundKeyFacts(molecularWeight: "1,075 Da", administrationRoute: "Topical", halfLife: "N/A (topical)", storageTemp: "Room Temp", reconstitution: "N/A (serum)", typicalDoseRange: "3-10% serum"),
+            primaryUseCases: ["Wrinkle reduction", "Expression line softening", "Non-invasive Botox alternative"],
+            beginnerTips: [
+                "Results take 2-4 weeks and are more subtle than Botox but completely non-invasive.",
+                "Apply to clean, dry skin before moisturizer for best absorption.",
+            ],
+            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild skin irritation"], rare: [], contraindications: [])
         ),
 
         // MARK: - Category 7: Longevity & Anti-Aging
@@ -709,7 +1608,34 @@ enum CompoundDatabase {
             averageRating: 4.1,
             stackPartners: ["Thymalin", "GHK-Cu", "Semax"],
             iconName: "hourglass",
-            keyFacts: CompoundKeyFacts(molecularWeight: "390 Da", administrationRoute: "Subcutaneous", halfLife: "20-30 min (epigenetic months)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "5-10 mg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "390 Da", administrationRoute: "Subcutaneous", halfLife: "20-30 min (epigenetic months)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "5-10 mg daily"),
+            primaryUseCases: ["Anti-aging and life extension", "Telomere elongation", "Circadian rhythm restoration", "Cognitive decline prevention"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "5 mg", frequency: "1x daily", timingNotes: "Morning or pre-bed (user dependent)"),
+                TieredDose(tier: "Intermediate", dose: "10 mg", frequency: "1x daily", timingNotes: "Morning or pre-bed"),
+                TieredDose(tier: "Advanced", dose: "10 mg", frequency: "1x daily", timingNotes: "Morning or pre-bed"),
+            ],
+            cycleLength: "10-20 days",
+            loadingProtocol: "No",
+            onOffCycling: "10-20 days on / 6 months off (1-2x per year)",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "10 mg, 50 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 1 mL of BW to a 10 mg vial → 1 mg per 0.1 mL (10 IU). Draw 50 IU = 5 mg, 100 IU = 10 mg", storageLyophilized: "Freezer (-20°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Melatonin (Saliva/Urine)", baseline: "Optional", onCycle: "Optional", reason: "Can track restoration of natural melatonin production"),
+            ],
+            nutritionalSupport: [
+                "NAD+ Boosters (NMN or NR): Essential for cellular energy and DNA repair. Synergizes with Epithalon.",
+                "Resveratrol or Pterostilbene: Activates sirtuins (longevity genes).",
+                "Coenzyme Q10 (CoQ10): Supports mitochondrial ATP production.",
+            ],
+            beginnerTips: [
+                "Dosing timing is debated — some find it sedating, others stimulating. Experiment to find your response.",
+                "The Khavinson Protocol dictates 10-20 days only, 1-2x per year. Continuous use provides no added benefit.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Extensive Russian clinical data)", keyStudies: ["Khavinson et al. (2003): Demonstrated that Epithalon increases telomere length in human somatic cells and extends lifespan in animal models."], researchGaps: "Western clinical trials confirming telomere elongation in vivo."),
+            stackDetails: [
+                StackDetail(partner: "Thymalin", purpose: "Ultimate Longevity Stack", notes: "Epithalon restores the pineal gland; Thymalin restores the thymus"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Vivid dreams", "Changes in sleep patterns (first few days)"], uncommon: ["Mild nausea"], rare: [], contraindications: [])
         ),
         CompoundProfile(
             name: "Thymalin",
@@ -727,7 +1653,34 @@ enum CompoundDatabase {
             averageRating: 4.0,
             stackPartners: ["Epithalon"],
             iconName: "shield.lefthalf.filled",
-            keyFacts: CompoundKeyFacts(molecularWeight: "Mixture", administrationRoute: "IM / SubQ", halfLife: "Short (effects months)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "10 mg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "Mixture", administrationRoute: "IM / SubQ", halfLife: "Short (effects months)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "10 mg daily"),
+            primaryUseCases: ["Reversing age-related immune decline", "Chronic viral infections", "Post-operative recovery"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "10 mg", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Intermediate", dose: "10 mg", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Advanced", dose: "20 mg", frequency: "1x daily", timingNotes: "Morning"),
+            ],
+            cycleLength: "10 days",
+            loadingProtocol: "No",
+            onOffCycling: "10 days on / 6-12 months off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "10 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 1 mL of BW to a 10 mg vial → 1 mg per 0.1 mL (10 IU). Draw 100 IU (full syringe) = 10 mg", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "CBC with Differential", baseline: "Recommended", onCycle: "Recommended", reason: "Tracks improvements in white blood cell counts and T-cell function"),
+            ],
+            nutritionalSupport: [
+                "Zinc: Essential for immune function and T-cell production.",
+                "Vitamin D3: Supports immune regulation.",
+            ],
+            beginnerTips: [
+                "Part of the Khavinson Protocol — 10 days only, once or twice per year.",
+                "Often combined with Epithalon (same 10-day cycle) for the 'Ultimate Longevity Stack.'",
+                "Used in Russian clinical trials to significantly reduce mortality in the elderly.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Extensive Russian clinical data)", keyStudies: ["Khavinson & Morozov: Demonstrated that Epithalon + Thymalin significantly reduced mortality in a long-term elderly cohort study."], researchGaps: "Western clinical trials."),
+            stackDetails: [
+                StackDetail(partner: "Epithalon", purpose: "The Khavinson Longevity Protocol", notes: "Used together in Russian trials to significantly reduce mortality"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site reaction"], uncommon: [], rare: [], contraindications: [])
         ),
         CompoundProfile(
             name: "SS-31 (Elamipretide)",
@@ -746,7 +1699,33 @@ enum CompoundDatabase {
             averageRating: 4.0,
             stackPartners: ["MOTS-c", "Humanin"],
             iconName: "bolt.batteryblock.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "639 Da", administrationRoute: "Subcutaneous", halfLife: "~3 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "5-20 mg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "639 Da", administrationRoute: "Subcutaneous", halfLife: "~3 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "5-20 mg daily"),
+            primaryUseCases: ["Mitochondrial repair and optimization", "ATP production restoration", "Oxidative stress reduction", "Heart failure support (clinical trials)"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "5 mg", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Intermediate", dose: "10 mg", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Advanced", dose: "20 mg", frequency: "1x daily", timingNotes: "Morning"),
+            ],
+            cycleLength: "4-8 weeks on / 4 weeks off",
+            loadingProtocol: "No",
+            onOffCycling: "4-8 weeks on / 4 weeks off",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "20 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 20 mg vial → 1 mg per 0.1 mL (10 IU). Draw 50 IU = 5 mg", storageLyophilized: "Fridge (2-8°C)", storageReconstituted: "Fridge (2-8°C)", handlingNotes: "Swirl gently."),
+            bloodworkMarkers: [],
+            nutritionalSupport: [
+                "CoQ10: Synergistic mitochondrial support.",
+                "NAD+ Boosters (NMN/NR): Cellular energy and DNA repair.",
+                "PQQ: Promotes mitochondrial biogenesis.",
+            ],
+            beginnerTips: [
+                "Targets the inner mitochondrial membrane specifically — one of the few peptides that works at this level.",
+                "Currently in active clinical trials for Barth syndrome and heart failure.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Active clinical trials)", keyStudies: ["Multiple Phase 2/3 trials for Barth syndrome and heart failure showing improved cardiac function."], researchGaps: "FDA approval pending. Optimal dosing for anti-aging in healthy adults."),
+            stackDetails: [
+                StackDetail(partner: "MOTS-c", purpose: "Mitochondrial optimization", notes: "SS-31 repairs membrane; MOTS-c enhances metabolic function"),
+                StackDetail(partner: "Humanin", purpose: "Cellular protection", notes: "SS-31 restores energy; Humanin prevents cell death"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction"], uncommon: ["Mild headache"], rare: [], contraindications: [])
         ),
         CompoundProfile(
             name: "Humanin",
@@ -764,7 +1743,26 @@ enum CompoundDatabase {
             averageRating: 3.9,
             stackPartners: ["SS-31", "MOTS-c", "Epithalon"],
             iconName: "heart.circle.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "2,687 Da", administrationRoute: "Subcutaneous", halfLife: "Short (effects prolonged)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1-5 mg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "2,687 Da", administrationRoute: "Subcutaneous", halfLife: "Short (effects prolonged)", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1-5 mg daily"),
+            primaryUseCases: ["Cellular protection from apoptosis", "Neuroprotection", "Anti-aging", "Cardiovascular protection"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "1 mg", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Intermediate", dose: "3 mg", frequency: "1x daily", timingNotes: "Morning"),
+                TieredDose(tier: "Advanced", dose: "5 mg", frequency: "1x daily", timingNotes: "Morning"),
+            ],
+            cycleLength: "4-8 weeks on / 4 weeks off",
+            loadingProtocol: "No",
+            onOffCycling: "4-8 weeks on / 4 weeks off",
+            beginnerTips: [
+                "Levels decline naturally with age — supplementation may restore youthful protective capacity.",
+                "Encoded by mitochondrial DNA, not nuclear DNA — a fundamentally different class of signaling molecule.",
+            ],
+            evidence: EvidenceSummary(level: "Limited (Preclinical)", keyStudies: ["Hashimoto et al. (2001): Discovered Humanin's neuroprotective properties against Alzheimer's-related toxicity."], researchGaps: "Human clinical trials for anti-aging applications."),
+            stackDetails: [
+                StackDetail(partner: "SS-31", purpose: "Mitochondrial protection", notes: "SS-31 repairs; Humanin prevents cell death"),
+                StackDetail(partner: "MOTS-c", purpose: "Mitochondrial optimization", notes: "Complete mitochondrial support stack"),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site reaction"], uncommon: [], rare: [], contraindications: [])
         ),
 
         // MARK: - Category 8: SARMs
@@ -788,7 +1786,25 @@ enum CompoundDatabase {
             averageRating: 4.2,
             stackPartners: ["Cardarine (GW-501516)"],
             iconName: "dumbbell.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "389 Da", administrationRoute: "Oral", halfLife: "~24 hours", storageTemp: "Room Temp", reconstitution: "N/A (oral)", typicalDoseRange: "10-25 mg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "389 Da", administrationRoute: "Oral", halfLife: "~24 hours", storageTemp: "Room Temp", reconstitution: "N/A (oral)", typicalDoseRange: "10-25 mg daily"),
+            primaryUseCases: ["Lean muscle preservation during cut", "Bone density improvement", "Mild body recomposition"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "10 mg", frequency: "1x daily", timingNotes: "Morning, oral"),
+                TieredDose(tier: "Intermediate", dose: "15 mg", frequency: "1x daily", timingNotes: "Morning, oral"),
+                TieredDose(tier: "Advanced", dose: "25 mg", frequency: "1x daily", timingNotes: "Morning, oral"),
+            ],
+            cycleLength: "8-12 weeks + PCT",
+            loadingProtocol: "No",
+            onOffCycling: "8-12 weeks on / PCT / 4-8 weeks off",
+            beginnerTips: [
+                "Despite misconceptions, Ostarine DOES require PCT — even 10 mg/day suppresses testosterone by 40-60% over 8 weeks.",
+                "Also suppresses estrogen, causing 'dry joints' at end of cycle.",
+                "The mildest and most well-studied SARM — best starting point.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Phase 2 trials)", keyStudies: ["Dalton et al. (2011): Phase 2 trial showing lean body mass increases with dose-dependent testosterone suppression."], researchGaps: "Phase 3 trials and FDA approval pathway."),
+            detailedSideEffects: DetailedSideEffects(common: ["Testosterone suppression", "Decreased HDL cholesterol"], uncommon: ["Liver enzyme elevation", "Joint pain/dryness"], rare: ["Hair shedding"], contraindications: ["Pregnancy", "Hormone-sensitive cancers"]),
+            isWADAProhibited: true,
+            wadaCategory: "S1 Anabolic Agents"
         ),
         CompoundProfile(
             name: "Ligandrol (LGD-4033)",
@@ -809,7 +1825,25 @@ enum CompoundDatabase {
             averageRating: 4.1,
             stackPartners: ["MK-677"],
             iconName: "figure.arms.open",
-            keyFacts: CompoundKeyFacts(molecularWeight: "338 Da", administrationRoute: "Oral", halfLife: "24-36 hours", storageTemp: "Room Temp", reconstitution: "N/A (oral)", typicalDoseRange: "2.5-10 mg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "338 Da", administrationRoute: "Oral", halfLife: "24-36 hours", storageTemp: "Room Temp", reconstitution: "N/A (oral)", typicalDoseRange: "2.5-10 mg daily"),
+            primaryUseCases: ["Bulking and mass gain", "Strength increase", "Bone density"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "2.5 mg", frequency: "1x daily", timingNotes: "Morning, oral"),
+                TieredDose(tier: "Intermediate", dose: "5 mg", frequency: "1x daily", timingNotes: "Morning, oral"),
+                TieredDose(tier: "Advanced", dose: "10 mg", frequency: "1x daily", timingNotes: "Morning, oral"),
+            ],
+            cycleLength: "8 weeks + PCT",
+            loadingProtocol: "No",
+            onOffCycling: "8 weeks on / PCT / 6-8 weeks off",
+            beginnerTips: [
+                "Notorious for 'SARM flu' around week 4-5 — extreme lethargy from testosterone crashing.",
+                "Many advanced users run a 'test base' (Enclomiphene) alongside to prevent suppression symptoms.",
+                "Significantly more suppressive than Ostarine — PCT is absolutely mandatory.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Basaria et al. (2013): Phase 1 trial showing dose-dependent lean body mass increases."], researchGaps: "Long-term safety and Phase 3 trials."),
+            detailedSideEffects: DetailedSideEffects(common: ["Severe testosterone suppression", "Water retention", "Lethargy"], uncommon: ["Hair shedding", "HDL cholesterol crash"], rare: ["Liver toxicity"], contraindications: ["Pregnancy", "Hormone-sensitive cancers"]),
+            isWADAProhibited: true,
+            wadaCategory: "S1 Anabolic Agents"
         ),
         CompoundProfile(
             name: "Testolone (RAD-140)",
@@ -831,7 +1865,26 @@ enum CompoundDatabase {
             averageRating: 3.9,
             stackPartners: ["Enclomiphene"],
             iconName: "bolt.trianglebadge.exclamationmark.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "393 Da", administrationRoute: "Oral", halfLife: "~60 hours", storageTemp: "Room Temp", reconstitution: "N/A (oral)", typicalDoseRange: "5-15 mg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "393 Da", administrationRoute: "Oral", halfLife: "~60 hours", storageTemp: "Room Temp", reconstitution: "N/A (oral)", typicalDoseRange: "5-15 mg daily"),
+            primaryUseCases: ["Rapid strength gains", "Dry muscle mass and vascularity", "Body recomposition"],
+            tieredDosing: [
+                TieredDose(tier: "Beginner", dose: "5 mg", frequency: "1x daily", timingNotes: "Morning, oral"),
+                TieredDose(tier: "Intermediate", dose: "10 mg", frequency: "1x daily", timingNotes: "Morning, oral"),
+                TieredDose(tier: "Advanced", dose: "15 mg", frequency: "1x daily or EOD", timingNotes: "Morning (consider EOD due to 60h half-life)"),
+            ],
+            cycleLength: "6-8 weeks + aggressive PCT",
+            loadingProtocol: "No",
+            onOffCycling: "6-8 weeks on / 4 week PCT / 8 weeks off",
+            beginnerTips: [
+                "Recent data shows half-life is ~60 hours, not 20 — daily dosing causes massive accumulation.",
+                "Known for causing intense aggression — be prepared for mood changes.",
+                "Requires aggressive PCT (4 weeks Nolvadex/Enclomiphene) — the most suppressive common SARM.",
+                "The most potent SARM available — not recommended for first-time SARM users.",
+            ],
+            evidence: EvidenceSummary(level: "Limited", keyStudies: ["Miller et al. (2011): Initial characterization of RAD-140's anabolic properties."], researchGaps: "Updated pharmacokinetic data reflecting the longer half-life. Human safety trials."),
+            detailedSideEffects: DetailedSideEffects(common: ["Severe testosterone suppression", "Aggression/irritability", "Insomnia"], uncommon: ["Hair shedding", "Liver enzyme elevation"], rare: ["Severe liver toxicity (case reports)"], contraindications: ["Pregnancy", "Liver disease", "Hormone-sensitive cancers"]),
+            isWADAProhibited: true,
+            wadaCategory: "S1 Anabolic Agents"
         ),
 
         // MARK: - Category 9: IGF Variants
@@ -855,7 +1908,15 @@ enum CompoundDatabase {
             averageRating: 4.0,
             stackPartners: ["HGH / Secretagogues", "PEG-MGF"],
             iconName: "arrow.up.forward",
-            keyFacts: CompoundKeyFacts(molecularWeight: "9,112 Da", administrationRoute: "SubQ / IM", halfLife: "20-30 hours", storageTemp: "Freezer (-20°C)", reconstitution: "Acetic Acid (0.6%)", typicalDoseRange: "20-100 mcg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "9,112 Da", administrationRoute: "SubQ / IM", halfLife: "20-30 hours", storageTemp: "Freezer (-20°C)", reconstitution: "Acetic Acid (0.6%)", typicalDoseRange: "20-100 mcg daily"),
+            primaryUseCases: ["Systemic muscle hyperplasia (new muscle cells)", "Nutrient partitioning", "Recovery enhancement"],
+            beginnerTips: [
+                "WARNING: Acts like insulin — can cause severe, potentially fatal hypoglycemia.",
+                "Always consume fast-acting carbs around injection time.",
+                "Must be reconstituted in Acetic Acid, NOT BAC Water — BAC Water destroys the molecule.",
+                "Start at the lowest dose (20 mcg) to assess hypoglycemic response.",
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Hypoglycemia", "Extreme hunger", "Water retention"], uncommon: ["Lethargy", "Joint pain"], rare: ["Organ growth with prolonged high-dose use"], contraindications: ["Active cancer", "Diabetes (hypoglycemia risk)"])
         ),
         CompoundProfile(
             name: "DES IGF-1",
@@ -875,7 +1936,14 @@ enum CompoundDatabase {
             averageRating: 3.9,
             stackPartners: ["PEG-MGF"],
             iconName: "scope",
-            keyFacts: CompoundKeyFacts(molecularWeight: "7,372 Da", administrationRoute: "IM (site-specific)", halfLife: "20-30 min", storageTemp: "Freezer (-20°C)", reconstitution: "Acetic Acid", typicalDoseRange: "20-50 mcg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "7,372 Da", administrationRoute: "IM (site-specific)", halfLife: "20-30 min", storageTemp: "Freezer (-20°C)", reconstitution: "Acetic Acid", typicalDoseRange: "20-50 mcg daily"),
+            primaryUseCases: ["Localized, site-specific muscle growth", "Bringing up lagging body parts", "Enhanced muscle pump"],
+            beginnerTips: [
+                "Extremely short half-life — must inject directly into the target muscle 10-15 min before training.",
+                "Unique ability to bind receptors deformed by lactic acid — most effective on fatigued muscles.",
+                "Reconstituted in Acetic Acid — draw BAC Water first into syringe to dilute the acid.",
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Intense localized pump", "Injection site pain (from Acetic Acid)"], uncommon: ["Mild hypoglycemia"], rare: [], contraindications: ["Active cancer"])
         ),
         CompoundProfile(
             name: "PEG-MGF",
@@ -894,7 +1962,14 @@ enum CompoundDatabase {
             averageRating: 3.8,
             stackPartners: ["IGF-1 LR3", "DES IGF-1"],
             iconName: "figure.run",
-            keyFacts: CompoundKeyFacts(molecularWeight: "PEGylated variant", administrationRoute: "SubQ / IM", halfLife: "48-72 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "200-500 mcg")
+            keyFacts: CompoundKeyFacts(molecularWeight: "PEGylated variant", administrationRoute: "SubQ / IM", halfLife: "48-72 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "200-500 mcg"),
+            primaryUseCases: ["Satellite cell activation (muscle stem cells)", "Systemic muscle repair", "Hyperplasia (new muscle cells)"],
+            beginnerTips: [
+                "Systemic — no need to inject into trained muscle. Standard abdominal SubQ works.",
+                "Inject on rest days or hours after workout — pre-workout injection is counterproductive.",
+                "Red welts at injection site are a PEG allergy reaction, not the peptide itself.",
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site redness/itching (PEG allergy)"], uncommon: ["Mild lethargy"], rare: [], contraindications: ["Active cancer", "PEG allergy"])
         ),
 
         // MARK: - Category 10: Niche & Other
@@ -916,7 +1991,15 @@ enum CompoundDatabase {
             averageRating: 3.9,
             stackPartners: ["NMN / NR", "MOTS-c"],
             iconName: "atom",
-            keyFacts: CompoundKeyFacts(molecularWeight: "173 Da", administrationRoute: "Oral", halfLife: "4-7 hours", storageTemp: "Room Temp", reconstitution: "N/A (oral capsule)", typicalDoseRange: "50-100 mg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "173 Da", administrationRoute: "Oral", halfLife: "4-7 hours", storageTemp: "Room Temp", reconstitution: "N/A (oral capsule)", typicalDoseRange: "50-100 mg daily"),
+            primaryUseCases: ["Metabolic enhancement without appetite suppression", "NAD+ preservation", "Fat metabolism optimization"],
+            beginnerTips: [
+                "Unique mechanism — doesn't suppress appetite or act as a stimulant.",
+                "Split dosing recommended due to short half-life (4-7 hours).",
+                "Take in the morning — can cause insomnia if taken late.",
+            ],
+            evidence: EvidenceSummary(level: "Limited (Preclinical)", keyStudies: ["Neelakantan et al. (2017): Demonstrated NNMT inhibition reduces fat mass in animal models."], researchGaps: "Human clinical trials for obesity."),
+            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild insomnia", "Mild jitteriness"], rare: [], contraindications: [])
         ),
         CompoundProfile(
             name: "Tesofensine",
@@ -938,7 +2021,16 @@ enum CompoundDatabase {
             averageRating: 3.7,
             stackPartners: [],
             iconName: "exclamationmark.triangle.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "326 Da", administrationRoute: "Oral", halfLife: "~9 days (220 hours)", storageTemp: "Room Temp", reconstitution: "N/A (oral capsule)", typicalDoseRange: "0.25-1.0 mg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "326 Da", administrationRoute: "Oral", halfLife: "~9 days (220 hours)", storageTemp: "Room Temp", reconstitution: "N/A (oral capsule)", typicalDoseRange: "0.25-1.0 mg daily"),
+            primaryUseCases: ["Severe obesity treatment", "Appetite suppression (more potent than Phentermine)"],
+            beginnerTips: [
+                "WARNING: 9-day half-life means severe side effects persist for WEEKS after stopping.",
+                "NEVER combine with SSRIs — risk of fatal Serotonin Syndrome.",
+                "Start at the absolute lowest dose (0.25 mg) — effects and side effects accumulate.",
+                "Appetite suppression is more profound than Adderall or Phentermine.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate (Phase 2 trials completed)", keyStudies: ["TIPO-1 and TIPO-2 trials: Demonstrated significant weight loss but raised cardiovascular concerns."], researchGaps: "Phase 3 trials stalled due to cardiovascular side effect profile."),
+            detailedSideEffects: DetailedSideEffects(common: ["Dry mouth", "Insomnia", "Constipation", "Increased heart rate"], uncommon: ["Anxiety", "Hypertension", "Palpitations"], rare: ["Serotonin Syndrome (with SSRIs)"], contraindications: ["Current SSRI/SNRI use (fatal risk)", "Uncontrolled hypertension", "Cardiovascular disease", "History of seizures"])
         ),
         CompoundProfile(
             name: "Follistatin (FST-344)",
@@ -958,7 +2050,16 @@ enum CompoundDatabase {
             averageRating: 3.7,
             stackPartners: ["IGF-1 LR3"],
             iconName: "lock.open.fill",
-            keyFacts: CompoundKeyFacts(molecularWeight: "36,000 Da", administrationRoute: "Subcutaneous", halfLife: "Short", storageTemp: "Freezer (-20°C)", reconstitution: "BAC Water", typicalDoseRange: "100-300 mcg daily")
+            keyFacts: CompoundKeyFacts(molecularWeight: "36,000 Da", administrationRoute: "Subcutaneous", halfLife: "Short", storageTemp: "Freezer (-20°C)", reconstitution: "BAC Water", typicalDoseRange: "100-300 mcg daily"),
+            primaryUseCases: ["Myostatin inhibition", "Unleashing muscle growth potential", "Research use"],
+            beginnerTips: [
+                "Extremely expensive and fragile — requires careful storage and handling.",
+                "Effects are dramatic but temporary — returns to baseline after stopping.",
+                "Must maintain massive protein intake to fuel the rapid muscle growth.",
+                "Research-grade only — very limited human data available.",
+            ],
+            evidence: EvidenceSummary(level: "Limited (Preclinical)", keyStudies: ["Lee & McPherron (2001): Demonstrated dramatic muscle growth in myostatin-knockout animal models."], researchGaps: "Human safety and efficacy trials."),
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction"], uncommon: ["Fatigue", "Joint stress from rapid muscle growth"], rare: ["Unknown long-term effects"], contraindications: ["Active cancer"])
         ),
     ]
 
