@@ -4,6 +4,7 @@ struct DirectMessagesView: View {
     @State private var viewModel: MessagesViewModel
     @State private var searchQuery: String = ""
     @State private var selectedConversationID: UUID?
+    @State private var navigateToConversation: Bool = false
 
     init(viewModel: MessagesViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -27,8 +28,10 @@ struct DirectMessagesView: View {
         .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(for: UUID.self) { conversationID in
-            ChatConversationView(viewModel: viewModel, conversationID: conversationID)
+        .navigationDestination(isPresented: $navigateToConversation) {
+            if let id = selectedConversationID {
+                ChatConversationView(viewModel: viewModel, conversationID: id)
+            }
         }
         .onChange(of: searchQuery) { _, newValue in
             viewModel.searchQuery = newValue
@@ -76,7 +79,10 @@ struct DirectMessagesView: View {
                 }
 
                 ForEach(viewModel.filteredConversations) { conversation in
-                    NavigationLink(value: conversation.id) {
+                    Button {
+                        selectedConversationID = conversation.id
+                        navigateToConversation = true
+                    } label: {
                         conversationRow(conversation: conversation)
                     }
                     .buttonStyle(.plain)
@@ -138,6 +144,7 @@ struct DirectMessagesView: View {
             let conversationID = viewModel.startConversation(with: user)
             searchQuery = ""
             selectedConversationID = conversationID
+            navigateToConversation = true
         } label: {
             HStack(spacing: 14) {
                 Circle()
@@ -169,14 +176,6 @@ struct DirectMessagesView: View {
             .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
-        .navigationDestination(isPresented: Binding(
-            get: { selectedConversationID != nil },
-            set: { if !$0 { selectedConversationID = nil } }
-        )) {
-            if let id = selectedConversationID {
-                ChatConversationView(viewModel: viewModel, conversationID: id)
-            }
-        }
     }
 
     private func conversationRow(conversation: Conversation) -> some View {
