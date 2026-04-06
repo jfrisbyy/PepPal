@@ -56,8 +56,9 @@ final class ActiveWorkoutViewModel {
 
     func startElapsedTimer() {
         elapsedTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            let vm = self
             Task { @MainActor in
-                self?.elapsedSeconds += 1
+                vm?.elapsedSeconds += 1
             }
         }
     }
@@ -101,12 +102,13 @@ final class ActiveWorkoutViewModel {
         isRestTimerActive = true
         restTimer?.invalidate()
         restTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            let vm = self
             Task { @MainActor in
-                guard let self else { return }
-                if self.restSecondsRemaining > 0 {
-                    self.restSecondsRemaining -= 1
+                guard let vm else { return }
+                if vm.restSecondsRemaining > 0 {
+                    vm.restSecondsRemaining -= 1
                 } else {
-                    self.skipRestTimer()
+                    vm.skipRestTimer()
                 }
             }
         }

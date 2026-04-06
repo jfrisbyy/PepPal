@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum PepTheme {
+nonisolated enum PepTheme: Sendable {
     static let background = Color(UIColor { traits in
         traits.userInterfaceStyle == .dark
             ? UIColor(red: 10/255, green: 10/255, blue: 15/255, alpha: 1)

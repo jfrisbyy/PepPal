@@ -53,7 +53,7 @@ nonisolated struct CustomTaskCategory: Identifiable, Sendable, Codable, Hashable
 }
 
 extension Color {
-    init?(hex: String) {
+    nonisolated init?(hex: String) {
         let cleaned = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         guard cleaned.count == 6 else { return nil }
         var rgbValue: UInt64 = 0

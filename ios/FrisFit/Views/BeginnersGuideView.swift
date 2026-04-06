@@ -236,6 +236,10 @@ struct BeginnersGuideView: View {
         case .cognitive: return "Semax, Selank"
         case .tanning: return "Melanotan II, GHK-Cu"
         case .antiAging: return "Epithalon, GHK-Cu"
+        case .sexualHealth: return "PT-141, Kisspeptin"
+        case .sarms: return "MK-677, RAD-140"
+        case .igfVariants: return "IGF-1 LR3, IGF-1 DES"
+        case .niche: return "DSIP, Thymosin Alpha-1"
         case .all: return ""
         }
     }

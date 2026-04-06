@@ -189,16 +189,18 @@ final class HealthKitService {
             anchor: heartRateAnchor,
             limit: HKObjectQueryNoLimit
         ) { [weak self] _, samples, _, newAnchor, _ in
+            let service = self
             Task { @MainActor in
-                self?.heartRateAnchor = newAnchor
-                self?.processHeartRateSamples(samples)
+                service?.heartRateAnchor = newAnchor
+                service?.processHeartRateSamples(samples)
             }
         }
 
         query.updateHandler = { [weak self] _, samples, _, newAnchor, _ in
+            let service = self
             Task { @MainActor in
-                self?.heartRateAnchor = newAnchor
-                self?.processHeartRateSamples(samples)
+                service?.heartRateAnchor = newAnchor
+                service?.processHeartRateSamples(samples)
             }
         }
 
@@ -230,16 +232,18 @@ final class HealthKitService {
             anchor: caloriesAnchor,
             limit: HKObjectQueryNoLimit
         ) { [weak self] _, samples, _, newAnchor, _ in
+            let service = self
             Task { @MainActor in
-                self?.caloriesAnchor = newAnchor
-                self?.processCaloriesSamples(samples)
+                service?.caloriesAnchor = newAnchor
+                service?.processCaloriesSamples(samples)
             }
         }
 
         query.updateHandler = { [weak self] _, samples, _, newAnchor, _ in
+            let service = self
             Task { @MainActor in
-                self?.caloriesAnchor = newAnchor
-                self?.processCaloriesSamples(samples)
+                service?.caloriesAnchor = newAnchor
+                service?.processCaloriesSamples(samples)
             }
         }
 
