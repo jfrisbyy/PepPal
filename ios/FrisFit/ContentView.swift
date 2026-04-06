@@ -77,7 +77,7 @@ struct ContentView: View {
                 workoutIndicatorBar
             }
 
-            if selectedTab != .community {
+            if selectedTab != .community && selectedTab != .discover {
                 ExpandableFABView(isExpanded: $fabExpanded, actions: fabActions)
             }
         }

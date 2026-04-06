@@ -36,6 +36,59 @@ nonisolated enum PeptideCategory: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+nonisolated struct CompoundSideEffect: Identifiable, Sendable {
+    let id: UUID
+    let name: String
+    let severity: SideEffectSeverity
+    let frequency: Int
+
+    init(name: String, severity: SideEffectSeverity = .mild, frequency: Int = 10) {
+        self.id = UUID()
+        self.name = name
+        self.severity = severity
+        self.frequency = frequency
+    }
+}
+
+nonisolated enum SideEffectSeverity: String, Sendable {
+    case mild = "Mild"
+    case moderate = "Moderate"
+    case significant = "Significant"
+
+    var color: Color {
+        switch self {
+        case .mild: return .green
+        case .moderate: return .yellow
+        case .significant: return .orange
+        }
+    }
+}
+
+nonisolated struct CompoundKeyFacts: Sendable {
+    let molecularWeight: String
+    let administrationRoute: String
+    let halfLife: String
+    let storageTemp: String
+    let reconstitution: String
+    let typicalDoseRange: String
+
+    init(
+        molecularWeight: String = "—",
+        administrationRoute: String = "Subcutaneous",
+        halfLife: String = "—",
+        storageTemp: String = "2-8°C",
+        reconstitution: String = "BAC Water",
+        typicalDoseRange: String = "—"
+    ) {
+        self.molecularWeight = molecularWeight
+        self.administrationRoute = administrationRoute
+        self.halfLife = halfLife
+        self.storageTemp = storageTemp
+        self.reconstitution = reconstitution
+        self.typicalDoseRange = typicalDoseRange
+    }
+}
+
 nonisolated struct CompoundProfile: Identifiable, Sendable {
     let id: UUID
     let name: String
@@ -44,10 +97,12 @@ nonisolated struct CompoundProfile: Identifiable, Sendable {
     let overview: String
     let protocols: [CompoundProtocol]
     let sideEffects: [String]
+    let structuredSideEffects: [CompoundSideEffect]
     let communityUsers: Int
     let averageRating: Double
     let stackPartners: [String]
     let iconName: String
+    let keyFacts: CompoundKeyFacts
 
     init(
         name: String,
@@ -56,10 +111,12 @@ nonisolated struct CompoundProfile: Identifiable, Sendable {
         overview: String,
         protocols: [CompoundProtocol] = [],
         sideEffects: [String] = [],
+        structuredSideEffects: [CompoundSideEffect] = [],
         communityUsers: Int = 0,
         averageRating: Double = 0,
         stackPartners: [String] = [],
-        iconName: String = "pill.fill"
+        iconName: String = "pill.fill",
+        keyFacts: CompoundKeyFacts = CompoundKeyFacts()
     ) {
         self.id = UUID()
         self.name = name
@@ -68,10 +125,12 @@ nonisolated struct CompoundProfile: Identifiable, Sendable {
         self.overview = overview
         self.protocols = protocols
         self.sideEffects = sideEffects
+        self.structuredSideEffects = structuredSideEffects
         self.communityUsers = communityUsers
         self.averageRating = averageRating
         self.stackPartners = stackPartners
         self.iconName = iconName
+        self.keyFacts = keyFacts
     }
 }
 

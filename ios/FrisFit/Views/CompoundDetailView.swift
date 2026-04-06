@@ -4,6 +4,8 @@ struct CompoundDetailView: View {
     let compound: CompoundProfile
     @State private var selectedTab: CompoundTab = .overview
     @State private var headerVisible: Bool = false
+    @State private var contentVisible: Bool = false
+    @State private var scrollOffset: CGFloat = 0
 
     private var accentColor: Color {
         compound.categories.first?.color ?? PepTheme.teal
@@ -12,14 +14,14 @@ struct CompoundDetailView: View {
     private enum CompoundTab: String, CaseIterable {
         case overview = "Overview"
         case protocols = "Protocols"
-        case community = "Community"
+        case social = "Social"
         case sourcing = "Sourcing"
 
         var icon: String {
             switch self {
             case .overview: return "info.circle.fill"
             case .protocols: return "list.bullet.clipboard.fill"
-            case .community: return "person.3.fill"
+            case .social: return "person.3.fill"
             case .sourcing: return "building.2.fill"
             }
         }
@@ -32,16 +34,20 @@ struct CompoundDetailView: View {
                 tabBar
                     .padding(.top, 8)
 
-                switch selectedTab {
-                case .overview:
-                    overviewSection
-                case .protocols:
-                    protocolsSection
-                case .community:
-                    communitySection
-                case .sourcing:
-                    sourcingSection
+                Group {
+                    switch selectedTab {
+                    case .overview:
+                        overviewSection
+                    case .protocols:
+                        protocolsSection
+                    case .social:
+                        communitySection
+                    case .sourcing:
+                        sourcingSection
+                    }
                 }
+                .opacity(contentVisible ? 1 : 0)
+                .offset(y: contentVisible ? 0 : 8)
             }
             .padding(.bottom, 32)
         }
@@ -49,11 +55,16 @@ struct CompoundDetailView: View {
         .background(PepTheme.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            withAnimation(.easeOut(duration: 0.6)) {
+            withAnimation(.easeOut(duration: 0.5)) {
                 headerVisible = true
+            }
+            withAnimation(.easeOut(duration: 0.4).delay(0.2)) {
+                contentVisible = true
             }
         }
     }
+
+    // MARK: - Hero Header
 
     private var heroHeader: some View {
         ZStack(alignment: .bottom) {
@@ -70,7 +81,7 @@ struct CompoundDetailView: View {
                     PepTheme.background, PepTheme.background, PepTheme.background
                 ]
             )
-            .frame(height: 260)
+            .frame(height: 280)
 
             VStack(spacing: 14) {
                 ZStack {
@@ -86,7 +97,7 @@ struct CompoundDetailView: View {
                         .symbolRenderingMode(.hierarchical)
                 }
                 .opacity(headerVisible ? 1 : 0)
-                .offset(y: headerVisible ? 0 : 10)
+                .scaleEffect(headerVisible ? 1 : 0.85)
 
                 VStack(spacing: 5) {
                     Text(compound.name)
@@ -122,6 +133,8 @@ struct CompoundDetailView: View {
         }
     }
 
+    // MARK: - Stats Row
+
     private var statsRow: some View {
         HStack(spacing: 0) {
             statItem(
@@ -143,7 +156,7 @@ struct CompoundDetailView: View {
             statDivider
 
             statItem(
-                value: "\(compound.sideEffects.count)",
+                value: "\(compound.structuredSideEffects.count)",
                 label: "Side Effects",
                 icon: "exclamationmark.triangle.fill",
                 iconColor: .orange
@@ -170,12 +183,12 @@ struct CompoundDetailView: View {
     }
 
     private func statItem(value: String, label: String, icon: String, iconColor: Color) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundStyle(iconColor)
             Text(value)
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .font(.system(.title3, design: .rounded, weight: .bold))
                 .foregroundStyle(PepTheme.textPrimary)
             Text(label)
                 .font(.system(.caption2, weight: .medium))
@@ -187,8 +200,10 @@ struct CompoundDetailView: View {
     private var statDivider: some View {
         Rectangle()
             .fill(PepTheme.separatorColor)
-            .frame(width: 1, height: 36)
+            .frame(width: 1, height: 40)
     }
+
+    // MARK: - Tab Bar
 
     private var tabBar: some View {
         HStack(spacing: 4) {
@@ -198,7 +213,7 @@ struct CompoundDetailView: View {
                         selectedTab = tab
                     }
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 5) {
                         Image(systemName: tab.icon)
                             .font(.system(size: 10))
                         Text(tab.rawValue)
@@ -222,6 +237,10 @@ struct CompoundDetailView: View {
         VStack(alignment: .leading, spacing: 14) {
             disclaimerBanner
 
+            quickReferenceCard
+
+            keyFactsCard
+
             GlassCard {
                 VStack(alignment: .leading, spacing: 12) {
                     sectionHeader(icon: "doc.text.fill", title: "About", color: accentColor)
@@ -233,67 +252,236 @@ struct CompoundDetailView: View {
                 }
             }
 
-            if !compound.sideEffects.isEmpty {
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        sectionHeader(icon: "exclamationmark.triangle.fill", title: "Commonly Reported Side Effects", color: .orange)
-
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 8)], spacing: 8) {
-                            ForEach(compound.sideEffects, id: \.self) { effect in
-                                HStack(spacing: 6) {
-                                    Circle()
-                                        .fill(.orange.opacity(0.6))
-                                        .frame(width: 5, height: 5)
-                                    Text(effect)
-                                        .font(.system(.caption, weight: .medium))
-                                        .foregroundStyle(PepTheme.textPrimary.opacity(0.8))
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 7)
-                                .background(.orange.opacity(0.06))
-                                .clipShape(.rect(cornerRadius: 8))
-                            }
-                        }
-                    }
-                }
+            if !compound.structuredSideEffects.isEmpty {
+                sideEffectsCard
             }
 
             if !compound.stackPartners.isEmpty {
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        sectionHeader(icon: "link", title: "Common Stack Partners", color: PepTheme.violet)
+                stackPartnersCard
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 12)
+    }
 
-                        HStack(spacing: 8) {
-                            ForEach(compound.stackPartners, id: \.self) { partner in
-                                HStack(spacing: 5) {
-                                    Image(systemName: "pill.fill")
-                                        .font(.system(size: 10))
-                                    Text(partner)
-                                        .font(.system(.caption, weight: .bold))
-                                }
-                                .foregroundStyle(PepTheme.violet)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(
-                                    LinearGradient(
-                                        colors: [PepTheme.violet.opacity(0.12), PepTheme.violet.opacity(0.06)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .clipShape(.capsule)
-                                .overlay(
-                                    Capsule().strokeBorder(PepTheme.violet.opacity(0.15), lineWidth: 0.5)
-                                )
+    // MARK: - Quick Reference Card
+
+    private var quickReferenceCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 7) {
+                Image(systemName: "bookmark.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(accentColor)
+                Text("QUICK REFERENCE")
+                    .font(.system(.caption2, weight: .heavy))
+                    .tracking(1)
+                    .foregroundStyle(accentColor)
+            }
+
+            HStack(spacing: 0) {
+                quickRefItem(
+                    icon: "syringe.fill",
+                    label: "Dose Range",
+                    value: compound.keyFacts.typicalDoseRange,
+                    color: accentColor
+                )
+                quickRefDivider
+                quickRefItem(
+                    icon: "drop.fill",
+                    label: "Reconstitution",
+                    value: compound.keyFacts.reconstitution,
+                    color: PepTheme.blue
+                )
+                quickRefDivider
+                quickRefItem(
+                    icon: "thermometer.medium",
+                    label: "Storage",
+                    value: compound.keyFacts.storageTemp,
+                    color: .orange
+                )
+            }
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [accentColor.opacity(0.08), accentColor.opacity(0.02)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(accentColor.opacity(0.15), lineWidth: 1)
+        )
+    }
+
+    private func quickRefItem(icon: String, label: String, value: String, color: Color) -> some View {
+        VStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundStyle(color)
+            Text(value)
+                .font(.system(.caption, design: .monospaced, weight: .bold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+            Text(label)
+                .font(.system(.caption2, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var quickRefDivider: some View {
+        Rectangle()
+            .fill(accentColor.opacity(0.12))
+            .frame(width: 1, height: 44)
+    }
+
+    // MARK: - Key Facts Card
+
+    private var keyFactsCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "list.bullet.rectangle.fill", title: "Key Facts", color: accentColor)
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    keyFactRow(label: "Peptide Type", value: compound.peptideType, icon: "testtube.2")
+                    keyFactRow(label: "Molecular Weight", value: compound.keyFacts.molecularWeight, icon: "scalemass")
+                    keyFactRow(label: "Administration", value: compound.keyFacts.administrationRoute, icon: "syringe")
+                    keyFactRow(label: "Half-Life", value: compound.keyFacts.halfLife, icon: "clock")
+                    keyFactRow(label: "Storage", value: compound.keyFacts.storageTemp, icon: "snowflake")
+                    keyFactRow(label: "Reconstitution", value: compound.keyFacts.reconstitution, icon: "drop.fill")
+                }
+            }
+        }
+    }
+
+    private func keyFactRow(label: String, value: String, icon: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+                .foregroundStyle(accentColor.opacity(0.7))
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.system(.caption2, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+                Text(value)
+                    .font(.system(.caption, weight: .bold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(PepTheme.elevated.opacity(0.5))
+        .clipShape(.rect(cornerRadius: 10))
+    }
+
+    // MARK: - Side Effects Card
+
+    private var sideEffectsCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "exclamationmark.triangle.fill", title: "Commonly Reported Side Effects", color: .orange)
+
+                VStack(spacing: 8) {
+                    ForEach(compound.structuredSideEffects) { effect in
+                        HStack(spacing: 10) {
+                            Circle()
+                                .fill(effect.severity.color)
+                                .frame(width: 8, height: 8)
+
+                            Text(effect.name)
+                                .font(.system(.subheadline, weight: .medium))
+                                .foregroundStyle(PepTheme.textPrimary)
+
+                            Spacer()
+
+                            HStack(spacing: 6) {
+                                Text(effect.severity.rawValue)
+                                    .font(.system(.caption2, weight: .bold))
+                                    .foregroundStyle(effect.severity.color)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(effect.severity.color.opacity(0.12))
+                                    .clipShape(.capsule)
+
+                                Text("\(effect.frequency)%")
+                                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                    .frame(width: 36, alignment: .trailing)
                             }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(PepTheme.elevated.opacity(0.3))
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    legendDot(color: .green, label: "Mild")
+                    legendDot(color: .yellow, label: "Moderate")
+                    legendDot(color: .orange, label: "Significant")
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    private func legendDot(color: Color, label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            Text(label)
+                .font(.system(.caption2, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+    }
+
+    // MARK: - Stack Partners Card
+
+    private var stackPartnersCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(icon: "link", title: "Common Stack Partners", color: PepTheme.violet)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(compound.stackPartners, id: \.self) { partner in
+                            HStack(spacing: 5) {
+                                Image(systemName: "pill.fill")
+                                    .font(.system(size: 10))
+                                Text(partner)
+                                    .font(.system(.caption, weight: .bold))
+                            }
+                            .foregroundStyle(PepTheme.violet)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                LinearGradient(
+                                    colors: [PepTheme.violet.opacity(0.12), PepTheme.violet.opacity(0.06)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .clipShape(.capsule)
+                            .overlay(
+                                Capsule().strokeBorder(PepTheme.violet.opacity(0.15), lineWidth: 0.5)
+                            )
                         }
                     }
                 }
             }
         }
-        .padding(.horizontal)
-        .padding(.top, 12)
     }
 
     // MARK: - Protocols
