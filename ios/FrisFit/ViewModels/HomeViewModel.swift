@@ -327,6 +327,8 @@ final class HomeViewModel {
     )
 
     var activeProtocol: PeptideProtocol? = nil
+    var allProtocols: [PeptideProtocol] = []
+    private var protocolsLoaded: Bool = false
 
     var pepInsight: String = "Your BPC-157 protocol is on day 14 — maintenance phase looking solid. Remember to rotate injection sites and stay hydrated for optimal absorption."
 
@@ -422,12 +424,41 @@ final class HomeViewModel {
             }
         }
         checkActionLinkedTasks()
+        if !protocolsLoaded {
+            loadProtocolsFromSupabase()
+        }
         if isLoading {
             Task {
                 try? await Task.sleep(for: .milliseconds(600))
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                     isLoading = false
                 }
+            }
+        }
+    }
+
+    func loadProtocolsFromSupabase() {
+        guard AuthService.shared.authState == .signedIn else { return }
+        Task {
+            do {
+                let protocols = try await ProtocolService.shared.fetchProtocols()
+                allProtocols = protocols
+                activeProtocol = protocols.first { $0.isActive }
+                protocolsLoaded = true
+            } catch {
+                // Silent fallback — protocols stay nil
+            }
+        }
+    }
+
+    func saveProtocolToSupabase(_ proto: PeptideProtocol) {
+        Task {
+            do {
+                let saved = try await ProtocolService.shared.createProtocol(proto)
+                activeProtocol = saved
+                allProtocols.insert(saved, at: 0)
+            } catch {
+                activeProtocol = proto
             }
         }
     }

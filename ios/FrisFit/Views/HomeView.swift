@@ -106,7 +106,7 @@ struct HomeView: View {
         .transition(.opacity.combined(with: .move(edge: .bottom)))
         .sheet(isPresented: $showProtocolWizard) {
             ProtocolSetupWizardView { proto in
-                viewModel.activeProtocol = proto
+                viewModel.saveProtocolToSupabase(proto)
             }
         }
         .sheet(isPresented: $showReconCalculator) {

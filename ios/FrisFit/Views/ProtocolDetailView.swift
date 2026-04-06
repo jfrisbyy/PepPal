@@ -91,6 +91,9 @@ struct ProtocolDetailView: View {
         .sheet(isPresented: $viewModel.showReconCalculator) {
             ReconstitutionCalculatorView()
         }
+        .onAppear {
+            viewModel.refreshFromSupabase()
+        }
     }
 
     // MARK: - Protocol Header

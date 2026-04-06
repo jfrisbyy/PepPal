@@ -87,6 +87,7 @@ nonisolated enum InjectionSite: String, CaseIterable, Identifiable, Sendable {
 
 nonisolated struct ProtocolCompound: Identifiable, Sendable {
     let id: UUID
+    var supabaseId: String?
     let compoundName: String
     let doseMcg: Double
     let frequency: String
@@ -129,6 +130,7 @@ nonisolated struct ProtocolCompound: Identifiable, Sendable {
 
 nonisolated struct PeptideProtocol: Identifiable, Sendable {
     let id: UUID
+    var supabaseId: String?
     var name: String
     let goal: ProtocolGoal
     var compounds: [ProtocolCompound]
@@ -193,6 +195,7 @@ nonisolated struct PeptideProtocol: Identifiable, Sendable {
 
 nonisolated struct DoseLogEntry: Identifiable, Sendable {
     let id: UUID
+    var supabaseId: String?
     let compoundName: String
     let doseMcg: Double
     let timestamp: Date
@@ -211,6 +214,7 @@ nonisolated struct DoseLogEntry: Identifiable, Sendable {
 
 nonisolated struct SideEffectEntry: Identifiable, Sendable {
     let id: UUID
+    var supabaseId: String?
     let timestamp: Date
     let effect: String
     let severity: Int
@@ -227,6 +231,7 @@ nonisolated struct SideEffectEntry: Identifiable, Sendable {
 
 nonisolated struct SupplementEntry: Identifiable, Sendable {
     let id: UUID
+    var supabaseId: String?
     var name: String
     var dose: String
     var frequency: String

@@ -9,6 +9,8 @@ final class ProtocolDetailViewModel {
     var showAddSupplementSheet: Bool = false
     var showAddNoteSheet: Bool = false
     var showReconCalculator: Bool = false
+    var isLoading: Bool = false
+    var errorMessage: String?
 
     var newDoseCompound: String = ""
     var newDoseMcg: String = ""
@@ -37,6 +39,8 @@ final class ProtocolDetailViewModel {
     var recoveryMilestones: [RecoveryMilestone] = []
     var bodyMeasurements: [ProtocolBodyMeasurement] = []
 
+    private let protocolService = ProtocolService.shared
+
     let commonSideEffects = [
         "Nausea", "Injection Site Redness", "Fatigue", "Headache",
         "Water Retention", "Dizziness", "Appetite Changes",
@@ -51,7 +55,6 @@ final class ProtocolDetailViewModel {
         }
         setupTitrationSteps()
         setupRecoveryMilestones()
-        setupSampleData()
     }
 
     func toggleSection(_ section: String) {
@@ -71,15 +74,40 @@ final class ProtocolDetailViewModel {
     // MARK: - Dose Logging
 
     func logDose() {
-        let dose = DoseLogEntry(
-            compoundName: newDoseCompound,
-            doseMcg: Double(newDoseMcg) ?? 0,
-            injectionSite: newDoseSite,
-            notes: newDoseNotes
-        )
-        protocolData.doseLog.insert(dose, at: 0)
+        guard let protocolId = protocolData.supabaseId else {
+            let dose = DoseLogEntry(
+                compoundName: newDoseCompound,
+                doseMcg: Double(newDoseMcg) ?? 0,
+                injectionSite: newDoseSite,
+                notes: newDoseNotes
+            )
+            protocolData.doseLog.insert(dose, at: 0)
+            newDoseNotes = ""
+            showLogDoseSheet = false
+            return
+        }
+
+        let compound = newDoseCompound
+        let mcg = Double(newDoseMcg) ?? 0
+        let site = newDoseSite
+        let doseNotes = newDoseNotes
         newDoseNotes = ""
         showLogDoseSheet = false
+
+        Task {
+            do {
+                let entry = try await protocolService.logDose(
+                    protocolId: protocolId,
+                    compoundName: compound,
+                    doseMcg: mcg,
+                    injectionSite: site,
+                    notes: doseNotes
+                )
+                protocolData.doseLog.insert(entry, at: 0)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 
     var sortedDoseLog: [DoseLogEntry] {
@@ -111,35 +139,88 @@ final class ProtocolDetailViewModel {
     // MARK: - Side Effects
 
     func logSideEffect() {
-        let entry = SideEffectEntry(
-            effect: newEffectName,
-            severity: newEffectSeverity,
-            notes: newEffectNotes
-        )
-        protocolData.sideEffectLog.insert(entry, at: 0)
+        guard let protocolId = protocolData.supabaseId else {
+            let entry = SideEffectEntry(
+                effect: newEffectName,
+                severity: newEffectSeverity,
+                notes: newEffectNotes
+            )
+            protocolData.sideEffectLog.insert(entry, at: 0)
+            newEffectName = ""
+            newEffectSeverity = 2
+            newEffectNotes = ""
+            showSideEffectSheet = false
+            return
+        }
+
+        let symptom = newEffectName
+        let severity = newEffectSeverity
+        let effectNotes = newEffectNotes
         newEffectName = ""
         newEffectSeverity = 2
         newEffectNotes = ""
         showSideEffectSheet = false
+
+        Task {
+            do {
+                let entry = try await protocolService.logSideEffect(
+                    protocolId: protocolId,
+                    symptom: symptom,
+                    severity: severity,
+                    notes: effectNotes
+                )
+                protocolData.sideEffectLog.insert(entry, at: 0)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 
     // MARK: - Supplements
 
     func addSupplement() {
-        let entry = SupplementEntry(
+        guard let protocolId = protocolData.supabaseId else {
+            let entry = SupplementEntry(
+                name: newSupplementName,
+                dose: newSupplementDose,
+                frequency: newSupplementFrequency
+            )
+            protocolData.supplements.append(entry)
+            newSupplementName = ""
+            newSupplementDose = ""
+            newSupplementFrequency = "Daily"
+            showAddSupplementSheet = false
+            return
+        }
+
+        let supplement = SupplementEntry(
             name: newSupplementName,
             dose: newSupplementDose,
             frequency: newSupplementFrequency
         )
-        protocolData.supplements.append(entry)
         newSupplementName = ""
         newSupplementDose = ""
         newSupplementFrequency = "Daily"
         showAddSupplementSheet = false
+
+        Task {
+            do {
+                let saved = try await protocolService.addSupplement(supplement, protocolId: protocolId)
+                protocolData.supplements.append(saved)
+            } catch {
+                protocolData.supplements.append(supplement)
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 
     func removeSupplement(_ entry: SupplementEntry) {
         protocolData.supplements.removeAll { $0.id == entry.id }
+        if let supabaseId = entry.supabaseId {
+            Task {
+                try? await protocolService.deleteSupplement(id: supabaseId)
+            }
+        }
     }
 
     // MARK: - Notes
@@ -259,33 +340,23 @@ final class ProtocolDetailViewModel {
         ]
     }
 
-    private func setupSampleData() {
-        let cal = Calendar.current
-        protocolData.doseLog = (0..<5).map { i in
-            DoseLogEntry(
-                compoundName: protocolData.compounds.first?.compoundName ?? "BPC-157",
-                doseMcg: protocolData.compounds.first?.doseMcg ?? 250,
-                timestamp: cal.date(byAdding: .day, value: -i, to: Date()) ?? Date(),
-                injectionSite: InjectionSite.allCases[i % InjectionSite.allCases.count],
-                notes: i == 0 ? "Felt slight warmth at site" : ""
-            )
+    func refreshFromSupabase() {
+        guard let protocolId = protocolData.supabaseId else { return }
+        Task {
+            do {
+                isLoading = true
+                let doseLogs = try await protocolService.fetchDoseLogs(protocolId: protocolId)
+                let sideEffects = try await protocolService.fetchSideEffects(protocolId: protocolId)
+                let supplements = try await protocolService.fetchSupplements(protocolId: protocolId)
+                protocolData.doseLog = doseLogs
+                protocolData.sideEffectLog = sideEffects
+                protocolData.supplements = supplements
+                isLoading = false
+            } catch {
+                isLoading = false
+                errorMessage = error.localizedDescription
+            }
         }
-
-        protocolData.sideEffectLog = [
-            SideEffectEntry(timestamp: cal.date(byAdding: .day, value: -1, to: Date()) ?? Date(), effect: "Nausea", severity: 1, notes: "Mild, passed quickly"),
-            SideEffectEntry(timestamp: cal.date(byAdding: .day, value: -3, to: Date()) ?? Date(), effect: "Injection Site Redness", severity: 2),
-        ]
-
-        notes = [
-            ProtocolNote(timestamp: cal.date(byAdding: .day, value: -1, to: Date()) ?? Date(), text: "Energy noticeably higher today. Felt warm 20 min after injection."),
-            ProtocolNote(timestamp: cal.date(byAdding: .day, value: -3, to: Date()) ?? Date(), text: "Started feeling improvements in mobility. Less stiffness in the morning."),
-        ]
-
-        protocolData.supplements = [
-            SupplementEntry(name: "NAC", dose: "600mg", frequency: "Daily"),
-            SupplementEntry(name: "Vitamin D3", dose: "5000 IU", frequency: "Daily"),
-            SupplementEntry(name: "Magnesium Glycinate", dose: "400mg", frequency: "Nightly"),
-        ]
     }
 
     func toggleMilestone(_ milestone: RecoveryMilestone) {
