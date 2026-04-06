@@ -85,6 +85,7 @@ struct HomeView: View {
             if !viewModel.isSelectedDateToday {
                 selectedDateBanner
             }
+            DailyDeckBannerView(viewModel: viewModel)
             protocolCard
             BodyGoalSectionView(viewModel: bodyGoalViewModel)
             nutritionCard
