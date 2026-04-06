@@ -7,6 +7,7 @@ nonisolated struct UserProfile: Sendable {
     let username: String
     let initials: String
     let bio: String
+    let avatarUrl: String?
     let avatarColor: Color
     let activeProgram: String?
     let totalFP: Int
@@ -26,6 +27,7 @@ nonisolated struct UserProfile: Sendable {
         username: String,
         initials: String,
         bio: String = "",
+        avatarUrl: String? = nil,
         avatarColor: Color = Color(red: 0, green: 229/255, blue: 255/255),
         activeProgram: String? = nil,
         totalFP: Int = 0,
@@ -44,6 +46,7 @@ nonisolated struct UserProfile: Sendable {
         self.username = username
         self.initials = initials
         self.bio = bio
+        self.avatarUrl = avatarUrl
         self.avatarColor = avatarColor
         self.activeProgram = activeProgram
         self.totalFP = totalFP

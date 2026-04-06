@@ -1,23 +1,19 @@
 import SwiftUI
+import Auth
 
 @Observable
 final class ProfileViewModel {
     var profile: UserProfile = UserProfile(
-        displayName: "Jane Doe",
-        username: "janedoe_fit",
-        initials: "JD",
-        bio: "Chasing PRs and good vibes 🏋️‍♀️ | PPL enthusiast | 42-day streak and counting",
-        avatarColor: Color(red: 0, green: 229/255, blue: 255/255),
-        activeProgram: "Push Pull Legs",
-        totalFP: 24_850,
-        currentStreak: 42,
-        totalWorkouts: 156,
-        memberSince: Calendar.current.date(from: DateComponents(year: 2025, month: 1, day: 15))!,
-        followerCount: 1_247,
-        followingCount: 483,
-        friendCount: 34,
+        displayName: "",
+        username: "",
+        initials: "",
+        bio: "",
         isCurrentUser: true
     )
+
+    var isLoadingProfile: Bool = false
+    var profileError: String?
+    var isSaving: Bool = false
 
     var userPosts: [UserPost] = []
     var userMarketItems: [MarketProgram] = []
@@ -214,6 +210,90 @@ final class ProfileViewModel {
         loadMockMarketItems()
     }
 
+    func loadProfile() async {
+        guard let session = AuthService.shared.session else { return }
+        let userId = session.user.id.uuidString
+        isLoadingProfile = true
+        profileError = nil
+
+        do {
+            let sp = try await ProfileService.shared.fetchProfile(userId: userId)
+            let name = sp.display_name ?? "User"
+            let uname = sp.username ?? "user"
+            let initials = Self.computeInitials(from: name)
+            let color = Self.parseAvatarColor(sp.avatar_color)
+
+            let iso = ISO8601DateFormatter()
+            iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let memberDate = sp.member_since.flatMap { iso.date(from: $0) } ?? Date()
+
+            profile = UserProfile(
+                id: UUID(uuidString: sp.id) ?? UUID(),
+                displayName: name,
+                username: uname,
+                initials: initials,
+                bio: sp.bio ?? "",
+                avatarUrl: sp.avatar_url,
+                avatarColor: color,
+                activeProgram: sp.active_program,
+                totalFP: sp.total_fp ?? 0,
+                currentStreak: sp.current_streak ?? 0,
+                totalWorkouts: sp.total_workouts ?? 0,
+                memberSince: memberDate,
+                followerCount: sp.follower_count ?? 0,
+                followingCount: sp.following_count ?? 0,
+                friendCount: sp.friend_count ?? 0,
+                isCurrentUser: true
+            )
+
+            loadMockPosts()
+            loadMockMarketItems()
+            isLoadingProfile = false
+        } catch {
+            profileError = error.localizedDescription
+            isLoadingProfile = false
+        }
+    }
+
+    func saveProfileEdits(displayName: String, username: String, bio: String, activeProgram: String?, avatarColor: String?) async {
+        guard let session = AuthService.shared.session else { return }
+        let userId = session.user.id.uuidString
+        isSaving = true
+
+        let update = ProfileUpdate(
+            display_name: displayName,
+            username: username,
+            bio: bio,
+            avatar_url: nil,
+            avatar_color: avatarColor,
+            active_program: activeProgram
+        )
+
+        do {
+            try await ProfileService.shared.updateProfile(userId: userId, update: update)
+            await loadProfile()
+        } catch {
+            profileError = error.localizedDescription
+        }
+        isSaving = false
+    }
+
+    func uploadAvatar(imageData: Data) async -> String? {
+        guard let session = AuthService.shared.session else { return nil }
+        let userId = session.user.id.uuidString
+        isSaving = true
+        do {
+            let url = try await ProfileService.shared.uploadAvatar(userId: userId, imageData: imageData)
+            await loadProfile()
+            isSaving = false
+            return url
+        } catch {
+            profileError = error.localizedDescription
+            isSaving = false
+            return nil
+        }
+    }
+
     func togglePostLike(_ postId: UUID) {
         guard let index = userPosts.firstIndex(where: { $0.id == postId }) else { return }
         userPosts[index].isLiked.toggle()
@@ -249,6 +329,30 @@ final class ProfileViewModel {
 
     func postsForUser(_ userId: UUID) -> [UserPost] {
         userPosts.filter { $0.authorId == userId }
+    }
+
+    static func computeInitials(from name: String) -> String {
+        let parts = name.split(separator: " ")
+        if parts.count >= 2 {
+            return String(parts[0].prefix(1)).uppercased() + String(parts[1].prefix(1)).uppercased()
+        } else if let first = parts.first {
+            return String(first.prefix(2)).uppercased()
+        }
+        return "U"
+    }
+
+    static func parseAvatarColor(_ hex: String?) -> Color {
+        guard let hex, !hex.isEmpty else {
+            return Color(red: 0, green: 229/255, blue: 255/255)
+        }
+        let cleaned = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        guard cleaned.count == 6, let val = UInt64(cleaned, radix: 16) else {
+            return Color(red: 0, green: 229/255, blue: 255/255)
+        }
+        let r = Double((val >> 16) & 0xFF) / 255.0
+        let g = Double((val >> 8) & 0xFF) / 255.0
+        let b = Double(val & 0xFF) / 255.0
+        return Color(red: r, green: g, blue: b)
     }
 
     private func loadMockPosts() {
@@ -297,10 +401,11 @@ final class ProfileViewModel {
 
     private func loadMockMarketItems() {
         let profileId = profile.id
+        let creatorName = profile.displayName.isEmpty ? "You" : profile.displayName
         userMarketItems = [
             MarketProgram(
-                title: "Jane's PPL Hypertrophy",
-                creatorName: profile.displayName,
+                title: "\(creatorName)'s PPL Hypertrophy",
+                creatorName: creatorName,
                 creatorId: profileId,
                 rating: 4.8,
                 reviewCount: 234,
@@ -316,7 +421,7 @@ final class ProfileViewModel {
             ),
             MarketProgram(
                 title: "Beginner Strength Foundations",
-                creatorName: profile.displayName,
+                creatorName: creatorName,
                 creatorId: profileId,
                 rating: 4.9,
                 reviewCount: 567,

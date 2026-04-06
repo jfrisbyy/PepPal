@@ -4,6 +4,7 @@ struct ProfileView: View {
     @State private var viewModel = ProfileViewModel()
     @State private var isLoading: Bool = true
     @State private var selectedTab: ProfileTab = .posts
+    @State private var showEditProfile: Bool = false
 
     enum ProfileTab: String, CaseIterable {
         case posts = "Posts"
@@ -44,15 +45,14 @@ struct ProfileView: View {
                     }
                 }
             }
-            .onAppear {
-                if isLoading {
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(500))
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                            isLoading = false
-                        }
-                    }
+            .task {
+                await viewModel.loadProfile()
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    isLoading = false
                 }
+            }
+            .sheet(isPresented: $showEditProfile) {
+                EditProfileView(viewModel: viewModel)
             }
             .navigationDestination(for: ProfileDestination.self) { destination in
                 switch destination {
@@ -90,20 +90,12 @@ struct ProfileView: View {
                 .fill(PepTheme.background)
                 .frame(width: 88, height: 88)
                 .overlay {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [viewModel.profile.avatarColor.opacity(0.8), PepTheme.violet.opacity(0.6)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 80, height: 80)
-                        .overlay {
-                            Text(viewModel.profile.initials)
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white)
-                        }
+                    ProfileAvatarView(
+                        avatarUrl: viewModel.profile.avatarUrl,
+                        initials: viewModel.profile.initials,
+                        avatarColor: viewModel.profile.avatarColor,
+                        size: 80
+                    )
                 }
                 .offset(x: 16, y: 44)
         }
@@ -125,7 +117,9 @@ struct ProfileView: View {
 
                 Spacer()
 
-                NavigationLink(value: ProfileDestination.settings) {
+                Button {
+                    showEditProfile = true
+                } label: {
                     Text("Edit Profile")
                         .font(.system(.subheadline, weight: .semibold))
                         .foregroundStyle(PepTheme.textPrimary)

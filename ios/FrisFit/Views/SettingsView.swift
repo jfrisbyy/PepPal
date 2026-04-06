@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Bindable var viewModel: ProfileViewModel
     @State private var showDeleteConfirm: Bool = false
+    @State private var showLogOutConfirm: Bool = false
     @State private var appearanceManager = AppearanceManager.shared
     @State private var healthKit = HealthKitService.shared
 
@@ -30,6 +31,16 @@ struct SettingsView: View {
             Button("Delete", role: .destructive) { }
         } message: {
             Text("This will permanently delete your account and all data. This action cannot be undone.")
+        }
+        .alert("Log Out", isPresented: $showLogOutConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Log Out", role: .destructive) {
+                Task {
+                    try? await AuthService.shared.signOut()
+                }
+            }
+        } message: {
+            Text("Are you sure you want to log out?")
         }
     }
 
@@ -361,7 +372,9 @@ struct SettingsView: View {
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 SettingsButton(icon: "lock.fill", title: "Change Password") { }
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
-                SettingsButton(icon: "rectangle.portrait.and.arrow.right", title: "Log Out", color: PepTheme.textSecondary) { }
+                SettingsButton(icon: "rectangle.portrait.and.arrow.right", title: "Log Out", color: PepTheme.textSecondary) {
+                    showLogOutConfirm = true
+                }
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 SettingsButton(icon: "trash.fill", title: "Delete Account", color: .red) {
                     showDeleteConfirm = true
