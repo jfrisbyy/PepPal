@@ -22,6 +22,13 @@ struct HomeView: View {
                         .padding(.top, 8)
                         .transition(.opacity)
                 } else {
+                    Text("Welcome, \(viewModel.userFirstName)")
+                        .font(.system(.title2, design: .rounded, weight: .bold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.top, 4)
+                        .padding(.bottom, 4)
                     Group {
                         switch viewModel.selectedTimePeriod {
                         case .daily:
@@ -51,11 +58,6 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Text("Welcome, \(viewModel.userFirstName)")
-                        .font(.system(.title2, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
-                ToolbarItem(placement: .principal) {
                     dateHeaderButton
                 }
                 ToolbarItem(placement: .topBarTrailing) {
