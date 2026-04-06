@@ -294,7 +294,14 @@ struct HomeView: View {
 
     private var expandedDateSelector: some View {
         VStack(spacing: 12) {
-            weekStripSelector
+            switch viewModel.selectedTimePeriod {
+            case .daily:
+                weekStripSelector
+            case .weekly:
+                weekCalendarStrip
+            case .monthly:
+                monthCalendarStrip
+            }
 
             HStack(spacing: 2) {
                 ForEach(HomeTimePeriod.allCases) { period in
@@ -320,48 +327,42 @@ struct HomeView: View {
             .background(PepTheme.elevated)
             .clipShape(.capsule)
 
-            if viewModel.isFullCalendarExpanded {
-                if viewModel.selectedTimePeriod == .daily {
-                    DatePicker(
-                        "Select Date",
-                        selection: $viewModel.selectedDate,
-                        in: ...Date(),
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.graphical)
-                    .tint(PepTheme.teal)
-                    .padding(.horizontal, 4)
-                    .onChange(of: viewModel.selectedDate) { _, _ in
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            viewModel.isFullCalendarExpanded = false
-                            viewModel.isDateSelectorExpanded = false
-                        }
+            if viewModel.isFullCalendarExpanded && viewModel.selectedTimePeriod == .daily {
+                DatePicker(
+                    "Select Date",
+                    selection: $viewModel.selectedDate,
+                    in: ...Date(),
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .tint(PepTheme.teal)
+                .padding(.horizontal, 4)
+                .onChange(of: viewModel.selectedDate) { _, _ in
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        viewModel.isFullCalendarExpanded = false
+                        viewModel.isDateSelectorExpanded = false
                     }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                } else if viewModel.selectedTimePeriod == .weekly {
-                    weekCalendarStrip
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                } else {
-                    monthCalendarStrip
-                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            Button {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
-                    viewModel.isFullCalendarExpanded.toggle()
+            if viewModel.selectedTimePeriod == .daily {
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                        viewModel.isFullCalendarExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(viewModel.isFullCalendarExpanded ? "Hide Calendar" : "Pick a Date")
+                            .font(.system(size: 12, weight: .medium))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .semibold))
+                            .rotationEffect(.degrees(viewModel.isFullCalendarExpanded ? 180 : 0))
+                    }
+                    .foregroundStyle(PepTheme.teal)
                 }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(viewModel.isFullCalendarExpanded ? "Hide Calendar" : "Pick a Date")
-                        .font(.system(size: 12, weight: .medium))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 9, weight: .semibold))
-                        .rotationEffect(.degrees(viewModel.isFullCalendarExpanded ? 180 : 0))
-                }
-                .foregroundStyle(PepTheme.teal)
+                .sensoryFeedback(.selection, trigger: viewModel.isFullCalendarExpanded)
             }
-            .sensoryFeedback(.selection, trigger: viewModel.isFullCalendarExpanded)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
