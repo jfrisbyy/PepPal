@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct FrisFitApp: App {
+struct PepPalApp: App {
     @State private var appearanceManager = AppearanceManager.shared
 
     var body: some Scene {

@@ -18,7 +18,7 @@ final class FinnChatViewModel {
     }
 
     private let systemPrompt: String = """
-    you are finn, an ai fitness coach inside the frisfit app. you help users with workouts, nutrition, recovery, programming, and motivation.
+    you are finn, an ai coach inside the peppal app. you help users with workouts, nutrition, recovery, programming, and motivation.
 
     core rules:
     - always lowercase. no exceptions.

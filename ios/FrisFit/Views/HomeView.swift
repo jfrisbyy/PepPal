@@ -49,7 +49,7 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Text("FrisFit")
+                    Text("PepPal")
                         .font(.system(.title2, design: .rounded, weight: .bold))
                         .foregroundStyle(FrisTheme.textPrimary)
                 }

@@ -401,18 +401,19 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = FrisFit/FrisFit.entitlements;
+				INFOPLIST_KEY_CFBundleDisplayName = PepPal;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSCameraUsageDescription = "FrisFit needs camera access to photograph your meals for calorie estimation.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "FrisFit reads your health data to display steps, calories burned, heart rate, and workout information on your dashboard.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FrisFit saves your workout data to Apple Health so all your fitness activity stays in sync.";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "FrisFit uses your location to track your runs and rides in real time, even when the screen is locked.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "FrisFit uses your location to track distance, pace, and route during your workouts.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FrisFit needs access to your photo library to analyze food photos for calorie estimation.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "PepPal needs camera access to photograph your meals for calorie estimation.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "PepPal reads your health data to display steps, calories burned, heart rate, and workout information on your dashboard.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "PepPal saves your workout data to Apple Health so all your fitness activity stays in sync.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "PepPal uses your location to track your runs and rides in real time, even when the screen is locked.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PepPal uses your location to track distance, pace, and route during your workouts.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "PepPal needs access to your photo library to analyze food photos for calorie estimation.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = location;
@@ -424,7 +425,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.rork.m169rwwwxht5qryke92jt;
+				PRODUCT_BUNDLE_IDENTIFIER = com.peppal.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -442,18 +443,19 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = FrisFit/FrisFit.entitlements;
+				INFOPLIST_KEY_CFBundleDisplayName = PepPal;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSCameraUsageDescription = "FrisFit needs camera access to photograph your meals for calorie estimation.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "FrisFit reads your health data to display steps, calories burned, heart rate, and workout information on your dashboard.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FrisFit saves your workout data to Apple Health so all your fitness activity stays in sync.";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "FrisFit uses your location to track your runs and rides in real time, even when the screen is locked.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "FrisFit uses your location to track distance, pace, and route during your workouts.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FrisFit needs access to your photo library to analyze food photos for calorie estimation.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "PepPal needs camera access to photograph your meals for calorie estimation.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "PepPal reads your health data to display steps, calories burned, heart rate, and workout information on your dashboard.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "PepPal saves your workout data to Apple Health so all your fitness activity stays in sync.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "PepPal uses your location to track your runs and rides in real time, even when the screen is locked.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PepPal uses your location to track distance, pace, and route during your workouts.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "PepPal needs access to your photo library to analyze food photos for calorie estimation.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = location;
@@ -465,7 +467,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.rork.m169rwwwxht5qryke92jt;
+				PRODUCT_BUNDLE_IDENTIFIER = com.peppal.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -487,7 +489,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.m169rwwwxht5qryke92jt.tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.peppal.app.tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -509,7 +511,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.m169rwwwxht5qryke92jt.tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.peppal.app.tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -529,7 +531,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.m169rwwwxht5qryke92jt.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.peppal.app.uitests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -537,7 +539,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = FrisFit;
+				TEST_TARGET_NAME = PepPal;
 			};
 			name = Debug;
 		};
@@ -549,7 +551,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.m169rwwwxht5qryke92jt.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.peppal.app.uitests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -557,7 +559,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = FrisFit;
+				TEST_TARGET_NAME = PepPal;
 			};
 			name = Release;
 		};
