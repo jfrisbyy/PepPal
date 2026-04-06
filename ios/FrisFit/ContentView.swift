@@ -46,6 +46,9 @@ nonisolated enum AppTab: Int, CaseIterable {
 struct ContentView: View {
     @State private var selectedTab: AppTab = .home
     @State private var showPepChat: Bool = false
+    @State private var showNutrition: Bool = false
+    @State private var showCreatePost: Bool = false
+    @State private var fabExpanded: Bool = false
     @State private var previousTab: AppTab = .home
     @State private var workoutState = WorkoutState.shared
 
@@ -74,8 +77,8 @@ struct ContentView: View {
                 workoutIndicatorBar
             }
 
-            if selectedTab != .community && selectedTab != .home {
-                floatingPepButton
+            if selectedTab != .community {
+                ExpandableFABView(isExpanded: $fabExpanded, actions: fabActions)
             }
         }
         .onAppear {
@@ -83,9 +86,19 @@ struct ContentView: View {
         }
         .onChange(of: selectedTab) { oldValue, newValue in
             previousTab = oldValue
+            if fabExpanded {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                    fabExpanded = false
+                }
+            }
         }
         .fullScreenCover(isPresented: $showPepChat) {
             PepChatView()
+        }
+        .sheet(isPresented: $showNutrition) {
+            NavigationStack {
+                NutritionView()
+            }
         }
         .task {
             try? await Task.sleep(for: .milliseconds(500))
@@ -123,32 +136,15 @@ struct ContentView: View {
         .ignoresSafeArea()
     }
 
-    private var floatingPepButton: some View {
-        Button {
-            showPepChat = true
-        } label: {
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [PepTheme.violet, PepTheme.violet.opacity(0.7)],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: 28
-                        )
-                    )
-                    .frame(width: 52, height: 52)
-                    .shadow(color: PepTheme.violet.opacity(0.5), radius: 12, x: 0, y: 4)
-
-                Image(systemName: "message.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
-        }
-        .buttonStyle(.scale)
-        .padding(.trailing, 16)
-        .padding(.bottom, 80)
-        .sensoryFeedback(.impact(weight: .medium), trigger: showPepChat)
+    private var fabActions: [FABAction] {
+        [
+            FABAction(icon: "fork.knife", label: "Log Meal", color: PepTheme.amber, action: { showNutrition = true }),
+            FABAction(icon: "figure.run", label: "Log Workout", color: PepTheme.teal, action: {}),
+            FABAction(icon: "bubble.left.fill", label: "Chat with Pep", color: PepTheme.violet, action: { showPepChat = true }),
+            FABAction(icon: "square.and.pencil", label: "Make a Post", color: PepTheme.blue, action: { showCreatePost = true }),
+            FABAction(icon: "pill.fill", label: "Log Dose", color: Color.pink, action: {}),
+            FABAction(icon: "drop.fill", label: "Log Bloodwork", color: .red, action: {}),
+        ]
     }
 
     private func configureTabBarAppearance() {

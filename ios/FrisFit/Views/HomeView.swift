@@ -8,8 +8,6 @@ struct HomeView: View {
     @State private var showProtocolWizard: Bool = false
     @State private var showReconCalculator: Bool = false
     @State private var showQuickActions: Bool = false
-    @State private var fabExpanded: Bool = false
-    @State private var showCreatePost: Bool = false
     @State private var showNutrition: Bool = false
     @State private var showDailyTasks: Bool = false
     @State private var showStepDetail: Bool = false
@@ -75,32 +73,26 @@ struct HomeView: View {
     // MARK: - Daily Content
 
     private var dailyContent: some View {
-        ZStack(alignment: .bottomTrailing) {
-            VStack(spacing: 20) {
-                calendarStrip
-                protocolCard
-                BodyGoalSectionView(viewModel: bodyGoalViewModel)
-                nutritionCard
-                if viewModel.healthKit.isAuthorized {
-                    stepsModuleCard
-                    healthStatsCard
-                }
-                if let encouragement = viewModel.streakEncouragement {
-                    streakEncouragementCard(message: encouragement)
-                }
-                todaysPlanCard
-                pepInsightCard
-                activityFeedSection
-                quickStatsBar
+        VStack(spacing: 20) {
+            calendarStrip
+            protocolCard
+            BodyGoalSectionView(viewModel: bodyGoalViewModel)
+            nutritionCard
+            if viewModel.healthKit.isAuthorized {
+                stepsModuleCard
+                healthStatsCard
             }
-            .padding(.horizontal)
-            .padding(.bottom, 80)
-            .transition(.opacity.combined(with: .move(edge: .bottom)))
-
-            expandableFAB
-                .padding(.trailing, 16)
-                .padding(.bottom, 16)
+            if let encouragement = viewModel.streakEncouragement {
+                streakEncouragementCard(message: encouragement)
+            }
+            todaysPlanCard
+            pepInsightCard
+            activityFeedSection
+            quickStatsBar
         }
+        .padding(.horizontal)
+        .padding(.bottom, 80)
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
         .sheet(isPresented: $showProtocolWizard) {
             ProtocolSetupWizardView { proto in
                 viewModel.activeProtocol = proto
@@ -261,99 +253,6 @@ struct HomeView: View {
         }
         .buttonStyle(.scale)
         .sensoryFeedback(.impact(weight: .medium), trigger: showProtocolWizard)
-    }
-
-    // MARK: - Expandable FAB
-
-    private var expandableFAB: some View {
-        let actions: [(icon: String, label: String, color: Color, action: () -> Void)] = [
-            ("fork.knife", "Log Meal", PepTheme.amber, { showNutrition = true }),
-            ("figure.run", "Log Workout", PepTheme.teal, {}),
-            ("bubble.left.fill", "Chat with Pep", PepTheme.violet, { showPepChat = true }),
-            ("square.and.pencil", "Make a Post", PepTheme.blue, { showCreatePost = true }),
-            ("pill.fill", "Log Dose", Color.pink, {}),
-            ("drop.fill", "Log Bloodwork", .red, {}),
-        ]
-
-        return ZStack(alignment: .bottomTrailing) {
-            if fabExpanded {
-                Color.black.opacity(0.3)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
-                            fabExpanded = false
-                        }
-                    }
-                    .transition(.opacity)
-            }
-
-            VStack(alignment: .trailing, spacing: 12) {
-                if fabExpanded {
-                    ForEach(Array(actions.enumerated()), id: \.offset) { index, item in
-                        Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                fabExpanded = false
-                            }
-                            item.action()
-                        } label: {
-                            HStack(spacing: 10) {
-                                Text(item.label)
-                                    .font(.system(.subheadline, weight: .semibold))
-                                    .foregroundStyle(PepTheme.textPrimary)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(PepTheme.cardSurface)
-                                    .clipShape(.capsule)
-                                    .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 2)
-
-                                ZStack {
-                                    Circle()
-                                        .fill(item.color.opacity(0.15))
-                                        .frame(width: 44, height: 44)
-                                    Image(systemName: item.icon)
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundStyle(item.color)
-                                }
-                            }
-                        }
-                        .transition(.asymmetric(
-                            insertion: .scale(scale: 0.4, anchor: .bottomTrailing)
-                                .combined(with: .opacity)
-                                .animation(.spring(response: 0.35, dampingFraction: 0.7).delay(Double(actions.count - 1 - index) * 0.04)),
-                            removal: .scale(scale: 0.4, anchor: .bottomTrailing)
-                                .combined(with: .opacity)
-                                .animation(.spring(response: 0.25, dampingFraction: 0.8).delay(Double(index) * 0.02))
-                        ))
-                    }
-                }
-
-                Button {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.72)) {
-                        fabExpanded.toggle()
-                    }
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [PepTheme.teal, PepTheme.teal.opacity(0.8)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 56, height: 56)
-                            .shadow(color: PepTheme.teal.opacity(0.4), radius: 12, x: 0, y: 4)
-
-                        Image(systemName: "plus")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .rotationEffect(.degrees(fabExpanded ? 45 : 0))
-                    }
-                }
-                .sensoryFeedback(.impact(weight: .medium), trigger: fabExpanded)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
     }
 
     // MARK: - Time Period Picker
