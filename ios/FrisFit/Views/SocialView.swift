@@ -2,64 +2,41 @@ import SwiftUI
 
 struct SocialView: View {
     @State private var viewModel = SocialViewModel()
-    @State private var circlesViewModel = CirclesViewModel()
+    @State private var messagesViewModel = MessagesViewModel()
     @State private var profileViewModel = ProfileViewModel()
-    @State private var selectedSection: SocialSection = .feed
     @State private var commentPost: WorkoutPost?
     @State private var commentFeedPost: FeedPost?
     @State private var isLoading: Bool = true
-    @State private var showCircleDetail: Bool = false
     @State private var showComposer: Bool = false
-
-    private enum SocialSection: String, CaseIterable {
-        case circles = "Circles"
-        case feed = "Feed"
-    }
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
-                VStack(spacing: 0) {
-                    Picker("Section", selection: $selectedSection) {
-                        ForEach(SocialSection.allCases, id: \.self) { section in
-                            Text(section.rawValue).tag(section)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    .padding(.vertical, 12)
-                    .sensoryFeedback(.selection, trigger: selectedSection)
+                feedView
 
-                    switch selectedSection {
-                    case .circles:
-                        CirclesView(viewModel: circlesViewModel)
-                    case .feed:
-                        feedView
-                    }
-                }
-
-                if selectedSection == .feed {
-                    composeButton
-                }
+                composeButton
             }
             .background(PepTheme.background.ignoresSafeArea())
             .navigationTitle("Community")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 12) {
-                        if selectedSection == .circles {
-                            Button {
-                                circlesViewModel.showCreateCircle = true
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .foregroundStyle(PepTheme.teal)
-                            }
-                        }
-                        NavigationLink {
-                            FindFriendsView(viewModel: viewModel)
-                        } label: {
-                            Image(systemName: "person.badge.plus")
+                    NavigationLink {
+                        DirectMessagesView(viewModel: messagesViewModel)
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 18))
                                 .foregroundStyle(PepTheme.teal)
+
+                            if messagesViewModel.totalUnread > 0 {
+                                Text("\(messagesViewModel.totalUnread)")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(minWidth: 16, minHeight: 16)
+                                    .background(Color.red)
+                                    .clipShape(.circle)
+                                    .offset(x: 6, y: -6)
+                            }
                         }
                     }
                 }
@@ -75,20 +52,6 @@ struct SocialView: View {
             .sheet(isPresented: $showComposer) {
                 PostComposerView { post in
                     viewModel.addFeedPost(post)
-                }
-            }
-            .sheet(isPresented: $circlesViewModel.showCreateCircle) {
-                CreateCircleSheet(viewModel: circlesViewModel)
-            }
-            .fullScreenCover(isPresented: $showCircleDetail) {
-                CircleDetailView(viewModel: circlesViewModel)
-            }
-            .onChange(of: circlesViewModel.selectedCircle) { _, newValue in
-                showCircleDetail = newValue != nil
-            }
-            .onChange(of: showCircleDetail) { _, newValue in
-                if !newValue {
-                    circlesViewModel.selectedCircle = nil
                 }
             }
             .navigationDestination(for: SocialUser.self) { user in
