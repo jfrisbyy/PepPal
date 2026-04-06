@@ -74,7 +74,7 @@ struct ContentView: View {
                 workoutIndicatorBar
             }
 
-            if selectedTab != .community {
+            if selectedTab != .community && selectedTab != .home {
                 floatingPepButton
             }
         }
