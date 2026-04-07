@@ -54,92 +54,145 @@ nonisolated struct PhotoFoodOverlay: Identifiable, Sendable {
 final class NutritionAIService {
     static let shared = NutritionAIService()
 
-    private var toolkitBaseURL: String {
-        let url = Config.EXPO_PUBLIC_TOOLKIT_URL
-        return url.isEmpty ? "https://toolkit.rork.com" : url
+    private let openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
+    private let model = "openai/gpt-4o"
+
+    private var apiKey: String {
+        Config.EXPO_PUBLIC_OPENROUTER_API_KEY
     }
 
-    func estimateFromDescription(_ description: String) async throws -> AIEstimationResult {
-        let systemPrompt = """
-        You are a nutrition estimation AI. The user will describe what they ate. \
-        Estimate the calories and macronutrients for each food item. \
-        Be as accurate as possible based on typical serving sizes. \
-        Respond ONLY with a JSON array of objects with these fields: \
-        name (string), amount (string like "1 cup" or "2 slices"), calories (int), protein (double), carbs (double), fat (double). \
-        No markdown, no explanation, just the JSON array.
-        """
+    private let systemPrompt = """
+    You are a precise nutrition estimation AI used in a fitness tracking app. Your job is to analyze food photos or text descriptions and return accurate calorie and macronutrient estimates.
 
+    RULES:
+    - Identify every distinct food item visible in the image or described in the text.
+    - Estimate portion sizes using visible context clues: plate diameter (standard dinner plate = 10-11 inches), utensil sizes, cup/bowl sizes, hand/finger references, and food-to-plate ratios.
+    - For each item, estimate a realistic serving size in common units (e.g., "1 medium banana", "6 oz chicken breast", "1.5 cups rice").
+    - Base all nutritional values on USDA FoodData Central standard entries. Use the most specific match available (e.g., "grilled chicken breast, skinless" not just "chicken").
+    - ALWAYS account for cooking fats, oils, butter, and sauces even if not explicitly visible. Most home-cooked and restaurant foods include added fats. Add 1-2 tbsp of cooking oil/butter for pan-fried or sautéed items unless the description specifies otherwise.
+    - For restaurant or takeout food, assume restaurant-sized portions which are typically 1.5-2x larger than home portions.
+    - When uncertain about portion size, estimate slightly HIGH rather than low. Users tracking calories prefer to overestimate rather than underestimate.
+    - Round calories to the nearest 5. Round protein, carbs, and fat to the nearest 0.5g.
+    - For each food item, also return a relative X/Y position (0.0 to 1.0) representing where that item is located in the image. If working from a text description, use x: 0.5, y: 0.5 for all items.
+
+    RESPOND WITH ONLY a valid JSON array, no markdown, no explanation, no extra text. Each element must have exactly these fields:
+    [
+      {
+        "name": "string — specific food name",
+        "amount": "string — serving size with unit",
+        "calories": number,
+        "protein": number,
+        "carbs": number,
+        "fat": number,
+        "x": number,
+        "y": number
+      }
+    ]
+    """
+
+    func estimateFromDescription(_ description: String) async throws -> AIEstimationResult {
         let messages: [[String: Any]] = [
-            ["role": "user", "content": [
-                ["type": "text", "text": systemPrompt],
-                ["type": "text", "text": "Estimate the nutrition for: \(description)"]
-            ]]
+            ["role": "system", "content": systemPrompt],
+            ["role": "user", "content": "Estimate the nutrition for: \(description)"]
         ]
 
-        let body: [String: Any] = ["messages": messages]
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-
-        var request = URLRequest(url: URL(string: "\(toolkitBaseURL)/agent/chat")!)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = jsonData
-        request.timeoutInterval = 30
-
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try parseAIResponse(data)
+        let responseText = try await callOpenRouter(messages: messages)
+        return try parseDescriptionResponse(responseText)
     }
 
     func estimateFromPhoto(_ imageData: Data) async throws -> (result: AIEstimationResult, overlays: [PhotoFoodOverlay]) {
         let base64 = imageData.base64EncodedString()
+        let dataURL = "data:image/jpeg;base64,\(base64)"
 
-        let systemPrompt = """
-        You are a nutrition estimation AI analyzing a photo of food. \
-        Identify each distinct food item visible in the photo. \
-        For each item, estimate calories and macros based on the visible portion size. \
-        Respond ONLY with a JSON array of objects with these fields: \
-        name (string), amount (string like "1 cup" or "1 piece"), calories (int), protein (double), carbs (double), fat (double), \
-        relativeX (double 0-1 horizontal position in image), relativeY (double 0-1 vertical position in image). \
-        relativeX and relativeY should approximate where each food item is located in the image. \
-        No markdown, no explanation, just the JSON array.
-        """
-
-        let messages: [[String: Any]] = [
-            ["role": "user", "content": [
-                ["type": "text", "text": systemPrompt],
-                ["type": "image", "image": base64]
-            ]]
+        let userContent: [[String: Any]] = [
+            ["type": "image_url", "image_url": ["url": dataURL]],
+            ["type": "text", "text": "Analyze this food photo and estimate the nutrition for every food item visible."]
         ]
 
-        let body: [String: Any] = ["messages": messages]
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        let messages: [[String: Any]] = [
+            ["role": "system", "content": systemPrompt],
+            ["role": "user", "content": userContent]
+        ]
 
-        var request = URLRequest(url: URL(string: "\(toolkitBaseURL)/agent/chat")!)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = jsonData
-        request.timeoutInterval = 45
-
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try parsePhotoResponse(data)
+        let responseText = try await callOpenRouter(messages: messages)
+        return try parsePhotoResponse(responseText)
     }
 
-    private func parseAIResponse(_ data: Data) throws -> AIEstimationResult {
-        let responseText = extractTextFromResponse(data)
-        let cleaned = cleanJSONString(responseText)
+    private func callOpenRouter(messages: [[String: Any]], isRetry: Bool = false) async throws -> String {
+        let body: [String: Any] = [
+            "model": model,
+            "messages": messages,
+            "max_tokens": 1000,
+            "temperature": 0.3
+        ]
 
-        if let jsonData = cleaned.data(using: .utf8) {
-            let decoder = JSONDecoder()
-            if let items = try? decoder.decode([EstimatedFoodItem].self, from: jsonData) {
-                return AIEstimationResult(items: items)
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+
+        var request = URLRequest(url: URL(string: openRouterURL)!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue(Bundle.main.bundleIdentifier ?? "com.peppal.app", forHTTPHeaderField: "HTTP-Referer")
+        request.setValue("PepPal", forHTTPHeaderField: "X-Title")
+        request.httpBody = jsonData
+        request.timeoutInterval = 15
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        if let httpResponse = response as? HTTPURLResponse {
+            let statusCode = httpResponse.statusCode
+            if statusCode == 429 || (statusCode >= 500 && statusCode < 600) {
+                if !isRetry {
+                    try await Task.sleep(for: .seconds(2))
+                    return try await callOpenRouter(messages: messages, isRetry: true)
+                }
             }
+
+            guard statusCode == 200 else {
+                let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
+                print("[NutritionAI] OpenRouter error \(statusCode): \(errorBody)")
+                throw NutritionAIError.apiError(statusCode)
+            }
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let message = choices.first?["message"] as? [String: Any],
+              let content = message["content"] as? String else {
+            print("[NutritionAI] Unexpected response structure: \(String(data: data, encoding: .utf8) ?? "")")
+            throw NutritionAIError.invalidResponse
+        }
+
+        return content
+    }
+
+    private func parseDescriptionResponse(_ text: String) throws -> AIEstimationResult {
+        let cleaned = cleanJSONString(text)
+
+        nonisolated struct DescriptionItem: Codable {
+            let name: String
+            let amount: String
+            let calories: Int
+            let protein: Double
+            let carbs: Double
+            let fat: Double
+            let x: Double?
+            let y: Double?
+        }
+
+        if let jsonData = cleaned.data(using: .utf8),
+           let items = try? JSONDecoder().decode([DescriptionItem].self, from: jsonData) {
+            let foodItems = items.map {
+                EstimatedFoodItem(name: $0.name, amount: $0.amount, calories: $0.calories, protein: $0.protein, carbs: $0.carbs, fat: $0.fat)
+            }
+            return AIEstimationResult(items: foodItems)
         }
 
         return AIEstimationResult(items: generateFallbackItems())
     }
 
-    private func parsePhotoResponse(_ data: Data) throws -> (result: AIEstimationResult, overlays: [PhotoFoodOverlay]) {
-        let responseText = extractTextFromResponse(data)
-        let cleaned = cleanJSONString(responseText)
+    private func parsePhotoResponse(_ text: String) throws -> (result: AIEstimationResult, overlays: [PhotoFoodOverlay]) {
+        let cleaned = cleanJSONString(text)
 
         nonisolated struct PhotoItem: Codable {
             let name: String
@@ -148,14 +201,14 @@ final class NutritionAIService {
             let protein: Double
             let carbs: Double
             let fat: Double
-            let relativeX: Double?
-            let relativeY: Double?
+            let x: Double?
+            let y: Double?
         }
 
         if let jsonData = cleaned.data(using: .utf8),
            let photoItems = try? JSONDecoder().decode([PhotoItem].self, from: jsonData) {
-            let items = photoItems.map { pi in
-                EstimatedFoodItem(name: pi.name, amount: pi.amount, calories: pi.calories, protein: pi.protein, carbs: pi.carbs, fat: pi.fat)
+            let items = photoItems.map {
+                EstimatedFoodItem(name: $0.name, amount: $0.amount, calories: $0.calories, protein: $0.protein, carbs: $0.carbs, fat: $0.fat)
             }
             let overlays = photoItems.enumerated().map { index, pi in
                 let count = Double(photoItems.count)
@@ -163,8 +216,8 @@ final class NutritionAIService {
                 let defaultY = 0.3 + (0.4 * Double(index) / max(count - 1, 1))
                 return PhotoFoodOverlay(
                     item: items[index],
-                    relativeX: pi.relativeX ?? defaultX,
-                    relativeY: pi.relativeY ?? defaultY
+                    relativeX: pi.x ?? defaultX,
+                    relativeY: pi.y ?? defaultY
                 )
             }
             return (AIEstimationResult(items: items), overlays)
@@ -176,20 +229,6 @@ final class NutritionAIService {
             PhotoFoodOverlay(item: item, relativeX: 0.5, relativeY: 0.3 + Double(index) * 0.2)
         }
         return (result, overlays)
-    }
-
-    private func extractTextFromResponse(_ data: Data) -> String {
-        if let str = String(data: data, encoding: .utf8) {
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                if let text = json["text"] as? String { return text }
-                if let result = json["result"] as? String { return result }
-                if let choices = json["choices"] as? [[String: Any]],
-                   let message = choices.first?["message"] as? [String: Any],
-                   let content = message["content"] as? String { return content }
-            }
-            return str
-        }
-        return "[]"
     }
 
     private func cleanJSONString(_ text: String) -> String {
@@ -214,4 +253,9 @@ final class NutritionAIService {
     private func generateFallbackItems() -> [EstimatedFoodItem] {
         [EstimatedFoodItem(name: "Estimated Meal", amount: "1 serving", calories: 450, protein: 25, carbs: 45, fat: 15)]
     }
+}
+
+nonisolated enum NutritionAIError: Error, Sendable {
+    case apiError(Int)
+    case invalidResponse
 }
