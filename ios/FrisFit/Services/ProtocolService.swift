@@ -149,7 +149,7 @@ final class ProtocolService {
         guard let session = try? await supabase.auth.session else {
             throw ProtocolServiceError.notAuthenticated
         }
-        return session.user.id.uuidString
+        return session.user.id.uuidString.lowercased()
     }
 
     // MARK: - Protocols CRUD

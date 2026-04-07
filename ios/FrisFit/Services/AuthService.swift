@@ -87,6 +87,6 @@ final class AuthService {
         guard let session else {
             throw NSError(domain: "AuthService", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
         }
-        return session.user.id.uuidString
+        return session.user.id.uuidString.lowercased()
     }
 }
