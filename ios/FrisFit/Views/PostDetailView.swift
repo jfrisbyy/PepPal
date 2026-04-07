@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct PostDetailView: View {
     let post: FeedPost
@@ -10,6 +11,7 @@ struct PostDetailView: View {
     @State private var highFiveBounce: Int = 0
     @State private var selectedPhotoURL: String?
     @FocusState private var isCommentFocused: Bool
+    private var audioPlayer: AudioPlayerService { AudioPlayerService.shared }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,6 +57,11 @@ struct PostDetailView: View {
 
             if !post.photoMedia.isEmpty {
                 photoSection
+            }
+
+            if let voice = post.voiceMedia {
+                voiceMessageSection(voice)
+                    .padding(.horizontal)
             }
 
             if !post.tags.isEmpty {
@@ -219,6 +226,68 @@ struct PostDetailView: View {
             .onTapGesture {
                 selectedPhotoURL = photo.imageURL
             }
+    }
+
+    private func voiceMessageSection(_ voice: FeedMediaItem) -> some View {
+        let voiceURL = voice.imageURL ?? ""
+        let isPlaying = audioPlayer.isPlayingURL(voiceURL)
+        let progress = audioPlayer.progressForURL(voiceURL)
+        let duration = voice.voiceDuration ?? 0
+
+        return HStack(spacing: 10) {
+            Button {
+                guard !voiceURL.isEmpty else { return }
+                audioPlayer.play(urlString: voiceURL, duration: duration)
+            } label: {
+                Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                    .font(.system(size: 36))
+                    .foregroundStyle(PepTheme.teal)
+            }
+
+            VStack(spacing: 6) {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        detailWaveformBars(width: geo.size.width, height: geo.size.height)
+                        Rectangle()
+                            .fill(PepTheme.teal)
+                            .frame(width: geo.size.width * progress)
+                            .mask { detailWaveformBars(width: geo.size.width, height: geo.size.height) }
+                    }
+                }
+                .frame(height: 32)
+
+                HStack {
+                    Text(formatVoiceDuration(progress * duration))
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Spacer()
+                    Text(formatVoiceDuration(duration))
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+        }
+        .padding(14)
+        .background(PepTheme.elevated)
+        .clipShape(.rect(cornerRadius: 14))
+    }
+
+    private func detailWaveformBars(width: CGFloat, height: CGFloat) -> some View {
+        HStack(spacing: 2) {
+            ForEach(0..<Int(width / 4.5), id: \.self) { i in
+                let seed = Double(i * 7 + 3)
+                let h = (sin(seed) * 0.4 + 0.6) * height
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(PepTheme.textSecondary.opacity(0.35))
+                    .frame(width: 2.5, height: max(4, h))
+            }
+        }
+    }
+
+    private func formatVoiceDuration(_ duration: TimeInterval) -> String {
+        let minutes = Int(duration) / 60
+        let seconds = Int(duration) % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 
     private var tagRow: some View {

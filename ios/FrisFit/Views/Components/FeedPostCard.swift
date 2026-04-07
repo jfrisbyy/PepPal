@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct FeedPostCard: View {
     let post: FeedPost
@@ -6,8 +7,7 @@ struct FeedPostCard: View {
     let onComment: () -> Void
 
     @State private var highFiveBounce: Int = 0
-    @State private var isPlayingVoice: Bool = false
-    @State private var voiceProgress: Double = 0
+    private var audioPlayer: AudioPlayerService { AudioPlayerService.shared }
 
     var body: some View {
         GlassCard {
@@ -116,13 +116,17 @@ struct FeedPostCard: View {
     }
 
     private func voiceMessageSection(_ voice: FeedMediaItem) -> some View {
-        HStack(spacing: 10) {
+        let voiceURL = voice.imageURL ?? ""
+        let isPlaying = audioPlayer.isPlayingURL(voiceURL)
+        let progress = audioPlayer.progressForURL(voiceURL)
+        let duration = voice.voiceDuration ?? 0
+
+        return HStack(spacing: 10) {
             Button {
-                withAnimation(.spring(response: 0.3)) {
-                    isPlayingVoice.toggle()
-                }
+                guard !voiceURL.isEmpty else { return }
+                audioPlayer.play(urlString: voiceURL, duration: duration)
             } label: {
-                Image(systemName: isPlayingVoice ? "pause.circle.fill" : "play.circle.fill")
+                Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                     .font(.system(size: 32))
                     .foregroundStyle(PepTheme.teal)
             }
@@ -133,18 +137,18 @@ struct FeedPostCard: View {
                         waveformBars(width: geo.size.width, height: geo.size.height)
                         Rectangle()
                             .fill(PepTheme.teal)
-                            .frame(width: geo.size.width * voiceProgress)
+                            .frame(width: geo.size.width * progress)
                             .mask { waveformBars(width: geo.size.width, height: geo.size.height) }
                     }
                 }
                 .frame(height: 28)
 
                 HStack {
-                    Text(formatVoiceDuration(voiceProgress * (voice.voiceDuration ?? 0)))
+                    Text(formatVoiceDuration(progress * duration))
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
-                    Text(formatVoiceDuration(voice.voiceDuration ?? 0))
+                    Text(formatVoiceDuration(duration))
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(PepTheme.textSecondary)
                 }
