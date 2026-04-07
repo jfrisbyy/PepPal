@@ -5733,6 +5733,124 @@ enum CompoundDatabase {
                 "FDA approval data for Femara (Letrozole) in breast cancer treatment.",
             ]
         ),
+        CompoundProfile(
+            name: "Melanotan I",
+            peptideType: "Melanocortin Receptor Agonist",
+            categories: [.tanning],
+            overview: "Melanotan I (MT-1) is a synthetic version of alpha-melanocyte-stimulating hormone (α-MSH). Its primary job is to tell your skin cells (melanocytes) to produce melanin, the dark pigment that causes your skin to tan. It was originally developed by researchers at the University of Arizona in the 1980s as a way to give people a 'sunless tan' to protect them from skin cancer. A modified version is FDA-approved under the brand name Scenesse (Afamelanotide) to treat rare sunlight-sensitivity disorders.",
+            protocols: [
+                CompoundProtocol(goalName: "Loading Phase", description: "Daily injection to build a base tan", typicalDose: "1 mg (1000 mcg)", frequency: "1x daily", duration: "3-4 weeks"),
+                CompoundProtocol(goalName: "Maintenance Phase", description: "Infrequent dosing to maintain the tan", typicalDose: "1 mg (1000 mcg)", frequency: "1-2x weekly", duration: "Ongoing during summer months"),
+            ],
+            sideEffects: ["Nausea", "Facial flushing", "Darkening of moles/freckles", "Darkening of lips"],
+            structuredSideEffects: [
+                CompoundSideEffect(name: "Nausea", severity: .mild, frequency: 35),
+                CompoundSideEffect(name: "Facial Flushing", severity: .mild, frequency: 30),
+                CompoundSideEffect(name: "Darkening of Moles/Freckles", severity: .mild, frequency: 60),
+                CompoundSideEffect(name: "Darkening of Lips/Gums", severity: .mild, frequency: 20),
+            ],
+            communityUsers: 987,
+            averageRating: 4.2,
+            stackPartners: ["PT-141"],
+            iconName: "sun.max.fill",
+            keyFacts: CompoundKeyFacts(molecularWeight: "~1,646 Da", administrationRoute: "Subcutaneous", halfLife: "~1-2 hours", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1 mg (1000 mcg)"),
+            primaryUseCases: ["Skin tanning with minimal UV exposure", "UV damage protection", "Base tan development for fair-skinned individuals", "Sunburn prevention"],
+            tieredDosing: [
+                TieredDose(tier: "Loading Phase", dose: "1 mg (1000 mcg)", frequency: "1x daily", timingNotes: "Evening (to sleep through nausea)"),
+                TieredDose(tier: "Maintenance Phase", dose: "1 mg (1000 mcg)", frequency: "1-2x weekly", timingNotes: "Anytime"),
+            ],
+            cycleLength: "Loading: 3-4 weeks daily, then maintenance 1-2x/week",
+            loadingProtocol: "Yes",
+            onOffCycling: "Use during summer months. Tan fades over 1-2 months after stopping.",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "10 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 10 mg vial. 1 mg dose = 0.20 mL (20 units on an insulin syringe).", storageLyophilized: "Freezer (-20°C) for 3-5 years, or fridge (2-8°C) for 1-2 years", storageReconstituted: "Fridge (2-8°C) for 30-45 days", handlingNotes: "Swirl gently. Do not shake. Protect from light."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Dermatological Exam", baseline: "Recommended", onCycle: "Annually", reason: "Full-body mole check before starting and yearly during use to monitor for melanoma risk"),
+            ],
+            nutritionalSupport: [
+                "Vitamin D3: Because you will be spending less time in the sun to get a tan, you may need to supplement Vitamin D to maintain healthy levels. 2000-5000 IU daily.",
+                "Antioxidants (Vitamin C/E): To protect the skin from the oxidative stress of the UV exposure required to activate the tan.",
+            ],
+            beginnerTips: [
+                "MT-1 requires some UV exposure to work effectively. It is not a 100% 'sunless' tanner — 10-15 minutes of natural sunlight a few times a week is enough.",
+                "Inject before bed to sleep through the mild nausea that is common in the first 3-4 days.",
+                "Existing freckles and moles will darken significantly before the rest of your skin catches up. This is normal.",
+                "MT-1 is much milder than MT-2 — it does not cause libido spikes, spontaneous erections, or severe nausea.",
+            ],
+            evidence: EvidenceSummary(level: "Very Strong", keyStudies: [
+                "Scenesse (Afamelanotide) Phase III clinical trials for Erythropoietic Protoporphyria (EPP) — FDA approved 2019.",
+                "Long-term Scenesse data (over a decade) shows no statistically significant increase in melanoma or non-melanoma skin cancers.",
+            ], researchGaps: "Limited formal trial data for cosmetic tanning use in healthy adults outside the EPP indication."),
+            stackDetails: [
+                StackDetail(partner: "PT-141 (Bremelanotide)", purpose: "Tanning + Libido", notes: "PT-141 is a derivative of Melanotan II that only affects libido. Stacking MT-1 (for the tan) with PT-141 (for the libido) allows the user to control both effects separately, rather than taking MT-2 and getting both simultaneously."),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea (first 3-4 days)", "Facial flushing (30 min post-injection)", "Darkening of existing moles and freckles"], uncommon: ["Darkening of lips and gums", "Temporary hair darkening (especially beard)"], rare: ["Fatigue", "Dizziness"], contraindications: ["Personal or family history of melanoma", "Numerous atypical or dysplastic nevi (moles)", "Pregnant or breastfeeding women"]),
+            isWADAProhibited: false,
+            wadaCategory: "Not explicitly banned, but may fall under unapproved substances",
+            subtitle: "The Original Tanning Peptide",
+            whatIsIt: "Melanotan I (MT-1) is a synthetic version of a hormone naturally produced in your body called alpha-melanocyte-stimulating hormone (α-MSH). Its primary job is to tell your skin cells (melanocytes) to produce melanin, the dark pigment that causes your skin to tan. It was originally developed by researchers at the University of Arizona in the 1980s as a way to give people a 'sunless tan' to protect them from skin cancer. Today, a modified version of it is FDA-approved under the brand name Scenesse (Afamelanotide) to treat rare sunlight-sensitivity disorders.",
+            howItWorks: "When you go out in the sun, the UV rays damage your skin. Your body responds by releasing a hormone that tells your skin to get darker (tan) to act as a natural sunscreen. Melanotan I is simply a lab-made version of that hormone. By injecting it, you trick your body into thinking it needs to produce a tan, even with very little actual sun exposure.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Mild facial flushing or nausea immediately after injection. Existing freckles and moles will become significantly darker."),
+                TimelineEntry(timeframe: "Week 3-4", description: "With mild UV exposure, a deep, natural-looking tan will begin to develop across the entire body."),
+                TimelineEntry(timeframe: "Week 6+", description: "The tan reaches its peak. Injections can be reduced to a 'maintenance' dose of 1-2 times per week."),
+            ],
+            watchOut: "Melanotan I is generally considered much safer and milder than its famous cousin, Melanotan II. However, it will permanently darken existing freckles and moles. If you have a history of melanoma or atypical moles, you should not use this peptide, as it stimulates the exact cells (melanocytes) that turn into skin cancer.",
+            beforeYouStart: [
+                "Check your moles: Take photos of your existing moles. If any change shape or border (not just color), see a dermatologist immediately.",
+                "Purchase supplies: Insulin syringes (31g, 5/16\", 1mL), Bacteriostatic Water, Alcohol Swabs.",
+                "Understand the UV requirement: MT-1 requires some UV exposure to work effectively. It is not a 100% 'sunless' tanner.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Loading Phase", dose: "1 mg (1000 mcg)", frequency: "Once daily", timing: "Evening (to sleep through any nausea)"),
+                DosingPhase(phase: "Maintenance Phase", dose: "1 mg (1000 mcg)", frequency: "1-2 times per week", timing: "Anytime"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen or thigh. Rotate injection sites daily.",
+            discontinuationProtocol: "Once you stop injecting, the tan will slowly fade over 1 to 2 months as your skin naturally sheds and replaces itself.",
+            communityConsensus: [
+                "MT-1 vs. MT-2: MT-1 is for people who only want a tan and want to avoid side effects. MT-2 is much stronger, requires less UV light, but causes severe nausea, spontaneous erections, and appetite suppression. MT-1 is the 'clean' tanning peptide.",
+                "The Freckle Effect: Users universally report that their freckles get incredibly dark before the rest of their skin catches up. This is normal but can look strange during the first two weeks.",
+                "The Sunburn Protection: Fair-skinned (Type 1 and 2) users report that once the MT-1 tan sets in, they are virtually immune to sunburns, even during prolonged sun exposure.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Tanning Beds (Excessive UV)", riskLevel: "Moderate", details: "MT-1 makes your skin hyper-responsive to UV light. Using a tanning bed for your normal duration while on MT-1 can result in an unnaturally dark, almost greyish tan."),
+            ],
+            sideEffectManagement: [
+                "Nausea: The most common side effect. Inject right before bed so you sleep through it. Usually subsides after the first 3-4 days of use.",
+                "Facial Flushing: A warm, red flush in the face immediately after injection. Harmless, passes within 30 minutes.",
+                "Darkening of Moles/Lips: MT-1 stimulates melanin everywhere, including lips and gums. If your lips become too dark, lower the dose.",
+            ],
+            womenConsiderations: [
+                "Safe for women. Unlike MT-2, MT-1 does not typically cause the intense libido spikes or sexual arousal side effects.",
+            ],
+            trainingGuide: [
+                "MT-1 has no direct effect on muscle growth, fat loss, or athletic performance.",
+                "Track progress by taking photos in the same lighting once a week to monitor the progression of the tan.",
+            ],
+            legalStatus: [
+                "US: The injectable peptide is an unapproved research chemical. The implant form (Scenesse) is FDA-approved for Erythropoietic Protoporphyria (EPP).",
+                "WADA: Not explicitly banned, but often falls under the catch-all 'unapproved substances' category.",
+            ],
+            costInfo: "Research Chemical Vendors: ~$30-$50 per 10mg vial.",
+            comparisons: [
+                CompoundComparison(feature: "Primary Effect", values: ["Melanotan I": "Tanning", "Melanotan II": "Tanning + Libido + Fat Loss", "PT-141": "Libido / Erectile Dysfunction"]),
+                CompoundComparison(feature: "Receptor Affinity", values: ["Melanotan I": "MC1R (Skin)", "Melanotan II": "MC1R, MC3R, MC4R", "PT-141": "MC3R, MC4R (Brain)"]),
+                CompoundComparison(feature: "Nausea", values: ["Melanotan I": "Mild", "Melanotan II": "Severe", "PT-141": "Moderate"]),
+                CompoundComparison(feature: "Spontaneous Erections", values: ["Melanotan I": "No", "Melanotan II": "Yes", "PT-141": "Yes"]),
+            ],
+            deepDive: "Melanotan I (Afamelanotide) is a synthetic, linear, tridecapeptide analog of naturally occurring alpha-melanocyte-stimulating hormone (α-MSH).\n\nThe Sequence: Ac-Ser-Tyr-Ser-Nle-Glu-His-D-Phe-Arg-Trp-Gly-Lys-Pro-Val-NH2.\n\nThe Modification: The key structural differences from native α-MSH are the substitution of norleucine (Nle) for methionine at position 4, and D-phenylalanine (D-Phe) for L-phenylalanine at position 7. These modifications make MT-1 highly resistant to enzymatic degradation, extending its half-life from minutes (native α-MSH) to roughly 1-2 hours.\n\nMechanism Deep Dive:\n1. The Melanocortin Receptors: There are five known melanocortin receptors (MC1R through MC5R). MT-1 is a highly selective, full agonist of the MC1R receptor, which is located primarily on the surface of melanocytes in the skin and hair follicles.\n\n2. Eumelanin Production: When MT-1 binds to MC1R, it activates adenylate cyclase, increasing intracellular cAMP. This triggers the transcription of microphthalmia-associated transcription factor (MITF), which upregulates the enzymes tyrosinase, TRP-1, and TRP-2.\n\n3. The Shift: This enzymatic cascade forces the melanocyte to switch from producing pheomelanin (red/yellow pigment) to eumelanin (brown/black pigment). The eumelanin is then packaged into melanosomes and transported to the surrounding keratinocytes, creating a dark, photoprotective tan.\n\nClinical Trial Summary:\nClinuvel Pharmaceuticals developed MT-1 into a slow-release subcutaneous implant (Scenesse). In Phase III clinical trials, Scenesse significantly increased the amount of time EPP patients could spend in direct sunlight without pain. The FDA approved Scenesse in 2019.\n\nUV Synergy: MT-1 is not a true 'sunless' tanner. While it upregulates the machinery to produce melanin, the actual production and distribution of melanin still require a mild UV trigger. Without any UV exposure, the tan will be very subtle. With mild UV exposure, the tan will be profound.\n\nLong-Term Use Data: Long-term data from the Scenesse clinical trials (spanning over a decade) shows an excellent safety profile. There has been no statistically significant increase in the incidence of melanoma or non-melanoma skin cancers in patients using the drug.",
+            faq: [
+                FAQItem(question: "Why do people use MT-2 if MT-1 is safer?", answer: "MT-2 is much cheaper to manufacture, requires far less UV light to get dark, and has the added 'benefits' of appetite suppression and extreme libido enhancement. MT-1 is purely for tanning."),
+                FAQItem(question: "Will it change my hair or eye color?", answer: "It can temporarily darken your hair (especially beard hair in men) if used for long periods, as MC1R receptors are present in hair follicles. It will not change your eye color."),
+                FAQItem(question: "Do I have to go in the sun?", answer: "Yes, but very little. 10-15 minutes of natural sunlight a few times a week is enough to trigger the massive melanin production. You do not need to burn or lay out for hours."),
+                FAQItem(question: "Why did my freckles get so dark?", answer: "Freckles are concentrated clusters of melanocytes. Because they have more receptors, they respond to the peptide faster and stronger than the rest of your skin. Once the rest of your skin tans, the freckles will blend in."),
+                FAQItem(question: "Is it safe to use if I'm very pale (Skin Type 1)?", answer: "Yes, this is exactly who the drug was originally designed for. It allows people who normally burn and peel to develop a protective base tan."),
+            ],
+            references: [
+                "Clinuvel Pharmaceuticals. Scenesse (Afamelanotide) FDA Approval Data and Phase III Clinical Trials for Erythropoietic Protoporphyria.",
+                "Hadley, M. E., & Dorr, R. T. (2006). Melanocortin peptide therapeutics: historical milestones, clinical studies and commercialization. Peptides.",
+                "Langan, E. A., et al. (2010). The potential role of melanocortins in body weight regulation. Peptides.",
+            ]
+        ),
     ]
 
     static let vendors: [Vendor] = [
