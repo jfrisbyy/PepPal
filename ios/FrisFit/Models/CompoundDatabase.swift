@@ -55,7 +55,74 @@ enum CompoundDatabase {
                 StackDetail(partner: "Ipamorelin", purpose: "Synergistic GH pulse", notes: "Combines GHRH and GHRP for amplified effect"),
                 StackDetail(partner: "GHRP-2", purpose: "Enhanced GH release", notes: "Stronger pulse but higher appetite stimulation"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction", "Flushing", "Mild headache"], uncommon: ["Water retention", "Lethargy", "Numbness/tingling in extremities"], rare: ["Insulin resistance (with prolonged high doses)"], contraindications: ["Active malignancy", "Benign intracranial hypertension"])
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction", "Flushing", "Mild headache"], uncommon: ["Water retention", "Lethargy", "Numbness/tingling in extremities"], rare: ["Insulin resistance (with prolonged high doses)"], contraindications: ["Active malignancy", "Benign intracranial hypertension"]),
+            subtitle: "The Original Growth Hormone Releaser",
+            whatIsIt: "Sermorelin is a synthetic version of a naturally occurring substance in your brain called Growth Hormone-Releasing Hormone (GHRH). It tells your pituitary gland to produce and release more of your own natural growth hormone, making it a popular choice for anti-aging, improved sleep, and mild body composition improvements.",
+            howItWorks: "Imagine your pituitary gland is a factory that makes growth hormone. As you get older, the factory manager (your brain) stops sending as many orders to make it. Sermorelin acts like a new manager, sending a direct message to the factory saying, \"Hey, we need more growth hormone right now!\" Because it only asks the factory to make what it naturally can, it's much safer than just injecting synthetic growth hormone directly.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Deeper, more restful sleep; vivid dreams; slight increase in daytime energy."),
+                TimelineEntry(timeframe: "Week 4-8", description: "Improved skin elasticity, faster recovery from workouts, mild fat loss begins."),
+                TimelineEntry(timeframe: "Week 12+", description: "Noticeable improvements in body composition, joint health, and overall vitality."),
+            ],
+            watchOut: "Common side effects include a brief flushing or warm sensation in the face immediately after injection, mild injection site irritation, and occasional headaches. Because it has a very short half-life, it must be injected daily. Do not use if you have an active cancer diagnosis, as growth hormone can stimulate cellular proliferation.",
+            beforeYouStart: [
+                "Get baseline bloodwork (IGF-1, Fasting Glucose, Thyroid Panel).",
+                "Purchase supplies: Insulin syringes (31g, 5/16\", 1mL), Bacteriostatic Water, Alcohol Swabs.",
+                "Ensure you can commit to a daily injection schedule, ideally right before bed.",
+                "Do not eat carbohydrates or fats for at least 2 hours before your injection.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Beginner", dose: "200 mcg", frequency: "Once daily", timing: "Right before bed"),
+                DosingPhase(phase: "Intermediate", dose: "300 mcg", frequency: "Once daily", timing: "Right before bed"),
+                DosingPhase(phase: "Advanced", dose: "500 mcg", frequency: "Once daily", timing: "Right before bed"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen (at least 2 inches away from the belly button). Rotate injection sites daily to prevent irritation.",
+            discontinuationProtocol: "Can be stopped abruptly without a taper, though some users prefer to taper down over 2 weeks.",
+            communityConsensus: [
+                "The Fasting Rule: The community stresses that injecting Sermorelin with elevated insulin (from eating carbs) completely blunts the GH release. You must be fasted for at least 2 hours.",
+                "Sleep Quality: The most universally reported benefit is a massive improvement in deep sleep quality starting within the first few days.",
+                "The \"Weakest\" GHS: Advanced users often note that Sermorelin is the mildest of the growth hormone secretagogues. It's great for anti-aging but won't produce massive muscle gains.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Carbohydrates/Sugar", riskLevel: "High", details: "Elevated insulin completely blocks the action of Sermorelin. Must be used fasted."),
+                DrugInteraction(substance: "Corticosteroids", riskLevel: "Moderate", details: "Chronic use can blunt the GH response to Sermorelin."),
+            ],
+            sideEffectManagement: [
+                "Facial Flushing: This is a normal, harmless reaction that occurs within 5 minutes of injection and passes quickly. No action needed.",
+                "Injection Site Welts: Ensure the alcohol swab has dried completely before injecting. If welts persist, you may be reacting to the mannitol filler or the bacteriostatic water.",
+            ],
+            womenConsiderations: [
+                "Sermorelin is generally very well tolerated by women and is a staple in female anti-aging clinics. It does not cause virilization (masculinization).",
+            ],
+            trainingGuide: [
+                "Recovery: The increased GH pulse during sleep significantly accelerates recovery from heavy resistance training.",
+                "Fasted Cardio: Some users inject a small dose of Sermorelin first thing in the morning before fasted cardio to maximize lipolysis (fat burning), though the pre-bed dose is more common.",
+                "Do not expect rapid changes on the scale. Sermorelin's body composition effects take 3-6 months to become visually apparent. Track progress via sleep quality, skin elasticity, and recovery times first.",
+            ],
+            legalStatus: [
+                "US: Available via prescription from compounding pharmacies or as a research chemical.",
+                "WADA: Banned in competitive sports under section S2 (Peptide Hormones, Growth Factors).",
+            ],
+            costInfo: "Research Chemical Vendors: ~$30-$50 per 5mg vial. Compounding Pharmacies: ~$150-$300 per month.",
+            comparisons: [
+                CompoundComparison(feature: "Mechanism", values: ["Sermorelin": "GHRH Analog", "CJC-1295 (No DAC)": "GHRH Analog", "MK-677": "Ghrelin Receptor Agonist"]),
+                CompoundComparison(feature: "Half-Life", values: ["Sermorelin": "10-20 minutes", "CJC-1295 (No DAC)": "~30 minutes", "MK-677": "24 hours"]),
+                CompoundComparison(feature: "Potency", values: ["Sermorelin": "Mild", "CJC-1295 (No DAC)": "Moderate", "MK-677": "Strong"]),
+                CompoundComparison(feature: "Hunger Side Effect", values: ["Sermorelin": "None", "CJC-1295 (No DAC)": "None", "MK-677": "Extreme hunger"]),
+            ],
+            deepDive: "Sermorelin is a synthetic 29-amino acid peptide (GRF 1-29 NH2) that corresponds to the amino-terminal segment of the naturally occurring human growth hormone-releasing hormone (GHRH), which consists of 44 amino acids. The 1-29 sequence contains the full biological activity of the native hormone.\n\nReceptor Binding: It binds specifically to the GHRH receptor on the somatotroph cells in the anterior pituitary gland.\n\nPharmacokinetics: Following subcutaneous injection, it is rapidly absorbed but also rapidly degraded by dipeptidyl peptidase-4 (DPP-4) and other enzymes in the blood. The biological half-life is extremely short, approximately 10 to 20 minutes. This rapid clearance mimics the natural, physiological pulsatile release of GHRH.\n\nMechanism Deep Dive: Binding of Sermorelin to the GHRH receptor activates the adenylyl cyclase/cAMP/protein kinase A (PKA) pathway. This intracellular signaling cascade leads to:\n\n1. Immediate release of pre-formed growth hormone stored in secretory vesicles.\n2. Increased transcription of the GH gene to synthesize new growth hormone.\n\nUnlike synthetic exogenous GH, Sermorelin is subject to the body's natural negative feedback loop mediated by somatostatin. When GH and IGF-1 levels rise too high, somatostatin is released, which blocks the pituitary from releasing more GH, preventing the unnatural, sustained high levels of GH that cause acromegaly and organomegaly.\n\nSynergy with GHRPs: GHRH (Sermorelin) and GHRPs (like Ipamorelin) work via completely different receptors and intracellular pathways (cAMP vs. PKC/calcium). When administered together, they produce a synergistic release of GH that is exponentially larger than the sum of their individual effects.\n\nAntagonism by Somatostatin: Elevated free fatty acids, elevated insulin (from eating carbs), and high cortisol all increase somatostatin release, which will completely block Sermorelin's ability to trigger a GH pulse.\n\nLong-Term Use Data: Because Sermorelin preserves the natural negative feedback loop, it is considered extremely safe for long-term use (years). It does not cause pituitary suppression or \"shutdown\" like exogenous GH does.",
+            faq: [
+                FAQItem(question: "Why do I have to inject it on an empty stomach?", answer: "When you eat carbohydrates or fats, your body releases insulin and free fatty acids. These trigger the release of somatostatin, a hormone that acts like a 'stop' signal to your pituitary gland. If somatostatin is active, Sermorelin cannot tell your pituitary to release growth hormone. You must wait at least 2 hours after eating."),
+                FAQItem(question: "Can I just take HGH instead?", answer: "You can, but exogenous HGH shuts down your body's natural production, is incredibly expensive, and carries a much higher risk of side effects like insulin resistance, water retention, and organ growth. Sermorelin is much safer because it only stimulates your natural production."),
+                FAQItem(question: "Will Sermorelin make me fail a drug test?", answer: "Yes. It is explicitly banned by WADA and most major sporting organizations under the category of peptide hormones and growth factors."),
+                FAQItem(question: "Why do I feel a flush in my face right after injecting?", answer: "A mild, warm facial flush is a very common and harmless side effect of GHRH analogs. It usually dissipates within 5 to 10 minutes and is actually a good sign that the peptide is active and binding to receptors."),
+                FAQItem(question: "How long does it take to see results?", answer: "Sleep improvements usually happen within the first week. Skin and recovery benefits take 4-8 weeks. Body composition changes (fat loss, mild muscle tone) take 3-6 months of consistent daily use."),
+            ],
+            references: [
+                "Walker, R. F. (2006). Sermorelin: a review of its use in the diagnosis and treatment of children with idiopathic growth hormone deficiency. Treatments in Endocrinology.",
+                "Prakash, A., & Goa, K. L. (1999). Sermorelin: a review of its use in the diagnosis and treatment of children with idiopathic growth hormone deficiency. BioDrugs.",
+                "Merriam, G. R., et al. (2001). Growth hormone-releasing hormone and growth hormone secretagogues in normal aging. Endocrine.",
+            ]
         ),
         CompoundProfile(
             name: "CJC-1295",
@@ -113,7 +180,59 @@ enum CompoundDatabase {
                 StackDetail(partner: "GHRP-6", purpose: "Mass gain / Appetite", notes: "Significant hunger increase"),
                 StackDetail(partner: "MK-677", purpose: "Continuous GH elevation", notes: "Extreme caution required for insulin resistance"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Head rush/flushing post-injection", "Injection site reaction", "Water retention"], uncommon: ["Vivid dreams", "Lethargy", "Carpal tunnel symptoms (DAC)"], rare: ["Decreased insulin sensitivity", "Pituitary exhaustion (DAC)"], contraindications: ["Active cancer", "Pre-diabetes/diabetes (DAC version)"])
+            detailedSideEffects: DetailedSideEffects(common: ["Head rush/flushing post-injection", "Injection site reaction", "Water retention"], uncommon: ["Vivid dreams", "Lethargy", "Carpal tunnel symptoms (DAC)"], rare: ["Decreased insulin sensitivity", "Pituitary exhaustion (DAC)"], contraindications: ["Active cancer", "Pre-diabetes/diabetes (DAC version)"]),
+            subtitle: "The Versatile GHRH Analog (With & Without DAC)",
+            whatIsIt: "CJC-1295 is a modified version of the shortest fully functional fragment of Growth Hormone-Releasing Hormone (GHRH). It comes in two forms: without DAC (Drug Affinity Complex), which produces natural pulsatile GH release similar to Sermorelin but with a longer half-life, and with DAC, which provides sustained, continuous GH elevation over days. The no-DAC version (also called Mod GRF 1-29) is far more popular and almost always paired with Ipamorelin.",
+            howItWorks: "Think of CJC-1295 as Sermorelin's upgraded cousin. Like Sermorelin, it sends a message to your pituitary gland to release growth hormone. But CJC-1295 has been chemically modified to resist the enzymes that break Sermorelin down so quickly. The no-DAC version lasts about 30 minutes (vs 10-20 for Sermorelin), giving a stronger GH pulse. The DAC version attaches to albumin in your blood, keeping it active for 8+ days — but this constant stimulation is controversial because it doesn't mimic natural pulsatile GH release.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Improved sleep quality, vivid dreams. Brief head rush after injection is normal."),
+                TimelineEntry(timeframe: "Week 4-8", description: "Improved recovery, mild fat loss, better skin quality."),
+                TimelineEntry(timeframe: "Week 12+", description: "Noticeable body composition changes, enhanced muscle tone."),
+            ],
+            watchOut: "The DAC version causes significantly more water retention and carries a higher risk of insulin resistance due to continuous GH elevation. The no-DAC version is much cleaner. Head rush immediately after injection is normal and harmless. Do not eat carbohydrates or fats within 2 hours of injection.",
+            beforeYouStart: [
+                "Get baseline bloodwork (IGF-1, Fasting Glucose, HbA1c).",
+                "Purchase supplies: Insulin syringes (31g, 5/16\", 1mL), Bacteriostatic Water, Alcohol Swabs.",
+                "Decide between No DAC (pulsatile, daily) vs DAC (sustained, weekly) based on your goals.",
+                "No carbs or fats for 2 hours before injection.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Beginner (No DAC)", dose: "100 mcg", frequency: "Once daily", timing: "Pre-bed, fasted"),
+                DosingPhase(phase: "Intermediate (No DAC)", dose: "100 mcg", frequency: "Twice daily", timing: "Morning fasted + pre-bed fasted"),
+                DosingPhase(phase: "DAC Version", dose: "1-2 mg", frequency: "Once weekly", timing: "Any time"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. Rotate injection sites daily.",
+            discontinuationProtocol: "Can be stopped without taper. No rebound or withdrawal effects.",
+            communityConsensus: [
+                "The no-DAC version combined with Ipamorelin is considered the gold standard 'clean' GH stack.",
+                "The DAC version's continuous GH bleed is controversial — many experts prefer the natural pulsatile release of the no-DAC version.",
+                "Water retention is much more common and severe with the DAC version.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Carbohydrates/Sugar", riskLevel: "High", details: "Elevated insulin blocks GH release. Must be fasted."),
+                DrugInteraction(substance: "Corticosteroids", riskLevel: "Moderate", details: "Can blunt GH response."),
+            ],
+            sideEffectManagement: [
+                "Head Rush: Normal and harmless. Usually passes within 1-2 minutes.",
+                "Water Retention (DAC): Reduce sodium intake. Consider switching to no-DAC version.",
+            ],
+            womenConsiderations: [
+                "Well tolerated by women. No virilization risk. Popular in female anti-aging protocols.",
+            ],
+            legalStatus: [
+                "US: Available via compounding pharmacies or as a research chemical.",
+                "WADA: Banned under S2 (Peptide Hormones, Growth Factors).",
+            ],
+            costInfo: "Research Chemical Vendors: ~$25-$45 per 2mg vial.",
+            deepDive: "CJC-1295 (Mod GRF 1-29) is a tetrasubstituted analog of GHRH(1-29) with four amino acid substitutions that protect it from enzymatic degradation by DPP-4. This extends its half-life from ~10 minutes (Sermorelin) to ~30 minutes.\n\nThe DAC (Drug Affinity Complex) version adds a maleimidopropionic acid-lysine moiety that covalently binds to serum albumin in vivo. This dramatically extends the half-life to approximately 8 days, providing continuous GH and IGF-1 elevation.\n\nThe no-DAC version preserves natural pulsatile GH release, which is considered physiologically superior. Each injection creates a discrete GH pulse that rises and falls, mimicking the body's natural pattern. The DAC version creates a sustained, unphysiological elevation that some researchers believe increases the risk of insulin resistance and pituitary fatigue.\n\nSynergy with GHRPs: CJC-1295 (no DAC) combined with Ipamorelin produces a synergistic GH pulse significantly larger than either compound alone, because they work through different receptor pathways (GHRH receptor vs. ghrelin receptor).",
+            faq: [
+                FAQItem(question: "What's the difference between No DAC and DAC?", answer: "No DAC (Mod GRF 1-29) has a ~30 minute half-life and produces natural pulsatile GH release with daily injections. DAC has an ~8 day half-life and produces continuous GH elevation with weekly injections. Most experts prefer no DAC for its more natural GH pattern."),
+                FAQItem(question: "Why do I get a head rush after injecting?", answer: "This is a normal vasodilatory response to GHRH receptor activation. It passes within 1-2 minutes and is actually a good indicator the peptide is active."),
+                FAQItem(question: "Can I use CJC-1295 with Sermorelin?", answer: "No. Both are GHRH analogs that compete for the exact same receptor. There is zero benefit to stacking them. Choose one or the other."),
+            ],
+            references: [
+                "Teichman, S. L., et al. (2006). Prolonged stimulation of growth hormone (GH) and insulin-like growth factor I secretion by CJC-1295. JCEM.",
+            ]
         ),
         CompoundProfile(
             name: "Ipamorelin",
@@ -163,7 +282,55 @@ enum CompoundDatabase {
                 StackDetail(partner: "CJC-1295 (No DAC)", purpose: "Synergistic GH pulse", notes: "The gold standard anti-aging stack"),
                 StackDetail(partner: "BPC-157", purpose: "Injury recovery", notes: "Combines systemic GH with local healing"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Mild head rush", "Slight injection site redness"], uncommon: ["Mild water retention"], rare: [], contraindications: ["Active cancer"])
+            detailedSideEffects: DetailedSideEffects(common: ["Mild head rush", "Slight injection site redness"], uncommon: ["Mild water retention"], rare: [], contraindications: ["Active cancer"]),
+            subtitle: "The Cleanest Growth Hormone Releasing Peptide",
+            whatIsIt: "Ipamorelin is a selective growth hormone secretagogue that stimulates your pituitary gland to release growth hormone without significantly affecting cortisol, prolactin, or appetite. It is widely considered the 'cleanest' GHRP available because it produces a strong GH pulse with virtually no unwanted hormonal side effects. Almost always stacked with CJC-1295 (no DAC) for a synergistic GH pulse much larger than either compound alone.",
+            howItWorks: "While Sermorelin and CJC-1295 work by mimicking your brain's natural 'release growth hormone' signal (GHRH), Ipamorelin works through a completely different door — it mimics ghrelin, the hunger hormone, but only at the part of the receptor that triggers GH release. It's like having a key that only opens one lock instead of all of them. This is why it doesn't make you ravenously hungry (like GHRP-6) or spike your cortisol (like Hexarelin).",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Deeper sleep, vivid dreams. Mild head rush after injection."),
+                TimelineEntry(timeframe: "Week 4-8", description: "Improved recovery, better skin, mild fat loss beginning."),
+                TimelineEntry(timeframe: "Week 12+", description: "Visible body composition improvements, enhanced muscle tone."),
+            ],
+            watchOut: "Ipamorelin is one of the safest peptides available with minimal side effects. The main concern is ensuring you inject on an empty stomach — insulin from eating will blunt the GH pulse entirely. A mild head rush after injection is normal.",
+            beforeYouStart: [
+                "Get baseline IGF-1 bloodwork.",
+                "Purchase supplies: Insulin syringes, Bacteriostatic Water, Alcohol Swabs.",
+                "Plan to fast for 2 hours before and 30 minutes after injection.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Beginner", dose: "100 mcg", frequency: "Once daily", timing: "Pre-bed, fasted"),
+                DosingPhase(phase: "Intermediate", dose: "200 mcg", frequency: "Twice daily", timing: "Morning fasted + pre-bed fasted"),
+                DosingPhase(phase: "Advanced", dose: "300 mcg", frequency: "Three times daily", timing: "Morning, post-workout, pre-bed (all fasted)"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. Rotate injection sites daily.",
+            discontinuationProtocol: "Can be stopped without taper. No withdrawal effects.",
+            communityConsensus: [
+                "Universally considered the 'cleanest' GHRP — doesn't spike hunger, cortisol, or prolactin.",
+                "Almost always stacked with CJC-1295 (no DAC) — the gold standard anti-aging GH stack.",
+                "Fasting for 2 hours before and 30 minutes after injection is critical for efficacy.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Carbohydrates/Sugar", riskLevel: "High", details: "Elevated insulin blocks GH release. Must be fasted."),
+            ],
+            sideEffectManagement: [
+                "Head Rush: Normal vasodilatory response. Passes within 1-2 minutes.",
+            ],
+            womenConsiderations: [
+                "Excellent safety profile for women. No virilization. Very popular in female anti-aging and body composition protocols.",
+            ],
+            legalStatus: [
+                "US: Available via compounding pharmacies or as a research chemical.",
+                "WADA: Banned under S2 (Peptide Hormones, Growth Factors).",
+            ],
+            costInfo: "Research Chemical Vendors: ~$25-$40 per 2mg vial.",
+            deepDive: "Ipamorelin is a pentapeptide (Aib-His-D-2Nal-D-Phe-Lys-NH2) that acts as a selective agonist of the ghrelin/growth hormone secretagogue receptor (GHS-R1a). Unlike other GHRPs, Ipamorelin demonstrates remarkable selectivity for GH release without stimulating ACTH (and therefore cortisol) or prolactin at therapeutic doses.\n\nThe selectivity of Ipamorelin was demonstrated by Raun et al. (1998), who showed that even at doses 200-fold above the ED50 for GH release, Ipamorelin did not release ACTH or cortisol. This makes it unique among GHRPs.\n\nSynergy with GHRH analogs: When combined with CJC-1295 (no DAC), Ipamorelin and CJC-1295 activate two completely different intracellular signaling cascades — PKC/calcium (Ipamorelin) and cAMP/PKA (CJC-1295). This dual activation produces an exponentially larger GH pulse than either compound alone.",
+            faq: [
+                FAQItem(question: "Why is Ipamorelin considered the 'cleanest' GHRP?", answer: "Unlike GHRP-2 and GHRP-6, Ipamorelin does not significantly raise cortisol, prolactin, or stimulate appetite even at high doses. It selectively triggers GH release with minimal hormonal disruption."),
+                FAQItem(question: "Do I need to stack it with CJC-1295?", answer: "It works alone, but stacking with CJC-1295 (no DAC) produces a dramatically larger GH pulse due to synergistic receptor activation. The combo is the gold standard."),
+            ],
+            references: [
+                "Raun, K., et al. (1998). Ipamorelin, the first selective growth hormone secretagogue. European Journal of Endocrinology.",
+            ]
         ),
         CompoundProfile(
             name: "Tesamorelin",
@@ -214,7 +381,54 @@ enum CompoundDatabase {
                 StackDetail(partner: "Ipamorelin", purpose: "Synergistic GH pulse", notes: "Combines targeted fat loss with broad GH benefits"),
                 StackDetail(partner: "CJC-1295", purpose: "Enhanced GH output", notes: "For users needing maximum GH stimulation"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Injection site reactions", "Joint pain", "Peripheral edema"], uncommon: ["Carpal tunnel symptoms", "Flushing"], rare: ["Insulin resistance with prolonged high doses"], contraindications: ["Active cancer", "Pregnancy"])
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site reactions", "Joint pain", "Peripheral edema"], uncommon: ["Carpal tunnel symptoms", "Flushing"], rare: ["Insulin resistance with prolonged high doses"], contraindications: ["Active cancer", "Pregnancy"]),
+            subtitle: "The Rolls Royce of Visceral Fat Loss",
+            whatIsIt: "Tesamorelin is an FDA-approved GHRH analog originally developed for HIV-associated lipodystrophy (abnormal fat distribution). It is the most potent GHRH specifically for targeted visceral fat reduction — the dangerous fat surrounding your organs. Known as the 'Rolls Royce' of fat-loss peptides due to its proven clinical efficacy against stubborn visceral fat.",
+            howItWorks: "Like Sermorelin and CJC-1295, Tesamorelin tells your pituitary to release growth hormone. But Tesamorelin has a unique chemical modification that makes it particularly effective at mobilizing visceral fat. Growth hormone released by Tesamorelin specifically targets the fat cells deep inside your abdomen, breaking them down and preventing new ones from forming.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-4", description: "Improved sleep quality, mild energy increase."),
+                TimelineEntry(timeframe: "Week 4-12", description: "Measurable reduction in visceral fat. Waist circumference decreasing."),
+                TimelineEntry(timeframe: "Week 12+", description: "Significant visceral fat reduction. Improved body composition."),
+            ],
+            watchOut: "Tesamorelin degrades significantly faster once reconstituted than other peptides — use within 7 days. More expensive than other GHRHs. Must be injected fasted for efficacy.",
+            beforeYouStart: [
+                "Get baseline bloodwork (IGF-1, Fasting Glucose, body composition scan).",
+                "Purchase supplies: Insulin syringes, Bacteriostatic Water, Alcohol Swabs.",
+                "Plan for morning fasted injections.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Standard", dose: "1-2 mg", frequency: "Once daily", timing: "Morning, fasted"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. Rotate injection sites daily.",
+            discontinuationProtocol: "Can be stopped without taper. Visceral fat may gradually return without lifestyle changes.",
+            communityConsensus: [
+                "The only GHRH clinically proven to specifically reduce visceral fat.",
+                "Degrades faster than other peptides once reconstituted — mix only what you can use within 7 days.",
+                "Most effective when administered fasted in the morning.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Carbohydrates/Sugar", riskLevel: "High", details: "Elevated insulin blocks GH release. Must be fasted."),
+            ],
+            sideEffectManagement: [
+                "Joint Pain: Usually from water retention. Reduce sodium intake and ensure adequate hydration.",
+                "Peripheral Edema: Mild swelling in hands/feet. Typically resolves within 2-3 weeks.",
+            ],
+            womenConsiderations: [
+                "Well tolerated by women. Particularly beneficial for post-menopausal visceral fat accumulation.",
+            ],
+            legalStatus: [
+                "US: FDA approved as Egrifta for HIV lipodystrophy. Available off-label via compounding pharmacies.",
+                "WADA: Banned under S2 (Peptide Hormones, Growth Factors).",
+            ],
+            costInfo: "Compounding Pharmacies: ~$200-$400 per month. More expensive than other GHRHs due to FDA approval and potency.",
+            deepDive: "Tesamorelin is a synthetic 44-amino acid peptide consisting of the full GHRH(1-44) sequence with a trans-3-hexenoic acid modification at the N-terminus. This modification increases receptor binding affinity and resistance to enzymatic degradation.\n\nClinical Trial Data: In the Phase 3 REDUCE trials for HIV lipodystrophy, Tesamorelin reduced visceral adipose tissue (VAT) by 15-18% over 26 weeks, with improvements in trunk fat, waist circumference, and lipid profiles. It is the only GHRH analog with FDA approval for body composition.\n\nUnlike general GH therapy, Tesamorelin's effects are predominantly on visceral fat rather than subcutaneous fat, making it uniquely valuable for metabolic health.",
+            faq: [
+                FAQItem(question: "Why is Tesamorelin better for visceral fat than other GHRHs?", answer: "The full 44-amino acid sequence with the hexenoic acid modification creates a more potent and sustained GH pulse that preferentially mobilizes visceral adipose tissue."),
+                FAQItem(question: "Why does it degrade faster once reconstituted?", answer: "The longer peptide chain and specific modifications make it more susceptible to degradation in solution. Always use within 7 days of reconstitution."),
+            ],
+            references: [
+                "Falutz, J., et al. (2007). Metabolic effects of a growth hormone-releasing factor in patients with HIV. NEJM.",
+            ]
         ),
         CompoundProfile(
             name: "MK-677",
@@ -271,7 +485,60 @@ enum CompoundDatabase {
             ],
             detailedSideEffects: DetailedSideEffects(common: ["Intense appetite increase", "Water retention", "Numbness/tingling"], uncommon: ["Lethargy", "Joint pain", "Elevated blood sugar"], rare: ["Insulin resistance", "Carpal tunnel symptoms"], contraindications: ["Pre-diabetes", "Diabetes", "Active cancer"]),
             isWADAProhibited: true,
-            wadaCategory: "S2 Peptide Hormones"
+            wadaCategory: "S2 Peptide Hormones",
+            subtitle: "The Oral GH Booster (With a Price)",
+            whatIsIt: "MK-677 (Ibutamoren) is NOT a peptide — it is an orally active, non-peptide ghrelin receptor agonist. It mimics ghrelin to stimulate sustained, pulsatile GH and IGF-1 release over a full 24 hours from a single oral dose. It is the most convenient GH secretagogue because it requires no injections. However, it significantly increases appetite and can elevate blood glucose, making insulin resistance monitoring mandatory.",
+            howItWorks: "MK-677 tricks your brain into thinking you're hungry by mimicking ghrelin, the hunger hormone. But the same signal that makes you hungry also tells your pituitary to release growth hormone. Because MK-677 stays active for 24 hours (much longer than injectable peptides), it provides a continuous, pulsatile release of GH throughout the day and night. The downside is that you also get ghrelin's other effects: ravenous hunger and potential blood sugar elevation.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Day 1-3", description: "Intense hunger within 30-60 minutes of dosing. Improved sleep that night."),
+                TimelineEntry(timeframe: "Week 1-4", description: "Dramatic water retention (5-10 lbs). Vivid dreams. Improved recovery."),
+                TimelineEntry(timeframe: "Week 8-24", description: "Measurable IGF-1 elevation. Body composition improvements. Water retention stabilizes."),
+            ],
+            watchOut: "The biggest risk with MK-677 is insulin resistance. Monitoring fasting blood glucose every 2-4 weeks is mandatory. The hunger spike is intense and can sabotage a cutting diet. Water retention can be dramatic (5-10 lbs) — this is water, not fat, and resolves after discontinuation.",
+            beforeYouStart: [
+                "Get baseline bloodwork: Fasting Glucose, HbA1c, IGF-1.",
+                "Have a plan for managing extreme hunger (taking before bed helps).",
+                "Consider having Berberine on hand to manage blood sugar if needed.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Beginner", dose: "10 mg", frequency: "Once daily", timing: "Pre-bed (to sleep through hunger)"),
+                DosingPhase(phase: "Intermediate", dose: "20 mg", frequency: "Once daily", timing: "Pre-bed or morning"),
+                DosingPhase(phase: "Advanced", dose: "25 mg", frequency: "Once daily", timing: "Pre-bed or morning"),
+            ],
+            injectionSiteGuide: "N/A — MK-677 is taken orally. No injection required.",
+            discontinuationProtocol: "Can be stopped without taper. Water retention resolves within 1-2 weeks.",
+            communityConsensus: [
+                "Take before bed to sleep through the intense hunger spike that hits 30-60 minutes after dosing.",
+                "Some users combine with Berberine or Metformin to counteract glucose elevation.",
+                "Water retention can be dramatic — this is water, not fat. It resolves after stopping.",
+                "The 'lazy man's GH' — oral convenience but with more side effects than injectable peptides.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Diabetes Medications", riskLevel: "Moderate", details: "MK-677 raises blood sugar. Dose adjustments may be needed for diabetic medications."),
+                DrugInteraction(substance: "Insulin", riskLevel: "High", details: "MK-677 impairs insulin sensitivity. Careful monitoring required."),
+            ],
+            sideEffectManagement: [
+                "Hunger: Take before bed to sleep through it. High-fiber, high-protein snacks help if awake.",
+                "Water Retention: Reduce sodium intake. Not harmful — resolves after stopping.",
+                "Elevated Blood Sugar: Co-administer Berberine (500mg 2x/day) or monitor closely.",
+            ],
+            womenConsiderations: [
+                "Same blood sugar monitoring requirements as men. Hunger side effect may be more challenging during cutting.",
+            ],
+            legalStatus: [
+                "US: Not FDA approved. Available as a research chemical.",
+                "WADA: Banned under S2 (Peptide Hormones, Growth Factors).",
+            ],
+            costInfo: "Research Chemical Vendors: ~$40-$70 per bottle (30-day supply). One of the most affordable GH boosters.",
+            deepDive: "MK-677 (Ibutamoren Mesylate) is a non-peptide spiropiperidine that acts as a potent, orally active agonist of the ghrelin receptor (GHS-R1a). Unlike peptide GHSs, it resists enzymatic degradation in the GI tract, allowing oral bioavailability.\n\nNass et al. (2008) demonstrated that MK-677 administered daily for 12 months in healthy elderly adults produced sustained increases in GH and IGF-1 to levels seen in young adults, without tachyphylaxis (loss of effect over time). This is notable because many GHRPs lose efficacy with continuous use.\n\nThe insulin resistance concern is well-documented: MK-677 increases fasting glucose by 5-10 mg/dL on average, with some individuals experiencing more significant elevations. This is a direct consequence of GH's counter-regulatory effects on insulin signaling.",
+            faq: [
+                FAQItem(question: "Will the hunger ever go away?", answer: "It typically diminishes after 2-4 weeks as your body adjusts, but some hunger increase persists throughout use. Taking before bed is the most effective strategy."),
+                FAQItem(question: "Is the water retention harmful?", answer: "No. It's cosmetic and resolves within 1-2 weeks of stopping. It does not indicate kidney or heart problems."),
+                FAQItem(question: "Can I take MK-677 instead of injectable peptides?", answer: "Yes, but with trade-offs. MK-677 is more convenient (oral) but has more side effects (hunger, water retention, blood sugar issues) than injectable combos like CJC-1295 + Ipamorelin."),
+            ],
+            references: [
+                "Nass, R., et al. (2008). Effects of an oral ghrelin mimetic on body composition and clinical outcomes in healthy older adults. Annals of Internal Medicine.",
+            ]
         ),
         CompoundProfile(
             name: "GHRP-2",
@@ -322,7 +589,48 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "CJC-1295 (No DAC)", purpose: "Synergistic GH pulse", notes: "Maximizes GH output"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Increased appetite", "Water retention", "Flushing"], uncommon: ["Lethargy", "Elevated prolactin/cortisol"], rare: ["Insulin resistance"], contraindications: ["Active cancer", "Prolactinoma"])
+            detailedSideEffects: DetailedSideEffects(common: ["Increased appetite", "Water retention", "Flushing"], uncommon: ["Lethargy", "Elevated prolactin/cortisol"], rare: ["Insulin resistance"], contraindications: ["Active cancer", "Prolactinoma"]),
+            subtitle: "The Strong GHRP (With Appetite)",
+            whatIsIt: "GHRP-2 (Pralmorelin) is a potent synthetic ghrelin agonist that stimulates a strong pulse of growth hormone release. It is stronger than Ipamorelin but less selective — it causes mild elevations in cortisol and prolactin, and stimulates appetite. If hunger is too intense, switch to Ipamorelin. If you want more hunger for a bulking phase, consider GHRP-6.",
+            howItWorks: "GHRP-2 activates the same ghrelin receptor as Ipamorelin, but with less selectivity. It opens more 'doors' than just the GH door — it also slightly activates the cortisol and prolactin pathways. This makes it more potent for GH release but with more side effects. Think of it as a more powerful but less precise version of Ipamorelin.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Moderate appetite increase. Improved sleep. Brief flushing after injection."),
+                TimelineEntry(timeframe: "Week 4-8", description: "Improved recovery, increased muscle fullness."),
+                TimelineEntry(timeframe: "Week 8-12", description: "Body composition improvements. Enhanced recovery."),
+            ],
+            watchOut: "Monitor prolactin levels on bloodwork. Appetite stimulation is significant — not ideal for cutting phases. Water retention is more pronounced than with Ipamorelin.",
+            beforeYouStart: [
+                "Get baseline bloodwork: IGF-1, Prolactin, Cortisol.",
+                "Purchase injection supplies.",
+                "Fast for 2 hours before injection.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Beginner", dose: "100 mcg", frequency: "Once daily", timing: "Pre-bed, fasted"),
+                DosingPhase(phase: "Intermediate", dose: "100 mcg", frequency: "Twice daily", timing: "Morning + pre-bed, fasted"),
+                DosingPhase(phase: "Advanced", dose: "150 mcg", frequency: "Three times daily", timing: "Morning, post-workout, pre-bed"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. Rotate sites daily.",
+            discontinuationProtocol: "Can be stopped without taper.",
+            communityConsensus: [
+                "Stronger than Ipamorelin but comes with more side effects (hunger, water retention).",
+                "If the hunger is too intense, switch to Ipamorelin.",
+                "Best combined with CJC-1295 (no DAC) for synergistic GH pulse.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Carbohydrates/Sugar", riskLevel: "High", details: "Must be fasted for GH release."),
+            ],
+            legalStatus: [
+                "US: Available as a research chemical.",
+                "WADA: Banned under S2.",
+            ],
+            costInfo: "Research Chemical Vendors: ~$20-$35 per 5mg vial.",
+            deepDive: "GHRP-2 (Pralmorelin) is a hexapeptide that acts as a potent agonist of the GHS-R1a receptor. It stimulates GH release through the PKC/IP3 pathway, distinct from the cAMP pathway used by GHRH analogs, which explains the synergistic effect when combined with GHRH.\n\nUnlike Ipamorelin, GHRP-2 activates the receptor with sufficient breadth to also trigger mild ACTH release (leading to cortisol elevation) and prolactin release. These effects are dose-dependent and generally mild at therapeutic doses but should be monitored.",
+            faq: [
+                FAQItem(question: "Should I choose GHRP-2 or Ipamorelin?", answer: "Ipamorelin for cleaner, side-effect-free GH release. GHRP-2 for a stronger GH pulse if you can tolerate the appetite increase and mild cortisol/prolactin elevation."),
+            ],
+            references: [
+                "Bowers, C. Y., et al. (1993). On the in vitro and in vivo activity of a new synthetic hexapeptide that acts on the pituitary to specifically release growth hormone. Endocrinology.",
+            ]
         ),
         CompoundProfile(
             name: "GHRP-6",
@@ -373,7 +681,39 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "CJC-1295 (No DAC)", purpose: "Synergistic GH pulse", notes: "Standard bulking stack"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Extreme hunger", "Water retention", "Flushing"], uncommon: ["Lethargy", "Gynecomastia (due to prolactin)"], rare: ["Insulin resistance"], contraindications: ["Active cancer", "Prolactinoma"])
+            detailedSideEffects: DetailedSideEffects(common: ["Extreme hunger", "Water retention", "Flushing"], uncommon: ["Lethargy", "Gynecomastia (due to prolactin)"], rare: ["Insulin resistance"], contraindications: ["Active cancer", "Prolactinoma"]),
+            subtitle: "The Extreme Appetite GHRP",
+            whatIsIt: "GHRP-6 is a first-generation ghrelin agonist notorious for causing extreme, uncontrollable hunger within 20-30 minutes of injection. It is the strongest appetite stimulator in the peptide world and is used exclusively by bodybuilders who need to consume 4,000+ calories a day and physically cannot eat enough otherwise.",
+            howItWorks: "GHRP-6 activates the ghrelin receptor so powerfully that it triggers both a massive GH release AND an overwhelming hunger signal. It physically speeds up gastric emptying — food moves through the stomach faster. It also elevates cortisol and prolactin more than newer GHRPs.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Minutes 20-30", description: "Agonizing, uncontrollable hunger hits. Must eat within 45 minutes."),
+                TimelineEntry(timeframe: "Week 1-4", description: "Significant water retention. Increased food intake capacity."),
+                TimelineEntry(timeframe: "Week 4-12", description: "Mass gain from combined GH elevation and caloric surplus."),
+            ],
+            watchOut: "The hunger is extreme and not manageable for most people. If you inject and do not eat within 45 minutes, you may experience mild hypoglycemia. Largely abandoned by anti-aging and longevity communities in favor of Ipamorelin.",
+            dosingSchedule: [
+                DosingPhase(phase: "Beginner", dose: "100 mcg", frequency: "Once daily", timing: "Pre-meal (for appetite)"),
+                DosingPhase(phase: "Advanced", dose: "150 mcg", frequency: "Three times daily", timing: "Pre-meal"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. Rotate sites daily.",
+            discontinuationProtocol: "Can be stopped without taper.",
+            communityConsensus: [
+                "Only for hardgainers who cannot physically eat enough calories.",
+                "Largely abandoned in favor of Ipamorelin for anyone not bulking.",
+                "The hunger is not a side effect — it IS the primary use case for most users.",
+            ],
+            legalStatus: [
+                "US: Available as a research chemical.",
+                "WADA: Banned under S2.",
+            ],
+            costInfo: "Research Chemical Vendors: ~$15-$30 per 5mg vial. One of the cheapest GHRPs.",
+            deepDive: "GHRP-6 (Growth Hormone Releasing Peptide-6) is a synthetic hexapeptide that was one of the earliest discovered GHRPs. It has the broadest receptor activation profile of the common GHRPs, stimulating not only GH release but also significant ghrelin-mediated appetite stimulation, cortisol release, and prolactin secretion.\n\nIts primary advantage over newer GHRPs is cost and raw potency for GH release. However, its non-selective receptor activation makes it unsuitable for anyone not specifically seeking extreme appetite stimulation.",
+            faq: [
+                FAQItem(question: "Is the hunger really that bad?", answer: "Yes. Users describe it as an agonizing, almost painful hunger that hits within 20-30 minutes and is virtually impossible to ignore. It is the most powerful appetite stimulator in the peptide world."),
+            ],
+            references: [
+                "Bowers, C. Y., et al. (1984). On the actions of the growth hormone-releasing hexapeptide, GHRP. Endocrinology.",
+            ]
         ),
         CompoundProfile(
             name: "Hexarelin",
@@ -423,7 +763,39 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "CJC-1295 (No DAC)", purpose: "Maximum GH pulse", notes: "The strongest possible GHS stack"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Water retention", "Flushing", "Lethargy"], uncommon: ["Elevated prolactin/cortisol", "Carpal tunnel symptoms"], rare: ["Pituitary desensitization", "Insulin resistance"], contraindications: ["Active cancer", "Prolactinoma"])
+            detailedSideEffects: DetailedSideEffects(common: ["Water retention", "Flushing", "Lethargy"], uncommon: ["Elevated prolactin/cortisol", "Carpal tunnel symptoms"], rare: ["Pituitary desensitization", "Insulin resistance"], contraindications: ["Active cancer", "Prolactinoma"]),
+            subtitle: "The Most Potent (But Short-Lived) GHRP",
+            whatIsIt: "Hexarelin is the most potent GHRP available, causing the largest release of growth hormone of any secretagogue. However, it also causes the most significant elevations in cortisol and prolactin, and is notorious for causing rapid pituitary desensitization — it should not be used for more than 4-8 weeks. Reserved for advanced users needing maximum GH output for a short period.",
+            howItWorks: "Hexarelin hits the ghrelin receptor harder than any other GHRP, triggering a massive flood of growth hormone. But because the signal is so strong, the pituitary gland quickly becomes 'deaf' to it — this is desensitization. After 4-8 weeks, it stops working effectively. It also significantly raises cortisol and prolactin as collateral effects of its powerful receptor activation.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Dramatic GH pulse. Noticeable water retention. Flushing after injection."),
+                TimelineEntry(timeframe: "Week 4-6", description: "Peak effectiveness. Monitor prolactin and cortisol."),
+                TimelineEntry(timeframe: "Week 6-8", description: "Desensitization begins. Effectiveness diminishes. Time to stop."),
+            ],
+            watchOut: "Must be limited to 4-8 weeks due to pituitary desensitization. Monitor prolactin and cortisol on bloodwork. Not suitable for long-term anti-aging use.",
+            dosingSchedule: [
+                DosingPhase(phase: "Beginner", dose: "100 mcg", frequency: "Once daily", timing: "Pre-bed, fasted"),
+                DosingPhase(phase: "Advanced", dose: "200 mcg", frequency: "Twice daily", timing: "Morning + pre-bed, fasted"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. Rotate sites daily.",
+            discontinuationProtocol: "Must stop after 4-8 weeks. Take at least 4 weeks off before restarting any GHRP.",
+            communityConsensus: [
+                "Reserved for advanced users needing maximum short-term GH output.",
+                "Not for anti-aging — desensitization makes it unsuitable for long-term use.",
+                "The most powerful GHRP, but the shortest usable cycle.",
+            ],
+            legalStatus: [
+                "US: Available as a research chemical.",
+                "WADA: Banned under S2.",
+            ],
+            costInfo: "Research Chemical Vendors: ~$25-$40 per 2mg vial.",
+            deepDive: "Hexarelin is a synthetic hexapeptide with the highest intrinsic activity of all known GHRPs at the GHS-R1a receptor. Imbimbo et al. (1994) demonstrated that Hexarelin produces GH peaks 3-5x higher than GHRP-6 at equivalent doses.\n\nHowever, its extreme potency leads to rapid tachyphylaxis (desensitization) of the pituitary somatotrophs. After 4-8 weeks of continuous use, the GH response diminishes significantly, requiring a washout period of at least 4 weeks before the pituitary recovers sensitivity.\n\nHexarelin also has documented cardioprotective effects, binding to cardiac GHS receptors independently of GH release.",
+            faq: [
+                FAQItem(question: "Why can't I use Hexarelin long-term?", answer: "It's so potent that it rapidly desensitizes the pituitary's GH-releasing mechanism. After 4-8 weeks, it simply stops working. You must take a break to allow the receptors to recover."),
+            ],
+            references: [
+                "Imbimbo, B. P., et al. (1994). Growth hormone-releasing activity of hexarelin, a new synthetic hexapeptide, after intravenous, subcutaneous, intranasal, and oral administration. JCEM.",
+            ]
         ),
 
         // MARK: - Category 2: Healing & Recovery
@@ -479,7 +851,60 @@ enum CompoundDatabase {
             ],
             detailedSideEffects: DetailedSideEffects(common: ["Mild injection site reaction"], uncommon: ["Lethargy", "Mild headache", "Changes in bowel movements (oral)"], rare: ["Potential promotion of existing tumor angiogenesis (theoretical)"], contraindications: ["Active cancer (due to angiogenic properties)"]),
             isWADAProhibited: true,
-            wadaCategory: "S2 Peptide Hormones"
+            wadaCategory: "S2 Peptide Hormones",
+            subtitle: "The Body's Own Healing Peptide",
+            whatIsIt: "BPC-157 is a synthetic 15-amino acid sequence derived from a protective protein found in human gastric juice. It accelerates angiogenesis (new blood vessel formation), modulates nitric oxide, and upregulates growth hormone receptors in healing tissues. It is the most popular healing peptide and the foundation of nearly every injury recovery protocol.",
+            howItWorks: "Your stomach naturally produces a protein called Body Protection Compound that helps heal your gut lining every day. BPC-157 is a concentrated piece of that protein. When injected near an injury, it acts like a construction foreman — it recruits new blood vessels to the area, brings in repair cells, and tells your body's growth factor receptors to turn on. It's like calling in extra repair crews to a damaged building.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Day 1-7", description: "Reduced inflammation and pain at injury site. Improved range of motion."),
+                TimelineEntry(timeframe: "Week 2-4", description: "Significant healing acceleration. Noticeable reduction in injury symptoms."),
+                TimelineEntry(timeframe: "Week 4-8", description: "Major structural repair. Many injuries resolve completely."),
+            ],
+            watchOut: "BPC-157 can blunt the effects of stimulants (caffeine, amphetamines) due to its modulating effect on dopaminergic and GABAergic systems. Do not use with active cancer due to its angiogenic (blood vessel forming) properties.",
+            beforeYouStart: [
+                "Identify your injury location for targeted SubQ injection.",
+                "Purchase supplies: Insulin syringes, Bacteriostatic Water, Alcohol Swabs.",
+                "For gut issues, ensure you have the Arginate salt form for oral use.",
+                "Start Vitamin C supplementation — mandatory co-factor for collagen synthesis.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Beginner", dose: "250 mcg", frequency: "Once daily", timing: "Any time"),
+                DosingPhase(phase: "Intermediate", dose: "250 mcg", frequency: "Twice daily", timing: "Morning and evening"),
+                DosingPhase(phase: "Advanced", dose: "500 mcg", frequency: "Twice daily", timing: "Morning and evening"),
+            ],
+            injectionSiteGuide: "For musculoskeletal injuries, inject SubQ as close to the injury site as comfortably possible. For systemic use or gut issues, standard abdominal SubQ works. Rotate sites daily.",
+            discontinuationProtocol: "Can be stopped once the injury has healed. No taper needed. No rebound effects.",
+            communityConsensus: [
+                "The most popular and well-regarded healing peptide in the community.",
+                "For gut issues, oral Arginate form is far superior to injectable Acetate form.",
+                "Can blunt the effects of stimulants — caffeine may feel weaker while on cycle.",
+                "Stacking with TB-500 creates the legendary 'Wolverine Stack' for maximum healing.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Stimulants (Caffeine, Amphetamines)", riskLevel: "Moderate", details: "BPC-157 modulates dopaminergic and GABAergic systems, potentially blunting stimulant effects."),
+            ],
+            sideEffectManagement: [
+                "Injection Site Reaction: Usually minimal. Ensure alcohol swab has dried before injecting.",
+                "Lethargy: Rare. Usually resolves within a few days. Try splitting dose AM/PM.",
+            ],
+            womenConsiderations: [
+                "Excellent safety profile for women. No hormonal effects. Very commonly used in female recovery protocols.",
+            ],
+            legalStatus: [
+                "US: Available as a research chemical. Previously available via compounding pharmacies but FDA has restricted compounding.",
+                "WADA: Banned under S2 (Peptide Hormones).",
+            ],
+            costInfo: "Research Chemical Vendors: ~$25-$45 per 5mg vial.",
+            deepDive: "BPC-157 (Body Protection Compound-157) is a pentadecapeptide consisting of 15 amino acids (Gly-Glu-Pro-Pro-Pro-Gly-Lys-Pro-Ala-Asp-Asp-Ala-Gly-Leu-Val) derived from human gastric juice. Its primary mechanisms include:\n\n1. Angiogenesis: BPC-157 upregulates VEGF (Vascular Endothelial Growth Factor) expression, promoting formation of new blood vessels at injury sites.\n\n2. Nitric Oxide Modulation: It acts on the NO system, promoting vasodilation and blood flow to damaged tissues.\n\n3. Growth Factor Receptor Upregulation: BPC-157 increases the density of GH receptors in healing tissues, amplifying the body's natural repair signals.\n\n4. FAK-Paxillin Pathway: It activates the focal adhesion kinase pathway, promoting cell migration and wound closure.\n\nExtensive animal studies by Sikiric et al. have demonstrated healing of transected Achilles tendons, muscle tears, ligament damage, bone fractures, and GI ulcers. The lack of large-scale human clinical trials remains the primary research gap.",
+            faq: [
+                FAQItem(question: "Do I need to inject near the injury?", answer: "For musculoskeletal injuries, injecting SubQ near the site provides the highest local concentration. However, BPC-157 is also absorbed systemically, so abdominal SubQ still provides benefits."),
+                FAQItem(question: "Can I take BPC-157 orally?", answer: "Yes, but ONLY the Arginate (PDA) salt form. Standard BPC-157 Acetate is destroyed by stomach acid. Oral Arginate is highly effective for gut issues and provides some systemic absorption."),
+                FAQItem(question: "Will it weaken my coffee?", answer: "Possibly. BPC-157 modulates dopaminergic pathways, which can reduce the perceived stimulant effects of caffeine and other stimulants."),
+            ],
+            references: [
+                "Sikiric, P., et al. (2010). Pentadecapeptide BPC 157 and its effects on a NSAID toxicity model: diclofenac-induced gastrointestinal, liver, and encephalopathy lesions. Life Sciences.",
+                "Seiwerth, S., et al. (2014). BPC 157's effect on healing. Journal of Physiology.",
+            ]
         ),
         CompoundProfile(
             name: "TB-500",
@@ -531,7 +956,54 @@ enum CompoundDatabase {
             ],
             detailedSideEffects: DetailedSideEffects(common: ["Lethargy/tiredness post-injection"], uncommon: ["Head rush", "Mild flu-like symptoms"], rare: ["Theoretical risk of accelerating existing cancer growth"], contraindications: ["Active cancer"]),
             isWADAProhibited: true,
-            wadaCategory: "S2 Peptide Hormones"
+            wadaCategory: "S2 Peptide Hormones",
+            subtitle: "The Systemic Tissue Rebuilder",
+            whatIsIt: "TB-500 is a synthetic version of the active region of Thymosin Beta-4, a protein naturally found in nearly all human cells. It upregulates actin, a key protein that promotes rapid cellular migration to injury sites, reduces inflammation, and improves flexibility. Unlike BPC-157, TB-500 is highly systemic — no need to inject near the injury.",
+            howItWorks: "Imagine your body's repair cells are workers at a construction site. TB-500 gives them a GPS to find the damage faster and tools to build new tissue more efficiently. It upregulates actin, which is like the scaffolding protein inside every cell. More actin means cells can move faster, divide better, and repair tissue more quickly. It also reduces scar tissue formation.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Reduced inflammation. Possible lethargy after injection. Improved flexibility."),
+                TimelineEntry(timeframe: "Week 2-4", description: "Significant healing acceleration. Loading phase completing."),
+                TimelineEntry(timeframe: "Week 4-8", description: "Major structural repair. Reduced scar tissue. Improved joint mobility."),
+            ],
+            watchOut: "Loading phase is critical — most users run 5-7 mg per week for the first month. Many users report significant lethargy after injection, so pinning before bed is highly recommended. Do not use with active cancer.",
+            beforeYouStart: [
+                "Purchase supplies: Insulin syringes, Bacteriostatic Water, Alcohol Swabs.",
+                "Plan for the loading phase: 4-6 weeks of higher doses.",
+                "Be prepared for post-injection lethargy — inject before bed.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Loading (Month 1)", dose: "2-2.5 mg", frequency: "2-3x weekly", timing: "Before bed"),
+                DosingPhase(phase: "Maintenance", dose: "2 mg", frequency: "Once weekly", timing: "Before bed"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. TB-500 is highly systemic — no need to inject near the injury site. Standard abdominal SubQ works perfectly.",
+            discontinuationProtocol: "Taper to maintenance dose, then stop. No withdrawal effects.",
+            communityConsensus: [
+                "Loading phase is critical. Most users run 5-7 mg per week for the first month.",
+                "Highly systemic — no need to inject near the injury site.",
+                "Lethargy after injection is very common — inject before bed.",
+                "Combined with BPC-157 creates the legendary 'Wolverine Stack.'",
+            ],
+            drugInteractions: [],
+            sideEffectManagement: [
+                "Lethargy: Very common. Inject before bed to sleep through it.",
+                "Head Rush: Mild and transient. No action needed.",
+            ],
+            womenConsiderations: [
+                "Well tolerated by women. No hormonal effects. Same dosing as men.",
+            ],
+            legalStatus: [
+                "US: Available as a research chemical.",
+                "WADA: Banned under S2 (Peptide Hormones).",
+            ],
+            costInfo: "Research Chemical Vendors: ~$30-$60 per 5mg vial.",
+            deepDive: "TB-500 is a synthetic 43-amino acid peptide representing the active region (amino acids 17-23) of Thymosin Beta-4 (Tβ4). Tβ4 is a 4.9 kDa protein that is one of the most abundant intracellular proteins, found in virtually all nucleated cells.\n\nPrimary Mechanism: TB-500 upregulates actin expression, which promotes:\n1. Cell migration — repair cells reach injury sites faster\n2. Angiogenesis — new blood vessel formation at injury sites\n3. Cell differentiation — stem cells mature into functional tissue\n4. Anti-inflammatory action — reduces NF-kB inflammatory signaling\n\nGoldstein et al. demonstrated that Tβ4 accelerates wound healing, reduces scar formation, and promotes hair regrowth in animal models. The loading phase is important because TB-500 needs to saturate tissues before therapeutic effects become apparent.",
+            faq: [
+                FAQItem(question: "Why do I need a loading phase?", answer: "TB-500 works by saturating your tissues with the active peptide. The loading phase builds up tissue levels to therapeutic concentrations. Without it, effects are much slower and weaker."),
+                FAQItem(question: "Why does it make me so tired?", answer: "The mechanism isn't fully understood, but it likely relates to the body redirecting energy toward repair processes. This is why most users inject before bed."),
+            ],
+            references: [
+                "Goldstein, A. L., et al. (2012). Thymosin β4: a multi-functional regenerative peptide. Expert Opinion on Biological Therapy.",
+            ]
         ),
         CompoundProfile(
             name: "GHK-Cu",
@@ -585,7 +1057,56 @@ enum CompoundDatabase {
                 StackDetail(partner: "BPC-157", purpose: "Pain mitigation", notes: "BPC-157 is often mixed in the same syringe to reduce GHK-Cu injection pain"),
                 StackDetail(partner: "Zinc", purpose: "Mineral balance", notes: "Prevents copper-induced zinc depletion"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Severe injection site pain (PIP)", "Welts and redness"], uncommon: ["Nausea", "Headaches"], rare: ["Copper toxicity (prolonged high-dose use)"], contraindications: ["Wilson's disease", "Existing copper toxicity"])
+            detailedSideEffects: DetailedSideEffects(common: ["Severe injection site pain (PIP)", "Welts and redness"], uncommon: ["Nausea", "Headaches"], rare: ["Copper toxicity (prolonged high-dose use)"], contraindications: ["Wilson's disease", "Existing copper toxicity"]),
+            subtitle: "The Gene-Resetting Anti-Aging Copper Peptide",
+            whatIsIt: "GHK-Cu is a naturally occurring copper-binding tripeptide that modulates the expression of thousands of genes, resetting them to a younger, healthier state. It strongly stimulates collagen and elastin production, making it one of the most powerful anti-aging and skin rejuvenation compounds available. It exists in both injectable and topical forms.",
+            howItWorks: "GHK-Cu works like a master switch for your genes. As you age, certain repair genes turn off and certain damage genes turn on. GHK-Cu enters your cells and flips those switches back to their youthful positions. The copper it carries is also essential for activating enzymes that build collagen, elastin, and other structural proteins in your skin and tissues.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Day 1-7", description: "Injection site pain and redness (common). Skin may feel tighter."),
+                TimelineEntry(timeframe: "Week 2-4", description: "Improved skin texture and elasticity. Hair growth may be noticed."),
+                TimelineEntry(timeframe: "Week 4-8", description: "Significant skin rejuvenation. Reduced fine lines. Scar improvement."),
+            ],
+            watchOut: "Notorious for intense Post-Injection Pain (PIP) and large red welts. Dilute further or mix BPC-157 in the same syringe to mitigate. MANDATORY: Supplement with 15-30 mg Zinc daily to prevent copper-induced zinc depletion. The powder/liquid should be bright blue — if not, it's not GHK-Cu.",
+            beforeYouStart: [
+                "Stock up on Zinc supplements (15-30 mg daily) — MANDATORY.",
+                "Purchase BPC-157 to mix in syringe for injection pain relief.",
+                "Verify the product is bright blue.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "SubQ Beginner", dose: "1 mg", frequency: "Once daily", timing: "Any time"),
+                DosingPhase(phase: "SubQ Advanced", dose: "2 mg", frequency: "Twice daily", timing: "Morning and evening"),
+                DosingPhase(phase: "Topical", dose: "0.05-2% cream", frequency: "Daily", timing: "Apply to face/skin"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. Rotate sites daily. Expect PIP — mix with BPC-157 to reduce pain.",
+            discontinuationProtocol: "30 days on / 30 days off cycle to prevent copper toxicity. No taper needed.",
+            communityConsensus: [
+                "Notorious for intense PIP — drawing BPC-157 into the same syringe significantly reduces pain.",
+                "Zinc supplementation is non-negotiable — copper depletes zinc.",
+                "For facial anti-aging, topical creams (0.05-2%) are highly effective and avoid injection pain.",
+                "More is not better with topical — concentrations above 2-3% can cause 'copper uglies.'",
+            ],
+            drugInteractions: [],
+            sideEffectManagement: [
+                "Injection Site Pain: Mix BPC-157 in the same syringe. Dilute further with more BAC water. Ice the site.",
+                "Skin Welts: Normal reaction to copper. Usually resolve within 24-48 hours.",
+            ],
+            womenConsiderations: [
+                "Very popular in female anti-aging protocols, especially the topical form. No hormonal effects.",
+            ],
+            legalStatus: [
+                "US: Available as a research chemical and in cosmetic formulations.",
+                "WADA: Not currently banned.",
+            ],
+            costInfo: "Research Chemical Vendors: ~$30-$50 per 50mg vial. Topical serums: ~$20-$60.",
+            deepDive: "GHK-Cu (glycyl-L-histidyl-L-lysine:copper(II)) is a naturally occurring tripeptide with a very high affinity for copper(II) ions. Discovered by Loren Pickart, it is present in human plasma at ~200 ng/mL in youth, declining with age.\n\nPickart et al. (2015) demonstrated that GHK-Cu modulates the expression of over 4,000 human genes — approximately 6% of the human genome. It upregulates genes associated with tissue repair, stem cell activity, and antioxidant defense, while downregulating genes associated with inflammation and tissue destruction.\n\nThe copper moiety is essential: it activates lysyl oxidase (for collagen crosslinking), superoxide dismutase (antioxidant), and other copper-dependent enzymes critical for tissue maintenance.",
+            faq: [
+                FAQItem(question: "Why does it hurt so much to inject?", answer: "The copper ions cause a local inflammatory response. This is expected and not harmful. Mixing BPC-157 in the same syringe or diluting further significantly reduces the pain."),
+                FAQItem(question: "Is topical or injectable better?", answer: "For facial skin rejuvenation, topical is highly effective and painless. For systemic anti-aging and hair growth, injectable provides more potent whole-body effects."),
+                FAQItem(question: "Why must I take Zinc?", answer: "Copper and zinc compete for absorption. Introducing extra copper via GHK-Cu will deplete your zinc levels, causing immune dysfunction, hair loss, and other issues. 15-30 mg zinc daily is mandatory."),
+            ],
+            references: [
+                "Pickart, L., et al. (2015). GHK-Cu may prevent oxidative stress in skin by regulating copper and modifying expression of numerous antioxidant genes. Cosmetics.",
+            ]
         ),
         CompoundProfile(
             name: "KPV",
@@ -634,7 +1155,38 @@ enum CompoundDatabase {
                 StackDetail(partner: "BPC-157 (Oral)", purpose: "Ultimate Gut Healing", notes: "KPV reduces inflammation; BPC repairs the lining"),
                 StackDetail(partner: "Thymosin Alpha-1", purpose: "Immune modulation", notes: "Powerful combo for autoimmune/mold issues"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site reaction"], uncommon: ["Mild fatigue"], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site reaction"], uncommon: ["Mild fatigue"], rare: [], contraindications: []),
+            subtitle: "The Anti-Inflammatory Gut Healer",
+            whatIsIt: "KPV is a tripeptide fragment of alpha-MSH (alpha-Melanocyte Stimulating Hormone) with potent anti-inflammatory effects. It enters cells and directly inhibits NF-kB activation — the master switch for inflammation. It also has antimicrobial and antifungal properties, making it highly regarded in the mold toxicity (CIRS) community.",
+            howItWorks: "Inside every cell, there's a protein called NF-kB that acts as an inflammation alarm. When it activates, your body produces inflammatory chemicals that cause swelling, pain, and tissue damage. KPV sneaks into cells and physically prevents NF-kB from turning on. It's like cutting the wire to the alarm before it can sound.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Reduced inflammation markers. Gut symptom improvement (if oral)."),
+                TimelineEntry(timeframe: "Week 2-4", description: "Significant reduction in inflammatory symptoms."),
+                TimelineEntry(timeframe: "Week 4-8", description: "Major improvement in gut health, skin conditions, or systemic inflammation."),
+            ],
+            watchOut: "Very mild side effect profile. For gut-specific issues, oral capsules are significantly more effective than SubQ injections.",
+            dosingSchedule: [
+                DosingPhase(phase: "SubQ", dose: "200-250 mcg", frequency: "1-2x daily", timing: "Any time"),
+                DosingPhase(phase: "Oral (Gut)", dose: "500 mcg", frequency: "1-2x daily", timing: "Empty stomach"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen for systemic use. For gut issues, oral capsules deliver directly to inflamed mucosal lining.",
+            discontinuationProtocol: "Can be stopped without taper.",
+            communityConsensus: [
+                "For gut issues (Crohn's, UC), oral capsules are significantly more effective than SubQ.",
+                "Highly regarded in the mold toxicity (CIRS) community for combating systemic fungal colonization.",
+                "One of the mildest peptides available — virtually no side effects.",
+            ],
+            legalStatus: [
+                "US: Available as a research chemical.",
+            ],
+            costInfo: "Research Chemical Vendors: ~$25-$40 per 10mg vial.",
+            deepDive: "KPV (Lys-Pro-Val) is a C-terminal tripeptide fragment of alpha-MSH. Dalmasso et al. (2008) demonstrated that KPV significantly reduces intestinal inflammation in murine models of colitis by inhibiting NF-kB nuclear translocation and reducing pro-inflammatory cytokine production (TNF-alpha, IL-6, IL-1beta).\n\nUniquely, KPV is transported into cells via the PepT1 transporter, which is highly expressed in intestinal epithelial cells — explaining why oral delivery is so effective for gut inflammation.",
+            faq: [
+                FAQItem(question: "Should I inject or take orally?", answer: "For gut issues (IBD, Crohn's, UC), oral is far superior because it delivers directly to the inflamed intestinal lining via the PepT1 transporter. For systemic inflammation or skin conditions, SubQ is preferred."),
+            ],
+            references: [
+                "Dalmasso, G., et al. (2008). PepT1-mediated tripeptide KPV uptake reduces intestinal inflammation. Gastroenterology.",
+            ]
         ),
         CompoundProfile(
             name: "Thymosin Alpha-1",
@@ -683,7 +1235,46 @@ enum CompoundDatabase {
                 StackDetail(partner: "BPC-157", purpose: "Systemic recovery", notes: "Combines immune modulation with tissue repair"),
                 StackDetail(partner: "LL-37", purpose: "Infection clearing", notes: "Ta1 boosts T-cells; LL-37 directly kills pathogens"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site redness"], uncommon: ["Flu-like symptoms (Herxheimer reaction/die-off)"], rare: ["Overstimulation of immune system (rare)"], contraindications: ["Organ transplant recipients (risk of rejection)"])
+            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site redness"], uncommon: ["Flu-like symptoms (Herxheimer reaction/die-off)"], rare: ["Overstimulation of immune system (rare)"], contraindications: ["Organ transplant recipients (risk of rejection)"]),
+            subtitle: "The Master Immune Modulator",
+            whatIsIt: "Thymosin Alpha-1 (TA1) is a naturally occurring peptide produced by the thymus gland that acts as a master regulator of the immune system. It is unique because it is an immune modulator, not just a stimulator — it can upregulate to fight infections or downregulate to calm autoimmune conditions. It has FDA Orphan Drug status as Zadaxin.",
+            howItWorks: "Your thymus gland is like the training academy for your immune system's soldiers (T-cells). As you age, the thymus shrinks and produces fewer trained soldiers. TA1 is like sending in a master instructor — it trains immature immune cells to become effective fighters, activates natural killer cells, and balances the immune response so it's strong enough to fight infections but not so overactive that it attacks your own body.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Possible Herxheimer reaction (feeling worse before better) as immune system activates."),
+                TimelineEntry(timeframe: "Week 2-4", description: "Improved energy. Reduced infection symptoms."),
+                TimelineEntry(timeframe: "Week 4-12", description: "Significant immune improvement. Better resilience to illness."),
+            ],
+            watchOut: "If using to treat chronic infections (Lyme, EBV), expect a Herxheimer reaction — you'll feel worse before feeling better as the awakened immune system starts fighting the infection. Do not use in organ transplant recipients.",
+            dosingSchedule: [
+                DosingPhase(phase: "Standard", dose: "1.5 mg", frequency: "2-3x weekly", timing: "e.g., Mon / Wed / Fri"),
+                DosingPhase(phase: "Acute Infection", dose: "1.5 mg", frequency: "Daily", timing: "For 2-4 weeks"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. Rotate sites.",
+            discontinuationProtocol: "Can be stopped without taper.",
+            communityConsensus: [
+                "Unique immune modulator — safe for autoimmune conditions because it balances rather than just stimulates.",
+                "Herxheimer reaction is expected when treating chronic infections.",
+                "Used extensively by functional medicine doctors for Lyme, EBV, and mold toxicity.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Immunosuppressants", riskLevel: "High", details: "TA1 stimulates immune function, counteracting immunosuppressive drugs."),
+            ],
+            womenConsiderations: [
+                "Well tolerated by women. No hormonal effects. Commonly used in female autoimmune protocols.",
+            ],
+            legalStatus: [
+                "US: FDA Orphan Drug status as Zadaxin. Available via compounding pharmacies and as research chemical.",
+                "Approved in 35+ countries for viral hepatitis and as a vaccine adjuvant.",
+            ],
+            costInfo: "Research Chemical Vendors: ~$30-$50 per 10mg vial.",
+            deepDive: "Thymosin Alpha-1 is a 28-amino acid peptide (MW 3,108 Da) originally isolated from thymic tissue by Goldstein in 1977. It acts primarily on dendritic cells and T-lymphocytes through Toll-like receptors (TLR2, TLR9), activating both innate and adaptive immune responses.\n\nKey mechanisms:\n1. T-cell maturation: Promotes differentiation of immature thymocytes into functional T-cells\n2. NK cell activation: Enhances natural killer cell cytotoxicity\n3. Dendritic cell modulation: Improves antigen presentation\n4. Cytokine balancing: Promotes Th1/Th2 balance rather than pure stimulation\n\nGaraci et al. (2012) reviewed decades of clinical data showing efficacy in viral hepatitis, HIV adjunct therapy, and as a vaccine adjuvant. Its immune-modulating rather than purely stimulating nature makes it uniquely safe for autoimmune conditions.",
+            faq: [
+                FAQItem(question: "Is it safe for autoimmune conditions?", answer: "Yes. Unlike pure immune stimulators, TA1 is an immune modulator that balances the response. It can calm overactive immune responses while strengthening underactive ones."),
+                FAQItem(question: "What is a Herxheimer reaction?", answer: "When TA1 activates your immune system against a chronic infection (Lyme, EBV), the dying pathogens release toxins. This temporarily makes you feel worse (fatigue, flu-like symptoms, brain fog) before you feel better. It's actually a sign the treatment is working."),
+            ],
+            references: [
+                "Garaci, E., et al. (2012). Thymosin alpha 1: from bench to bedside. Annals of the New York Academy of Sciences.",
+            ]
         ),
         CompoundProfile(
             name: "LL-37",
@@ -730,7 +1321,38 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "Thymosin Alpha-1", purpose: "Ultimate Infection Protocol", notes: "Ta1 boosts T-cells; LL-37 breaks biofilms and kills pathogens"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Injection site pain", "Herxheimer reaction (flu-like symptoms, fatigue, brain fog)"], uncommon: ["Nausea", "Mild fever"], rare: ["Autoimmune flare-up (theoretical)"], contraindications: ["Severe autoimmune disease (without physician supervision)"])
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site pain", "Herxheimer reaction (flu-like symptoms, fatigue, brain fog)"], uncommon: ["Nausea", "Mild fever"], rare: ["Autoimmune flare-up (theoretical)"], contraindications: ["Severe autoimmune disease (without physician supervision)"]),
+            subtitle: "The Antimicrobial Biofilm Breaker",
+            whatIsIt: "LL-37 is a naturally occurring human antimicrobial peptide (cathelicidin) that disrupts cell membranes of bacteria, viruses, and fungi, causing them to burst. It also neutralizes bacterial endotoxins (LPS) and breaks down biofilms — the protective shields bacteria build around themselves.",
+            howItWorks: "Imagine bacteria hiding behind a fortress wall (biofilm). LL-37 acts like a battering ram — it smashes through the biofilm, then punctures holes in the bacteria's cell membranes, causing them to pop like balloons. It also mops up the toxic debris (endotoxins) that dying bacteria release.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Day 1-7", description: "Possible severe Herxheimer/die-off reaction as biofilms break and pathogens die."),
+                TimelineEntry(timeframe: "Week 2-4", description: "Die-off symptoms subside. Infection symptoms improving."),
+                TimelineEntry(timeframe: "Week 4-8", description: "Significant pathogen clearance. Improved gut health."),
+            ],
+            watchOut: "Notorious for causing severe Herxheimer (die-off) reactions. As it breaks down biofilms and kills bacteria, endotoxins are released. Start at a very low dose (50-100 mcg) and titrate up slowly. Use binders (activated charcoal, zeolite) to mop up toxins.",
+            dosingSchedule: [
+                DosingPhase(phase: "Start Low", dose: "50-100 mcg", frequency: "Once daily", timing: "Any time"),
+                DosingPhase(phase: "Standard", dose: "200 mcg", frequency: "Once daily", timing: "Any time"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen.",
+            discontinuationProtocol: "Can be stopped after infection clears. No taper needed.",
+            communityConsensus: [
+                "Start very low and titrate up — die-off reactions can be severe.",
+                "Use binders (activated charcoal, zeolite) away from meals to reduce die-off symptoms.",
+                "Often stacked with Thymosin Alpha-1 for the ultimate infection-fighting protocol.",
+            ],
+            legalStatus: [
+                "US: Available as a research chemical.",
+            ],
+            costInfo: "Research Chemical Vendors: ~$40-$60 per 5mg vial.",
+            deepDive: "LL-37 (leucine-leucine-37) is a 37-amino acid peptide derived from the cathelicidin precursor protein hCAP-18. It is the only cathelicidin found in humans and serves as a critical component of innate immunity.\n\nVandamme et al. (2012) detailed its mechanisms:\n1. Membrane disruption: LL-37 inserts into bacterial membranes via its amphipathic alpha-helical structure\n2. Biofilm disruption: Prevents biofilm formation and degrades existing biofilms\n3. LPS neutralization: Binds and neutralizes bacterial endotoxins\n4. Immune modulation: Recruits immune cells to infection sites via chemotaxis",
+            faq: [
+                FAQItem(question: "Why is the die-off reaction so bad?", answer: "LL-37 is extremely effective at breaking biofilms. When biofilms shatter, the bacteria hiding inside are suddenly exposed and killed. Their death releases endotoxins (LPS) into your bloodstream, causing temporary flu-like symptoms. This is why starting low and using binders is critical."),
+            ],
+            references: [
+                "Vandamme, D., et al. (2012). A comprehensive summary of LL-37, the factotum human cathelicidin peptide. Cellular Immunology.",
+            ]
         ),
         CompoundProfile(
             name: "Pentadecapeptide (BPC-157 Arginate)",
@@ -780,7 +1402,39 @@ enum CompoundDatabase {
             ],
             detailedSideEffects: DetailedSideEffects(common: ["Mild changes in bowel habits"], uncommon: ["Lethargy", "Mild headache"], rare: ["Potential promotion of existing tumor angiogenesis (theoretical)"], contraindications: ["Active cancer"]),
             isWADAProhibited: true,
-            wadaCategory: "S2 Peptide Hormones"
+            wadaCategory: "S2 Peptide Hormones",
+            subtitle: "The Oral Healing Peptide (No Injections Needed)",
+            whatIsIt: "BPC-157 Arginate (PDA) is an advanced, highly stable analog of BPC-157 bound to an arginate salt instead of the standard acetate. This dramatically increases oral bioavailability from <3% to >90%, allowing powerful systemic and GI healing effects when taken orally without injections.",
+            howItWorks: "Standard BPC-157 Acetate is destroyed by stomach acid before it can be absorbed. The Arginate salt protects the peptide from acid degradation and allows it to pass through the stomach intact. Once in the intestines, it coats the mucosal lining and repairs tight junctions between cells — the root cause of 'leaky gut.'",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Reduced gut inflammation. Improved digestion."),
+                TimelineEntry(timeframe: "Week 2-4", description: "Significant GI symptom improvement. Reduced food sensitivities."),
+                TimelineEntry(timeframe: "Week 4-8", description: "Major gut healing. Many users report resolution of chronic GI issues."),
+            ],
+            watchOut: "You MUST ensure it is the Arginate (PDA) form. Standard BPC-157 Acetate is destroyed by stomach acid before absorption. Always take on an empty stomach.",
+            dosingSchedule: [
+                DosingPhase(phase: "Standard", dose: "250-500 mcg", frequency: "1-2x daily", timing: "Fasted, morning"),
+            ],
+            injectionSiteGuide: "N/A — taken orally. No injection needed. Always take on an empty stomach.",
+            discontinuationProtocol: "Can be stopped once gut has healed. No taper needed.",
+            communityConsensus: [
+                "Must be the Arginate form — standard Acetate is useless orally.",
+                "Many users report oral PDA is just as effective as injectable BPC-157 for systemic joint and tendon pain.",
+                "Take on an empty stomach to maximize absorption and allow it to coat the gastric lining.",
+            ],
+            legalStatus: [
+                "US: Available as a research chemical.",
+                "WADA: Banned under S2 (Peptide Hormones).",
+            ],
+            costInfo: "Research Chemical Vendors: ~$40-$70 per bottle of capsules.",
+            deepDive: "BPC-157 Arginate (Pentadecapeptide Arginate / PDA) is the same 15-amino acid BPC-157 sequence bound to an L-arginine salt instead of acetate. Sikiric et al. demonstrated that the arginate salt form shows dramatically enhanced stability in gastric juice (pH 1-3), allowing oral bioavailability exceeding 90% versus <3% for the acetate form.\n\nThe arginate form likely provides dual benefits: the BPC-157 peptide itself repairs mucosal tissue, while the L-arginine component supports nitric oxide production for enhanced blood flow to healing tissues.",
+            faq: [
+                FAQItem(question: "Can I use regular BPC-157 Acetate orally?", answer: "No. Standard BPC-157 Acetate is almost completely destroyed by stomach acid. You must use the Arginate (PDA) form for oral administration. The Acetate form is only effective when injected."),
+                FAQItem(question: "Is oral PDA as effective as injectable BPC-157?", answer: "For gut issues, oral PDA is more effective because it delivers directly to the GI lining. For systemic injuries, many users report comparable results, though injectable allows targeting specific injury sites."),
+            ],
+            references: [
+                "Sikiric, P., et al. (various). Demonstrated the enhanced stability and efficacy of the arginate salt form of BPC-157 in gastric juice.",
+            ]
         ),
 
         // MARK: - Category 3: Fat Loss & Metabolic
@@ -837,7 +1491,74 @@ enum CompoundDatabase {
                 StackDetail(partner: "BPC-157", purpose: "Nausea mitigation", notes: "BPC-157 can help soothe the gastric distress caused by GLP-1s"),
                 StackDetail(partner: "CJC-1295/Ipamorelin", purpose: "Muscle preservation", notes: "Helps prevent muscle wasting from rapid weight loss"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Vomiting", "Diarrhea", "Constipation", "Fatigue"], uncommon: ["Acid reflux", "Dizziness", "Hair loss (rapid weight loss)"], rare: ["Pancreatitis", "Gallbladder disease", "Gastroparesis (stomach paralysis)"], contraindications: ["Personal or family history of Medullary Thyroid Carcinoma (MTC)", "Multiple Endocrine Neoplasia syndrome type 2 (MEN 2)"])
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Vomiting", "Diarrhea", "Constipation", "Fatigue"], uncommon: ["Acid reflux", "Dizziness", "Hair loss (rapid weight loss)"], rare: ["Pancreatitis", "Gallbladder disease", "Gastroparesis (stomach paralysis)"], contraindications: ["Personal or family history of Medullary Thyroid Carcinoma (MTC)", "Multiple Endocrine Neoplasia syndrome type 2 (MEN 2)"]),
+            subtitle: "The FDA-Approved Weight Loss Revolution",
+            whatIsIt: "Semaglutide is an FDA-approved GLP-1 receptor agonist marketed as Ozempic (diabetes) and Wegovy (weight loss). It acts on GLP-1 receptors in the brain to drastically reduce appetite and slows gastric emptying. The STEP clinical trials demonstrated approximately 15% average weight loss over 68 weeks, making it one of the most effective weight loss medications ever approved.",
+            howItWorks: "After you eat, your gut releases a hormone called GLP-1 that tells your brain you're full. Semaglutide is a super-powered, long-lasting version of that hormone. It binds to the same receptors in your brain but stays active for a full week instead of minutes. Your brain constantly receives the 'I'm full' signal, dramatically reducing appetite. It also slows how fast food leaves your stomach, keeping you feeling satisfied longer.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-4", description: "Noticeable appetite reduction. Possible nausea as body adjusts. Starting dose is very low."),
+                TimelineEntry(timeframe: "Month 2-3", description: "Significant appetite suppression. Steady weight loss of 1-2 lbs per week. Nausea typically improving."),
+                TimelineEntry(timeframe: "Month 6+", description: "Major weight loss (10-15%+ of body weight). Body composition changes visible."),
+            ],
+            watchOut: "The titration schedule is NOT a suggestion — it is mandatory. Jumping to a high dose will result in severe, debilitating nausea. Eat small, frequent, high-protein meals. 'Ozempic Face' and muscle loss are common — prioritize protein intake and resistance training.",
+            beforeYouStart: [
+                "Get baseline bloodwork: HbA1c, Lipase/Amylase, Thyroid Panel.",
+                "Commit to a high-protein diet (1.2g per lb of lean body mass).",
+                "Start a resistance training program to prevent muscle loss.",
+                "Purchase supplies: Insulin syringes, Bacteriostatic Water, Alcohol Swabs.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Month 1", dose: "0.25 mg", frequency: "Once weekly", timing: "Same day each week"),
+                DosingPhase(phase: "Month 2", dose: "0.5 mg", frequency: "Once weekly", timing: "Same day each week"),
+                DosingPhase(phase: "Month 3", dose: "1.0 mg", frequency: "Once weekly", timing: "Same day each week"),
+                DosingPhase(phase: "Month 4+ (Max)", dose: "1.7-2.4 mg", frequency: "Once weekly", timing: "Titrate up as tolerated"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen, thigh, or upper arm. Rotate injection sites weekly.",
+            discontinuationProtocol: "Gradual taper recommended to prevent rapid weight regain. Many users regain weight after stopping without maintained lifestyle changes.",
+            communityConsensus: [
+                "The titration schedule is mandatory — jumping doses causes severe nausea.",
+                "Eat small, frequent, high-protein meals. Large/heavy/fatty meals cause significant GI distress.",
+                "'Ozempic Face' and muscle loss are real — prioritize protein and resistance training.",
+                "Many users split their dose (half every 3.5 days) for more stable levels.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Oral Medications", riskLevel: "Moderate", details: "Delayed gastric emptying can affect absorption timing of oral medications."),
+                DrugInteraction(substance: "Insulin/Sulfonylureas", riskLevel: "High", details: "Risk of hypoglycemia. Dose reduction of diabetes medications may be needed."),
+            ],
+            sideEffectManagement: [
+                "Nausea: Eat small, bland meals. Ginger tea or Zofran can help. Usually improves after 2-4 weeks.",
+                "Constipation: Increase fiber and water intake. Magnesium citrate if needed.",
+                "Hair Loss: Usually from rapid weight loss, not the drug itself. Ensure adequate protein and biotin.",
+            ],
+            womenConsiderations: [
+                "May affect birth control absorption due to delayed gastric emptying. Use backup contraception.",
+                "Not approved during pregnancy or breastfeeding.",
+            ],
+            trainingGuide: [
+                "Resistance training is CRITICAL to prevent muscle wasting during rapid weight loss.",
+                "Aim for 3-4 strength training sessions per week.",
+                "Prioritize protein intake — 1.2g per lb of lean body mass.",
+            ],
+            legalStatus: [
+                "US: FDA approved as Ozempic (diabetes) and Wegovy (weight loss). Also available via compounding pharmacies.",
+                "WADA: Not currently banned.",
+            ],
+            costInfo: "Brand name: $800-$1,300/month. Compounding pharmacies: ~$150-$300/month. Research chemical: ~$50-$100 per vial.",
+            comparisons: [
+                CompoundComparison(feature: "Receptors", values: ["Semaglutide": "GLP-1 (Single)", "Tirzepatide": "GLP-1 + GIP (Dual)", "Retatrutide": "GLP-1 + GIP + Glucagon (Triple)"]),
+                CompoundComparison(feature: "Weight Loss", values: ["Semaglutide": "~15%", "Tirzepatide": "~20-25%", "Retatrutide": "~25-30%"]),
+                CompoundComparison(feature: "FDA Status", values: ["Semaglutide": "Approved", "Tirzepatide": "Approved", "Retatrutide": "Phase 3 Trials"]),
+            ],
+            deepDive: "Semaglutide is a 31-amino acid peptide analog of human GLP-1(7-37) with 94% homology to native GLP-1. Key modifications include an Aib substitution at position 8 (DPP-4 resistance) and a C18 fatty diacid chain attached via a linker at Lys26, enabling albumin binding and extending the half-life to ~7 days.\n\nThe STEP clinical trial program demonstrated:\n- STEP 1: 14.9% weight loss vs 2.4% placebo over 68 weeks\n- STEP 2 (T2DM): 9.6% weight loss\n- STEP 3 (with behavioral therapy): 16.0% weight loss\n- STEP 4 (withdrawal study): Showed significant weight regain after stopping\n\nSELECT cardiovascular outcomes trial demonstrated 20% reduction in major adverse cardiovascular events, leading to expanded FDA indication.",
+            faq: [
+                FAQItem(question: "Will I regain weight after stopping?", answer: "Studies show significant weight regain after discontinuation without maintained lifestyle changes. Many physicians recommend long-term or indefinite use, combined with exercise and diet changes."),
+                FAQItem(question: "What is 'Ozempic Face'?", answer: "Rapid weight loss can cause facial fat loss, making the face look gaunt or aged. This is from the weight loss itself, not a direct drug side effect. Adequate protein intake and slower weight loss can minimize this."),
+                FAQItem(question: "Can I drink alcohol?", answer: "Alcohol is not contraindicated but may worsen nausea and GI side effects. Many users report significantly reduced alcohol tolerance and desire."),
+            ],
+            references: [
+                "Wilding, J. P. H., et al. (2021). Once-Weekly Semaglutide in Adults with Overweight or Obesity. NEJM (STEP 1).",
+                "Lincoff, A. M., et al. (2023). Semaglutide and Cardiovascular Outcomes in Obesity without Diabetes. NEJM (SELECT).",
+            ]
         ),
         CompoundProfile(
             name: "Tirzepatide",
@@ -888,7 +1609,67 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "Tesamorelin", purpose: "Body Recomposition", notes: "Tirzepatide drops overall weight; Tesamorelin targets visceral fat and preserves muscle"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Diarrhea", "Decreased appetite", "Fatigue"], uncommon: ["Injection site reactions", "Constipation"], rare: ["Pancreatitis", "Gallbladder disease"], contraindications: ["Personal or family history of MTC", "MEN 2"])
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Diarrhea", "Decreased appetite", "Fatigue"], uncommon: ["Injection site reactions", "Constipation"], rare: ["Pancreatitis", "Gallbladder disease"], contraindications: ["Personal or family history of MTC", "MEN 2"]),
+            subtitle: "The Dual-Action Weight Loss Powerhouse",
+            whatIsIt: "Tirzepatide is a 'twincretin' that activates both GLP-1 and GIP receptors simultaneously. The GIP agonism synergistically enhances appetite suppression while reducing nausea compared to pure GLP-1 agonists like Semaglutide. It is currently the most powerful FDA-approved weight-loss medication, with SURMOUNT trials showing up to 22.5% body weight loss over 72 weeks.",
+            howItWorks: "Semaglutide opens one door to appetite suppression (GLP-1). Tirzepatide opens two doors (GLP-1 and GIP). The GIP receptor adds a second pathway for appetite control and actually helps reduce the nausea that GLP-1 alone causes. It's like having two brakes instead of one — you stop faster and more smoothly.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Month 1", description: "Moderate appetite reduction at starting dose. Less nausea than Semaglutide for most."),
+                TimelineEntry(timeframe: "Month 2-3", description: "Significant weight loss as dose increases. Rapid changes in body composition."),
+                TimelineEntry(timeframe: "Month 6+", description: "Major weight loss (20%+ of body weight in trials). Dramatic body transformation."),
+            ],
+            watchOut: "Muscle loss is a severe risk due to profound appetite suppression. Tracking protein macros is essential. The titration schedule must be followed — increase by 2.5 mg every 4 weeks.",
+            beforeYouStart: [
+                "Get baseline bloodwork: HbA1c, Lipase/Amylase.",
+                "Commit to high protein intake and resistance training.",
+                "Purchase injection supplies.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Month 1", dose: "2.5 mg", frequency: "Once weekly", timing: "Same day each week"),
+                DosingPhase(phase: "Month 2", dose: "5.0 mg", frequency: "Once weekly", timing: "Same day each week"),
+                DosingPhase(phase: "Month 3", dose: "7.5 mg", frequency: "Once weekly", timing: "Increase as tolerated"),
+                DosingPhase(phase: "Month 4+ (Max)", dose: "10-15 mg", frequency: "Once weekly", timing: "Titrate up by 2.5 mg every 4 weeks"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen, thigh, or upper arm. Rotate weekly.",
+            discontinuationProtocol: "Gradual taper recommended. Weight regain likely without lifestyle changes.",
+            communityConsensus: [
+                "Generally milder nausea than Semaglutide despite causing more weight loss.",
+                "Some users split their dose (half every 3.5 days) for more stable blood levels.",
+                "Muscle loss is a severe risk — tracking protein macros is essential.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Oral Medications", riskLevel: "Moderate", details: "Delayed gastric emptying affects oral drug absorption."),
+                DrugInteraction(substance: "Insulin", riskLevel: "High", details: "Risk of hypoglycemia. Dose adjustment may be needed."),
+            ],
+            sideEffectManagement: [
+                "Nausea: Usually milder than Semaglutide. Small, frequent meals help.",
+                "Constipation: Increase fiber and water intake.",
+            ],
+            womenConsiderations: [
+                "Same considerations as Semaglutide. May affect oral contraceptive absorption.",
+                "Not approved during pregnancy.",
+            ],
+            trainingGuide: [
+                "Resistance training is mandatory to prevent muscle wasting.",
+                "Protein intake of 1.2g per lb of lean body mass.",
+            ],
+            legalStatus: [
+                "US: FDA approved as Mounjaro (diabetes) and Zepbound (weight loss).",
+            ],
+            costInfo: "Brand name: $800-$1,100/month. Compounding pharmacies: ~$200-$400/month.",
+            comparisons: [
+                CompoundComparison(feature: "Receptors", values: ["Tirzepatide": "GLP-1 + GIP (Dual)", "Semaglutide": "GLP-1 (Single)", "Retatrutide": "GLP-1 + GIP + Glucagon (Triple)"]),
+                CompoundComparison(feature: "Weight Loss", values: ["Tirzepatide": "~20-25%", "Semaglutide": "~15%", "Retatrutide": "~25-30%"]),
+                CompoundComparison(feature: "Nausea", values: ["Tirzepatide": "Less common", "Semaglutide": "More common", "Retatrutide": "Variable"]),
+            ],
+            deepDive: "Tirzepatide is a 39-amino acid synthetic peptide that acts as a dual GIP/GLP-1 receptor agonist. It has 5x greater affinity for the GIP receptor than the GLP-1 receptor, which is believed to contribute to its superior efficacy and reduced nausea profile.\n\nSURMOUNT trial results:\n- SURMOUNT-1: 22.5% weight loss at highest dose (15 mg) over 72 weeks\n- SURMOUNT-2 (T2DM): 14.7% weight loss\n- 36% of participants on 15 mg achieved ≥25% weight loss\n\nThe GIP receptor activation provides additional metabolic benefits including improved insulin sensitivity and beta-cell function, while also modulating nausea pathways to reduce GI side effects compared to pure GLP-1 agonists.",
+            faq: [
+                FAQItem(question: "Is Tirzepatide better than Semaglutide?", answer: "Clinical trials show greater weight loss with Tirzepatide (20-25%) vs Semaglutide (15%), with generally milder nausea. However, individual responses vary, and Semaglutide has more long-term safety data."),
+                FAQItem(question: "Can I switch from Semaglutide to Tirzepatide?", answer: "Yes, many patients switch. Restart at the lowest Tirzepatide dose (2.5 mg) and titrate up, even if you were on a high dose of Semaglutide."),
+            ],
+            references: [
+                "Jastreboff, A. M., et al. (2022). Tirzepatide Once Weekly for the Treatment of Obesity. NEJM (SURMOUNT-1).",
+            ]
         ),
         CompoundProfile(
             name: "Retatrutide",
@@ -1078,7 +1859,40 @@ enum CompoundDatabase {
             ],
             detailedSideEffects: DetailedSideEffects(common: ["Mild injection site redness"], uncommon: ["Headache", "Mild indigestion"], rare: [], contraindications: ["Active cancer"]),
             isWADAProhibited: true,
-            wadaCategory: "S2 Peptide Hormones"
+            wadaCategory: "S2 Peptide Hormones",
+            subtitle: "The HGH Fat-Burning Fragment",
+            whatIsIt: "AOD-9604 is a modified fragment of the C-terminus of Human Growth Hormone (amino acids 177-191) that isolates the fat-burning (lipolytic) properties of HGH without stimulating IGF-1 or causing insulin resistance. It stimulates fat breakdown and inhibits fat formation, making it a safer alternative to full HGH for fat loss.",
+            howItWorks: "Full HGH does many things: builds muscle, burns fat, grows organs, and raises blood sugar. AOD-9604 is like cutting out just the 'burn fat' page from the HGH instruction manual. It tells fat cells to release their stored energy and prevents new fat from being stored, without any of the other HGH effects like insulin resistance or organ growth.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-4", description: "Subtle changes. Fat mobilization beginning but not yet visible."),
+                TimelineEntry(timeframe: "Week 4-12", description: "Gradual fat loss, particularly stubborn areas. Better body composition."),
+                TimelineEntry(timeframe: "Week 12-24", description: "Significant fat reduction with consistent use and proper diet."),
+            ],
+            watchOut: "Highly dependent on a fasted state. Injecting when insulin is elevated completely blunts its mechanism. Wait 45-60 minutes after injection before consuming calories.",
+            dosingSchedule: [
+                DosingPhase(phase: "Standard", dose: "250-300 mcg", frequency: "Once daily", timing: "Morning, fasted"),
+                DosingPhase(phase: "Advanced", dose: "250 mcg", frequency: "Twice daily", timing: "Morning fasted + pre-workout fasted"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. Rotate sites daily.",
+            discontinuationProtocol: "Can be stopped without taper.",
+            communityConsensus: [
+                "Must be injected fasted — insulin completely blocks its mechanism.",
+                "Does NOT increase IGF-1 — much safer for long-term fat loss.",
+                "Effects are subtle compared to GLP-1 agonists but carry far fewer side effects.",
+            ],
+            legalStatus: [
+                "US: Available as a research chemical.",
+                "WADA: Banned under S2.",
+            ],
+            costInfo: "Research Chemical Vendors: ~$25-$45 per 2mg vial.",
+            deepDive: "AOD-9604 (Advanced Obesity Drug) is a synthetic analog of the C-terminal fragment of human growth hormone (hGH177-191) with an additional tyrosine residue for stability. Stier et al. (2013) demonstrated that AOD-9604 stimulates lipolysis (fat breakdown) and inhibits lipogenesis (fat formation) through a mechanism distinct from the GH receptor — it does not activate JAK2/STAT5 signaling and therefore does not increase IGF-1.\n\nEmerging research also suggests cartilage-protective properties, with AOD-9604 showing potential for osteoarthritis treatment.",
+            faq: [
+                FAQItem(question: "Why must I be fasted?", answer: "AOD-9604's lipolytic mechanism is completely blocked by insulin. Even a small amount of carbohydrate intake raises insulin enough to negate the fat-burning effect. Fast for at least 2 hours before and 45-60 minutes after injection."),
+                FAQItem(question: "Is it as effective as Semaglutide for weight loss?", answer: "No. AOD-9604 provides modest, gradual fat loss through direct lipolysis. Semaglutide provides dramatic weight loss through appetite suppression. AOD-9604 is much milder but has virtually no side effects."),
+            ],
+            references: [
+                "Stier, H., et al. (2013). Safety and tolerability of the hexadecapeptide AOD9604 in humans. Journal of Endocrinology and Metabolism.",
+            ]
         ),
         CompoundProfile(
             name: "Cagrilintide",
@@ -1124,7 +1938,38 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "Semaglutide", purpose: "CagriSema Protocol", notes: "Attacks appetite from two completely different brain pathways"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Constipation", "Injection site reactions"], uncommon: ["Fatigue"], rare: ["Pancreatitis (theoretical)"], contraindications: ["Personal or family history of MTC"])
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Constipation", "Injection site reactions"], uncommon: ["Fatigue"], rare: ["Pancreatitis (theoretical)"], contraindications: ["Personal or family history of MTC"]),
+            subtitle: "The Hedonic Appetite Crusher",
+            whatIsIt: "Cagrilintide is a synthetic analog of amylin that acts on the brain's hedonic (reward) centers to induce profound satiety and reduce the desire to eat for pleasure. Unlike GLP-1 agonists that suppress hunger, Cagrilintide specifically targets the 'wanting' of food. Rarely used alone — almost exclusively stacked with Semaglutide ('CagriSema').",
+            howItWorks: "GLP-1 agonists like Semaglutide tell your brain 'you're full.' Cagrilintide goes further — it tells your brain 'you don't even want food.' It targets the reward centers that make you crave pizza, ice cream, and comfort food. By attacking appetite from two completely different brain pathways, CagriSema produces weight loss greater than either drug alone.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Month 1", description: "Reduced food cravings. Decreased desire for comfort eating."),
+                TimelineEntry(timeframe: "Month 2-3", description: "Significant appetite suppression from dual pathway. Steady weight loss."),
+                TimelineEntry(timeframe: "Month 6+", description: "Major weight loss with better muscle preservation than GLP-1 alone."),
+            ],
+            watchOut: "Rarely used alone — designed for combination with Semaglutide. Titration required.",
+            dosingSchedule: [
+                DosingPhase(phase: "Start", dose: "0.25 mg", frequency: "Once weekly", timing: "With Semaglutide"),
+                DosingPhase(phase: "Maintenance", dose: "1.0-2.4 mg", frequency: "Once weekly", timing: "Titrate every 4 weeks"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen, thigh, or upper arm.",
+            discontinuationProtocol: "Taper with physician guidance.",
+            communityConsensus: [
+                "Almost exclusively used with Semaglutide as 'CagriSema.'",
+                "Preserves lean muscle mass better than GLP-1 agonists alone.",
+                "Targets the 'wanting' of food, not just the 'fullness' signal.",
+            ],
+            legalStatus: [
+                "US: In Phase 3 clinical trials. Not yet FDA approved.",
+            ],
+            costInfo: "Not widely available commercially. Research chemical pricing varies.",
+            deepDive: "Cagrilintide is a long-acting acylated amylin analog with a half-life of approximately 7-8 days. Amylin is a peptide hormone co-secreted with insulin from pancreatic beta cells that acts on the area postrema and nucleus tractus solitarius in the brainstem to induce satiety.\n\nCagriSema Phase 3 trials demonstrated weight loss exceeding either Semaglutide or Cagrilintide alone, with evidence of better lean mass preservation due to amylin's distinct metabolic effects.",
+            faq: [
+                FAQItem(question: "Can I use Cagrilintide without Semaglutide?", answer: "It works alone but is significantly less effective. The combination targets two distinct appetite pathways for synergistic results."),
+            ],
+            references: [
+                "Novo Nordisk Phase 3 CagriSema trial data.",
+            ]
         ),
         CompoundProfile(
             name: "MOTS-c",
@@ -1174,7 +2019,39 @@ enum CompoundDatabase {
             ],
             detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction"], uncommon: ["Mild fatigue"], rare: [], contraindications: []),
             isWADAProhibited: true,
-            wadaCategory: "S4 Hormone and Metabolic Modulators"
+            wadaCategory: "S4 Hormone and Metabolic Modulators",
+            subtitle: "The Exercise Mimetic from Your Mitochondria",
+            whatIsIt: "MOTS-c is a peptide encoded by mitochondrial DNA (not nuclear DNA) that acts as an 'exercise mimetic' by activating AMPK — the same metabolic pathway activated by exercise. It increases cellular glucose uptake, improves insulin sensitivity, and shifts metabolism toward burning fatty acids.",
+            howItWorks: "When you exercise, your cells activate a protein called AMPK that tells them to burn fat for energy and take in more glucose. MOTS-c mimics this signal without the exercise. It's like your mitochondria sending a text message to the rest of the cell saying 'start burning fat and making energy' — the same message exercise sends, just delivered chemically.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Improved exercise endurance. Subtle metabolic shift."),
+                TimelineEntry(timeframe: "Week 2-4", description: "Enhanced fat oxidation during workouts. Better insulin sensitivity."),
+                TimelineEntry(timeframe: "Week 4-8", description: "Measurable improvements in metabolic markers and body composition."),
+            ],
+            watchOut: "Effects build over the cycle — don't expect immediate results. Best used pre-workout to maximize the metabolic shift.",
+            dosingSchedule: [
+                DosingPhase(phase: "Beginner", dose: "5 mg", frequency: "Once weekly", timing: "Pre-workout"),
+                DosingPhase(phase: "Advanced", dose: "10 mg", frequency: "Twice weekly", timing: "Pre-workout days"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen.",
+            discontinuationProtocol: "4-8 weeks on / 4 weeks off cycling.",
+            communityConsensus: [
+                "Best taken pre-workout to maximize the metabolic shift.",
+                "Acts as an 'exercise mimetic' — activates similar pathways to exercise.",
+                "Effects build over the cycle — be patient.",
+            ],
+            legalStatus: [
+                "US: Available as a research chemical.",
+                "WADA: Banned under S4 (Hormone and Metabolic Modulators).",
+            ],
+            costInfo: "Research Chemical Vendors: ~$50-$80 per 10mg vial.",
+            deepDive: "MOTS-c (Mitochondrial Open Reading Frame of the 12S rRNA Type-C) is a 16-amino acid peptide encoded by the mitochondrial genome. Lee et al. (2015) discovered that MOTS-c activates AMPK, the master metabolic switch, promoting glucose uptake via GLUT4 translocation, fatty acid oxidation, and mitochondrial biogenesis.\n\nUniquely, MOTS-c can translocate to the cell nucleus during metabolic stress, where it directly regulates gene expression related to antioxidant defense and metabolic adaptation. This nuclear function is unprecedented for a mitochondrially-encoded peptide.",
+            faq: [
+                FAQItem(question: "Does MOTS-c replace exercise?", answer: "No. It mimics some metabolic effects of exercise (AMPK activation, fat oxidation) but cannot replace the cardiovascular, musculoskeletal, and neurological benefits of actual exercise. It enhances exercise results rather than replacing it."),
+            ],
+            references: [
+                "Lee, C., et al. (2015). The Mitochondrial-Derived Peptide MOTS-c Promotes Metabolic Homeostasis and Reduces Obesity and Insulin Resistance. Cell Metabolism.",
+            ]
         ),
 
         // MARK: - Category 4: Cognitive & Nootropic
@@ -1224,7 +2101,40 @@ enum CompoundDatabase {
                 StackDetail(partner: "Selank", purpose: "Focus + Calm", notes: "Semax stimulates; Selank provides anxiolytic balance"),
                 StackDetail(partner: "Epithalon", purpose: "Brain + Longevity", notes: "Cognitive enhancement with telomere support"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Nasal irritation", "Overstimulation"], uncommon: ["Insomnia (if taken late)", "Hair loss (anecdotal, rare)"], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: ["Nasal irritation", "Overstimulation"], uncommon: ["Insomnia (if taken late)", "Hair loss (anecdotal, rare)"], rare: [], contraindications: []),
+            subtitle: "The Russian Focus & Memory Enhancer",
+            whatIsIt: "Semax is a synthetic ACTH fragment approved as a prescription drug in Russia for cognitive enhancement and neuroprotection. It rapidly increases BDNF and NGF in the hippocampus, enhancing focus, memory, and neural plasticity. Administered intranasally for direct brain delivery via the olfactory nerve.",
+            howItWorks: "Your brain has growth factors (BDNF, NGF) that help build new neural connections and strengthen existing ones. Semax dramatically increases production of these growth factors, essentially fertilizing your brain to grow new connections. The intranasal route bypasses the blood-brain barrier, delivering the peptide directly to the brain via the olfactory nerve.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Minutes 15-30", description: "Enhanced focus and mental clarity. Slight stimulating effect."),
+                TimelineEntry(timeframe: "Week 1-2", description: "Improved memory recall and sustained attention."),
+                TimelineEntry(timeframe: "Week 2-4", description: "Peak cognitive enhancement. Enhanced learning capacity."),
+            ],
+            watchOut: "Stimulating — do not take late in the day or insomnia may result. The N-Acetyl Semax Amidate version is preferred for increased potency and stability.",
+            dosingSchedule: [
+                DosingPhase(phase: "Beginner", dose: "200 mcg", frequency: "Once daily", timing: "Morning, intranasal"),
+                DosingPhase(phase: "Advanced", dose: "600 mcg", frequency: "Twice daily", timing: "Morning and early afternoon"),
+            ],
+            injectionSiteGuide: "N/A — Intranasal spray. No injection needed.",
+            discontinuationProtocol: "10-30 days on / 30 days off cycling. No taper needed.",
+            communityConsensus: [
+                "Stimulating — do not take late in the day.",
+                "N-Acetyl Semax Amidate version is preferred for potency and stability.",
+                "Often stacked with Selank for the classic Russian nootropic stack.",
+            ],
+            legalStatus: [
+                "Russia: Approved prescription drug.",
+                "US: Available as a research chemical. Not FDA approved.",
+            ],
+            costInfo: "Research Chemical Vendors: ~$30-$50 per nasal spray bottle.",
+            deepDive: "Semax is a synthetic heptapeptide analog of ACTH(4-10) (Met-Glu-His-Phe-Pro-Gly-Pro). Developed at the Institute of Molecular Genetics of the Russian Academy of Sciences, it has been used clinically in Russia since the 1990s.\n\nIt increases BDNF expression in the hippocampus by 3-4x within hours of administration, promoting synaptic plasticity, long-term potentiation, and neurogenesis. It also modulates dopaminergic and serotonergic neurotransmission, contributing to its focus-enhancing and mood-stabilizing effects.",
+            faq: [
+                FAQItem(question: "Will it keep me awake at night?", answer: "If taken after 2-3 PM, yes. Semax is stimulating and should only be taken in the morning or early afternoon."),
+                FAQItem(question: "What's the difference between regular Semax and N-Acetyl Semax Amidate?", answer: "NASA (N-Acetyl Semax Amidate) has additional chemical modifications that increase potency, extend duration, and improve stability. It's the preferred version among experienced users."),
+            ],
+            references: [
+                "Ashmarin, I. P., et al. Various publications on Semax cognitive enhancement. Russian Academy of Sciences.",
+            ]
         ),
         CompoundProfile(
             name: "Selank",
@@ -1269,7 +2179,39 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "Semax", purpose: "Focus + Calm", notes: "The classic Russian nootropic stack — Semax for focus, Selank for calm"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Mild nasal irritation"], uncommon: ["Mild fatigue (if dose too high)"], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: ["Mild nasal irritation"], uncommon: ["Mild fatigue (if dose too high)"], rare: [], contraindications: []),
+            subtitle: "The Anxiety Eraser Without Sedation",
+            whatIsIt: "Selank is a synthetic analog of tuftsin that provides profound anxiolytic (anti-anxiety) effects by modulating GABA receptors and increasing serotonin metabolism. Unlike benzodiazepines, it does not cause sedation, cognitive impairment, or addiction. It provides 'clean calm' — removes anxiety without making you feel drugged or sleepy.",
+            howItWorks: "Benzodiazepines (Xanax, Valium) work by flooding GABA receptors, which calms anxiety but also sedates you and impairs thinking. Selank takes a more elegant approach — it gently modulates GABA and serotonin to find the optimal balance between calm and alert. It's like turning down the volume on anxiety without turning off your brain.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Minutes 15-30", description: "Noticeable reduction in anxiety. Feeling of calm clarity."),
+                TimelineEntry(timeframe: "Week 1-2", description: "Sustained mood improvement. Better stress resilience."),
+                TimelineEntry(timeframe: "Week 2-4", description: "Significant anxiety reduction. Improved social confidence."),
+            ],
+            watchOut: "Very mild side effect profile. No addiction potential, no cognitive impairment, no withdrawal symptoms. Effective acutely before stressful situations.",
+            dosingSchedule: [
+                DosingPhase(phase: "Standard", dose: "200-400 mcg", frequency: "1-2x daily", timing: "Morning or as needed"),
+            ],
+            injectionSiteGuide: "N/A — Intranasal spray.",
+            discontinuationProtocol: "10-30 days on / 30 days off. No withdrawal symptoms.",
+            communityConsensus: [
+                "Provides 'clean calm' without sedation or cognitive impairment.",
+                "No addiction potential — can be used as needed.",
+                "Classic stack: Semax in the morning for focus, Selank for calm throughout the day.",
+            ],
+            legalStatus: [
+                "Russia: Approved prescription drug.",
+                "US: Available as a research chemical.",
+            ],
+            costInfo: "Research Chemical Vendors: ~$30-$50 per nasal spray bottle.",
+            deepDive: "Selank is a synthetic analog of the immunomodulatory peptide tuftsin (Thr-Lys-Pro-Arg) with an additional Pro-Gly-Pro sequence. Developed at the Institute of Molecular Genetics in Russia, it modulates GABAergic neurotransmission and enhances serotonin metabolism in the brain.\n\nSeredenin et al. demonstrated anxiolytic effects comparable to benzodiazepines in clinical settings, without the sedation, cognitive impairment, or addiction potential. It also has mild immunomodulatory properties inherited from its tuftsin parent structure.",
+            faq: [
+                FAQItem(question: "Can I use it before a presentation or interview?", answer: "Yes. Selank works acutely — a single dose 15-30 minutes before a stressful event provides noticeable anxiety relief without sedation."),
+                FAQItem(question: "Is it addictive like benzos?", answer: "No. Selank has zero addiction potential, no withdrawal symptoms, and no cognitive impairment. It is fundamentally different from benzodiazepines."),
+            ],
+            references: [
+                "Seredenin, S. B., et al. Russian clinical data on Selank anxiolytic effects.",
+            ]
         ),
         CompoundProfile(
             name: "Dihexa",
@@ -1316,7 +2258,20 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "Cerebrolysin", purpose: "Neuro-regeneration", notes: "Both promote neuronal growth through different mechanisms"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Overstimulation", "Jitteriness"], uncommon: ["Insomnia", "Brain fog (if dose too high)"], rare: ["Potential tumor promotion via c-Met pathway"], contraindications: ["Active malignancy (any cancer)", "History of cancer"])
+            detailedSideEffects: DetailedSideEffects(common: ["Overstimulation", "Jitteriness"], uncommon: ["Insomnia", "Brain fog (if dose too high)"], rare: ["Potential tumor promotion via c-Met pathway"], contraindications: ["Active malignancy (any cancer)", "History of cancer"]),
+            subtitle: "The Most Potent Synaptogenesis Compound",
+            whatIsIt: "Dihexa is an incredibly potent metabolically stable analog of Angiotensin IV that triggers massive synaptogenesis (new synapse formation). It is orders of magnitude more potent than BDNF at promoting dendritic spine growth. Extremely experimental with no human clinical trials.",
+            howItWorks: "Your brain forms memories and learns by creating connections (synapses) between neurons. Dihexa supercharges this process by activating the HGF/c-Met pathway, which promotes dendritic spine growth at rates far exceeding anything else known. It's like giving your brain's wiring crew a massive speed boost.",
+            watchOut: "Activates c-Met pathway — NEVER use with active malignancies. Has a 12.6-day half-life, meaning it accumulates rapidly. Start with very low doses. Cognitive effects build over weeks.",
+            legalStatus: ["US: Available as a research chemical. No FDA approval or human trials."],
+            costInfo: "Research Chemical Vendors: ~$40-$80 per bottle.",
+            deepDive: "Dihexa (N-hexanoic-Tyr-Ile-(6) aminohexanoic amide) is a metabolically stable analog of Angiotensin IV. McCoy et al. (2013) showed it restores cognitive function in animal models of dementia by activating the hepatocyte growth factor (HGF)/c-Met receptor system, promoting dendritic spine growth and synaptogenesis at picomolar concentrations — orders of magnitude more potent than BDNF.\n\nThe c-Met pathway concern is significant: HGF/c-Met signaling is a known oncogenic pathway. While no tumor promotion has been observed in animal studies at therapeutic doses, the theoretical risk mandates absolute contraindication in anyone with active or recent cancer.",
+            faq: [
+                FAQItem(question: "Is Dihexa safe?", answer: "Unknown. There are zero human clinical trials. The c-Met pathway activation is a legitimate safety concern for cancer risk. This is one of the most experimental compounds available."),
+            ],
+            references: [
+                "McCoy, A. T., et al. (2013). Evaluation of metabolically stabilized angiotensin IV analogs as procognitive/antidementia agents. JPET.",
+            ]
         ),
         CompoundProfile(
             name: "Cerebrolysin",
@@ -1362,7 +2317,17 @@ enum CompoundDatabase {
                 StackDetail(partner: "Cortagen", purpose: "Cerebral cortex repair", notes: "Both target neuronal regeneration"),
                 StackDetail(partner: "Pinealon", purpose: "Brain bioregulation", notes: "Complementary neuroprotective mechanisms"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Injection site pain (large volume)"], uncommon: ["Mild fever", "Agitation", "Dizziness"], rare: ["Allergic reaction (porcine-derived)"], contraindications: ["Epilepsy", "Severe renal insufficiency"])
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site pain (large volume)"], uncommon: ["Mild fever", "Agitation", "Dizziness"], rare: ["Allergic reaction (porcine-derived)"], contraindications: ["Epilepsy", "Severe renal insufficiency"]),
+            subtitle: "The Clinical-Grade Brain Healer",
+            whatIsIt: "Cerebrolysin is a purified mixture of low-molecular-weight peptides and amino acids derived from pig brains. It mimics endogenous neurotrophic factors (BDNF, GDNF, NGF) and is approved as a prescription drug in 50+ countries for stroke, TBI, and dementia.",
+            howItWorks: "Your brain heals using growth factors that tell damaged neurons to repair themselves. Cerebrolysin is a concentrated mixture of these exact growth factors, extracted and purified from pig brains. Injecting it delivers a flood of repair signals directly to your damaged neural tissue.",
+            watchOut: "Requires large IM injection volumes (2-5 mL) — too much for SubQ. Must use a filter needle from glass ampoules to prevent glass shards.",
+            legalStatus: ["Approved in 50+ countries. Not FDA approved in the US."],
+            costInfo: "~$50-$150 per box of ampoules depending on source.",
+            deepDive: "Cerebrolysin is a standardized mixture of peptides and amino acids (MW <10 kDa) produced by controlled enzymatic proteolysis of purified pig brain proteins. It contains neurotrophic factor-like peptides that mimic BDNF, GDNF, CNTF, and NGF activity.\n\nMultiple clinical trials across Europe and Asia have demonstrated efficacy in acute ischemic stroke, traumatic brain injury, and vascular dementia, with improvements in cognitive function scores and neurological outcomes.",
+            references: [
+                "Multiple clinical trials for stroke and TBI published in Stroke, Journal of Neural Transmission, and other journals.",
+            ]
         ),
         CompoundProfile(
             name: "Pinealon",
@@ -1406,7 +2371,17 @@ enum CompoundDatabase {
                 StackDetail(partner: "Cortagen", purpose: "Cerebral cortex repair", notes: "Complementary brain bioregulators"),
                 StackDetail(partner: "Semax", purpose: "Cognitive enhancement", notes: "Acute cognitive boost + long-term protection"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild headache"], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild headache"], rare: [], contraindications: []),
+            subtitle: "The Brain Bioregulator",
+            whatIsIt: "Pinealon is a synthetic tripeptide (Glu-Asp-Arg) from the Khavinson bioregulator family that penetrates cell nuclei to bind gene promoter regions, stimulating protein synthesis in brain cells. Effects are epigenetic — benefits build over the cycle and persist for months after stopping.",
+            howItWorks: "Pinealon enters your brain cells, goes directly to the nucleus, and turns on genes responsible for making protective proteins. It's like sending a memo to the factory floor saying 'start making brain repair parts.' The epigenetic effects mean these gene changes persist long after you stop taking it.",
+            watchOut: "Very safe with minimal side effects. Oral capsules are effective, avoiding need for injections.",
+            legalStatus: ["US: Available as a research chemical."],
+            costInfo: "~$30-$50 per bottle of capsules.",
+            deepDive: "Pinealon (Glu-Asp-Arg) is a Khavinson bioregulator that penetrates cell membranes and nuclear envelopes to interact directly with DNA promoter regions. Khavinson et al. demonstrated neuroprotective effects including protection from oxidative stress and hypoxia-induced damage in neuronal cultures.\n\nThe epigenetic mechanism means short treatment courses (10-30 days) produce lasting changes in gene expression that persist for 3-6 months.",
+            references: [
+                "Khavinson, V. Kh., et al. Short peptides modulate the effect of endonucleases of wheat seedling chromatin. Doklady Biochemistry and Biophysics.",
+            ]
         ),
         CompoundProfile(
             name: "Cortagen",
@@ -1449,7 +2424,17 @@ enum CompoundDatabase {
                 StackDetail(partner: "Pinealon", purpose: "Brain bioregulation", notes: "Complementary mechanisms for neuronal protection"),
                 StackDetail(partner: "Cerebrolysin", purpose: "Neuro-recovery", notes: "Combines bioregulation with neurotrophic factors"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild fatigue (first few days)"], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild fatigue (first few days)"], rare: [], contraindications: []),
+            subtitle: "The Cerebral Cortex Rebuilder",
+            whatIsIt: "Cortagen is a synthetic tetrapeptide (Ala-Glu-Asp-Pro) bioregulator targeting the cerebral cortex. It interacts directly with DNA to stimulate repair and regeneration of cortical neurons. Run for 10-20 days; brain-healing benefits last up to 6 months.",
+            howItWorks: "Like Pinealon, Cortagen is a Khavinson bioregulator that enters brain cells and interacts directly with DNA. But Cortagen specifically targets the cerebral cortex — the outer layer of your brain responsible for higher thinking, learning, and decision-making. It triggers repair and regeneration of cortical neurons.",
+            watchOut: "Very safe. Part of the Khavinson bioregulator family — designed for short, infrequent cycles.",
+            legalStatus: ["US: Available as a research chemical."],
+            costInfo: "~$30-$50 per 10mg vial.",
+            deepDive: "Cortagen (Ala-Glu-Asp-Pro) is a synthetic tetrapeptide bioregulator targeting the cerebral cortex. Khavinson et al. demonstrated pronounced antioxidant effects and stimulation of cortical neuron repair in both in vitro and in vivo models. The epigenetic mechanism produces lasting effects (3-6 months) from short treatment courses (10-20 days).",
+            references: [
+                "Khavinson, V. Kh., et al. Cortagen and cortical neuron repair. Russian Academy of Medical Sciences.",
+            ]
         ),
         CompoundProfile(
             name: "DSIP",
@@ -1494,7 +2479,23 @@ enum CompoundDatabase {
                 StackDetail(partner: "Semax", purpose: "Daytime focus + nighttime sleep", notes: "Semax in the morning, DSIP at night"),
                 StackDetail(partner: "Selank", purpose: "Anxiety + Sleep", notes: "Addresses both daytime anxiety and sleep quality"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Morning grogginess", "Vivid dreams"], uncommon: [], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: ["Morning grogginess", "Vivid dreams"], uncommon: [], rare: [], contraindications: []),
+            subtitle: "The Deep Sleep Peptide",
+            whatIsIt: "DSIP (Delta Sleep-Inducing Peptide) is a neuropeptide naturally found in the brain that promotes delta wave sleep — the deepest, most restorative phase of the sleep cycle. It reduces stress hormones and balances hormones during sleep.",
+            howItWorks: "During deep sleep, your brain produces slow delta waves that are essential for memory consolidation, tissue repair, and hormone release. DSIP enhances the brain's ability to enter and maintain this delta wave state, giving you deeper, more restorative sleep without the sedation of sleeping pills.",
+            watchOut: "Morning grogginess is common — start with a low dose. May cause very vivid dreams.",
+            dosingSchedule: [
+                DosingPhase(phase: "Standard", dose: "100-300 mcg", frequency: "Once daily", timing: "30 min before bed"),
+            ],
+            legalStatus: ["US: Available as a research chemical."],
+            costInfo: "Research Chemical Vendors: ~$25-$40 per 5mg vial.",
+            deepDive: "DSIP was originally discovered by Schoenenberger and Monnier in 1977 in the cerebral venous blood of rabbits during electrically induced sleep. It is a nonapeptide (Trp-Ala-Gly-Gly-Asp-Ala-Ser-Gly-Glu) that promotes delta wave EEG activity, reduces stress-induced cortisol, and normalizes circadian rhythm disruption.\n\nIts mechanism involves modulation of GABAergic and glutamatergic neurotransmission in sleep-promoting regions of the hypothalamus and brainstem.",
+            faq: [
+                FAQItem(question: "Is it a sleeping pill?", answer: "No. DSIP doesn't sedate you — it enhances the quality and depth of your natural sleep. You'll still wake up normally to alarms and sounds."),
+            ],
+            references: [
+                "Schoenenberger, G. A., & Monnier, M. (1977). Characterization of a delta electroencephalogram sleep-inducing peptide. PNAS.",
+            ]
         ),
 
         // MARK: - Category 5: Sexual Health
@@ -1541,7 +2542,33 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "Tadalafil (Cialis)", purpose: "Desire + Blood Flow", notes: "PT-141 provides arousal/desire; Cialis provides the vascular component"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Nausea (often severe)", "Flushing", "Headache"], uncommon: ["Increased blood pressure", "Injection site reaction"], rare: ["Skin darkening (melanocortin effect)"], contraindications: ["Uncontrolled hypertension", "Cardiovascular disease"])
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea (often severe)", "Flushing", "Headache"], uncommon: ["Increased blood pressure", "Injection site reaction"], rare: ["Skin darkening (melanocortin effect)"], contraindications: ["Uncontrolled hypertension", "Cardiovascular disease"]),
+            subtitle: "The Brain-Based Desire Enhancer",
+            whatIsIt: "PT-141 (Bremelanotide) is a synthetic alpha-MSH analog that works directly in the CNS by binding to melanocortin 4 receptors (MC4R) in the hypothalamus. Unlike Viagra/Cialis which work on blood flow, PT-141 triggers actual sexual arousal and desire. FDA-approved as Vyleesi for women with HSDD.",
+            howItWorks: "Viagra and Cialis are plumbers — they fix the pipes (blood flow). PT-141 is an electrician — it flips the desire switch in your brain. By activating MC4R receptors in the hypothalamus, it triggers the neurological cascade of sexual arousal and desire. It works for both men and women because desire originates in the brain, not the genitals.",
+            watchOut: "Nausea is the #1 reason people stop. Take anti-nausea medication (Zofran) 30 minutes prior, or inject before bed. Onset is highly variable (30 min to 4-6 hours). Max 8 doses per month.",
+            dosingSchedule: [
+                DosingPhase(phase: "Standard", dose: "1-2 mg", frequency: "As needed", timing: "2-4 hours before activity (max 8x/month)"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen or thigh.",
+            communityConsensus: [
+                "Nausea is severe for many — Zofran 30 min prior or inject before bed.",
+                "Onset timing is unpredictable — experiment to find your window.",
+                "Works differently than Viagra/Cialis — triggers actual desire, not just blood flow.",
+            ],
+            womenConsiderations: [
+                "FDA-approved for HSDD (Hypoactive Sexual Desire Disorder) in premenopausal women as Vyleesi.",
+            ],
+            legalStatus: ["US: FDA approved as Vyleesi for women. Available as research chemical."],
+            costInfo: "Research Chemical Vendors: ~$30-$50 per 10mg vial. Vyleesi prescription: ~$900/month.",
+            deepDive: "PT-141 (Bremelanotide) is a cyclic heptapeptide melanocortin receptor agonist. It was derived from Melanotan II when researchers noticed the profound sexual arousal effects during tanning studies. It selectively activates MC4R in the hypothalamus, triggering the neurological cascade of sexual arousal independent of peripheral vascular effects.\n\nFDA approval was based on the RECONNECT trials showing statistically significant improvement in sexual desire and reduction in distress in premenopausal women with HSDD.",
+            faq: [
+                FAQItem(question: "Does it work like Viagra?", answer: "No. Viagra works on blood flow to the genitals. PT-141 works in the brain to trigger actual desire and arousal. They can be used together for complementary effects."),
+                FAQItem(question: "Why is the nausea so bad?", answer: "MC4R receptors are also present in the area postrema (vomiting center) of the brainstem. Activation of these receptors triggers nausea. This diminishes somewhat with repeated use."),
+            ],
+            references: [
+                "Kingsberg, S. A., et al. (2019). Bremelanotide for the Treatment of Hypoactive Sexual Desire Disorder: RECONNECT trial results. Obstetrics & Gynecology.",
+            ]
         ),
         CompoundProfile(
             name: "Kisspeptin-10",
@@ -1588,7 +2615,20 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "Enclomiphene", purpose: "PCT Protocol", notes: "Dual-pathway HPTA restoration"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction"], uncommon: ["Mild headache"], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction"], uncommon: ["Mild headache"], rare: [], contraindications: []),
+            subtitle: "The Natural Hormone Axis Restarter",
+            whatIsIt: "Kisspeptin-10 acts on the hypothalamus to stimulate the release of GnRH, which triggers the pituitary to release LH and FSH, restoring natural testosterone and estrogen production. Used for HPTA recovery after SARM or steroid cycles.",
+            howItWorks: "Your hormonal system works like a chain: Hypothalamus → Pituitary → Testes/Ovaries. Kisspeptin-10 pushes the first domino (hypothalamus), which naturally cascades down to restart the entire chain. Unlike HCG which only stimulates the testes directly, Kisspeptin restores the full feedback loop.",
+            watchOut: "Very short half-life (~30 min). Does not shut down the HPTA — it stimulates it.",
+            legalStatus: ["US: Available as a research chemical."],
+            costInfo: "Research Chemical Vendors: ~$25-$40 per 5mg vial.",
+            deepDive: "Kisspeptin-10 is a decapeptide that binds to the KISS1R receptor (GPR54) on GnRH neurons in the hypothalamus. Dhillo et al. (2005) demonstrated that a single IV bolus of Kisspeptin-10 acutely stimulates LH and testosterone release in healthy men, confirming its role as the master upstream regulator of the reproductive axis.",
+            faq: [
+                FAQItem(question: "Is it better than HCG for PCT?", answer: "Different mechanism. HCG directly stimulates the testes (bypassing the brain). Kisspeptin restarts the full hypothalamic-pituitary-gonadal axis. They can be used together for comprehensive HPTA recovery."),
+            ],
+            references: [
+                "Dhillo, W. S., et al. (2005). Kisspeptin-54 stimulates the hypothalamic-pituitary gonadal axis in human males. JCEM.",
+            ]
         ),
 
         // MARK: - Category 6: Tanning & Skin
@@ -1619,7 +2659,17 @@ enum CompoundDatabase {
                 "Still requires some UV exposure to activate melanocytes — it does not tan you without sunlight.",
                 "Monitor moles carefully — any new or changing moles should be evaluated by a dermatologist.",
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Facial flushing"], uncommon: ["Headache", "Darkened moles"], rare: ["Melanoma promotion (theoretical with UV exposure)"], contraindications: ["History of melanoma", "Numerous atypical moles"])
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Facial flushing"], uncommon: ["Headache", "Darkened moles"], rare: ["Melanoma promotion (theoretical with UV exposure)"], contraindications: ["History of melanoma", "Numerous atypical moles"]),
+            subtitle: "The Selective Tanning Peptide",
+            whatIsIt: "Melanotan I (Afamelanotide) is a synthetic analog of alpha-MSH that selectively targets MC1R to stimulate melanogenesis (tanning). More selective than Melanotan II with fewer sexual side effects. Approved in the EU as Scenesse for erythropoietic protoporphyria.",
+            howItWorks: "Your skin tans when melanocytes produce melanin in response to UV light. Melanotan I activates the MC1R receptor on melanocytes, telling them to produce melanin even with minimal UV exposure. It's like turning up the sensitivity on your skin's natural tanning process.",
+            watchOut: "Still requires some UV exposure to activate melanocytes. Monitor moles carefully — any new or changing moles should be evaluated by a dermatologist.",
+            legalStatus: ["EU: Approved as Scenesse for EPP.", "US: Available as a research chemical."],
+            costInfo: "Research Chemical Vendors: ~$25-$45 per 10mg vial.",
+            deepDive: "Melanotan I (Afamelanotide) is a 13-amino acid linear peptide analog of alpha-MSH with enhanced selectivity for MC1R over other melanocortin receptors. Its MC1R selectivity means it primarily stimulates melanogenesis without the significant sexual side effects (MC4R) seen with Melanotan II.\n\nApproved in Europe as Scenesse (implant) for erythropoietic protoporphyria, a condition where patients develop severe pain from sun exposure. By increasing melanin production, it provides photoprotection.",
+            references: [
+                "Langendonk, J. G., et al. (2015). Afamelanotide for erythropoietic protoporphyria. NEJM.",
+            ]
         ),
         CompoundProfile(
             name: "Melanotan II",
@@ -1649,7 +2699,17 @@ enum CompoundDatabase {
                 "Monitor moles carefully — any new or changing moles must be evaluated by a dermatologist.",
                 "Start at 250 mcg to assess nausea tolerance before increasing.",
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Facial flushing", "Increased libido", "Darkened moles"], uncommon: ["Appetite suppression", "Headache", "Spontaneous erections"], rare: ["Melanoma promotion (theoretical with UV)"], contraindications: ["History of melanoma", "Numerous atypical moles"])
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Facial flushing", "Increased libido", "Darkened moles"], uncommon: ["Appetite suppression", "Headache", "Spontaneous erections"], rare: ["Melanoma promotion (theoretical with UV)"], contraindications: ["History of melanoma", "Numerous atypical moles"]),
+            subtitle: "The Non-Selective Tanning & Libido Peptide",
+            whatIsIt: "Melanotan II is a non-selective agonist of melanocortin receptors (MC1R through MC5R). Its MC1R binding stimulates tanning, while MC4R binding causes intense sexual arousal. PT-141 was actually developed as a metabolite of MT-II to isolate the sexual effects.",
+            howItWorks: "Melanotan II is like a master key that opens many doors at once. MC1R → tanning, MC3R → appetite suppression, MC4R → sexual arousal. You get all these effects simultaneously, whether you want them or not. This non-selectivity is why PT-141 was developed to isolate just the sexual effects.",
+            watchOut: "Nausea and facial flushing are very common during loading. Monitor moles carefully. Start at 250 mcg to assess tolerance.",
+            legalStatus: ["US: Available as a research chemical. Not FDA approved."],
+            costInfo: "Research Chemical Vendors: ~$20-$35 per 10mg vial.",
+            deepDive: "Melanotan II is a cyclic heptapeptide analog of alpha-MSH that non-selectively activates MC1R through MC5R. The non-selectivity produces multiple simultaneous effects: melanogenesis (MC1R), appetite suppression (MC3R), sexual arousal (MC4R), and exocrine gland modulation (MC5R).\n\nPT-141 (Bremelanotide) was developed from MT-II when researchers discovered that the cyclic core of MT-II retained MC4R activity (sexual arousal) without the MC1R activity (tanning).",
+            references: [
+                "Dorr, R. T., et al. (1996). Effects of a superpotent melanotropic peptide in combination with solar UV radiation on tanning of the skin in human volunteers. Archives of Dermatology.",
+            ]
         ),
         CompoundProfile(
             name: "Snap-8",
@@ -1673,7 +2733,17 @@ enum CompoundDatabase {
                 "Results take 2-4 weeks and are more subtle than Botox but completely non-invasive.",
                 "Apply to clean, dry skin before moisturizer for best absorption.",
             ],
-            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild skin irritation"], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild skin irritation"], rare: [], contraindications: []),
+            subtitle: "Topical Botox Alternative",
+            whatIsIt: "Snap-8 is a topical peptide that mimics the mechanism of Botox without injections. It inhibits the SNARE complex to relax facial muscles and reduce expression lines.",
+            howItWorks: "Botox paralyzes facial muscles by blocking nerve signals. Snap-8 does something similar but from the outside — it partially inhibits the SNARE complex that allows nerve endings to release muscle-contracting signals. The result is relaxed facial muscles and softened expression lines, without needles.",
+            watchOut: "Results take 2-4 weeks and are more subtle than Botox but completely non-invasive.",
+            legalStatus: ["US: Available as a cosmetic ingredient. No prescription needed."],
+            costInfo: "Serums: ~$15-$40 per bottle.",
+            deepDive: "Snap-8 (Acetyl Octapeptide-3) is a peptide that competitively inhibits SNARE complex formation, specifically by mimicking the N-terminal end of SNAP-25. This partially blocks vesicular neurotransmitter release at the neuromuscular junction, reducing muscle contraction intensity.\n\nStudies show 30-40% reduction in wrinkle depth after 28 days of twice-daily application at 10% concentration.",
+            references: [
+                "Lipotec S.A. Clinical studies on Snap-8 wrinkle reduction efficacy.",
+            ]
         ),
 
         // MARK: - Category 7: Longevity & Anti-Aging
@@ -1722,7 +2792,36 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "Thymalin", purpose: "Ultimate Longevity Stack", notes: "Epithalon restores the pineal gland; Thymalin restores the thymus"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Vivid dreams", "Changes in sleep patterns (first few days)"], uncommon: ["Mild nausea"], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: ["Vivid dreams", "Changes in sleep patterns (first few days)"], uncommon: ["Mild nausea"], rare: [], contraindications: []),
+            subtitle: "The Telomere-Extending Longevity Peptide",
+            whatIsIt: "Epithalon is a synthetic tetrapeptide famous for activating telomerase enzyme, which elongates telomeres to extend cell lifespan. It also normalizes circadian rhythm by restoring natural melatonin production. Per the Khavinson Protocol, run for 10-20 days only, 1-2 times per year.",
+            howItWorks: "Every time your cells divide, the protective caps on your DNA (telomeres) get shorter. When they get too short, the cell dies or becomes dysfunctional — this is aging. Epithalon activates an enzyme called telomerase that rebuilds these caps, essentially giving your cells more lives. It's like adding more sand to the top of an hourglass.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Day 1-5", description: "Possible sleep pattern changes. Vivid dreams."),
+                TimelineEntry(timeframe: "Day 5-20", description: "Improved sleep quality. Restored circadian rhythm."),
+                TimelineEntry(timeframe: "Months after", description: "Epigenetic benefits persist for 6+ months after stopping."),
+            ],
+            watchOut: "Dosing timing is debated — some find it sedating, others stimulating. Experiment to find your response. The Khavinson Protocol dictates 10-20 days only, 1-2x per year.",
+            dosingSchedule: [
+                DosingPhase(phase: "Standard", dose: "5-10 mg", frequency: "Once daily", timing: "Morning or pre-bed"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen.",
+            discontinuationProtocol: "Stop after 10-20 days. Benefits persist for 6+ months. Repeat 1-2x per year.",
+            communityConsensus: [
+                "The Khavinson Protocol: 10-20 days only, 1-2x per year. Continuous use provides no added benefit.",
+                "Often combined with Thymalin for the 'Ultimate Longevity Stack.'",
+                "Sleep quality improvements are often the first noticeable benefit.",
+            ],
+            legalStatus: ["US: Available as a research chemical."],
+            costInfo: "Research Chemical Vendors: ~$30-$60 per 10mg vial.",
+            deepDive: "Epithalon (Ala-Glu-Asp-Gly) is a synthetic tetrapeptide that activates telomerase reverse transcriptase (TERT). Khavinson et al. (2003) demonstrated that Epithalon increases telomere length in human somatic cells and extends lifespan in animal models.\n\nIt also restores melatonin production from the pineal gland, which declines with age. The mechanism involves direct interaction with DNA promoter regions in pinealocytes, stimulating melatonin synthesis gene expression.\n\nThe Khavinson long-term studies showed that Epithalon + Thymalin administered to elderly subjects in 10-day courses significantly reduced mortality over a 12-year follow-up period.",
+            faq: [
+                FAQItem(question: "Does Epithalon actually reverse aging?", answer: "It extends telomeres and restores melatonin production, both of which decline with age. Whether this constitutes 'reversing aging' depends on your definition. The animal data shows lifespan extension; the human data shows reduced mortality in elderly cohorts."),
+                FAQItem(question: "Why only 10-20 days?", answer: "Epithalon works epigenetically — it turns on genes that stay on for months after the peptide is cleared. Continuous dosing provides no additional benefit because the genes are already activated."),
+            ],
+            references: [
+                "Khavinson, V. Kh., et al. (2003). Epithalon peptide induces telomerase activity and telomere elongation in human somatic cells. Bulletin of Experimental Biology and Medicine.",
+            ]
         ),
         CompoundProfile(
             name: "Thymalin",
@@ -1767,7 +2866,17 @@ enum CompoundDatabase {
             stackDetails: [
                 StackDetail(partner: "Epithalon", purpose: "The Khavinson Longevity Protocol", notes: "Used together in Russian trials to significantly reduce mortality"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site reaction"], uncommon: [], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site reaction"], uncommon: [], rare: [], contraindications: []),
+            subtitle: "The Thymus Restorer",
+            whatIsIt: "Thymalin is a bioregulatory peptide extract that restores the function of the thymus gland, which deteriorates with age. The thymus produces T-cells crucial for adaptive immunity. Often combined with Epithalon in the 'Ultimate Longevity Stack.'",
+            howItWorks: "Your thymus gland is the training academy for immune cells. By age 60, it's mostly replaced by fat and barely functional. Thymalin sends regenerative signals to the remaining thymic tissue, restoring its ability to produce new T-cells and rejuvenating immune function.",
+            watchOut: "Part of the Khavinson Protocol — 10 days only, once or twice per year.",
+            legalStatus: ["US: Available as a research chemical."],
+            costInfo: "~$40-$60 per 10mg vial.",
+            deepDive: "Thymalin is a purified thymic peptide extract that stimulates thymopoiesis (T-cell production) in the deteriorating thymus. Khavinson & Morozov demonstrated in long-term cohort studies that Epithalon + Thymalin administered in short courses significantly reduced all-cause mortality in elderly populations over 12-year follow-up periods.",
+            references: [
+                "Khavinson, V. Kh., & Morozov, V. G. Peptides of pineal gland and thymus prolong human life. Neuroendocrinology Letters.",
+            ]
         ),
         CompoundProfile(
             name: "SS-31 (Elamipretide)",
@@ -1812,7 +2921,17 @@ enum CompoundDatabase {
                 StackDetail(partner: "MOTS-c", purpose: "Mitochondrial optimization", notes: "SS-31 repairs membrane; MOTS-c enhances metabolic function"),
                 StackDetail(partner: "Humanin", purpose: "Cellular protection", notes: "SS-31 restores energy; Humanin prevents cell death"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction"], uncommon: ["Mild headache"], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction"], uncommon: ["Mild headache"], rare: [], contraindications: []),
+            subtitle: "The Mitochondrial Membrane Repair Peptide",
+            whatIsIt: "SS-31 (Elamipretide) is a cell-permeable peptide that concentrates within the inner mitochondrial membrane, stabilizing cardiolipin — a phospholipid essential for efficient electron transport chain function. Currently in clinical trials for Barth syndrome and heart failure.",
+            howItWorks: "Your mitochondria are power plants that generate cellular energy (ATP). The inner membrane of these power plants contains a special fat called cardiolipin that keeps the energy-generating machinery running smoothly. As you age, cardiolipin deteriorates and energy production drops. SS-31 repairs and stabilizes this cardiolipin, restoring your cellular power plants to youthful efficiency.",
+            watchOut: "Very mild side effects. Currently in active clinical trials.",
+            legalStatus: ["US: In clinical trials. Available as a research chemical."],
+            costInfo: "Research Chemical Vendors: ~$50-$80 per 20mg vial.",
+            deepDive: "SS-31 (D-Arg-Dmt-Lys-Phe-NH2, also known as Elamipretide/Bendavia) is a cell-permeable tetrapeptide that concentrates >1000-fold in the inner mitochondrial membrane (IMM). It binds to cardiolipin, stabilizing the electron transport chain complexes (particularly Complex III and IV) and reducing electron leak that generates reactive oxygen species.\n\nMultiple Phase 2/3 trials have demonstrated improved cardiac function in heart failure patients and reduced fatigue in Barth syndrome.",
+            references: [
+                "Szeto, H. H. (2014). First-in-class cardiolipin-protective compound as a therapeutic agent to restore mitochondrial bioenergetics. British Journal of Pharmacology.",
+            ]
         ),
         CompoundProfile(
             name: "Humanin",
@@ -1849,7 +2968,17 @@ enum CompoundDatabase {
                 StackDetail(partner: "SS-31", purpose: "Mitochondrial protection", notes: "SS-31 repairs; Humanin prevents cell death"),
                 StackDetail(partner: "MOTS-c", purpose: "Mitochondrial optimization", notes: "Complete mitochondrial support stack"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site reaction"], uncommon: [], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: ["Mild injection site reaction"], uncommon: [], rare: [], contraindications: []),
+            subtitle: "The Cellular Guardian Against Cell Death",
+            whatIsIt: "Humanin is a mitochondrial-derived peptide that protects cells from apoptosis (programmed cell death). It acts as a guardian of cellular integrity under stress by inhibiting pro-apoptotic proteins and activating survival pathways. Levels decline with age.",
+            howItWorks: "When cells are stressed or damaged, they can trigger a self-destruct sequence (apoptosis). Humanin blocks this self-destruct signal by inhibiting the protein Bax (which punches holes in mitochondrial membranes) and activating the STAT3 survival pathway. It's like a bodyguard that prevents your cells from committing suicide under stress.",
+            watchOut: "Very minimal side effects. Levels decline naturally with age, making supplementation theoretically beneficial for aging.",
+            legalStatus: ["US: Available as a research chemical."],
+            costInfo: "Research Chemical Vendors: ~$40-$70 per vial.",
+            deepDive: "Humanin is a 24-amino acid peptide encoded by the 16S ribosomal RNA gene of mitochondrial DNA. Hashimoto et al. (2001) discovered it while searching for factors that protect neurons from amyloid-beta toxicity in Alzheimer's disease.\n\nIt inhibits apoptosis via multiple mechanisms: direct Bax binding (preventing mitochondrial membrane permeabilization), STAT3 activation (upregulating survival genes), and IGFBP-3 interaction (modulating IGF signaling).\n\nCirculating Humanin levels decline approximately 30-40% between ages 20 and 80, correlating with increased cellular vulnerability to stress.",
+            references: [
+                "Hashimoto, Y., et al. (2001). A rescue factor abolishing neuronal cell death by a wide spectrum of familial Alzheimer's disease genes and Abeta. PNAS.",
+            ]
         ),
 
         // MARK: - Category 8: SARMs
@@ -1891,7 +3020,17 @@ enum CompoundDatabase {
             evidence: EvidenceSummary(level: "Moderate (Phase 2 trials)", keyStudies: ["Dalton et al. (2011): Phase 2 trial showing lean body mass increases with dose-dependent testosterone suppression."], researchGaps: "Phase 3 trials and FDA approval pathway."),
             detailedSideEffects: DetailedSideEffects(common: ["Testosterone suppression", "Decreased HDL cholesterol"], uncommon: ["Liver enzyme elevation", "Joint pain/dryness"], rare: ["Hair shedding"], contraindications: ["Pregnancy", "Hormone-sensitive cancers"]),
             isWADAProhibited: true,
-            wadaCategory: "S1 Anabolic Agents"
+            wadaCategory: "S1 Anabolic Agents",
+            subtitle: "The Mildest SARM",
+            whatIsIt: "Ostarine (MK-2866/Enobosarm) is the mildest and most well-studied Selective Androgen Receptor Modulator. It selectively binds androgen receptors in muscle and bone with minimal prostate or liver impact. Despite common misconceptions, Ostarine DOES require PCT.",
+            howItWorks: "Testosterone builds muscle by binding to androgen receptors. But testosterone also binds to receptors in the prostate, skin, and other tissues, causing side effects. SARMs like Ostarine are 'selective' — they preferentially bind to androgen receptors in muscle and bone while mostly ignoring other tissues. Think of it as a smart missile vs. a carpet bomb.",
+            watchOut: "Despite misconceptions, even 10 mg/day suppresses testosterone by 40-60% over 8 weeks. PCT is mandatory. Also suppresses estrogen, causing 'dry joints' at end of cycle.",
+            legalStatus: ["US: Not FDA approved. Available as a research chemical.", "WADA: Banned under S1 (Anabolic Agents)."],
+            costInfo: "Research Chemical Vendors: ~$30-$60 per bottle (30-day supply).",
+            deepDive: "Ostarine (Enobosarm/GTx-024) is a non-steroidal SARM with high oral bioavailability and a ~24-hour half-life. Dalton et al. (2011) Phase 2 trial showed dose-dependent lean body mass increases with 40-60% testosterone suppression at 10 mg/day over 8 weeks.\n\nIt demonstrates tissue selectivity through preferential activation of androgen response elements in muscle and bone, with minimal androgenic activity in prostate tissue. However, it still causes significant HPTA suppression requiring PCT.",
+            references: [
+                "Dalton, J. T., et al. (2011). The Selective Androgen Receptor Modulator GTx-024 (Enobosarm) Improves Lean Body Mass and Physical Function. JCSM.",
+            ]
         ),
         CompoundProfile(
             name: "Ligandrol (LGD-4033)",
@@ -1930,7 +3069,17 @@ enum CompoundDatabase {
             evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Basaria et al. (2013): Phase 1 trial showing dose-dependent lean body mass increases."], researchGaps: "Long-term safety and Phase 3 trials."),
             detailedSideEffects: DetailedSideEffects(common: ["Severe testosterone suppression", "Water retention", "Lethargy"], uncommon: ["Hair shedding", "HDL cholesterol crash"], rare: ["Liver toxicity"], contraindications: ["Pregnancy", "Hormone-sensitive cancers"]),
             isWADAProhibited: true,
-            wadaCategory: "S1 Anabolic Agents"
+            wadaCategory: "S1 Anabolic Agents",
+            subtitle: "The Mass-Building SARM",
+            whatIsIt: "Ligandrol (LGD-4033) is a highly potent SARM with extremely high androgen receptor affinity. Significantly more anabolic than Ostarine, primarily used for adding sheer size and mass. Notorious for 'SARM flu' around week 4-5.",
+            howItWorks: "LGD-4033 binds to androgen receptors in muscle with very high affinity, triggering a strong anabolic response. It's like Ostarine turned up to 11 — more muscle growth, but also more suppression of natural testosterone and more water retention.",
+            watchOut: "Notorious for 'SARM flu' around week 4-5 — extreme lethargy from testosterone crashing. Many advanced users run Enclomiphene alongside. PCT is absolutely mandatory.",
+            legalStatus: ["US: Not FDA approved. Available as a research chemical.", "WADA: Banned under S1."],
+            costInfo: "Research Chemical Vendors: ~$40-$70 per bottle.",
+            deepDive: "Ligandrol (VK5211/LGD-4033) has one of the highest androgen receptor binding affinities of any SARM. Basaria et al. (2013) Phase 1 trial showed dose-dependent lean body mass increases with significant testosterone suppression (up to 90% at higher doses).\n\nThe intracellular water retention mechanism differs from aromatizable steroids — LGD-4033 does not convert to estrogen but causes water retention through glycogen supercompensation and aldosterone pathway modulation.",
+            references: [
+                "Basaria, S., et al. (2013). The Safety, Pharmacokinetics, and Effects of LGD-4033 in Healthy Young Men. JGMS.",
+            ]
         ),
         CompoundProfile(
             name: "Testolone (RAD-140)",
@@ -1971,7 +3120,17 @@ enum CompoundDatabase {
             evidence: EvidenceSummary(level: "Limited", keyStudies: ["Miller et al. (2011): Initial characterization of RAD-140's anabolic properties."], researchGaps: "Updated pharmacokinetic data reflecting the longer half-life. Human safety trials."),
             detailedSideEffects: DetailedSideEffects(common: ["Severe testosterone suppression", "Aggression/irritability", "Insomnia"], uncommon: ["Hair shedding", "Liver enzyme elevation"], rare: ["Severe liver toxicity (case reports)"], contraindications: ["Pregnancy", "Liver disease", "Hormone-sensitive cancers"]),
             isWADAProhibited: true,
-            wadaCategory: "S1 Anabolic Agents"
+            wadaCategory: "S1 Anabolic Agents",
+            subtitle: "The Most Potent & Androgenic SARM",
+            whatIsIt: "RAD-140 is arguably the most potent and androgenic SARM available. It binds androgen receptors with affinity similar to DHT and produces rapid strength gains, dry muscle mass, and vascularity. Recent data shows the half-life is ~60 hours, not 20 as previously believed.",
+            howItWorks: "RAD-140 binds androgen receptors almost as strongly as DHT (dihydrotestosterone), the body's most potent natural androgen. This means it can trigger nearly steroid-level muscle growth and strength gains, but with the theoretical tissue selectivity of a SARM. In practice, it's the closest thing to a steroid in the SARM world.",
+            watchOut: "The most suppressive common SARM. Requires aggressive PCT (4 weeks Nolvadex/Enclomiphene). Known for causing intense aggression. Recent data shows 60-hour half-life — daily dosing causes massive accumulation.",
+            legalStatus: ["US: Not FDA approved. Available as a research chemical.", "WADA: Banned under S1."],
+            costInfo: "Research Chemical Vendors: ~$40-$70 per bottle.",
+            deepDive: "RAD-140 (Testolone) was developed by Radius Health as a potential treatment for breast cancer and muscle wasting. Miller et al. (2011) characterized its anabolic properties, showing tissue-selective androgenic activity.\n\nRecent pharmacokinetic analyses have revised the half-life from ~20 hours to approximately 60 hours, meaning daily dosing at steady state produces blood levels 3-4x higher than a single dose would suggest. This explains the severe suppression and aggression reported by users at seemingly moderate doses.",
+            references: [
+                "Miller, C. P., et al. (2011). Design, Synthesis, and Preclinical Characterization of the Selective Androgen Receptor Modulator (SARM) RAD140. ACS Medicinal Chemistry Letters.",
+            ]
         ),
 
         // MARK: - Category 9: IGF Variants
@@ -2003,7 +3162,17 @@ enum CompoundDatabase {
                 "Must be reconstituted in Acetic Acid, NOT BAC Water — BAC Water destroys the molecule.",
                 "Start at the lowest dose (20 mcg) to assess hypoglycemic response.",
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Hypoglycemia", "Extreme hunger", "Water retention"], uncommon: ["Lethargy", "Joint pain"], rare: ["Organ growth with prolonged high-dose use"], contraindications: ["Active cancer", "Diabetes (hypoglycemia risk)"])
+            detailedSideEffects: DetailedSideEffects(common: ["Hypoglycemia", "Extreme hunger", "Water retention"], uncommon: ["Lethargy", "Joint pain"], rare: ["Organ growth with prolonged high-dose use"], contraindications: ["Active cancer", "Diabetes (hypoglycemia risk)"]),
+            subtitle: "The Long-Acting Systemic IGF",
+            whatIsIt: "IGF-1 LR3 is a synthetic IGF-1 analog modified to prevent binding to IGF-binding proteins, remaining active for 20-30 hours. It drives systemic muscle hyperplasia (new muscle cells) and profound nutrient partitioning. WARNING: Can cause severe, potentially fatal hypoglycemia.",
+            howItWorks: "Normal IGF-1 gets captured by binding proteins within minutes. LR3 has been modified so binding proteins can't grab it, allowing it to circulate freely for 20-30 hours. This prolonged activity drives muscle cells to divide (hyperplasia — new cells, not just bigger cells) and forces nutrients into muscle instead of fat.",
+            watchOut: "Acts like insulin — can cause severe, potentially fatal hypoglycemia. Always consume fast-acting carbs around injection time. Must be reconstituted in Acetic Acid, NOT BAC Water.",
+            legalStatus: ["US: Available as a research chemical."],
+            costInfo: "Research Chemical Vendors: ~$60-$120 per 1mg vial.",
+            deepDive: "IGF-1 LR3 (Long R3 IGF-1) is a 83-amino acid analog of human IGF-1 with an arginine substitution at position 3 and a 13-amino acid N-terminal extension. These modifications reduce affinity for IGF binding proteins (IGFBPs) by >100-fold, resulting in a 20-30 hour effective half-life vs ~20 minutes for native IGF-1.\n\nThe sustained IGF-1R activation drives both muscle hypertrophy (larger cells) and hyperplasia (new cells via satellite cell activation), making it unique among anabolic agents.",
+            references: [
+                "Francis, G. L., et al. (1992). Novel recombinant analogs of insulin-like growth factor 1. Biochemistry.",
+            ]
         ),
         CompoundProfile(
             name: "DES IGF-1",
@@ -2030,7 +3199,17 @@ enum CompoundDatabase {
                 "Unique ability to bind receptors deformed by lactic acid — most effective on fatigued muscles.",
                 "Reconstituted in Acetic Acid — draw BAC Water first into syringe to dilute the acid.",
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Intense localized pump", "Injection site pain (from Acetic Acid)"], uncommon: ["Mild hypoglycemia"], rare: [], contraindications: ["Active cancer"])
+            detailedSideEffects: DetailedSideEffects(common: ["Intense localized pump", "Injection site pain (from Acetic Acid)"], uncommon: ["Mild hypoglycemia"], rare: [], contraindications: ["Active cancer"]),
+            subtitle: "The Site-Specific Muscle Builder",
+            whatIsIt: "DES IGF-1 is a truncated IGF-1 missing the first 3 amino acids. Its extremely short half-life (20-30 min) means it must be injected directly into the target muscle before training for localized growth.",
+            howItWorks: "When you exercise a muscle, lactic acid builds up and deforms the IGF-1 receptors on that muscle's cells. DES IGF-1 has a unique ability to bind these deformed receptors — it actually works BETTER on fatigued muscles. By injecting it directly into the target muscle 10-15 minutes before training, you deliver a concentrated growth signal right where you want it.",
+            watchOut: "Must inject directly into the target muscle. Reconstituted in Acetic Acid — draw BAC Water first into syringe to dilute.",
+            legalStatus: ["US: Available as a research chemical."],
+            costInfo: "Research Chemical Vendors: ~$40-$80 per 1mg vial.",
+            deepDive: "DES(1-3) IGF-1 is a truncated analog lacking the N-terminal tripeptide (Gly-Pro-Glu). This modification eliminates binding to IGFBPs entirely, but also reduces the half-life to 20-30 minutes. The truncation exposes a receptor binding site that has enhanced affinity for lactic acid-deformed IGF-1 receptors, making it uniquely effective on exercised muscle tissue.",
+            references: [
+                "Francis, G. L., et al. (1986). Insulin-like growth factors 1 and 2 in bovine colostrum. Biochemical Journal.",
+            ]
         ),
         CompoundProfile(
             name: "PEG-MGF",
@@ -2056,7 +3235,17 @@ enum CompoundDatabase {
                 "Inject on rest days or hours after workout — pre-workout injection is counterproductive.",
                 "Red welts at injection site are a PEG allergy reaction, not the peptide itself.",
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Injection site redness/itching (PEG allergy)"], uncommon: ["Mild lethargy"], rare: [], contraindications: ["Active cancer", "PEG allergy"])
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site redness/itching (PEG allergy)"], uncommon: ["Mild lethargy"], rare: [], contraindications: ["Active cancer", "PEG allergy"]),
+            subtitle: "The Muscle Stem Cell Activator",
+            whatIsIt: "PEG-MGF is a PEGylated form of Mechano Growth Factor, an IGF-1 splice variant naturally produced by muscles during mechanical stress. It activates satellite cells (muscle stem cells) for hyperplasia. Systemic — no need to inject into the trained muscle.",
+            howItWorks: "When you lift weights, your muscles produce a signal called MGF that wakes up dormant muscle stem cells (satellite cells). PEG-MGF is a stabilized version of this signal that lasts days instead of minutes. These activated stem cells mature into new muscle cells, increasing the total number of muscle fibers — not just making existing ones bigger.",
+            watchOut: "Inject on rest days or hours after workout — pre-workout injection is counterproductive. Red welts are a PEG allergy reaction, not the peptide itself.",
+            legalStatus: ["US: Available as a research chemical."],
+            costInfo: "Research Chemical Vendors: ~$30-$50 per vial.",
+            deepDive: "MGF (Mechano Growth Factor) is an alternatively spliced variant of the IGF-1 gene that is expressed in mechanically stressed muscle tissue. PEGylation extends its half-life from minutes to 48-72 hours, allowing systemic delivery rather than requiring local injection.\n\nMGF activates satellite cells through the Akt/mTOR pathway independently of the mature IGF-1 receptor, providing a unique mechanism for muscle hyperplasia that complements standard IGF-1 signaling.",
+            references: [
+                "Yang, S. Y., & Goldspink, G. (2002). Different roles of the IGF-I Ec peptide (MGF) and mature IGF-I in myoblast proliferation and differentiation. FEBS Letters.",
+            ]
         ),
 
         // MARK: - Category 10: Niche & Other
@@ -2086,7 +3275,17 @@ enum CompoundDatabase {
                 "Take in the morning — can cause insomnia if taken late.",
             ],
             evidence: EvidenceSummary(level: "Limited (Preclinical)", keyStudies: ["Neelakantan et al. (2017): Demonstrated NNMT inhibition reduces fat mass in animal models."], researchGaps: "Human clinical trials for obesity."),
-            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild insomnia", "Mild jitteriness"], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild insomnia", "Mild jitteriness"], rare: [], contraindications: []),
+            subtitle: "The NAD+ Preserving Fat Burner",
+            whatIsIt: "5-Amino-1MQ is a small molecule that inhibits NNMT (Nicotinamide N-methyltransferase) enzyme. As we age, NNMT rises in fat tissue, depleting NAD+ and slowing fat metabolism. Blocking NNMT preserves NAD+, shrinks fat tissue, and forces the body to burn fat without caloric restriction or appetite suppression.",
+            howItWorks: "Inside your fat cells, there's an enzyme called NNMT that eats up your NAD+ (a critical energy molecule). As you age, NNMT levels rise, depleting NAD+ and making fat cells lazy. 5-Amino-1MQ blocks NNMT, preserving your NAD+ levels and forcing fat cells to actively burn energy instead of storing it. Unlike GLP-1 drugs, it doesn't suppress appetite — it changes how your cells process energy.",
+            watchOut: "Take in the morning — can cause insomnia if taken late. Split dosing recommended due to short half-life (4-7 hours).",
+            legalStatus: ["US: Available as a research chemical."],
+            costInfo: "Research Chemical Vendors: ~$40-$70 per bottle (30-day supply).",
+            deepDive: "5-Amino-1-methylquinolinium (5-Amino-1MQ) is a selective small-molecule inhibitor of Nicotinamide N-methyltransferase (NNMT). Neelakantan et al. (2017) demonstrated that NNMT inhibition in high-fat-diet mice reduced body weight and white adipose tissue mass without affecting food intake.\n\nNNMT methylates nicotinamide using SAM as a methyl donor, depleting both NAD+ precursors and methyl groups. Inhibiting NNMT preserves the NAD+ salvage pathway, restoring cellular metabolic function in adipose tissue.",
+            references: [
+                "Neelakantan, H., et al. (2017). Selective and membrane-permeable small molecule inhibitors of nicotinamide N-methyltransferase reverse high fat diet-induced obesity in mice. Biochemical Pharmacology.",
+            ]
         ),
         CompoundProfile(
             name: "Tesofensine",
@@ -2117,7 +3316,17 @@ enum CompoundDatabase {
                 "Appetite suppression is more profound than Adderall or Phentermine.",
             ],
             evidence: EvidenceSummary(level: "Moderate (Phase 2 trials completed)", keyStudies: ["TIPO-1 and TIPO-2 trials: Demonstrated significant weight loss but raised cardiovascular concerns."], researchGaps: "Phase 3 trials stalled due to cardiovascular side effect profile."),
-            detailedSideEffects: DetailedSideEffects(common: ["Dry mouth", "Insomnia", "Constipation", "Increased heart rate"], uncommon: ["Anxiety", "Hypertension", "Palpitations"], rare: ["Serotonin Syndrome (with SSRIs)"], contraindications: ["Current SSRI/SNRI use (fatal risk)", "Uncontrolled hypertension", "Cardiovascular disease", "History of seizures"])
+            detailedSideEffects: DetailedSideEffects(common: ["Dry mouth", "Insomnia", "Constipation", "Increased heart rate"], uncommon: ["Anxiety", "Hypertension", "Palpitations"], rare: ["Serotonin Syndrome (with SSRIs)"], contraindications: ["Current SSRI/SNRI use (fatal risk)", "Uncontrolled hypertension", "Cardiovascular disease", "History of seizures"]),
+            subtitle: "The Nuclear Option for Appetite Suppression",
+            whatIsIt: "Tesofensine is a powerful centrally acting triple monoamine reuptake inhibitor that blocks reuptake of serotonin, norepinephrine, and dopamine. Originally developed for Alzheimer's/Parkinson's, it was found to cause profound weight loss. WARNING: 9-day half-life means severe side effects persist for weeks after stopping.",
+            howItWorks: "Tesofensine floods your brain with three feel-good chemicals simultaneously: serotonin (satiety), norepinephrine (energy/metabolism), and dopamine (reward). The combined effect produces the most powerful appetite suppression of any known compound. Your brain is so satisfied neurochemically that food loses its appeal entirely.",
+            watchOut: "NEVER combine with SSRIs — risk of fatal Serotonin Syndrome. 9-day half-life means effects and side effects accumulate and persist for weeks. Start at absolute lowest dose (0.25 mg).",
+            legalStatus: ["US: Not FDA approved. Phase 3 trials stalled. Available as research chemical."],
+            costInfo: "Research Chemical Vendors: ~$50-$80 per bottle.",
+            deepDive: "Tesofensine (NS-2330) is a triple monoamine reuptake inhibitor originally developed by NeuroSearch for Alzheimer's disease. When Phase 2 Alzheimer's trials showed significant weight loss as a 'side effect,' development pivoted to obesity.\n\nThe TIPO-1 and TIPO-2 trials demonstrated 10-13% weight loss over 24 weeks at the 0.5-1.0 mg dose, but Phase 3 development stalled due to cardiovascular concerns (elevated heart rate, blood pressure).\n\nThe 9-day (220-hour) half-life means steady-state blood levels are reached after approximately 45 days of daily dosing, at which point blood levels are ~4-5x the single-dose level.",
+            references: [
+                "Astrup, A., et al. (2008). Effect of tesofensine on bodyweight loss, body composition, and quality of life in obese patients. The Lancet.",
+            ]
         ),
         CompoundProfile(
             name: "IGF-1 (Native)",
@@ -2153,7 +3362,17 @@ enum CompoundDatabase {
                 "Marketed as Increlex — primarily a medical treatment for children with GH insensitivity.",
             ],
             evidence: EvidenceSummary(level: "Strong (FDA Approved as Increlex)", keyStudies: ["FDA approval data: Demonstrated efficacy for children with primary IGF-1 deficiency."], researchGaps: "Off-label adult performance use lacks clinical data."),
-            detailedSideEffects: DetailedSideEffects(common: ["Hypoglycemia", "Headache", "Injection site lipohypertrophy"], uncommon: ["Joint pain", "Tonsillar hypertrophy"], rare: ["Intracranial hypertension"], contraindications: ["Active cancer", "Closed epiphyses (in children)"])
+            detailedSideEffects: DetailedSideEffects(common: ["Hypoglycemia", "Headache", "Injection site lipohypertrophy"], uncommon: ["Joint pain", "Tonsillar hypertrophy"], rare: ["Intracranial hypertension"], contraindications: ["Active cancer", "Closed epiphyses (in children)"]),
+            subtitle: "The Unmodified Original IGF",
+            whatIsIt: "Native IGF-1 (marketed as Increlex) is the unmodified form of Insulin-Like Growth Factor 1, identical to what your liver produces. Extremely short half-life (~10-20 min) due to immediate binding by IGFBPs. For performance, the modified analogs (LR3, DES) are universally preferred.",
+            howItWorks: "Your liver produces IGF-1 in response to growth hormone. It drives cell growth, repair, and metabolism throughout the body. Native IGF-1 is the exact same molecule, but when injected, it gets captured by binding proteins within minutes — making it inefficient compared to modified versions like LR3.",
+            watchOut: "Always consume carbs with injection to prevent severe hypoglycemia. For performance, LR3 and DES are preferred over native IGF-1.",
+            legalStatus: ["US: FDA approved as Increlex for children with primary IGF-1 deficiency."],
+            costInfo: "Increlex prescription: Very expensive ($5,000+/month). Research chemical: ~$80-$150 per vial.",
+            deepDive: "Native IGF-1 is a 70-amino acid single-chain polypeptide with three intramolecular disulfide bonds. Its biological half-life in circulation is only 10-20 minutes due to rapid binding by six IGF binding proteins (IGFBP-1 through -6), which sequester >99% of circulating IGF-1.\n\nThis is why modified analogs (LR3 with 100x reduced IGFBP binding, DES with zero IGFBP binding) are preferred for performance applications — they remain bioavailable for hours instead of minutes.",
+            references: [
+                "FDA approval data for Increlex (mecasermin) in primary IGF-1 deficiency.",
+            ]
         ),
         CompoundProfile(
             name: "ACE-031",
@@ -2189,7 +3408,17 @@ enum CompoundDatabase {
                 "Zero human data outside of the halted trial — entirely experimental.",
             ],
             evidence: EvidenceSummary(level: "Limited (Phase 2 halted)", keyStudies: ["Attie et al. (2013): Phase 2 trial showed increased lean mass but halted due to bleeding events."], researchGaps: "No completed human trials. Mechanism of bleeding not fully understood."),
-            detailedSideEffects: DetailedSideEffects(common: ["Nosebleeds", "Gum bleeding"], uncommon: ["Mild headache", "Injection site reaction"], rare: ["Telangiectasias (spider veins)"], contraindications: ["Bleeding disorders", "Anticoagulant therapy"])
+            detailedSideEffects: DetailedSideEffects(common: ["Nosebleeds", "Gum bleeding"], uncommon: ["Mild headache", "Injection site reaction"], rare: ["Telangiectasias (spider veins)"], contraindications: ["Bleeding disorders", "Anticoagulant therapy"]),
+            subtitle: "The Myostatin Trap (Halted Trials)",
+            whatIsIt: "ACE-031 is a soluble form of the Activin Type IIB receptor that acts as a decoy to trap myostatin and other TGF-β ligands before they can bind to muscle cells. By intercepting the 'stop growing' signals, it allows uninhibited muscle growth. Clinical trials were halted due to bleeding events.",
+            howItWorks: "Your muscles have a built-in growth limiter called myostatin. ACE-031 is a molecular decoy — it floats around in your blood pretending to be a muscle cell receptor. Myostatin binds to the decoy instead of your actual muscle cells, meaning your muscles never receive the 'stop growing' signal.",
+            watchOut: "Clinical trials halted due to nosebleeds and gum bleeding. Extremely expensive and difficult to source. Zero completed human trials.",
+            legalStatus: ["US: Clinical trials halted. Available only as a research chemical."],
+            costInfo: "Extremely expensive. Limited availability.",
+            deepDive: "ACE-031 is a recombinant fusion protein consisting of the extracellular domain of the human Activin Receptor Type IIB (ActRIIB) fused to the Fc portion of human IgG1. It acts as a ligand trap for myostatin, activin A, GDF-11, and other TGF-β superfamily members.\n\nAttie et al. (2013) Phase 2 trial in Duchenne muscular dystrophy showed significant lean mass increases but was halted due to epistaxis (nosebleeds) and gingival bleeding, attributed to ACE-031's effects on blood vessel signaling (BMP9/10 pathway).",
+            references: [
+                "Attie, K. M., et al. (2013). A single ascending-dose study of muscle regulator ACE-031 in healthy volunteers. Muscle & Nerve.",
+            ]
         ),
         CompoundProfile(
             name: "YK-11",
@@ -2234,7 +3463,17 @@ enum CompoundDatabase {
             ],
             detailedSideEffects: DetailedSideEffects(common: ["Severe testosterone suppression", "Joint dryness", "Aggression"], uncommon: ["Liver enzyme elevation", "Hair shedding"], rare: ["Severe liver toxicity"], contraindications: ["Liver disease", "Under 25 years old", "Women", "Hormone-sensitive cancers"]),
             isWADAProhibited: true,
-            wadaCategory: "S1 Anabolic Agents"
+            wadaCategory: "S1 Anabolic Agents",
+            subtitle: "The SARM/Steroid/Myostatin Inhibitor Hybrid",
+            whatIsIt: "YK-11 is one of the most unique compounds available — marketed as a SARM but chemically closer to a synthetic steroid (DHT derivative). Dual mechanism: binds androgen receptors AND forces muscle cells to produce more Follistatin, which blocks Myostatin. Extremely suppressive and liver toxic.",
+            howItWorks: "YK-11 is a triple threat: (1) It binds androgen receptors like a SARM to build muscle, (2) it forces your muscle cells to produce Follistatin — a natural myostatin blocker, and (3) it has DHT-like properties that promote strength and hardness. It's essentially a steroid and myostatin inhibitor rolled into one oral compound.",
+            watchOut: "NOT a true SARM — it's a methylated DHT derivative. Liver toxic — TUDCA or NAC is mandatory. Notorious for drying out joints. PCT absolutely mandatory.",
+            legalStatus: ["US: Available as a research chemical.", "WADA: Banned under S1."],
+            costInfo: "Research Chemical Vendors: ~$40-$70 per bottle.",
+            deepDive: "YK-11 (17α,20E)-17,20-[(1-methoxyethylidene)bis(oxy)]-3-oxo-19-norpregna-4,20-diene-21-carboxylic acid methyl ester) is a steroidal SARM structurally related to DHT with a methylated 17α position (indicating oral bioavailability and hepatotoxicity).\n\nKanno et al. (2011) demonstrated in vitro that YK-11 induces Follistatin expression in C2C12 myoblasts at concentrations as low as 500 nM, providing a dual anabolic mechanism (AR agonism + myostatin inhibition) unique among commercially available compounds.\n\nNo animal or human trials exist. All safety data is extrapolated from structural analysis and user reports.",
+            references: [
+                "Kanno, Y., et al. (2011). Selective androgen receptor modulator, YK11, regulates myogenic differentiation of C2C12 myoblasts. Biological and Pharmaceutical Bulletin.",
+            ]
         ),
         CompoundProfile(
             name: "Epicatechin",
@@ -2268,7 +3507,17 @@ enum CompoundDatabase {
                 "Effects are subtle compared to pharmaceutical myostatin inhibitors but carry zero risk.",
             ],
             evidence: EvidenceSummary(level: "Moderate", keyStudies: ["Gutierrez-Salmean et al. (2014): Demonstrated epicatechin improves Follistatin-to-Myostatin ratio in humans."], researchGaps: "Large-scale trials for muscle hypertrophy."),
-            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild GI upset"], rare: [], contraindications: [])
+            detailedSideEffects: DetailedSideEffects(common: [], uncommon: ["Mild GI upset"], rare: [], contraindications: []),
+            subtitle: "The Natural Chocolate Myostatin Inhibitor",
+            whatIsIt: "Epicatechin is a natural flavanol found in dark chocolate and green tea that inhibits myostatin through a completely natural pathway. It increases the Follistatin-to-Myostatin ratio, improves nitric oxide production, and enhances mitochondrial biogenesis. The safest myostatin inhibitor available.",
+            howItWorks: "Your muscles naturally produce both Follistatin (growth promoter) and Myostatin (growth limiter). Epicatechin shifts the balance in favor of Follistatin, tipping the scales toward growth. It also boosts nitric oxide (better pumps and blood flow) and stimulates your cells to build more mitochondria (more energy).",
+            watchOut: "Effects are subtle compared to pharmaceutical myostatin inhibitors but carry zero risk. Requires high doses (200-300 mg) of pure epicatechin — standard dark chocolate doesn't contain enough.",
+            legalStatus: ["US: Available as an OTC dietary supplement. Not banned by WADA."],
+            costInfo: "Supplement stores: ~$20-$40 per bottle.",
+            deepDive: "(-)-Epicatechin is a flavanol monomer that increases the Follistatin:Myostatin ratio through mechanisms involving the NF-κB pathway. Gutierrez-Salmean et al. (2014) demonstrated that 1 mg/kg/day of epicatechin in humans significantly increased the Follistatin:Myostatin ratio and improved grip strength.\n\nIt also stimulates nitric oxide production via eNOS activation and promotes mitochondrial biogenesis through the PGC-1α/TFAM pathway.",
+            references: [
+                "Gutierrez-Salmean, G., et al. (2014). Effects of (-)-epicatechin on molecular modulators of skeletal muscle growth and differentiation. Journal of Nutritional Biochemistry.",
+            ]
         ),
         CompoundProfile(
             name: "Follistatin (FST-344)",
@@ -2297,7 +3546,17 @@ enum CompoundDatabase {
                 "Research-grade only — very limited human data available.",
             ],
             evidence: EvidenceSummary(level: "Limited (Preclinical)", keyStudies: ["Lee & McPherron (2001): Demonstrated dramatic muscle growth in myostatin-knockout animal models."], researchGaps: "Human safety and efficacy trials."),
-            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction"], uncommon: ["Fatigue", "Joint stress from rapid muscle growth"], rare: ["Unknown long-term effects"], contraindications: ["Active cancer"])
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site reaction"], uncommon: ["Fatigue", "Joint stress from rapid muscle growth"], rare: ["Unknown long-term effects"], contraindications: ["Active cancer"]),
+            subtitle: "The Direct Myostatin Blocker",
+            whatIsIt: "Follistatin 344 is a naturally occurring protein that directly binds to and neutralizes myostatin — the body's primary 'muscle growth brake.' By blocking myostatin, Follistatin unleashes the body's full potential for muscle hypertrophy. Extremely expensive and fragile.",
+            howItWorks: "Myostatin is a protein that tells your muscles 'stop growing — you're big enough.' Follistatin grabs myostatin before it can deliver that message, essentially removing the speed limiter on your muscle growth. Without myostatin signaling, muscles can grow beyond their normal genetic limits.",
+            watchOut: "Extremely expensive and fragile — requires careful storage and handling. Effects are dramatic but temporary — returns to baseline after stopping. Very limited human data.",
+            legalStatus: ["US: Research chemical only. No FDA approval."],
+            costInfo: "Research Chemical Vendors: ~$100-$300+ per vial. One of the most expensive peptides.",
+            deepDive: "Follistatin 344 (FST-344) is a single-chain glycoprotein of 344 amino acids that binds activin and myostatin with high affinity (Kd ~50-500 pM). Lee & McPherron (2001) demonstrated that myostatin-knockout mice develop dramatically increased skeletal muscle mass, validating the myostatin inhibition strategy.\n\nFST-344 is the full-length isoform that binds both myostatin and activin A. Its broad ligand trapping may contribute to effects beyond pure muscle growth, including reproductive and metabolic effects.",
+            references: [
+                "Lee, S. J., & McPherron, A. C. (2001). Regulation of myostatin activity and muscle growth. PNAS.",
+            ]
         ),
 
         // MARK: - Category 11: Supplements & Precursors
@@ -2348,7 +3607,17 @@ enum CompoundDatabase {
                 StackDetail(partner: "EGCG", purpose: "Safe brain delivery", notes: "Prevents dangerous peripheral serotonin conversion"),
                 StackDetail(partner: "L-Tyrosine", purpose: "Neurotransmitter balance", notes: "Prevents Dopamine depletion from chronic 5-HTP use"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Vivid dreams"], uncommon: ["Lethargy", "GI upset"], rare: ["Serotonin Syndrome (with SSRIs)", "Heart valve damage (without EGCG)"], contraindications: ["Current SSRI/SNRI/MAOI use", "History of heart valve disease", "Pregnancy"])
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Vivid dreams"], uncommon: ["Lethargy", "GI upset"], rare: ["Serotonin Syndrome (with SSRIs)", "Heart valve damage (without EGCG)"], contraindications: ["Current SSRI/SNRI/MAOI use", "History of heart valve disease", "Pregnancy"]),
+            subtitle: "The Natural Serotonin Precursor",
+            whatIsIt: "5-HTP (5-Hydroxytryptophan) is a naturally occurring amino acid and direct precursor to serotonin. It is one enzymatic step away from becoming serotonin. Widely used as an OTC supplement for depression, anxiety, insomnia, and appetite suppression. EXTREMELY DANGEROUS to combine with SSRIs/SNRIs.",
+            howItWorks: "Your brain makes serotonin from tryptophan through several steps. 5-HTP skips most of these steps — it's the immediate precursor that only needs one enzyme (aromatic L-amino acid decarboxylase) to become serotonin. By providing extra 5-HTP, you increase serotonin production, improving mood, sleep, and satiety.",
+            watchOut: "NEVER combine with SSRIs, SNRIs, MAOIs, or St. John's Wort — risk of fatal Serotonin Syndrome. Long-term use without L-Tyrosine will crash Dopamine levels. Always co-supplement with EGCG.",
+            legalStatus: ["US: Available as an OTC dietary supplement."],
+            costInfo: "Supplement stores: ~$10-$25 per bottle.",
+            deepDive: "5-Hydroxytryptophan is the intermediate metabolite between L-tryptophan and serotonin (5-HT). Unlike L-tryptophan, it crosses the blood-brain barrier readily and is not diverted to other metabolic pathways (niacin, protein synthesis).\n\nThe EGCG co-supplementation is critical: without it, peripheral decarboxylase converts 5-HTP to serotonin in the gut and bloodstream. Peripheral serotonin can cause cardiac fibrosis (similar to carcinoid heart disease). EGCG inhibits peripheral AADC, ensuring 5-HTP crosses the BBB before conversion.\n\nL-Tyrosine co-supplementation prevents catecholamine depletion: AADC is shared between serotonin and dopamine synthesis. Chronically elevated 5-HTP competition for AADC can deplete dopamine and norepinephrine.",
+            references: [
+                "Birdsall, T. C. (1998). 5-Hydroxytryptophan: a clinically-effective serotonin precursor. Alternative Medicine Review.",
+            ]
         ),
         CompoundProfile(
             name: "L-Carnitine",
@@ -2397,7 +3666,18 @@ enum CompoundDatabase {
                 StackDetail(partner: "Semaglutide", purpose: "Fat loss synergy", notes: "L-Carnitine burns the fat that GLP-1s mobilize"),
                 StackDetail(partner: "AOD-9604", purpose: "Fat oxidation", notes: "AOD mobilizes fat; L-Carnitine shuttles it to mitochondria"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Injection site pain (IM)", "Fishy body odor (high-dose oral)"], uncommon: ["GI upset (oral)", "Nausea"], rare: ["Elevated TMAO / cardiovascular risk (oral only)"], contraindications: ["Hypothyroidism (can block thyroid hormone uptake)"])
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site pain (IM)", "Fishy body odor (high-dose oral)"], uncommon: ["GI upset (oral)", "Nausea"], rare: ["Elevated TMAO / cardiovascular risk (oral only)"], contraindications: ["Hypothyroidism (can block thyroid hormone uptake)"]),
+            subtitle: "The Fat Shuttle & Androgen Receptor Booster",
+            whatIsIt: "L-Carnitine is an amino acid derivative that shuttles long-chain fatty acids into mitochondria for burning. It also upregulates androgen receptor density in muscle, meaning more testosterone can bind. Injectable IM is vastly superior to oral (100% vs 5-15% bioavailability, zero TMAO risk).",
+            howItWorks: "Fat is stored energy, but it can't get into your cellular power plants (mitochondria) without a shuttle bus. L-Carnitine IS that shuttle bus. It grabs fatty acids and carries them across the mitochondrial membrane where they're burned for energy. It also increases the number of testosterone 'parking spots' (androgen receptors) on your muscle cells.",
+            watchOut: "MUST be taken with carbs — insulin is required to load L-Carnitine into muscle cells. IM injection site pain is common due to high acidity. Takes ~100 days to fully saturate muscles.",
+            legalStatus: ["US: Available as an OTC supplement (oral) and via compounding pharmacies (injectable)."],
+            costInfo: "Oral supplement: ~$15-$30 per bottle. Injectable: ~$30-$60 per vial.",
+            deepDive: "L-Carnitine (L-3-hydroxy-4-N,N,N-trimethylaminobutyrate) functions as the obligate cofactor for carnitine palmitoyltransferase (CPT-1 and CPT-2), which transport long-chain fatty acids across the inner mitochondrial membrane for beta-oxidation.\n\nWall et al. (2011) demonstrated that muscle carnitine loading (achieved with insulin co-ingestion) improves work output during exercise by sparing muscle glycogen and increasing fat oxidation. Kraemer et al. (2006) showed that L-Carnitine L-Tartrate (LCLT) upregulates androgen receptor content in human skeletal muscle.\n\nThe TMAO concern: oral L-Carnitine is metabolized by gut bacteria to TMA, which the liver converts to TMAO — a cardiovascular risk marker. Injectable IM bypasses the gut entirely, eliminating TMAO production.",
+            references: [
+                "Wall, B. T., et al. (2011). Chronic oral ingestion of L-carnitine and carbohydrate increases muscle carnitine content and alters muscle fuel metabolism during exercise. Journal of Physiology.",
+                "Kraemer, W. J., et al. (2006). Androgenic responses to resistance exercise. Medicine & Science in Sports & Exercise.",
+            ]
         ),
 
         // MARK: - Category 12: Hormonal & PCT
@@ -2452,7 +3732,17 @@ enum CompoundDatabase {
                 StackDetail(partner: "Enclomiphene", purpose: "Full HPTA recovery", notes: "HCG restarts testes; Enclomiphene restarts pituitary"),
                 StackDetail(partner: "Arimidex", purpose: "Estrogen control", notes: "Controls estrogen spike from HCG use"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Estrogen elevation", "Water retention"], uncommon: ["Gynecomastia", "Mood swings"], rare: ["Leydig cell desensitization (high-dose chronic use)"], contraindications: ["Hormone-sensitive cancers", "Precocious puberty"])
+            detailedSideEffects: DetailedSideEffects(common: ["Estrogen elevation", "Water retention"], uncommon: ["Gynecomastia", "Mood swings"], rare: ["Leydig cell desensitization (high-dose chronic use)"], contraindications: ["Hormone-sensitive cancers", "Precocious puberty"]),
+            subtitle: "The Gold Standard for Testicular Function",
+            whatIsIt: "HCG (Human Chorionic Gonadotropin) is a glycoprotein hormone that mimics LH (Luteinizing Hormone). It directly stimulates Leydig cells in the testes to produce testosterone and sperm. The gold standard for maintaining testicular function during TRT or steroid cycles, and for fertility support.",
+            howItWorks: "Your pituitary gland sends LH to your testes saying 'make testosterone.' When you're on TRT or steroids, the pituitary stops sending LH because testosterone is already high. Without LH, the testes shrink and stop working. HCG mimics LH, telling the testes to keep making testosterone and sperm even when the pituitary isn't sending the signal.",
+            watchOut: "Raises estrogen — may need an aromatase inhibitor. Do NOT use high doses (>1500 IU) continuously — causes Leydig cell desensitization. Must be refrigerated at all times.",
+            legalStatus: ["US: FDA approved for multiple indications. Available via prescription."],
+            costInfo: "Compounding pharmacies: ~$50-$150 per vial.",
+            deepDive: "HCG is a 237-amino acid glycoprotein with alpha and beta subunits. The alpha subunit is identical to LH, FSH, and TSH. The beta subunit provides receptor specificity for the LH/CG receptor on Leydig cells.\n\nHCG stimulates steroidogenesis via the cAMP/PKA pathway in Leydig cells, promoting testosterone synthesis. It also stimulates Sertoli cells indirectly, supporting spermatogenesis. However, chronic high-dose use (>1500 IU) can cause Leydig cell desensitization through receptor downregulation.",
+            references: [
+                "Decades of clinical use. FDA approved for hypogonadism, cryptorchidism, and fertility.",
+            ]
         ),
         CompoundProfile(
             name: "HMG",
@@ -2492,7 +3782,17 @@ enum CompoundDatabase {
                 "Typically used alongside HCG in a comprehensive fertility protocol.",
             ],
             evidence: EvidenceSummary(level: "Strong (FDA Approved)", keyStudies: ["Decades of clinical use for male and female fertility treatment."], researchGaps: "Optimal dosing for post-steroid fertility recovery."),
-            detailedSideEffects: DetailedSideEffects(common: ["Injection site pain"], uncommon: ["Mood swings", "Bloating"], rare: ["Ovarian hyperstimulation (women)"], contraindications: ["Hormone-sensitive cancers"])
+            detailedSideEffects: DetailedSideEffects(common: ["Injection site pain"], uncommon: ["Mood swings", "Bloating"], rare: ["Ovarian hyperstimulation (women)"], contraindications: ["Hormone-sensitive cancers"]),
+            subtitle: "The Fertility Specialist's Choice",
+            whatIsIt: "HMG (Human Menopausal Gonadotropin) contains both LH and FSH activity. Unlike HCG which only mimics LH, HMG stimulates both testosterone production AND sperm production (spermatogenesis). The go-to compound when fertility is the primary concern.",
+            howItWorks: "Making testosterone only requires LH (which HCG provides). But making sperm requires BOTH LH and FSH. HMG provides both, stimulating the full reproductive machinery — Leydig cells for testosterone AND Sertoli cells for sperm maturation.",
+            watchOut: "More expensive than HCG. Typically used alongside HCG in comprehensive fertility protocols.",
+            legalStatus: ["US: FDA approved for fertility treatment."],
+            costInfo: "Prescription: ~$80-$200 per vial.",
+            deepDive: "HMG is a purified extract of postmenopausal urine containing both LH and FSH bioactivity. Modern recombinant forms (rFSH + rLH) provide more consistent dosing. The FSH component is critical for spermatogenesis: it activates Sertoli cells to support sperm maturation, a function that HCG alone cannot fully provide.",
+            references: [
+                "Decades of clinical use for male and female fertility treatment.",
+            ]
         ),
         CompoundProfile(
             name: "Enclomiphene",
@@ -2538,7 +3838,17 @@ enum CompoundDatabase {
                 StackDetail(partner: "HCG", purpose: "Full HPTA recovery", notes: "HCG restarts testes; Enclomiphene restarts pituitary LH/FSH"),
                 StackDetail(partner: "Kisspeptin-10", purpose: "Dual-pathway PCT", notes: "Both stimulate the HPTA through different mechanisms"),
             ],
-            detailedSideEffects: DetailedSideEffects(common: ["Headache", "Mild mood changes"], uncommon: ["Visual disturbances (floaters, blurring)"], rare: ["Ovarian hyperstimulation (women)"], contraindications: ["Pregnancy", "Liver disease"])
+            detailedSideEffects: DetailedSideEffects(common: ["Headache", "Mild mood changes"], uncommon: ["Visual disturbances (floaters, blurring)"], rare: ["Ovarian hyperstimulation (women)"], contraindications: ["Pregnancy", "Liver disease"]),
+            subtitle: "The Modern PCT Standard",
+            whatIsIt: "Enclomiphene is the trans-isomer of Clomid isolated for its pure anti-estrogenic effects at the pituitary. It blocks estrogen receptors in the hypothalamus/pituitary, triggering LH and FSH release to restart natural testosterone production. Unlike Clomid, it does NOT contain the estrogenic Zuclomiphene isomer.",
+            howItWorks: "Your brain uses estrogen levels as a thermostat for testosterone production. When estrogen is high, the brain turns down LH/FSH (and thus testosterone). Enclomiphene blocks the estrogen sensor in the brain, making it think estrogen is low even when it isn't. The brain responds by cranking up LH and FSH, which restart natural testosterone production.",
+            watchOut: "Preferred over Clomid for PCT due to absence of estrogenic side effects. Some men use low-dose as a TRT alternative.",
+            legalStatus: ["US: Not yet FDA approved (Phase 3 completed). Available via compounding pharmacies."],
+            costInfo: "Compounding pharmacies: ~$30-$80 per month.",
+            deepDive: "Enclomiphene citrate is the (E)-geometric isomer of clomiphene citrate. Unlike racemic Clomid (which contains ~38% Zuclomiphene), Enclomiphene lacks the estrogenic cis-isomer that causes emotional instability and accumulates with a 30-day half-life.\n\nWiehle et al. (2014) Phase 3 trials demonstrated that Enclomiphene 25 mg daily raised testosterone to eugonadal levels in hypogonadal men while maintaining or improving sperm parameters — a critical advantage over exogenous testosterone which shuts down spermatogenesis.",
+            references: [
+                "Wiehle, R. D., et al. (2014). Enclomiphene citrate stimulates testosterone production while preventing oligospermia. Journal of Urology.",
+            ]
         ),
         CompoundProfile(
             name: "Clomid",
@@ -2579,7 +3889,17 @@ enum CompoundDatabase {
                 "Visual disturbances (floaters, light sensitivity) are a warning sign — stop immediately if they occur.",
             ],
             evidence: EvidenceSummary(level: "Strong (FDA Approved)", keyStudies: ["Decades of clinical use for female fertility and off-label male hypogonadism."], researchGaps: "Direct comparison with pure Enclomiphene for male PCT."),
-            detailedSideEffects: DetailedSideEffects(common: ["Emotional instability", "Hot flashes", "Headache"], uncommon: ["Visual disturbances", "Weight gain"], rare: ["Ovarian hyperstimulation (women)", "Permanent visual damage (rare)"], contraindications: ["Pregnancy", "Liver disease", "Abnormal uterine bleeding"])
+            detailedSideEffects: DetailedSideEffects(common: ["Emotional instability", "Hot flashes", "Headache"], uncommon: ["Visual disturbances", "Weight gain"], rare: ["Ovarian hyperstimulation (women)", "Permanent visual damage (rare)"], contraindications: ["Pregnancy", "Liver disease", "Abnormal uterine bleeding"]),
+            subtitle: "The Original PCT Drug (Being Replaced)",
+            whatIsIt: "Clomid (Clomiphene Citrate) is the original PCT drug containing two isomers: Enclomiphene (anti-estrogenic, beneficial) and Zuclomiphene (weakly estrogenic, problematic). Being replaced by pure Enclomiphene in modern protocols due to the Zuclomiphene side effects.",
+            howItWorks: "Same mechanism as Enclomiphene — blocks estrogen at the pituitary to restart LH/FSH. But Clomid also contains Zuclomiphene, which has a 30-day half-life and actually acts as a weak estrogen. Over time, Zuclomiphene accumulates and causes estrogenic side effects (emotional instability, vision problems) that contradict the intended anti-estrogenic purpose.",
+            watchOut: "Zuclomiphene (estrogenic isomer) accumulates with a 30-day half-life. Visual disturbances are a warning sign — stop immediately if they occur. Being replaced by Enclomiphene.",
+            legalStatus: ["US: FDA approved for female fertility. Used off-label for male PCT."],
+            costInfo: "Generic prescription: ~$10-$30 per month.",
+            deepDive: "Clomiphene Citrate is a racemic mixture of ~62% Enclomiphene (trans) and ~38% Zuclomiphene (cis). The Zuclomiphene isomer has weak estrogenic activity and a very long half-life (~30 days), meaning it accumulates with chronic dosing and progressively counteracts the anti-estrogenic effects of Enclomiphene.\n\nThis is why Clomid users often report emotional instability, mood swings, and visual disturbances that worsen over time — the Zuclomiphene burden increases with each week of use.",
+            references: [
+                "Decades of clinical use. FDA approved for female ovulation induction.",
+            ]
         ),
         CompoundProfile(
             name: "Nolvadex",
@@ -2620,7 +3940,17 @@ enum CompoundDatabase {
                 "Long half-life means effects persist for weeks after stopping.",
             ],
             evidence: EvidenceSummary(level: "Very Strong (FDA Approved)", keyStudies: ["Decades of use for breast cancer prevention and treatment."], researchGaps: "None significant."),
-            detailedSideEffects: DetailedSideEffects(common: ["Hot flashes", "Fatigue"], uncommon: ["Joint pain", "Nausea"], rare: ["Blood clots (DVT)", "Endometrial cancer (long-term, women)"], contraindications: ["History of blood clots", "Pregnancy", "Breastfeeding"])
+            detailedSideEffects: DetailedSideEffects(common: ["Hot flashes", "Fatigue"], uncommon: ["Joint pain", "Nausea"], rare: ["Blood clots (DVT)", "Endometrial cancer (long-term, women)"], contraindications: ["History of blood clots", "Pregnancy", "Breastfeeding"]),
+            subtitle: "The #1 Anti-Gyno Drug",
+            whatIsIt: "Nolvadex (Tamoxifen Citrate) is the most widely studied SERM. It selectively blocks estrogen receptors in breast tissue (preventing/treating gynecomastia) while acting as an estrogen agonist in bone (preserving density). The #1 drug for treating gynecomastia and a staple PCT compound.",
+            howItWorks: "Unlike aromatase inhibitors that lower total estrogen, Nolvadex is a selective blocker. It sits in the estrogen receptor in breast tissue like a key that fits the lock but won't turn it. Estrogen can't bind, so it can't stimulate breast tissue growth. Meanwhile, in bone tissue, Nolvadex actually activates the estrogen receptor, preserving bone density.",
+            watchOut: "Does NOT lower estrogen — just blocks it at the breast. Long half-life means effects persist weeks after stopping. Rare but serious blood clot risk.",
+            legalStatus: ["US: FDA approved for breast cancer prevention. Used off-label for gynecomastia and PCT."],
+            costInfo: "Generic prescription: ~$10-$30 per month.",
+            deepDive: "Tamoxifen is a non-steroidal SERM that acts as an estrogen antagonist in breast tissue and endometrium, but as an estrogen agonist in bone and liver. This tissue-selective action is mediated by differential recruitment of coactivators and corepressors at estrogen response elements in different tissues.\n\nFor gynecomastia, early treatment (before tissue fibrosis) is critical. Tamoxifen is most effective during the proliferative phase of gynecomastia. Once fibrotic tissue has formed, surgical intervention may be necessary.",
+            references: [
+                "Jordan, V. C. (2003). Tamoxifen: a most unlikely pioneering medicine. Nature Reviews Drug Discovery.",
+            ]
         ),
         CompoundProfile(
             name: "Raloxifene",
@@ -2654,7 +3984,17 @@ enum CompoundDatabase {
                 "Lower blood clot risk than Tamoxifen.",
             ],
             evidence: EvidenceSummary(level: "Strong (FDA Approved)", keyStudies: ["Lawrence et al. (2004): Demonstrated 86% gynecomastia reduction with Raloxifene vs 64% with Tamoxifen."], researchGaps: "None significant."),
-            detailedSideEffects: DetailedSideEffects(common: ["Hot flashes", "Leg cramps"], uncommon: ["Joint stiffness"], rare: ["Blood clots (lower risk than Tamoxifen)"], contraindications: ["History of blood clots", "Pregnancy"])
+            detailedSideEffects: DetailedSideEffects(common: ["Hot flashes", "Leg cramps"], uncommon: ["Joint stiffness"], rare: ["Blood clots (lower risk than Tamoxifen)"], contraindications: ["History of blood clots", "Pregnancy"]),
+            subtitle: "The Superior Gyno Reverser",
+            whatIsIt: "Raloxifene is a second-generation SERM considered superior to Nolvadex specifically for gynecomastia reversal. Studies show ~86% reversal rate vs ~64% for Tamoxifen. Lower blood clot risk. However, less effective for PCT.",
+            howItWorks: "Same SERM mechanism as Nolvadex — blocks estrogen at the breast receptor. But Raloxifene has higher binding affinity and selectivity for breast tissue estrogen receptors, making it more effective at reversing existing gynecomastia while having less impact on other tissues.",
+            watchOut: "Less effective for PCT than Nolvadex/Clomid. Primarily used for gynecomastia reversal, not hormonal restart.",
+            legalStatus: ["US: FDA approved for osteoporosis and breast cancer prevention."],
+            costInfo: "Generic prescription: ~$15-$40 per month.",
+            deepDive: "Raloxifene HCl is a second-generation SERM with enhanced selectivity for breast tissue ER-alpha. Lawrence et al. (2004) conducted a prospective trial comparing Raloxifene and Tamoxifen for pubertal gynecomastia, finding that Raloxifene achieved >10% breast volume reduction in 86% of patients vs 64% for Tamoxifen.\n\nThe improved efficacy is attributed to its higher affinity for breast tissue estrogen receptors and its distinct corepressor recruitment profile.",
+            references: [
+                "Lawrence, S. E., et al. (2004). Beneficial effects of raloxifene and tamoxifen in the treatment of pubertal gynecomastia. Journal of Pediatrics.",
+            ]
         ),
 
         // MARK: - Category 13: Ancillaries (AI & Prolactin)
@@ -2696,7 +4036,17 @@ enum CompoundDatabase {
                 "Only 1-2x per week dosing needed due to 63-hour half-life.",
             ],
             evidence: EvidenceSummary(level: "Very Strong (FDA Approved)", keyStudies: ["Decades of clinical use for Parkinson's and hyperprolactinemia."], researchGaps: "Optimal dosing for bodybuilding prolactin control."),
-            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Dizziness", "Low blood pressure"], uncommon: ["Compulsive behavior (gambling, hypersexuality)", "Headache"], rare: ["Heart valve fibrosis (high-dose, long-term)"], contraindications: ["Uncontrolled hypertension", "History of heart valve disease", "Pulmonary fibrosis"])
+            detailedSideEffects: DetailedSideEffects(common: ["Nausea", "Dizziness", "Low blood pressure"], uncommon: ["Compulsive behavior (gambling, hypersexuality)", "Headache"], rare: ["Heart valve fibrosis (high-dose, long-term)"], contraindications: ["Uncontrolled hypertension", "History of heart valve disease", "Pulmonary fibrosis"]),
+            subtitle: "The Prolactin Crusher",
+            whatIsIt: "Cabergoline is a powerful dopamine receptor agonist used to control prolactin levels. In bodybuilding, used almost exclusively alongside 19-Nor steroids (Trenbolone, Deca) to prevent prolactin-induced side effects. Famous for drastically reducing the male refractory period.",
+            howItWorks: "Prolactin is normally kept in check by dopamine. When prolactin gets too high (from certain steroids or medical conditions), it causes lactation, erectile dysfunction, and mood issues. Cabergoline powerfully activates dopamine receptors, which directly suppresses prolactin secretion from the pituitary.",
+            watchOut: "NEVER assume high prolactin — always confirm with bloodwork (high estrogen mimics high prolactin symptoms). Take before bed with food to sleep through nausea. Long-term high doses linked to heart valve damage.",
+            legalStatus: ["US: FDA approved for hyperprolactinemia (Dostinex)."],
+            costInfo: "Generic prescription: ~$30-$80 per month.",
+            deepDive: "Cabergoline is an ergot-derived dopamine D2 receptor agonist with a half-life of 63-69 hours. It potently suppresses prolactin secretion from anterior pituitary lactotrophs via tonic D2 receptor activation.\n\nThe compulsive behavior risk (gambling, hypersexuality) is a class effect of dopamine agonists, occurring in approximately 5-10% of patients at therapeutic doses. The heart valve fibrosis concern comes from high-dose Parkinson's disease use; bodybuilding doses are much lower.",
+            references: [
+                "Colao, A., et al. (2006). Withdrawal of long-term cabergoline therapy for tumoral and nontumoral hyperprolactinemia. NEJM.",
+            ]
         ),
         CompoundProfile(
             name: "Arimidex",
@@ -2737,7 +4087,17 @@ enum CompoundDatabase {
                 "Damages lipid profiles — monitor HDL/LDL regularly.",
             ],
             evidence: EvidenceSummary(level: "Very Strong (FDA Approved)", keyStudies: ["FDA approved for breast cancer treatment in postmenopausal women."], researchGaps: "Optimal micro-dosing protocols for bodybuilding."),
-            detailedSideEffects: DetailedSideEffects(common: ["Joint pain", "Mood changes", "Fatigue"], uncommon: ["Hair thinning", "Lipid damage"], rare: ["Bone density loss (long-term)"], contraindications: ["Pregnancy", "Pre-menopausal women (without ovarian suppression)"])
+            detailedSideEffects: DetailedSideEffects(common: ["Joint pain", "Mood changes", "Fatigue"], uncommon: ["Hair thinning", "Lipid damage"], rare: ["Bone density loss (long-term)"], contraindications: ["Pregnancy", "Pre-menopausal women (without ovarian suppression)"]),
+            subtitle: "The Standard Aromatase Inhibitor",
+            whatIsIt: "Arimidex (Anastrozole) is the most commonly used aromatase inhibitor (AI) in bodybuilding. It blocks the aromatase enzyme that converts testosterone into estrogen. Non-steroidal and reversible — estrogen rebounds when stopped.",
+            howItWorks: "Your body converts testosterone to estrogen using an enzyme called aromatase. Arimidex blocks this enzyme, reducing estrogen production at the source. Unlike SERMs (Nolvadex) that block estrogen at the receptor, Arimidex actually lowers total estrogen levels throughout the body.",
+            watchOut: "Crashing estrogen is WORSE than high estrogen — joint pain, depression, zero libido, dry skin. Always dose based on bloodwork, never 'feel.' Reversible — estrogen rebounds when stopped. Damages lipid profiles.",
+            legalStatus: ["US: FDA approved for breast cancer."],
+            costInfo: "Generic prescription: ~$10-$30 per month.",
+            deepDive: "Anastrozole is a non-steroidal, competitive aromatase (CYP19) inhibitor that reduces plasma estradiol by approximately 70-80% at 1 mg/day. It is reversible — unlike Aromasin (Exemestane), which permanently destroys the enzyme.\n\nThe reversibility means estrogen 'rebounds' when Arimidex is discontinued, as all the inhibited aromatase enzymes resume function simultaneously. This rebound can cause acute estrogen-related side effects if not managed with a taper.\n\nAIs significantly worsen lipid profiles by removing estrogen's cardioprotective effects on HDL cholesterol.",
+            references: [
+                "FDA approval data for Arimidex (Anastrozole) in breast cancer treatment.",
+            ]
         ),
         CompoundProfile(
             name: "Aromasin",
@@ -2777,7 +4137,17 @@ enum CompoundDatabase {
                 "Preferred for longer cycles due to no rebound risk.",
             ],
             evidence: EvidenceSummary(level: "Very Strong (FDA Approved)", keyStudies: ["FDA approved for breast cancer in postmenopausal women."], researchGaps: "Micro-dosing protocols for bodybuilding."),
-            detailedSideEffects: DetailedSideEffects(common: ["Joint discomfort", "Fatigue"], uncommon: ["Hair thinning", "Insomnia"], rare: ["Bone density loss (long-term)"], contraindications: ["Pregnancy"])
+            detailedSideEffects: DetailedSideEffects(common: ["Joint discomfort", "Fatigue"], uncommon: ["Hair thinning", "Insomnia"], rare: ["Bone density loss (long-term)"], contraindications: ["Pregnancy"]),
+            subtitle: "The No-Rebound Aromatase Inhibitor",
+            whatIsIt: "Aromasin (Exemestane) is a suicidal (irreversible) aromatase inhibitor. Unlike Arimidex, it permanently destroys the aromatase enzyme it binds to — no estrogen rebound when stopped. Also mildly androgenic, making it less harsh on lipids and joints.",
+            howItWorks: "Arimidex parks in the aromatase enzyme's active site temporarily. Aromasin drives in and blows up the parking garage. It permanently destroys each aromatase enzyme molecule it encounters. New enzymes must be synthesized from scratch, which takes days. This is why there's no estrogen rebound when you stop.",
+            watchOut: "MUST be taken with a fatty meal — absorption is near zero on an empty stomach. Preferred for longer cycles due to no rebound risk.",
+            legalStatus: ["US: FDA approved for breast cancer."],
+            costInfo: "Generic prescription: ~$15-$40 per month.",
+            deepDive: "Exemestane is a steroidal, mechanism-based (suicidal) aromatase inhibitor. It acts as a false substrate for aromatase, forming a covalent bond with the enzyme active site that permanently inactivates it. New aromatase protein must be synthesized de novo to restore estrogen production.\n\nThe mild androgenic activity of Exemestane (it is structurally related to androstenedione) provides a partial counter to the joint and lipid side effects seen with non-steroidal AIs like Anastrozole. Studies show less adverse impact on bone mineral density compared to Anastrozole.",
+            references: [
+                "FDA approval data for Aromasin (Exemestane) in breast cancer treatment.",
+            ]
         ),
         CompoundProfile(
             name: "Letrozole",
@@ -2818,7 +4188,17 @@ enum CompoundDatabase {
                 "Most users should use Arimidex or Aromasin instead for routine management.",
             ],
             evidence: EvidenceSummary(level: "Very Strong (FDA Approved)", keyStudies: ["FDA approved for breast cancer. Most potent AI available."], researchGaps: "Micro-dosing protocols for bodybuilding estrogen control."),
-            detailedSideEffects: DetailedSideEffects(common: ["Severe joint pain", "Depression", "Zero libido", "Fatigue"], uncommon: ["Hair loss", "Bone density loss"], rare: ["Carpal tunnel syndrome"], contraindications: ["Pregnancy", "Pre-menopausal women"])
+            detailedSideEffects: DetailedSideEffects(common: ["Severe joint pain", "Depression", "Zero libido", "Fatigue"], uncommon: ["Hair loss", "Bone density loss"], rare: ["Carpal tunnel syndrome"], contraindications: ["Pregnancy", "Pre-menopausal women"]),
+            subtitle: "The Nuclear Option AI",
+            whatIsIt: "Letrozole is the most potent aromatase inhibitor available — reduces estrogen by up to 98%. Used as a 'nuclear option' for severe gynecomastia emergencies or extremely high aromatizers. NOT recommended for routine estrogen management due to extreme potency.",
+            howItWorks: "Letrozole blocks aromatase even more completely than Arimidex, reducing estrogen to near-undetectable levels. While Arimidex reduces estrogen by 70-80%, Letrozole can reduce it by 95-98%. This extreme suppression is useful in emergencies but devastating for daily life — estrogen is essential for joint health, mood, libido, and brain function.",
+            watchOut: "Can crash estrogen to near-zero, causing devastating joint pain, depression, and zero libido. Only for gyno emergencies or extreme aromatizers. Reversible — estrogen rebounds when stopped.",
+            legalStatus: ["US: FDA approved for breast cancer."],
+            costInfo: "Generic prescription: ~$10-$30 per month.",
+            deepDive: "Letrozole is a non-steroidal, competitive aromatase inhibitor approximately 150-250x more potent than Anastrozole. At 2.5 mg/day, it suppresses plasma estradiol by 95-98% in postmenopausal women.\n\nIn bodybuilding, it is reserved for two scenarios: (1) acute gynecomastia reversal where 2.5 mg/day for 7-10 days can halt and reverse early-stage gyno, and (2) chronic management of extreme aromatizers where Anastrozole fails, using micro-doses of 0.25-0.5 mg EOD.\n\nLike Anastrozole, it is reversible — estrogen rebounds upon discontinuation, requiring careful tapering.",
+            references: [
+                "FDA approval data for Femara (Letrozole) in breast cancer treatment.",
+            ]
         ),
     ]
 
