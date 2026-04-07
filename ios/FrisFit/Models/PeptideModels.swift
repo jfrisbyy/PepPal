@@ -204,6 +204,72 @@ nonisolated struct DetailedSideEffects: Sendable {
     }
 }
 
+nonisolated struct TimelineEntry: Identifiable, Sendable {
+    let id: UUID
+    let timeframe: String
+    let description: String
+
+    init(timeframe: String, description: String) {
+        self.id = UUID()
+        self.timeframe = timeframe
+        self.description = description
+    }
+}
+
+nonisolated struct DosingPhase: Identifiable, Sendable {
+    let id: UUID
+    let phase: String
+    let dose: String
+    let frequency: String
+    let timing: String
+
+    init(phase: String, dose: String, frequency: String, timing: String) {
+        self.id = UUID()
+        self.phase = phase
+        self.dose = dose
+        self.frequency = frequency
+        self.timing = timing
+    }
+}
+
+nonisolated struct DrugInteraction: Identifiable, Sendable {
+    let id: UUID
+    let substance: String
+    let riskLevel: String
+    let details: String
+
+    init(substance: String, riskLevel: String, details: String) {
+        self.id = UUID()
+        self.substance = substance
+        self.riskLevel = riskLevel
+        self.details = details
+    }
+}
+
+nonisolated struct FAQItem: Identifiable, Sendable {
+    let id: UUID
+    let question: String
+    let answer: String
+
+    init(question: String, answer: String) {
+        self.id = UUID()
+        self.question = question
+        self.answer = answer
+    }
+}
+
+nonisolated struct CompoundComparison: Identifiable, Sendable {
+    let id: UUID
+    let feature: String
+    let values: [String: String]
+
+    init(feature: String, values: [String: String]) {
+        self.id = UUID()
+        self.feature = feature
+        self.values = values
+    }
+}
+
 nonisolated struct CompoundProfile: Identifiable, Sendable {
     let id: UUID
     let name: String
@@ -232,6 +298,26 @@ nonisolated struct CompoundProfile: Identifiable, Sendable {
     let detailedSideEffects: DetailedSideEffects
     let isWADAProhibited: Bool
     let wadaCategory: String
+    let subtitle: String
+    let whatIsIt: String
+    let howItWorks: String
+    let whatToExpect: [TimelineEntry]
+    let watchOut: String
+    let beforeYouStart: [String]
+    let dosingSchedule: [DosingPhase]
+    let injectionSiteGuide: String
+    let discontinuationProtocol: String
+    let communityConsensus: [String]
+    let drugInteractions: [DrugInteraction]
+    let sideEffectManagement: [String]
+    let womenConsiderations: [String]
+    let trainingGuide: [String]
+    let legalStatus: [String]
+    let costInfo: String
+    let comparisons: [CompoundComparison]
+    let deepDive: String
+    let faq: [FAQItem]
+    let references: [String]
 
     init(
         name: String,
@@ -259,7 +345,27 @@ nonisolated struct CompoundProfile: Identifiable, Sendable {
         stackDetails: [StackDetail] = [],
         detailedSideEffects: DetailedSideEffects = DetailedSideEffects(),
         isWADAProhibited: Bool = false,
-        wadaCategory: String = ""
+        wadaCategory: String = "",
+        subtitle: String = "",
+        whatIsIt: String = "",
+        howItWorks: String = "",
+        whatToExpect: [TimelineEntry] = [],
+        watchOut: String = "",
+        beforeYouStart: [String] = [],
+        dosingSchedule: [DosingPhase] = [],
+        injectionSiteGuide: String = "",
+        discontinuationProtocol: String = "",
+        communityConsensus: [String] = [],
+        drugInteractions: [DrugInteraction] = [],
+        sideEffectManagement: [String] = [],
+        womenConsiderations: [String] = [],
+        trainingGuide: [String] = [],
+        legalStatus: [String] = [],
+        costInfo: String = "",
+        comparisons: [CompoundComparison] = [],
+        deepDive: String = "",
+        faq: [FAQItem] = [],
+        references: [String] = []
     ) {
         self.id = UUID()
         self.name = name
@@ -288,6 +394,26 @@ nonisolated struct CompoundProfile: Identifiable, Sendable {
         self.detailedSideEffects = detailedSideEffects
         self.isWADAProhibited = isWADAProhibited
         self.wadaCategory = wadaCategory
+        self.subtitle = subtitle
+        self.whatIsIt = whatIsIt
+        self.howItWorks = howItWorks
+        self.whatToExpect = whatToExpect
+        self.watchOut = watchOut
+        self.beforeYouStart = beforeYouStart
+        self.dosingSchedule = dosingSchedule
+        self.injectionSiteGuide = injectionSiteGuide
+        self.discontinuationProtocol = discontinuationProtocol
+        self.communityConsensus = communityConsensus
+        self.drugInteractions = drugInteractions
+        self.sideEffectManagement = sideEffectManagement
+        self.womenConsiderations = womenConsiderations
+        self.trainingGuide = trainingGuide
+        self.legalStatus = legalStatus
+        self.costInfo = costInfo
+        self.comparisons = comparisons
+        self.deepDive = deepDive
+        self.faq = faq
+        self.references = references
     }
 }
 
