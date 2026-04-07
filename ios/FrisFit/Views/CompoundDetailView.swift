@@ -277,6 +277,10 @@ struct CompoundDetailView: View {
                 sideEffectsCard
             }
 
+            if hasDetailedSideEffects {
+                detailedSideEffectsCard
+            }
+
             if !compound.detailedSideEffects.contraindications.isEmpty {
                 contraindicationsCard
             }
@@ -479,6 +483,79 @@ struct CompoundDetailView: View {
             Text(label)
                 .font(.system(.caption2, weight: .medium))
                 .foregroundStyle(PepTheme.textSecondary)
+        }
+    }
+
+    private var hasDetailedSideEffects: Bool {
+        !compound.detailedSideEffects.common.isEmpty ||
+        !compound.detailedSideEffects.uncommon.isEmpty ||
+        !compound.detailedSideEffects.rare.isEmpty
+    }
+
+    private var detailedSideEffectsCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionHeader(icon: "list.bullet.clipboard.fill", title: "Side Effect Breakdown", color: .orange)
+
+                if !compound.detailedSideEffects.common.isEmpty {
+                    sideEffectTierSection(
+                        title: "Common",
+                        icon: "circle.fill",
+                        color: .yellow,
+                        items: compound.detailedSideEffects.common
+                    )
+                }
+
+                if !compound.detailedSideEffects.uncommon.isEmpty {
+                    sideEffectTierSection(
+                        title: "Uncommon",
+                        icon: "circle.fill",
+                        color: .orange,
+                        items: compound.detailedSideEffects.uncommon
+                    )
+                }
+
+                if !compound.detailedSideEffects.rare.isEmpty {
+                    sideEffectTierSection(
+                        title: "Rare",
+                        icon: "circle.fill",
+                        color: .red,
+                        items: compound.detailedSideEffects.rare
+                    )
+                }
+            }
+        }
+    }
+
+    private func sideEffectTierSection(title: String, icon: String, color: Color, items: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(color)
+                    .frame(width: 8, height: 8)
+                Text(title)
+                    .font(.system(.caption, weight: .bold))
+                    .foregroundStyle(color)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(color.opacity(0.6))
+                            .padding(.top, 3)
+                        Text(item)
+                            .font(.system(.caption, weight: .medium))
+                            .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                            .lineSpacing(2)
+                    }
+                }
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(color.opacity(0.06))
+            .clipShape(.rect(cornerRadius: 10))
         }
     }
 
