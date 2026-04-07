@@ -239,6 +239,8 @@ struct BeginnersGuideView: View {
         case .sexualHealth: return "PT-141, Kisspeptin"
         case .sarms: return "MK-677, RAD-140"
         case .igfVariants: return "IGF-1 LR3, IGF-1 DES"
+        case .hormonal: return "HCG, Enclomiphene, Nolvadex"
+        case .ancillary: return "Arimidex, Aromasin, Cabergoline"
         case .niche: return "DSIP, Thymosin Alpha-1"
         case .all: return ""
         }

@@ -10,6 +10,8 @@ nonisolated enum PeptideCategory: String, CaseIterable, Identifiable, Sendable {
     case antiAging = "Anti-Aging"
     case sarms = "SARMs"
     case igfVariants = "IGF Variants"
+    case hormonal = "Hormonal & PCT"
+    case ancillary = "Ancillaries"
     case niche = "Niche"
     case all = "All"
 
@@ -26,6 +28,8 @@ nonisolated enum PeptideCategory: String, CaseIterable, Identifiable, Sendable {
         case .antiAging: return "hourglass"
         case .sarms: return "bolt.fill"
         case .igfVariants: return "arrow.up.forward"
+        case .hormonal: return "arrow.triangle.2.circlepath"
+        case .ancillary: return "pills.fill"
         case .niche: return "flask.fill"
         case .all: return "square.grid.2x2.fill"
         }
@@ -42,6 +46,8 @@ nonisolated enum PeptideCategory: String, CaseIterable, Identifiable, Sendable {
         case .antiAging: return Color(red: 200/255, green: 120/255, blue: 220/255)
         case .sarms: return .red
         case .igfVariants: return Color(red: 255/255, green: 140/255, blue: 50/255)
+        case .hormonal: return Color(red: 52/255, green: 152/255, blue: 219/255)
+        case .ancillary: return Color(red: 149/255, green: 165/255, blue: 166/255)
         case .niche: return Color(red: 100/255, green: 200/255, blue: 220/255)
         case .all: return PepTheme.teal
         }
