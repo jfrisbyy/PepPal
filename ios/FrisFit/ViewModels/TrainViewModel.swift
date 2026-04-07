@@ -11,6 +11,9 @@ final class TrainViewModel {
     var showModeSelectorSheet: Bool = false
     var showCreateModeSheet: Bool = false
 
+    private static let modesKey = "savedTrainModes"
+    private static let lastModeKey = "lastActiveTrainModeId"
+
     var programName: String = ""
     var programType: ProgramType = .recurringSplit
     var daysPerWeek: Int = 4
@@ -422,6 +425,7 @@ final class TrainViewModel {
     func addMode(_ mode: TrainMode) {
         availableModes.append(mode)
         currentMode = mode
+        saveModes()
     }
 
     func removeMode(_ mode: TrainMode) {
@@ -430,10 +434,33 @@ final class TrainViewModel {
         if currentMode.id == mode.id {
             currentMode = availableModes.first ?? TrainMode(type: .main)
         }
+        saveModes()
     }
 
     func switchMode(_ mode: TrainMode) {
         currentMode = mode
+        UserDefaults.standard.set(mode.id.uuidString, forKey: Self.lastModeKey)
+    }
+
+    func loadSavedModes() {
+        guard let data = UserDefaults.standard.data(forKey: Self.modesKey),
+              let decoded = try? JSONDecoder().decode([TrainMode].self, from: data) else { return }
+        let hasMain = decoded.contains { $0.type == .main }
+        availableModes = hasMain ? decoded : [TrainMode(type: .main)] + decoded
+        if let lastId = UserDefaults.standard.string(forKey: Self.lastModeKey),
+           let lastUUID = UUID(uuidString: lastId),
+           let saved = availableModes.first(where: { $0.id == lastUUID }) {
+            currentMode = saved
+        } else {
+            currentMode = availableModes.first ?? TrainMode(type: .main)
+        }
+    }
+
+    private func saveModes() {
+        if let data = try? JSONEncoder().encode(availableModes) {
+            UserDefaults.standard.set(data, forKey: Self.modesKey)
+        }
+        UserDefaults.standard.set(currentMode.id.uuidString, forKey: Self.lastModeKey)
     }
 
     func progressiveOverloadTrend(for exerciseName: String) -> String {
