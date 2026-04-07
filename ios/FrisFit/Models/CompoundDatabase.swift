@@ -6042,6 +6042,389 @@ enum CompoundDatabase {
                 "Langan, E. A., et al. (2010). The potential role of melanocortins in body weight regulation. Peptides.",
             ]
         ),
+
+        // MARK: - HCG (Human Chorionic Gonadotropin)
+
+        CompoundProfile(
+            name: "HCG",
+            peptideType: "Gonadotropin",
+            categories: [.hormonal],
+            overview: "Human Chorionic Gonadotropin (HCG) is a naturally occurring hormone produced by the placenta during pregnancy. In men, it is biologically almost identical to Luteinizing Hormone (LH), making it the gold standard for preventing testicular atrophy, maintaining fertility on TRT, and as a component of Post Cycle Therapy (PCT).",
+            protocols: [
+                CompoundProtocol(goalName: "On-TRT Maintenance", description: "Low-dose to maintain testicular function alongside TRT", typicalDose: "250-500 IU", frequency: "2-3x per week", duration: "Indefinite"),
+                CompoundProtocol(goalName: "PCT (Scally Protocol)", description: "High-dose blast to rebuild testicular mass before SERMs", typicalDose: "2000-2500 IU", frequency: "Every other day for 16 days", duration: "16 days"),
+                CompoundProtocol(goalName: "Fertility Protocol", description: "Under medical supervision for spermatogenesis", typicalDose: "1000-3000 IU", frequency: "2-3x per week", duration: "3-6 months"),
+            ],
+            sideEffects: ["Gynecomastia", "Water retention", "Estrogen spike", "Leydig cell desensitization", "Bloating"],
+            structuredSideEffects: [
+                CompoundSideEffect(name: "Estrogen Spike", severity: .significant, frequency: 55),
+                CompoundSideEffect(name: "Water Retention / Bloating", severity: .moderate, frequency: 45),
+                CompoundSideEffect(name: "Gynecomastia (Gyno)", severity: .significant, frequency: 25),
+                CompoundSideEffect(name: "Injection Site Reaction", severity: .mild, frequency: 15),
+                CompoundSideEffect(name: "Leydig Cell Desensitization", severity: .significant, frequency: 10),
+            ],
+            communityUsers: 4250,
+            averageRating: 4.5,
+            stackPartners: ["Testosterone", "HMG", "Arimidex", "Enclomiphene"],
+            iconName: "arrow.triangle.2.circlepath",
+            keyFacts: CompoundKeyFacts(molecularWeight: "~36,700 Da", administrationRoute: "Subcutaneous", halfLife: "24-36 hours", storageTemp: "2-8\u{00B0}C", reconstitution: "BAC Water", typicalDoseRange: "250-2500 IU"),
+            primaryUseCases: ["Preventing testicular atrophy on TRT", "Maintaining fertility during steroid use", "Post Cycle Therapy (PCT)", "Treating hypogonadotropic hypogonadism"],
+            tieredDosing: [
+                TieredDose(tier: "TRT Maintenance", dose: "250 IU", frequency: "2-3x per week", timingNotes: "Alongside TRT injections"),
+                TieredDose(tier: "Standard TRT", dose: "500 IU", frequency: "2x per week", timingNotes: "Alongside TRT injections"),
+                TieredDose(tier: "PCT Blast", dose: "2000-2500 IU", frequency: "Every other day", timingNotes: "16 days before starting SERMs"),
+            ],
+            cycleLength: "Indefinite at low dose; 3-4 weeks max for high-dose PCT",
+            loadingProtocol: "No",
+            onOffCycling: "Continuous at low dose on TRT; short blast for PCT",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "5000 IU", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 2 mL of BW to a 5000 IU vial. 1 mL = 2500 IU. 250 IU dose = 0.10 mL (10 units). 500 IU dose = 0.20 mL (20 units).", storageLyophilized: "Fridge (2-8\u{00B0}C) or room temperature away from light", storageReconstituted: "Fridge (2-8\u{00B0}C) for 30-45 days. Degrades rapidly after mixing.", handlingNotes: "Swirl gently. Do not shake. Highly unstable once reconstituted."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Estradiol (E2)", baseline: "Critical", onCycle: "Critical", reason: "HCG causes massive intratesticular aromatization; must monitor to prevent gynecomastia"),
+                BloodworkMarker(marker: "Total Testosterone", baseline: "Recommended", onCycle: "Recommended", reason: "Confirms testicles are responding to the HCG signal"),
+                BloodworkMarker(marker: "LH / FSH", baseline: "Recommended", onCycle: "Recommended", reason: "Will be near zero while using HCG, as it suppresses the brain's natural LH production"),
+            ],
+            nutritionalSupport: [
+                "DIM (Diindolylmethane): A natural supplement found in broccoli that helps the liver metabolize and excrete the excess estrogen caused by HCG. 200-300mg daily.",
+                "Zinc: Essential for spermatogenesis and acts as a very mild, natural aromatase inhibitor. 30-50mg daily.",
+            ],
+            beginnerTips: [
+                "HCG is measured in International Units (IU), not milligrams or micrograms.",
+                "Have an Aromatase Inhibitor (AI) ready before starting, as HCG spikes estrogen significantly.",
+                "Do NOT use HCG by itself as a complete PCT \u{2014} it suppresses the brain's natural LH production.",
+                "Once reconstituted, HCG degrades rapidly. Use within 30-45 days.",
+            ],
+            evidence: EvidenceSummary(level: "Very Strong", keyStudies: [
+                "Dr. Michael Scally: Pioneered the use of HCG in PCT protocols, demonstrating that prolonged steroid use causes testicular atrophy requiring HCG to rebuild mass before SERMs.",
+                "Decades of FDA-approved clinical use for female infertility and male hypogonadism.",
+            ], researchGaps: "Optimal low-dose protocols for long-term TRT use in otherwise healthy men."),
+            stackDetails: [
+                StackDetail(partner: "Testosterone (TRT)", purpose: "The Modern TRT Protocol", notes: "The Gold Standard. Testosterone provides systemic hormone replacement; HCG keeps testicles alive, full, and fertile."),
+                StackDetail(partner: "HMG", purpose: "Maximum Fertility", notes: "HCG mimics LH (testosterone production); HMG provides FSH (sperm production). The ultimate fertility treatment."),
+                StackDetail(partner: "Arimidex", purpose: "Estrogen Control", notes: "Often required when using high doses of HCG to prevent the massive testosterone spike from converting into estrogen."),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Estrogen spike / water retention", "Bloating", "Sensitive or puffy nipples"], uncommon: ["Mood swings", "Acne", "Increased emotional sensitivity"], rare: ["Leydig cell desensitization (from chronic high doses)", "Gynecomastia requiring intervention"], contraindications: ["Prostate cancer or androgen-dependent tumors", "Primary hypogonadism (testicles physically incapable of producing testosterone)"]),
+            isWADAProhibited: true,
+            wadaCategory: "S2 Peptide Hormones",
+            subtitle: "The Testicular Resuscitation Hormone",
+            whatIsIt: "Human Chorionic Gonadotropin (HCG) is a naturally occurring hormone produced in massive quantities by the placenta during pregnancy (it is the hormone that turns a pregnancy test positive). In men, it is biologically almost identical to Luteinizing Hormone (LH). When men take steroids or TRT, their brain stops sending LH, and their testicles shrink. Injecting HCG replaces that missing signal, keeping the testicles full, functioning, and fertile.",
+            howItWorks: "When you take artificial testosterone (steroids or TRT), your brain says, \"We have plenty of testosterone, I can stop working.\" It stops sending the \"work\" signal (LH) to your testicles. Without the signal, your testicles go to sleep, shrink, and stop making sperm. HCG is a fake \"work\" signal. You inject it, it travels to your testicles, and it yells at them to wake up and start working again, even though your brain is still asleep.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "If testicles were previously shrunken from steroid use, they will begin to noticeably increase in size and fullness."),
+                TimelineEntry(timeframe: "Week 3-4", description: "Increased ejaculate volume. Potential increase in estrogenic side effects (water retention, emotional sensitivity) due to testosterone converting to estrogen."),
+                TimelineEntry(timeframe: "Week 6+", description: "Restoration of fertility (spermatogenesis) in many men, though full sperm maturation takes ~72 days."),
+            ],
+            watchOut: "HCG is incredibly effective at waking up the testicles, but it is a \"dumb\" signal. It whips the testicles so hard that they produce massive amounts of testosterone, which then rapidly converts into estrogen. High estrogen causes water retention, mood swings, and gynecomastia (gyno/man-boobs). Furthermore, if you use massive doses of HCG for too long, your testicles can become desensitized to it, meaning they will stop responding to both HCG and your body's natural LH.",
+            beforeYouStart: [
+                "Have an Aromatase Inhibitor (AI) ready: Because HCG spikes estrogen, you may need Arimidex or Aromasin on hand to prevent gyno.",
+                "Purchase supplies: Insulin syringes (31g, 5/16\", 1mL), Bacteriostatic Water, Alcohol Swabs.",
+                "Understand the math: HCG is measured in International Units (IU), not milligrams or micrograms.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "On-TRT Maintenance", dose: "250-500 IU", frequency: "2-3x per week", timing: "Anytime"),
+                DosingPhase(phase: "PCT (Scally Protocol)", dose: "2000-2500 IU", frequency: "Every other day for 16 days", timing: "Before starting SERMs"),
+                DosingPhase(phase: "Fertility Protocol", dose: "1000-3000 IU", frequency: "2-3x per week", timing: "Under medical supervision"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. Rotate injection sites.",
+            discontinuationProtocol: "If used for PCT, HCG must be stopped before starting SERMs (Clomid/Nolvadex), because HCG itself is suppressive to the brain's natural LH production. Can be run indefinitely at low doses alongside TRT.",
+            communityConsensus: [
+                "The 'TRT Essential': The community consensus is that TRT must include low-dose HCG to prevent testicular atrophy, maintain fertility, and preserve the production of upstream neurosteroids (like Pregnenolone) that pure testosterone shuts down.",
+                "The Estrogen Nightmare: The most common complaint is controlling the estrogen spike. Many users find that 500 IU twice a week causes spicy nipples and bloating, forcing them to lower the dose to 250 IU every other day.",
+                "The Pregnancy Diet Myth: The 'HCG Diet' was a massive fad. The community and medical science universally agree this is a dangerous scam; the weight loss came entirely from starvation, not the HCG.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Aromatase Inhibitors (Arimidex)", riskLevel: "Synergistic", details: "Often required when using high doses of HCG to prevent the massive testosterone spike from converting into estrogen."),
+                DrugInteraction(substance: "SERMs (Clomid/Nolvadex)", riskLevel: "Antagonistic (if simultaneous)", details: "HCG mimics LH, suppressing the brain. SERMs try to force the brain to make LH. Taking them simultaneously is counterproductive. Use HCG first to wake testicles, then stop HCG and use SERMs to wake the brain."),
+            ],
+            sideEffectManagement: [
+                "Gynecomastia (Gyno): Itchy, puffy, or sensitive nipples. Treat immediately with an AI (e.g., 0.5mg Arimidex) or lower the HCG dose.",
+                "Water Retention / Bloating: Caused by high estrogen. Lower the dose or increase injection frequency (smaller doses more often) to prevent massive spikes.",
+                "Leydig Cell Desensitization: Using massive doses (e.g., 5000 IU at once) can permanently damage the LH receptors on the testicles. Never exceed 2500 IU per injection.",
+            ],
+            womenConsiderations: [
+                "HCG is FDA-approved for women to trigger ovulation during IVF treatments. It is not used by female biohackers for performance enhancement.",
+            ],
+            trainingGuide: [
+                "HCG does not build muscle directly. However, by keeping the testicles functioning during a steroid cycle, it makes post-cycle recovery much faster, allowing the user to keep more muscle.",
+                "Track testicular volume (they should return to pre-cycle size).",
+                "Monitor for estrogenic side effects (bloating, nipple sensitivity).",
+            ],
+            legalStatus: [
+                "US: FDA-approved prescription drug. Highly regulated.",
+                "WADA: Banned in competitive sports for males (S2 - Peptide Hormones), as it stimulates endogenous testosterone production.",
+            ],
+            costInfo: "Pharmacy: ~$100-$200 for a 10,000 IU vial (Pregnyl). Underground Labs: ~$30-$50 for a 5000 IU vial.",
+            comparisons: [
+                CompoundComparison(feature: "Mechanism", values: ["HCG": "Mimics LH at the testicle", "Kisspeptin-10": "Stimulates Brain to make LH", "Enclomiphene": "Blocks Estrogen to stimulate Brain"]),
+                CompoundComparison(feature: "Half-life", values: ["HCG": "24-36 hours", "Kisspeptin-10": "Minutes", "Enclomiphene": "~10 hours"]),
+                CompoundComparison(feature: "Estrogen Spike Risk", values: ["HCG": "Very High", "Kisspeptin-10": "Low", "Enclomiphene": "Low"]),
+                CompoundComparison(feature: "Suppressive to Brain?", values: ["HCG": "Yes", "Kisspeptin-10": "No", "Enclomiphene": "No"]),
+            ],
+            deepDive: "Human Chorionic Gonadotropin (HCG) is a heterodimeric glycoprotein composed of two subunits: an alpha (\u{03B1}) subunit and a beta (\u{03B2}) subunit.\n\nThe Homology: The \u{03B1}-subunit of HCG is identical to the \u{03B1}-subunits of LH, FSH, and TSH. The biological specificity is determined entirely by the \u{03B2}-subunit. The \u{03B2}-subunit of HCG shares 85% amino acid sequence homology with the \u{03B2}-subunit of LH. However, HCG has a unique 24-amino acid carboxy-terminal extension that is heavily glycosylated.\n\nPharmacokinetics: This heavy glycosylation protects HCG from rapid enzymatic degradation. While natural LH has a half-life of about 20-30 minutes, HCG has a half-life of 24-36 hours.\n\nMechanism Deep Dive:\n1. The LHCGR Receptor: Because of structural homology, HCG binds with extremely high affinity to the LH/CG receptor (LHCGR) on the Leydig cells in the testes.\n2. Steroidogenesis: Binding activates the adenylate cyclase/cAMP pathway, upregulating StAR protein. StAR transports cholesterol into the mitochondria, where it is converted into pregnenolone, the master precursor to all steroid hormones, ultimately resulting in massive testosterone production.\n3. Intratesticular Aromatization: The Leydig cells also contain the aromatase enzyme. Because HCG provides such a powerful, sustained signal (unlike the natural, brief pulses of LH), it causes a massive upregulation of aromatase activity inside the testicle. This intratesticular aromatization cannot be easily blocked by standard AIs (like Arimidex), which primarily work in peripheral fat tissue.\n\nClinical Trial Summary:\nHCG has been used for decades to treat hypogonadotropic hypogonadism and cryptorchidism. Dr. Michael Scally pioneered the PCT protocol, proving that prolonged steroid use causes severe testicular atrophy requiring an aggressive 16-day blast of HCG to physically rebuild testicular mass before the brain is restarted with SERMs.\n\nThe Desensitization Paradox: Chronic exposure to high doses of HCG causes the LHCGR receptors to internalize and downregulate. Modern protocols advocate for frequent, low doses (250-500 IU) rather than massive blasts.\n\nLong-Term Use Data: Low-dose HCG (e.g., 250 IU twice a week) alongside TRT has been shown to be safe and effective for maintaining testicular volume and fertility for years without causing receptor desensitization.",
+            faq: [
+                FAQItem(question: "Can I use HCG by itself as a PCT?", answer: "No. HCG mimics LH, which tells your brain, 'We have plenty of LH, you don't need to make any.' Therefore, HCG suppresses your brain's natural recovery. HCG is used in the first half of a PCT to wake up the testicles, then you stop the HCG and use a SERM (like Enclomiphene) to wake up the brain."),
+                FAQItem(question: "Why do my nipples hurt when I take HCG?", answer: "HCG forces your testicles to produce massive amounts of testosterone, which rapidly converts into estrogen. High estrogen causes gynecomastia (gyno). You need to lower your HCG dose or take an Aromatase Inhibitor."),
+                FAQItem(question: "Can I mix HCG with my Testosterone in the same syringe?", answer: "No. Testosterone is suspended in oil; HCG is suspended in water. They do not mix. Furthermore, HCG is injected subcutaneously (into fat), while Testosterone is usually injected intramuscularly."),
+                FAQItem(question: "Does the HCG Diet work?", answer: "No. The weight loss from the 'HCG Diet' comes entirely from the dangerous 500-calorie-a-day starvation protocol. The HCG does absolutely nothing for fat loss."),
+                FAQItem(question: "How long is it good for after I mix it?", answer: "Once reconstituted with bacteriostatic water and placed in the fridge, it will begin to lose potency after 30 days. By day 45, it is mostly degraded and should be thrown away."),
+            ],
+            references: [
+                "Scally, M. C. (2006). Anabolic Steroid Induced Hypogonadism (ASIH): Treatment with Human Chorionic Gonadotropin.",
+                "Coviello, A. D., et al. (2008). Low-dose human chorionic gonadotropin maintains intratesticular testosterone in normal men with testosterone-induced gonadotropin suppression. The Journal of Clinical Endocrinology & Metabolism.",
+                "Katz, D. J., et al. (2017). Male infertility \u{2014} the other side of the equation. Australian Family Physician.",
+            ]
+        ),
+
+        // MARK: - HMG (Human Menopausal Gonadotropin)
+
+        CompoundProfile(
+            name: "HMG",
+            peptideType: "Gonadotropin (LH + FSH)",
+            categories: [.hormonal],
+            overview: "Human Menopausal Gonadotropin (HMG) is a highly purified mixture of hormones extracted from the urine of post-menopausal women containing a 1:1 ratio of both LH and FSH. Unlike HCG (which only mimics LH), HMG provides the FSH needed to create and mature sperm. It is often the only drug that can restore fertility in men who have been on steroids or TRT for years.",
+            protocols: [
+                CompoundProtocol(goalName: "Standard Fertility", description: "Combined with HCG for maximum testicular stimulation", typicalDose: "75 IU", frequency: "3x per week", duration: "3-6 months minimum"),
+                CompoundProtocol(goalName: "Aggressive Fertility", description: "Higher dose for severe steroid-induced infertility", typicalDose: "150 IU", frequency: "3x per week", duration: "6-9 months"),
+            ],
+            sideEffects: ["Gynecomastia", "Bloating", "Injection site pain", "Estrogen spike"],
+            structuredSideEffects: [
+                CompoundSideEffect(name: "Estrogen Spike / Bloating", severity: .moderate, frequency: 40),
+                CompoundSideEffect(name: "Injection Site Pain", severity: .mild, frequency: 30),
+                CompoundSideEffect(name: "Gynecomastia", severity: .moderate, frequency: 20),
+            ],
+            communityUsers: 1120,
+            averageRating: 4.2,
+            stackPartners: ["HCG", "Clomid", "Enclomiphene"],
+            iconName: "arrow.triangle.2.circlepath",
+            keyFacts: CompoundKeyFacts(molecularWeight: "~30,000 Da", administrationRoute: "Subcutaneous / Intramuscular", halfLife: "24-36 hours", storageTemp: "2-8\u{00B0}C", reconstitution: "BAC Water", typicalDoseRange: "75-150 IU"),
+            primaryUseCases: ["Restoring spermatogenesis (sperm production)", "Treating steroid-induced infertility", "Providing FSH signal alongside HCG"],
+            tieredDosing: [
+                TieredDose(tier: "Standard", dose: "75 IU", frequency: "3x per week", timingNotes: "Always combined with HCG"),
+                TieredDose(tier: "Aggressive", dose: "150 IU", frequency: "3x per week", timingNotes: "For severe, long-term steroid-induced infertility"),
+            ],
+            cycleLength: "Minimum 3-4 months (spermatogenesis takes 72 days)",
+            loadingProtocol: "No",
+            onOffCycling: "Continuous until pregnancy is achieved",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "75 IU (single-dose)", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 1 mL of BW to a 75 IU vial. 75 IU dose = 1.0 mL (100 units on an insulin syringe). Usually comes in single-dose vials.", storageLyophilized: "Fridge (2-8\u{00B0}C) or room temperature away from light", storageReconstituted: "Use immediately or within a few days. Single-dose vials.", handlingNotes: "Swirl gently. Do not shake."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Estradiol (E2)", baseline: "Recommended", onCycle: "Recommended", reason: "Monitor estrogen conversion from the LH activity"),
+                BloodworkMarker(marker: "Total Testosterone", baseline: "Recommended", onCycle: "Recommended", reason: "Ensure Leydig cells are responding"),
+                BloodworkMarker(marker: "Semen Analysis", baseline: "Critical", onCycle: "Critical", reason: "The primary metric for success \u{2014} monitor sperm count, motility, and morphology every 4-6 weeks"),
+            ],
+            nutritionalSupport: [
+                "L-Carnitine: Clinically proven to improve sperm motility (how well the sperm swim). 2-3g daily.",
+                "CoQ10 & Vitamin C: Antioxidants that protect newly forming sperm from oxidative damage, improving sperm morphology. 200mg CoQ10 / 1000mg Vit C daily.",
+                "Zinc & Folic Acid: Essential building blocks for healthy sperm production. 30mg Zinc / 400mcg Folic Acid daily.",
+            ],
+            beginnerTips: [
+                "HMG is almost always used in combination with HCG \u{2014} never run it alone.",
+                "You must be patient. A single sperm cell takes ~72 days to fully mature. Results take 3+ months.",
+                "Get a baseline semen analysis before spending thousands of dollars on HMG.",
+                "Real HMG is very expensive. Many underground labs sell cheap HCG labeled as HMG.",
+            ],
+            evidence: EvidenceSummary(level: "Very Strong", keyStudies: [
+                "Clinical guidelines for hypogonadotropic hypogonadism: HCG for 3-6 months to normalize testosterone, then add hMG (75-150 IU 3x/week). Successfully induces spermatogenesis in 70-90% of men.",
+            ], researchGaps: "Head-to-head comparison with recombinant FSH (Gonal-F) for cost-effectiveness."),
+            stackDetails: [
+                StackDetail(partner: "HCG", purpose: "The 'Nuclear' Fertility Stack", notes: "The Gold Standard. HCG provides massive LH signal for intratesticular testosterone; HMG provides the FSH signal to drive sperm production."),
+                StackDetail(partner: "Clomid / Enclomiphene", purpose: "The Restart Stack", notes: "SERM blocks estrogen to encourage natural LH/FSH production while HMG provides exogenous FSH to jumpstart the testicles immediately."),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Estrogen spike / bloating", "Injection site stinging or redness"], uncommon: ["Gynecomastia", "Mood swings"], rare: ["Ovarian Hyperstimulation Syndrome (in women only)"], contraindications: ["Primary testicular failure", "Prostate cancer or androgen-dependent tumors"]),
+            isWADAProhibited: true,
+            wadaCategory: "S2 Peptide Hormones",
+            subtitle: "The Ultimate Fertility Restorer",
+            whatIsIt: "Human Menopausal Gonadotropin (HMG) is a highly purified mixture of hormones extracted from the urine of post-menopausal women. It contains a 1:1 ratio of both Luteinizing Hormone (LH) and Follicle-Stimulating Hormone (FSH). FSH is the specific hormone required to create and mature sperm. For men who have been on steroids or TRT for years and have become completely sterile, HMG is often the only drug that can restore their ability to have children.",
+            howItWorks: "Think of your testicles as a factory that makes two things: Testosterone and Sperm. HCG is a manager that only yells at the workers to make Testosterone. If you only take HCG, you will have high testosterone, but you still might shoot blanks. HMG is a manager that yells at the workers to make both Testosterone and Sperm. If you want to have a baby after using steroids, you need HMG to turn the sperm production line back on.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-4", description: "Noticeable increase in testicular volume and fullness."),
+                TimelineEntry(timeframe: "Week 8-12", description: "Increase in ejaculate volume."),
+                TimelineEntry(timeframe: "Week 12-16", description: "Sperm count and motility begin to reach fertile levels (it takes ~72 days for a single sperm cell to fully mature)."),
+            ],
+            watchOut: "HMG is incredibly expensive. A single cycle to restore fertility can cost thousands of dollars. Because it contains LH activity, it carries the same risk of estrogen spikes and gynecomastia as HCG. Many underground labs sell cheap HCG in a vial labeled as HMG.",
+            beforeYouStart: [
+                "Get a baseline semen analysis: You need to know your starting sperm count before spending thousands of dollars.",
+                "Have an Aromatase Inhibitor (AI) ready to control the estrogen spike.",
+                "Purchase supplies: Insulin syringes (31g, 5/16\", 1mL), Bacteriostatic Water, Alcohol Swabs.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Standard Fertility", dose: "75 IU", frequency: "3x per week", timing: "Combined with HCG"),
+                DosingPhase(phase: "Aggressive Fertility", dose: "150 IU", frequency: "3x per week", timing: "Combined with HCG"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen or thigh. Some users report more stinging at the injection site compared to synthetic peptides, as it is a highly purified urinary extract.",
+            discontinuationProtocol: "Stop once pregnancy is achieved. Long-term use is safe and often medically necessary, as restoring fertility can take up to a year or more of continuous injections.",
+            communityConsensus: [
+                "The 'Last Resort': In the bodybuilding community, HMG is the 'nuclear option' for fertility. If a bodybuilder has been on steroids non-stop for 5 years, HCG and Clomid usually aren't enough. HMG is the drug they turn to when everything else fails.",
+                "The Cost Barrier: A 3-month protocol can easily exceed $1,500-$3,000, leading many to seek cheaper underground lab versions (which are notoriously under-dosed or faked with pure HCG).",
+                "The Mandatory Stack: HMG should never be run alone. It is always stacked with HCG for maximum testicular stimulation.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Exogenous Testosterone (TRT)", riskLevel: "Antagonistic", details: "TRT actively fights against HMG by suppressing the brain. For maximum fertility, TRT is usually stopped and HMG/HCG are used to replace it."),
+            ],
+            sideEffectManagement: [
+                "Gynecomastia / Bloating: Caused by the LH component stimulating testosterone, which converts to estrogen. Treat with an AI (e.g., Arimidex).",
+                "Injection Site Pain: Because it is a highly purified urinary extract, some users report more stinging or redness compared to synthetic peptides.",
+            ],
+            womenConsiderations: [
+                "HMG is primarily an FDA-approved fertility drug for women (Menopur). It is used to stimulate the ovaries to produce multiple eggs for IVF. Drastically increases the risk of twins or triplets.",
+            ],
+            trainingGuide: [
+                "HMG has no direct effect on muscle growth or fat loss. Its sole purpose in men is the restoration of fertility and testicular function.",
+                "Track progress via semen analysis every 4-6 weeks.",
+            ],
+            legalStatus: [
+                "US: FDA-approved prescription drug. Highly regulated.",
+                "WADA: Banned in competitive sports for males (S2 - Peptide Hormones).",
+            ],
+            costInfo: "Pharmacy: ~$70-$100 per 75 IU vial. A standard protocol requires 3 vials per week, costing ~$1,000/month. Underground Labs: High risk of counterfeits.",
+            comparisons: [
+                CompoundComparison(feature: "Composition", values: ["HMG": "50% LH / 50% FSH", "HCG": "100% LH analog", "Recombinant FSH": "100% FSH"]),
+                CompoundComparison(feature: "Primary Goal", values: ["HMG": "Sperm Production", "HCG": "Testosterone Production", "Recombinant FSH": "Pure Sperm Production"]),
+                CompoundComparison(feature: "Source", values: ["HMG": "Human Urine", "HCG": "Human Urine or Recombinant", "Recombinant FSH": "Lab-made"]),
+                CompoundComparison(feature: "Cost", values: ["HMG": "Very High", "HCG": "Moderate", "Recombinant FSH": "Astronomical"]),
+            ],
+            deepDive: "Human Menopausal Gonadotropin (hMG), generically known as menotropin, is an active principle extracted from the urine of postmenopausal women.\n\nThe Source: During menopause, the ovaries stop responding to gonadotropins. The pituitary gland pumps out massive amounts of LH and FSH in a desperate attempt to wake the ovaries up. This excess is excreted in the urine, where pharmaceutical companies collect and purify it.\n\nThe Composition: Standard hMG preparations (like Menopur) contain exactly 75 IU of FSH activity and 75 IU of LH activity per vial.\n\nPharmacokinetics: Following subcutaneous injection, the maximum serum concentration of FSH is reached in roughly 12-24 hours, with an elimination half-life of approximately 30-40 hours.\n\nMechanism Deep Dive:\n1. FSH Receptor: The FSH component binds to the FSHR on the Sertoli cells within the seminiferous tubules of the testes.\n2. Spermatogenesis: Activation of Sertoli cells stimulates production of Androgen-Binding Protein (ABP). ABP binds to testosterone created by Leydig cells, keeping local concentration incredibly high. This high intratesticular testosterone, combined with direct FSH stimulation, is the absolute biological requirement for spermatogonia to divide and mature into spermatozoa.\n3. The LH Component: Binds to Leydig cells to produce the testosterone needed for the process above.\n\nClinical Trial Summary:\nClinical guidelines dictate a two-step process: Step 1: Administer HCG alone for 3-6 months to normalize testosterone and rebuild testicular volume. Step 2: If sperm count remains zero, add hMG (75-150 IU 3x/week). This combination successfully induces spermatogenesis in 70-90% of men, though it takes an average of 6-9 months.\n\nRecombinant FSH vs. Urinary hMG: Clinical data suggests that the slight LH activity present in urinary hMG actually improves outcomes. Furthermore, rFSH is significantly more expensive, making hMG the preferred choice.",
+            faq: [
+                FAQItem(question: "Can I just use HCG to get my wife pregnant?", answer: "Sometimes. If you haven't been on steroids for very long, HCG alone might be enough. However, if you have been on TRT or steroids for years, your FSH producing cells are completely dormant. HCG does not contain FSH. You will need HMG."),
+                FAQItem(question: "Why is it made from urine?", answer: "Post-menopausal women excrete massive amounts of FSH and LH because their ovaries have stopped responding to the hormones. It is currently the most cost-effective way to harvest natural human FSH, though recombinant (lab-made) versions exist now."),
+                FAQItem(question: "How do I know if my HMG is fake?", answer: "Because HMG is so expensive, many underground labs sell cheap HCG labeled as HMG. The only way to know for sure is to get a blood test for FSH 12 hours after injecting. If your FSH levels do not spike, your HMG is fake."),
+                FAQItem(question: "Do I have to stop taking my TRT to use this?", answer: "Medically, doctors usually take you off TRT to maximize the brain's natural recovery. However, many bodybuilders successfully use HMG and HCG while staying on a low dose of TRT, though it may take longer to achieve a fertile sperm count."),
+                FAQItem(question: "How long does it take to work?", answer: "You must be patient. The biological process of creating a single sperm cell takes roughly 72 days. You will not see an improvement in your sperm count for at least 2.5 to 3 months."),
+            ],
+            references: [
+                "Burris, A. S., et al. (1988). A long-term, prospective study of the physiologic and behavioral effects of hormone replacement in untreated hypogonadal men. The Journal of Andrology.",
+                "Matsumoto, A. M., & Bremner, W. J. (2004). Serum testosterone assays \u{2014} accuracy matters. The Journal of Clinical Endocrinology & Metabolism.",
+                "European Association of Urology Guidelines on Male Infertility (2023).",
+            ]
+        ),
+
+        // MARK: - Enclomiphene
+
+        CompoundProfile(
+            name: "Enclomiphene",
+            peptideType: "SERM (Selective Estrogen Receptor Modulator)",
+            categories: [.hormonal],
+            overview: "Enclomiphene is the purified trans-isomer of Clomiphene Citrate (Clomid). While Clomid is a mixture of Enclomiphene (estrogen blocker) and Zuclomiphene (estrogen agonist with long half-life causing mood swings and vision issues), pure Enclomiphene provides all the testosterone-boosting benefits without the terrible emotional side effects. It is the modern gold standard for PCT and a popular TRT alternative.",
+            protocols: [
+                CompoundProtocol(goalName: "Post Cycle Therapy (PCT)", description: "Restart natural testosterone production after steroid/SARM cycle", typicalDose: "12.5-25 mg", frequency: "Once daily", duration: "4-6 weeks"),
+                CompoundProtocol(goalName: "TRT Alternative (Monotherapy)", description: "Raise natural testosterone without injections", typicalDose: "6.25-12.5 mg", frequency: "Daily or every other day", duration: "Indefinite (under medical supervision)"),
+            ],
+            sideEffects: ["High estrogen symptoms", "Vision changes (rare)", "Joint pain (if estrogen too low)", "Lowered IGF-1"],
+            structuredSideEffects: [
+                CompoundSideEffect(name: "Elevated Estrogen (from increased T)", severity: .moderate, frequency: 30),
+                CompoundSideEffect(name: "Lowered IGF-1", severity: .mild, frequency: 25),
+                CompoundSideEffect(name: "Mild Headache", severity: .mild, frequency: 15),
+                CompoundSideEffect(name: "Vision Changes (floaters)", severity: .significant, frequency: 5),
+                CompoundSideEffect(name: "Joint Pain (low estrogen)", severity: .mild, frequency: 10),
+            ],
+            communityUsers: 3800,
+            averageRating: 4.6,
+            stackPartners: ["MK-677", "Kisspeptin-10", "Ostarine"],
+            iconName: "pills.fill",
+            keyFacts: CompoundKeyFacts(molecularWeight: "~598 Da", administrationRoute: "Oral", halfLife: "~10 hours", storageTemp: "Room temperature", reconstitution: "N/A (Oral)", typicalDoseRange: "6.25-25 mg"),
+            primaryUseCases: ["Post Cycle Therapy (PCT)", "TRT alternative (monotherapy)", "Maintaining fertility while raising testosterone", "SARM+SERM cycles to prevent suppression"],
+            tieredDosing: [
+                TieredDose(tier: "SARM+SERM Cycle", dose: "6.25 mg", frequency: "Daily", timingNotes: "Taken during a SARM cycle to prevent suppression"),
+                TieredDose(tier: "TRT Alternative", dose: "12.5 mg", frequency: "Daily or every other day", timingNotes: "Morning"),
+                TieredDose(tier: "PCT", dose: "12.5-25 mg", frequency: "Daily", timingNotes: "Morning, for 4-6 weeks"),
+            ],
+            cycleLength: "4-6 weeks for PCT; indefinite for monotherapy",
+            loadingProtocol: "No",
+            onOffCycling: "4-6 weeks for PCT; continuous for monotherapy",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "30 mL bottle (12.5mg/mL)", diluent: "N/A (Oral liquid or capsules)", reconstitutionMath: "N/A \u{2014} Oral administration. Liquid is typically dosed at 12.5mg/mL.", storageLyophilized: "Room temperature, cool, dry place", storageReconstituted: "N/A", handlingNotes: "Store away from direct sunlight."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Total and Free Testosterone", baseline: "Critical", onCycle: "Critical", reason: "To ensure the drug is working"),
+                BloodworkMarker(marker: "Luteinizing Hormone (LH)", baseline: "Recommended", onCycle: "Recommended", reason: "Should be significantly elevated (often above normal range)"),
+                BloodworkMarker(marker: "Estradiol (E2)", baseline: "Recommended", onCycle: "Recommended", reason: "Must monitor as the massive testosterone spike converts to estrogen"),
+                BloodworkMarker(marker: "IGF-1", baseline: "Recommended", onCycle: "Recommended", reason: "Monitor if using long-term, as SERMs suppress hepatic IGF-1 production"),
+            ],
+            nutritionalSupport: [
+                "DIM (Diindolylmethane): To help the liver metabolize excess estrogen from the testosterone spike. 200-300mg daily.",
+                "Boron: Acts as a mild, natural aromatase inhibitor and helps free up bound testosterone. 6-9mg daily.",
+            ],
+            beginnerTips: [
+                "Verify your source: Many shady research chemical sites just sell cheap Clomid and label it as Enclomiphene.",
+                "If you feel incredibly emotional or depressed after 2 weeks, you likely bought Clomid, not Enclomiphene.",
+                "With a 10-hour half-life, daily dosing is usually required to maintain stable blood levels.",
+                "Enclomiphene does NOT require a taper \u{2014} you can stop abruptly when PCT is over.",
+            ],
+            evidence: EvidenceSummary(level: "Very Strong", keyStudies: [
+                "Phase II and III Trials (Repros Therapeutics / Androxal): Consistently raised total testosterone to normal or high-normal levels while preserving or increasing sperm counts.",
+                "FDA rejected the NDA in 2015 despite excellent efficacy data, arguing insufficient proof of 'clinical benefit' beyond blood test numbers.",
+            ], researchGaps: "Long-term effects of IGF-1 suppression from chronic SERM use. Head-to-head comparison with low-dose TRT for quality of life."),
+            stackDetails: [
+                StackDetail(partner: "MK-677", purpose: "The 'PCT Retention' Stack", notes: "Enclomiphene restores testosterone; MK-677 boosts GH and IGF-1 (counteracting Enclomiphene's tendency to lower IGF-1). Ensures you keep all muscle gained during a cycle."),
+                StackDetail(partner: "Kisspeptin-10", purpose: "The 'Nuclear' Restart", notes: "Enclomiphene blocks the negative feedback loop; Kisspeptin directly stimulates the hypothalamus. Used for recovering from severe, long-term steroid abuse."),
+                StackDetail(partner: "Ostarine / RAD-140", purpose: "SARM+SERM Cycle", notes: "Taking 6.25mg of Enclomiphene daily during a SARM cycle prevents testosterone suppression and lethargy."),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Mild estrogen increase (from boosted testosterone)", "Headache"], uncommon: ["Joint dryness (if estrogen drops too low)", "Lowered IGF-1 with long-term use"], rare: ["Vision changes / floaters (much rarer than with Clomid, but possible)", "Blood clots (all SERMs carry a slight risk)"], contraindications: ["Primary hypogonadism (physically damaged testicles)", "History of deep vein thrombosis (DVT) or blood clots", "Women (unless under fertility specialist supervision)"]),
+            isWADAProhibited: true,
+            wadaCategory: "S4 Hormone and Metabolic Modulators",
+            subtitle: "The Modern PCT & TRT Alternative",
+            whatIsIt: "Enclomiphene is the purified trans-isomer of Clomiphene Citrate (Clomid). Clomid is made of two different shapes mixed together: Zuclomiphene (acts like estrogen, stays in the body for weeks, causes mood swings and vision issues) and Enclomiphene (blocks estrogen, leaves the body quickly). Scientists finally separated the two, creating pure Enclomiphene that provides all the testosterone-boosting benefits of Clomid without the terrible emotional side effects.",
+            howItWorks: "Your brain has a thermostat for estrogen. When estrogen gets too high, the brain turns off testosterone production. Enclomiphene puts a blindfold on the brain's thermostat. Because the brain can no longer 'see' any estrogen, it panics and thinks your hormone levels have crashed to zero. To fix this, the brain screams at your testicles (by releasing LH and FSH) to make as much testosterone as humanly possible.",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Rapid increase in LH and FSH levels. Testicles may feel fuller or ache slightly as they 'wake up.'"),
+                TimelineEntry(timeframe: "Week 3-4", description: "Significant increase in total and free testosterone. Improved mood, energy, and libido."),
+                TimelineEntry(timeframe: "Week 6+", description: "Testosterone levels stabilize, often reaching the high end of the normal reference range (800-1000+ ng/dL)."),
+            ],
+            watchOut: "While vastly superior to Clomid, Enclomiphene is not perfect. Because it forces your body to make massive amounts of testosterone, a portion converts into estrogen. Even though the brain is blind to estrogen, your body (like breast tissue) is not. You can still develop high-estrogen side effects. Also, all oral SERMs suppress IGF-1 in the liver, which can slightly blunt muscle growth compared to traditional TRT.",
+            beforeYouStart: [
+                "Verify your source: Because pure Enclomiphene is expensive to synthesize, many shady research chemical sites sell cheap Clomid labeled as Enclomiphene.",
+                "Understand the half-life: With a 10-hour half-life, daily dosing is usually required.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "PCT", dose: "12.5-25 mg", frequency: "Once daily", timing: "Morning"),
+                DosingPhase(phase: "TRT Alternative", dose: "6.25-12.5 mg", frequency: "Daily or every other day", timing: "Morning"),
+                DosingPhase(phase: "SARM+SERM Cycle", dose: "6.25 mg", frequency: "Daily", timing: "During SARM cycle"),
+            ],
+            injectionSiteGuide: "N/A \u{2014} Oral administration (capsules or liquid).",
+            discontinuationProtocol: "Can be stopped abruptly with no taper required. Testosterone levels will slowly return to your natural baseline over a few weeks.",
+            communityConsensus: [
+                "The 'Clomid Killer': The bodybuilding community has almost entirely abandoned Clomid in favor of Enclomiphene. Users report no severe depression, 'weepiness,' or permanent eye floaters.",
+                "The IGF-1 Drop: A common complaint among long-term users is that it lowers IGF-1 levels by 20-30%, which can slightly blunt muscle growth compared to TRT.",
+                "The Libido Disconnect: Some users report that while bloodwork shows massive testosterone (e.g., 1200 ng/dL), they don't feel like they have high testosterone. This is likely because estrogen receptors in the brain are blocked, and estrogen is crucial for male libido.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "Exogenous Testosterone (TRT)", riskLevel: "Antagonistic", details: "Taking Enclomiphene while injecting testosterone is useless. The injected testosterone suppresses the brain so powerfully that Enclomiphene cannot overcome it."),
+                DrugInteraction(substance: "SARMs (e.g., Ostarine/RAD-140)", riskLevel: "Synergistic", details: "Known as a 'SARM+SERM' cycle. Taking Enclomiphene during a SARM cycle prevents the SARM from shutting down natural testosterone."),
+            ],
+            sideEffectManagement: [
+                "High Estrogen Symptoms (Spicy Nipples/Bloating): Lower the dose. If symptoms persist, a very low dose of an AI (like Arimidex) may be required.",
+                "Vision Changes: While much rarer than with Clomid, if you experience blurred vision or 'floaters,' stop the drug immediately. This is a known, potentially permanent side effect of all SERMs.",
+                "Joint Pain: If estrogen levels drop too low (rare), joints can become dry and achy.",
+            ],
+            womenConsiderations: [
+                "Enclomiphene is an anti-estrogen. In women, it will induce menopause-like symptoms (hot flashes, bone loss, mood swings). Should only be used under strict medical supervision for fertility purposes (inducing ovulation).",
+            ],
+            trainingGuide: [
+                "Enclomiphene is not a direct muscle builder. However, by raising a hypogonadal man's testosterone from 300 ng/dL to 900 ng/dL, it significantly improves recovery, energy, and the ability to build lean tissue naturally.",
+                "Track morning erections (a primary indicator of recovered hormonal function).",
+                "Monitor mood and energy levels.",
+            ],
+            legalStatus: [
+                "US: Available through compounding pharmacies (with a prescription) or as an unapproved research chemical.",
+                "WADA: Banned in competitive sports under section S4 (Hormone and Metabolic Modulators).",
+            ],
+            costInfo: "Telemedicine Clinics: ~$100-$150 per month (prescribed as TRT alternative). Research Chemical Vendors: ~$40-$60 for a 30mL bottle (usually dosed at 12.5mg/mL).",
+            comparisons: [
+                CompoundComparison(feature: "Composition", values: ["Enclomiphene": "Pure trans-isomer", "Clomid": "62% Enclo / 38% Zuclo", "Nolvadex": "Pure Tamoxifen"]),
+                CompoundComparison(feature: "Half-life", values: ["Enclomiphene": "~10 hours", "Clomid": "~5-7 days (Zuclomiphene)", "Nolvadex": "~5-7 days"]),
+                CompoundComparison(feature: "Estrogenic Agonism", values: ["Enclomiphene": "None", "Clomid": "High (Zuclomiphene)", "Nolvadex": "Mild (in liver)"]),
+                CompoundComparison(feature: "Vision Side Effects", values: ["Enclomiphene": "Very Rare", "Clomid": "Common", "Nolvadex": "Rare"]),
+            ],
+            deepDive: "Enclomiphene (formerly known as Androxal) is the trans-stereoisomer of clomiphene citrate. It is a non-steroidal Selective Estrogen Receptor Modulator (SERM) of the triphenylethylene group.\n\nThe Isomer Split: Traditional Clomid is a racemic mixture of two isomers: ~62% enclomiphene and ~38% zuclomiphene. Zuclomiphene is an estrogen receptor agonist (it acts like estrogen) with a half-life of up to 30 days. It accumulates in the body, causing emotional side effects. Enclomiphene is a pure estrogen receptor antagonist (it blocks estrogen) with a short half-life of roughly 10 hours.\n\nMechanism Deep Dive:\n1. Hypothalamic Blockade: Enclomiphene competitively binds to estrogen receptors in the hypothalamus and pituitary gland.\n2. The Feedback Loop: Normally, circulating estradiol signals the brain that hormone levels are sufficient, suppressing GnRH release. By blocking these receptors, Enclomiphene blinds the brain to estrogen.\n3. The Gonadotropin Surge: Believing the body is devoid of sex hormones, the hypothalamus secretes massive amounts of GnRH, stimulating the anterior pituitary to release LH and FSH.\n4. Testicular Stimulation: LH travels to Leydig cells for testosterone production; FSH travels to Sertoli cells for spermatogenesis.\n\nClinical Trial Summary:\nEnclomiphene underwent extensive Phase II and III trials for secondary hypogonadism. It consistently raised total testosterone to normal levels while preserving sperm counts. The FDA rejected the NDA in 2015, arguing that while it raised testosterone numbers, Repros Therapeutics failed to prove sufficient 'clinical benefit.' The drug was abandoned by pharma but adopted by compounding pharmacies and biohackers.\n\nThe IGF-1 Suppression: All oral SERMs undergo first-pass metabolism in the liver. In the liver, Enclomiphene acts as a mild estrogen agonist. Estrogen signaling in the liver is required for IGF-1 production. By interfering with this signaling, Enclomiphene lowers serum IGF-1 levels by 20-30%.\n\nLong-Term Use Data: Significant data on long-term use (up to 1-2 years) shows it is generally well-tolerated, maintains fertility, and does not cause the polycythemia or testicular atrophy associated with exogenous testosterone.",
+            faq: [
+                FAQItem(question: "Is Enclomiphene better than TRT?", answer: "It depends on your goals. If you want to maintain fertility and avoid shrinking testicles, Enclomiphene is better. If you want maximum muscle growth and a massive libido boost, injectable TRT is superior (because TRT doesn't lower IGF-1 or block estrogen receptors in the brain)."),
+                FAQItem(question: "Can I take it while on a SARM cycle?", answer: "Yes. This is called a 'SARM+SERM' cycle. Taking 6.25mg of Enclomiphene daily while on a SARM will force your brain to keep producing testosterone, preventing the lethargy and suppression that usually ruins a SARM cycle."),
+                FAQItem(question: "Why did my estrogen go up on my blood test?", answer: "Enclomiphene forces your body to make more testosterone. Your body naturally converts a percentage of all testosterone into estrogen (aromatization). More testosterone = more estrogen. This is normal, provided you don't develop gyno."),
+                FAQItem(question: "How do I know if I bought real Enclomiphene or fake Clomid?", answer: "If you take it for two weeks and feel incredibly emotional, depressed, or start crying at TV commercials, you bought Clomid. Real Enclomiphene does not cause those emotional side effects."),
+                FAQItem(question: "Do I need to taper off it?", answer: "No. Because it has a short half-life and your natural system is already running at full capacity, you can simply stop taking it when your PCT is over."),
+            ],
+            references: [
+                "Kaminetsky, J., et al. (2013). Enclomiphene citrate raises testosterone while preserving sperm counts: results of a Phase II clinical trial. Fertility and Sterility.",
+                "Wiehle, R. D., et al. (2014). Enclomiphene citrate stimulates testosterone production while preventing oligospermia: a randomized phase II clinical trial. The Journal of Urology.",
+                "Kim, E. D., et al. (2016). Oral enclomiphene citrate raises testosterone and preserves sperm counts in obese hypogonadal men. BJU International.",
+            ]
+        ),
     ]
 
     static let vendors: [Vendor] = [
