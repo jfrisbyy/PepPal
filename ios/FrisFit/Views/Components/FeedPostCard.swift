@@ -5,8 +5,10 @@ struct FeedPostCard: View {
     let post: FeedPost
     let onHighFive: () -> Void
     let onComment: () -> Void
+    let onRepost: () -> Void
 
     @State private var highFiveBounce: Int = 0
+    @State private var repostBounce: Int = 0
     private var audioPlayer: AudioPlayerService { AudioPlayerService.shared }
 
     var body: some View {
@@ -304,17 +306,23 @@ struct FeedPostCard: View {
 
             Spacer()
 
-            Button { } label: {
+            Button {
+                onRepost()
+                repostBounce += 1
+            } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "arrow.2.squarepath")
+                    Image(systemName: post.isReposted ? "arrow.2.squarepath" : "arrow.2.squarepath")
                         .font(.system(size: 15))
+                        .foregroundStyle(post.isReposted ? PepTheme.teal : PepTheme.textSecondary)
+                        .symbolEffect(.bounce, value: repostBounce)
                     Text("\(post.repostCount)")
                         .font(.system(.subheadline, weight: .medium))
+                        .foregroundStyle(post.isReposted ? PepTheme.teal : PepTheme.textSecondary)
                 }
-                .foregroundStyle(PepTheme.textSecondary)
                 .contentShape(.rect)
             }
             .buttonStyle(.scale)
+            .sensoryFeedback(.impact(weight: .light), trigger: repostBounce)
 
             Spacer()
 

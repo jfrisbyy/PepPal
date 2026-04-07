@@ -161,6 +161,7 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
     var isHighFived: Bool
     var comments: [PostComment]
     var repostCount: Int
+    var isReposted: Bool
 
     let tags: [FeedTag]
     let isFollowing: Bool
@@ -176,6 +177,7 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
         isHighFived: Bool = false,
         comments: [PostComment] = [],
         repostCount: Int = 0,
+        isReposted: Bool = false,
         tags: [FeedTag] = [],
         isFollowing: Bool = false,
         supabaseId: String? = nil
@@ -189,6 +191,7 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
         self.isHighFived = isHighFived
         self.comments = comments
         self.repostCount = repostCount
+        self.isReposted = isReposted
         self.tags = tags
         self.isFollowing = isFollowing
         self.supabaseId = supabaseId

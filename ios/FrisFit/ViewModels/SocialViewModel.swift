@@ -18,6 +18,7 @@ final class SocialViewModel {
     private let socialService = SocialService.shared
     private let messagingService = MessagingService.shared
     private var likedPostIds: Set<String> = []
+    private var repostedPostIds: Set<String> = []
     private var commentCounts: [String: Int] = [:]
     private var followingIds: Set<String> = []
     private var sentRequestReceiverIds: Set<String> = []
@@ -71,12 +72,14 @@ final class SocialViewModel {
 
             let postIds = supabasePosts.map { $0.id }
             likedPostIds = try await socialService.fetchLikedPostIds(userId: userId, postIds: postIds)
+            repostedPostIds = try await socialService.fetchRepostedPostIds(userId: userId, postIds: postIds)
 
             var newFeedPosts: [FeedPost] = []
             for sp in supabasePosts {
                 let user = socialService.socialUserFromAuthor(sp.profiles)
                 let tags = (sp.tags ?? []).compactMap { FeedTag(rawValue: $0) }
                 let isLiked = likedPostIds.contains(sp.id)
+                let isReposted = repostedPostIds.contains(sp.id)
 
                 var mediaItems: [FeedMediaItem] = (sp.media_urls ?? []).map { url in
                     FeedMediaItem(type: .photo, imageURL: url)
@@ -97,6 +100,7 @@ final class SocialViewModel {
                     isHighFived: isLiked,
                     comments: [],
                     repostCount: sp.repost_count ?? 0,
+                    isReposted: isReposted,
                     tags: tags,
                     isFollowing: isFollowingUser,
                     supabaseId: sp.id
@@ -244,6 +248,30 @@ final class SocialViewModel {
         } catch {
             feedError = error.localizedDescription
             return nil
+        }
+    }
+
+    func toggleRepost(for postID: UUID) {
+        guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
+        let wasReposted = feedPosts[index].isReposted
+        feedPosts[index].isReposted.toggle()
+        feedPosts[index].repostCount += feedPosts[index].isReposted ? 1 : -1
+
+        let supabaseId = feedPosts[index].supabaseId ?? postID.uuidString
+
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                if wasReposted {
+                    try await socialService.unrepostPost(postId: supabaseId, userId: userId)
+                } else {
+                    try await socialService.repostPost(postId: supabaseId, userId: userId)
+                }
+            } catch {
+                guard let idx = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
+                feedPosts[idx].isReposted = wasReposted
+                feedPosts[idx].repostCount += wasReposted ? 1 : -1
+            }
         }
     }
 

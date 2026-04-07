@@ -86,6 +86,18 @@ nonisolated struct CreateLikePayload: Codable, Sendable {
     let user_id: String
 }
 
+nonisolated struct SupabasePostRepost: Codable, Sendable {
+    let id: String?
+    let post_id: String
+    let user_id: String
+    let created_at: String?
+}
+
+nonisolated struct CreateRepostPayload: Codable, Sendable {
+    let post_id: String
+    let user_id: String
+}
+
 final class SocialService {
     static let shared = SocialService()
 
@@ -223,6 +235,43 @@ final class SocialService {
 
         try await supabase
             .rpc("decrement_high_five_count", params: ["row_id": postId])
+            .execute()
+    }
+
+    func fetchRepostedPostIds(userId: String, postIds: [String]) async throws -> Set<String> {
+        guard !postIds.isEmpty else { return [] }
+        let response: [SupabasePostRepost] = try await supabase
+            .from("post_reposts")
+            .select("post_id, user_id")
+            .eq("user_id", value: userId)
+            .in("post_id", values: postIds)
+            .execute()
+            .value
+        return Set(response.map { $0.post_id })
+    }
+
+    func repostPost(postId: String, userId: String) async throws {
+        let payload = CreateRepostPayload(post_id: postId, user_id: userId)
+        try await supabase
+            .from("post_reposts")
+            .insert(payload)
+            .execute()
+
+        try await supabase
+            .rpc("increment_repost_count", params: ["row_id": postId])
+            .execute()
+    }
+
+    func unrepostPost(postId: String, userId: String) async throws {
+        try await supabase
+            .from("post_reposts")
+            .delete()
+            .eq("post_id", value: postId)
+            .eq("user_id", value: userId)
+            .execute()
+
+        try await supabase
+            .rpc("decrement_repost_count", params: ["row_id": postId])
             .execute()
     }
 

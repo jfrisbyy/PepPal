@@ -9,6 +9,7 @@ struct PostDetailView: View {
     @State private var isLoadingComments: Bool = true
     @State private var comments: [PostComment] = []
     @State private var highFiveBounce: Int = 0
+    @State private var repostBounce: Int = 0
     @State private var selectedPhotoURL: String?
     @FocusState private var isCommentFocused: Bool
     private var audioPlayer: AudioPlayerService { AudioPlayerService.shared }
@@ -353,17 +354,24 @@ struct PostDetailView: View {
 
             Spacer()
 
-            Button { } label: {
+            Button {
+                viewModel.toggleRepost(for: post.id)
+                repostBounce += 1
+            } label: {
+                let currentPost = viewModel.feedPosts.first(where: { $0.id == post.id }) ?? post
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.2.squarepath")
                         .font(.system(size: 16))
-                    Text("\(post.repostCount)")
+                        .foregroundStyle(currentPost.isReposted ? PepTheme.teal : PepTheme.textSecondary)
+                        .symbolEffect(.bounce, value: repostBounce)
+                    Text("\(currentPost.repostCount)")
                         .font(.system(.subheadline, weight: .medium))
+                        .foregroundStyle(currentPost.isReposted ? PepTheme.teal : PepTheme.textSecondary)
                 }
-                .foregroundStyle(PepTheme.textSecondary)
                 .contentShape(.rect)
             }
             .buttonStyle(.scale)
+            .sensoryFeedback(.impact(weight: .light), trigger: repostBounce)
 
             Spacer()
 

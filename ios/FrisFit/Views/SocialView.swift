@@ -165,6 +165,9 @@ struct SocialView: View {
                                     },
                                     onComment: {
                                         commentFeedPost = post
+                                    },
+                                    onRepost: {
+                                        viewModel.toggleRepost(for: post.id)
                                     }
                                 )
                             }
