@@ -441,6 +441,13 @@ private struct PhotoViewerOverlay: View {
     let urlString: String
     let onDismiss: () -> Void
 
+    @State private var scale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @GestureState private var gestureScale: CGFloat = 1.0
+    @GestureState private var dragOffset: CGSize = .zero
+
+    private var effectiveScale: CGFloat { scale * gestureScale }
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -452,6 +459,48 @@ private struct PhotoViewerOverlay: View {
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fit)
+                            .scaleEffect(effectiveScale)
+                            .offset(
+                                x: offset.width + dragOffset.width,
+                                y: offset.height + dragOffset.height
+                            )
+                            .gesture(
+                                MagnifyGesture()
+                                    .updating($gestureScale) { value, state, _ in
+                                        state = value.magnification
+                                    }
+                                    .onEnded { value in
+                                        let newScale = scale * value.magnification
+                                        withAnimation(.spring(response: 0.3)) {
+                                            scale = min(max(newScale, 1.0), 5.0)
+                                            if scale <= 1.0 {
+                                                offset = .zero
+                                            }
+                                        }
+                                    }
+                                    .simultaneously(with:
+                                        DragGesture()
+                                            .updating($dragOffset) { value, state, _ in
+                                                guard scale > 1 else { return }
+                                                state = value.translation
+                                            }
+                                            .onEnded { value in
+                                                guard scale > 1 else { return }
+                                                offset.width += value.translation.width
+                                                offset.height += value.translation.height
+                                            }
+                                    )
+                            )
+                            .onTapGesture(count: 2) {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    if scale > 1 {
+                                        scale = 1.0
+                                        offset = .zero
+                                    } else {
+                                        scale = 2.5
+                                    }
+                                }
+                            }
                     case .failure:
                         Image(systemName: "photo")
                             .font(.largeTitle)
