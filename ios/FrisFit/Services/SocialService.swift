@@ -7,6 +7,8 @@ nonisolated struct SupabaseFeedPost: Codable, Sendable {
     let user_id: String
     let text_content: String?
     let media_urls: [String]?
+    let audio_url: String?
+    let audio_duration: Double?
     let tags: [String]?
     let high_five_count: Int?
     let repost_count: Int?
@@ -19,6 +21,8 @@ nonisolated struct SupabaseFeedPostWithProfile: Codable, Sendable {
     let user_id: String
     let text_content: String?
     let media_urls: [String]?
+    let audio_url: String?
+    let audio_duration: Double?
     let tags: [String]?
     let high_five_count: Int?
     let repost_count: Int?
@@ -67,6 +71,8 @@ nonisolated struct CreateFeedPostPayload: Codable, Sendable {
     let text_content: String
     let media_urls: [String]?
     let tags: [String]?
+    let audio_url: String?
+    let audio_duration: Double?
 }
 
 nonisolated struct CreateCommentPayload: Codable, Sendable {
@@ -106,12 +112,14 @@ final class SocialService {
         return response
     }
 
-    func createPost(userId: String, textContent: String, mediaUrls: [String]?, tags: [String]?) async throws -> SupabaseFeedPostWithProfile {
+    func createPost(userId: String, textContent: String, mediaUrls: [String]?, tags: [String]?, audioUrl: String? = nil, audioDuration: Double? = nil) async throws -> SupabaseFeedPostWithProfile {
         let payload = CreateFeedPostPayload(
             user_id: userId,
             text_content: textContent,
             media_urls: mediaUrls,
-            tags: tags
+            tags: tags,
+            audio_url: audioUrl,
+            audio_duration: audioDuration
         )
         let created: SupabaseFeedPost = try await supabase
             .from("feed_posts")
@@ -216,6 +224,23 @@ final class SocialService {
         try await supabase
             .rpc("decrement_high_five_count", params: ["row_id": postId])
             .execute()
+    }
+
+    func uploadAudio(userId: String, audioData: Data) async throws -> String {
+        let fileName = "\(userId)/\(UUID().uuidString).m4a"
+        try await supabase.storage
+            .from("post-media")
+            .upload(fileName, data: audioData, options: FileOptions(
+                cacheControl: "3600",
+                contentType: "audio/mp4",
+                upsert: false
+            ))
+
+        let publicURL = try supabase.storage
+            .from("post-media")
+            .getPublicURL(path: fileName)
+
+        return publicURL.absoluteString
     }
 
     func uploadMedia(userId: String, imageData: Data, index: Int) async throws -> String {

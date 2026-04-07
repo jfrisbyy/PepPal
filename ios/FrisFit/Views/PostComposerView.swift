@@ -528,7 +528,9 @@ struct PostComposerView: View {
             let result = await socialViewModel.createPost(
                 textContent: viewModel.textContent.trimmingCharacters(in: .whitespacesAndNewlines),
                 images: viewModel.loadedImages,
-                tags: Array(viewModel.selectedTags)
+                tags: Array(viewModel.selectedTags),
+                voiceData: viewModel.voiceRecordingData,
+                voiceDuration: viewModel.voiceRecordingDuration
             )
             if result != nil {
                 dismiss()

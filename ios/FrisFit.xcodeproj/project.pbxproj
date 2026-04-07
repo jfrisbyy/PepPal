@@ -418,6 +418,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "PepPal needs camera access to photograph your meals for calorie estimation.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "PepPal needs microphone access to record voice notes for your community posts.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "PepPal reads your health data to display steps, calories burned, heart rate, and workout information on your dashboard.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "PepPal saves your workout data to Apple Health so all your fitness activity stays in sync.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "PepPal uses your location to track your runs and rides in real time, even when the screen is locked.";
@@ -460,6 +461,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "PepPal needs camera access to photograph your meals for calorie estimation.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "PepPal needs microphone access to record voice notes for your community posts.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "PepPal reads your health data to display steps, calories burned, heart rate, and workout information on your dashboard.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "PepPal saves your workout data to Apple Health so all your fitness activity stays in sync.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "PepPal uses your location to track your runs and rides in real time, even when the screen is locked.";

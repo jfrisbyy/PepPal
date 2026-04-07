@@ -96,10 +96,9 @@ struct FeedCommentsSheet: View {
     private func sendComment() {
         let trimmed = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        viewModel.addFeedComment(to: post.id, text: trimmed)
         commentText = ""
         Task {
-            try? await Task.sleep(for: .milliseconds(500))
+            await viewModel.addFeedComment(to: post.id, text: trimmed)
             if let updated = viewModel.feedPosts.first(where: { $0.id == post.id }) {
                 withAnimation { comments = updated.comments }
             }

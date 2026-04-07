@@ -70,6 +70,9 @@ nonisolated struct UserPost: Identifiable, Sendable {
     var likeCount: Int
     var isLiked: Bool
     var commentCount: Int
+    let mediaUrls: [String]
+    let audioUrl: String?
+    let audioDuration: Double?
     let workoutAttachment: WorkoutPostAttachment?
 
     init(
@@ -80,6 +83,9 @@ nonisolated struct UserPost: Identifiable, Sendable {
         likeCount: Int = 0,
         isLiked: Bool = false,
         commentCount: Int = 0,
+        mediaUrls: [String] = [],
+        audioUrl: String? = nil,
+        audioDuration: Double? = nil,
         workoutAttachment: WorkoutPostAttachment? = nil
     ) {
         self.id = id
@@ -89,6 +95,9 @@ nonisolated struct UserPost: Identifiable, Sendable {
         self.likeCount = likeCount
         self.isLiked = isLiked
         self.commentCount = commentCount
+        self.mediaUrls = mediaUrls
+        self.audioUrl = audioUrl
+        self.audioDuration = audioDuration
         self.workoutAttachment = workoutAttachment
     }
 }

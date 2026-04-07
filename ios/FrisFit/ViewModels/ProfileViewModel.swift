@@ -314,7 +314,10 @@ final class ProfileViewModel {
                     timestamp: socialService.parseDate(sp.created_at),
                     likeCount: sp.high_five_count ?? 0,
                     isLiked: likedIds.contains(sp.id),
-                    commentCount: 0
+                    commentCount: 0,
+                    mediaUrls: sp.media_urls ?? [],
+                    audioUrl: sp.audio_url,
+                    audioDuration: sp.audio_duration
                 )
             }
         } catch {

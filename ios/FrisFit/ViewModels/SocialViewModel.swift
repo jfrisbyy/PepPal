@@ -78,8 +78,11 @@ final class SocialViewModel {
                 let tags = (sp.tags ?? []).compactMap { FeedTag(rawValue: $0) }
                 let isLiked = likedPostIds.contains(sp.id)
 
-                let mediaItems: [FeedMediaItem] = (sp.media_urls ?? []).map { url in
+                var mediaItems: [FeedMediaItem] = (sp.media_urls ?? []).map { url in
                     FeedMediaItem(type: .photo, imageURL: url)
+                }
+                if let audioUrl = sp.audio_url, !audioUrl.isEmpty {
+                    mediaItems.append(FeedMediaItem(type: .voice, imageURL: audioUrl, voiceDuration: sp.audio_duration ?? 0))
                 }
 
                 let isFollowingUser = followingIds.contains(sp.user_id)
@@ -138,27 +141,25 @@ final class SocialViewModel {
         }
     }
 
-    func addFeedComment(to postID: UUID, text: String) {
+    func addFeedComment(to postID: UUID, text: String) async {
         guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
         let supabaseId = feedPosts[index].supabaseId ?? postID.uuidString
 
-        Task {
-            do {
-                let userId = try AuthService.shared.currentUserId()
-                let comment = try await socialService.addComment(postId: supabaseId, userId: userId, text: text)
-                let user = socialService.socialUserFromAuthor(comment.profiles)
-                let postComment = PostComment(
-                    id: UUID(uuidString: comment.id) ?? UUID(),
-                    user: user,
-                    text: comment.text_content ?? text,
-                    timestamp: socialService.parseDate(comment.created_at)
-                )
-                if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {
-                    feedPosts[idx].comments.append(postComment)
-                }
-            } catch {
-                // Silently fail
+        do {
+            let userId = try AuthService.shared.currentUserId()
+            let comment = try await socialService.addComment(postId: supabaseId, userId: userId, text: text)
+            let user = socialService.socialUserFromAuthor(comment.profiles)
+            let postComment = PostComment(
+                id: UUID(uuidString: comment.id) ?? UUID(),
+                user: user,
+                text: comment.text_content ?? text,
+                timestamp: socialService.parseDate(comment.created_at)
+            )
+            if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {
+                feedPosts[idx].comments.append(postComment)
             }
+        } catch {
+            feedError = "Failed to add comment: \(error.localizedDescription)"
         }
     }
 
@@ -184,7 +185,7 @@ final class SocialViewModel {
         }
     }
 
-    func createPost(textContent: String, images: [UIImage], tags: [FeedTag]) async -> FeedPost? {
+    func createPost(textContent: String, images: [UIImage], tags: [FeedTag], voiceData: Data? = nil, voiceDuration: TimeInterval = 0) async -> FeedPost? {
         do {
             let userId = try AuthService.shared.currentUserId()
 
@@ -196,18 +197,28 @@ final class SocialViewModel {
                 }
             }
 
+            var audioUrl: String?
+            if let voiceData {
+                audioUrl = try await socialService.uploadAudio(userId: userId, audioData: voiceData)
+            }
+
             let tagStrings = tags.map { $0.rawValue }
             let created = try await socialService.createPost(
                 userId: userId,
                 textContent: textContent,
                 mediaUrls: mediaUrls.isEmpty ? nil : mediaUrls,
-                tags: tagStrings.isEmpty ? nil : tagStrings
+                tags: tagStrings.isEmpty ? nil : tagStrings,
+                audioUrl: audioUrl,
+                audioDuration: voiceData != nil ? voiceDuration : nil
             )
 
             let user = socialService.socialUserFromAuthor(created.profiles)
             let feedTags = (created.tags ?? []).compactMap { FeedTag(rawValue: $0) }
-            let mediaItems: [FeedMediaItem] = (created.media_urls ?? []).map { url in
+            var mediaItems: [FeedMediaItem] = (created.media_urls ?? []).map { url in
                 FeedMediaItem(type: .photo, imageURL: url)
+            }
+            if let createdAudio = created.audio_url, !createdAudio.isEmpty {
+                mediaItems.append(FeedMediaItem(type: .voice, imageURL: createdAudio, voiceDuration: created.audio_duration ?? voiceDuration))
             }
 
             let post = FeedPost(

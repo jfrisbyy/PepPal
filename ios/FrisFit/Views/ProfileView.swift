@@ -411,10 +411,20 @@ struct ProfilePostRow: View {
                         .foregroundStyle(PepTheme.textSecondary)
                 }
 
-                Text(post.content)
-                    .font(.subheadline)
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .lineSpacing(3)
+                if !post.content.isEmpty {
+                    Text(post.content)
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .lineSpacing(3)
+                }
+
+                if !post.mediaUrls.isEmpty {
+                    ProfilePostMediaGrid(mediaUrls: post.mediaUrls)
+                }
+
+                if post.audioUrl != nil {
+                    ProfilePostAudioBadge(duration: post.audioDuration ?? 0)
+                }
 
                 if let attachment = post.workoutAttachment {
                     workoutCard(attachment)

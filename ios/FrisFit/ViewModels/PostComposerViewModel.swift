@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import AVFoundation
 
 @Observable
 final class PostComposerViewModel {
@@ -18,8 +19,11 @@ final class PostComposerViewModel {
     var showAttachmentMenu: Bool = false
     var selectedTags: Set<FeedTag> = []
     var showTagPicker: Bool = false
+    var recordingError: String?
 
     private var voiceTimer: Timer?
+    private var audioRecorder: AVAudioRecorder?
+    private(set) var voiceRecordingURL: URL?
     private let maxPhotos = 4
     private let maxCharacters = 500
 
@@ -31,6 +35,11 @@ final class PostComposerViewModel {
     var characterProgress: Double { Double(characterCount) / Double(maxCharacters) }
     var isOverLimit: Bool { characterCount > maxCharacters }
     var remainingPhotos: Int { maxPhotos - loadedImages.count }
+
+    var voiceRecordingData: Data? {
+        guard let url = voiceRecordingURL else { return nil }
+        return try? Data(contentsOf: url)
+    }
 
     func loadPhotos() async {
         var images: [UIImage] = []
@@ -52,25 +61,66 @@ final class PostComposerViewModel {
     }
 
     func startVoiceRecording() {
-        isRecordingVoice = true
-        voiceRecordingDuration = 0
-        voiceTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.voiceRecordingDuration += 0.1
+        recordingError = nil
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+            try session.setActive(true)
+        } catch {
+            recordingError = "Could not set up audio session"
+            return
+        }
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileURL = tempDir.appendingPathComponent("voice_\(UUID().uuidString).m4a")
+
+        let settings: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+            AVSampleRateKey: 44100,
+            AVNumberOfChannelsKey: 1,
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+        ]
+
+        do {
+            let recorder = try AVAudioRecorder(url: fileURL, settings: settings)
+            recorder.record()
+            audioRecorder = recorder
+            voiceRecordingURL = fileURL
+            isRecordingVoice = true
+            voiceRecordingDuration = 0
+            voiceTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+                Task { @MainActor in
+                    self?.voiceRecordingDuration += 0.1
+                }
             }
+        } catch {
+            recordingError = "Could not start recording"
         }
     }
 
     func stopVoiceRecording() {
-        isRecordingVoice = false
-        hasVoiceRecording = voiceRecordingDuration > 0.5
+        audioRecorder?.stop()
+        audioRecorder = nil
         voiceTimer?.invalidate()
         voiceTimer = nil
+        isRecordingVoice = false
+        hasVoiceRecording = voiceRecordingDuration > 0.5
+        if !hasVoiceRecording {
+            cleanupRecordingFile()
+        }
     }
 
     func removeVoiceRecording() {
         hasVoiceRecording = false
         voiceRecordingDuration = 0
+        cleanupRecordingFile()
+    }
+
+    private func cleanupRecordingFile() {
+        if let url = voiceRecordingURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+        voiceRecordingURL = nil
     }
 
     func removeMarketLink() {
@@ -81,34 +131,6 @@ final class PostComposerViewModel {
         selectedWorkoutLog = nil
     }
 
-    func createPost(user: SocialUser) -> FeedPost {
-        var mediaItems: [FeedMediaItem] = []
-
-        for image in loadedImages {
-            mediaItems.append(FeedMediaItem(type: .photo, imageURL: "local://photo-\(UUID().uuidString)"))
-        }
-
-        if hasVoiceRecording {
-            mediaItems.append(FeedMediaItem(type: .voice, voiceDuration: voiceRecordingDuration))
-        }
-
-        if let program = selectedMarketProgram {
-            mediaItems.append(FeedMediaItem(type: .marketLink, marketProgram: program))
-        }
-
-        if let log = selectedWorkoutLog {
-            mediaItems.append(FeedMediaItem(type: .workoutLog, workoutLog: log))
-        }
-
-        return FeedPost(
-            user: user,
-            timestamp: Date(),
-            textContent: textContent.trimmingCharacters(in: .whitespacesAndNewlines),
-            media: mediaItems,
-            tags: Array(selectedTags)
-        )
-    }
-
     func reset() {
         textContent = ""
         selectedPhotos = []
@@ -116,9 +138,11 @@ final class PostComposerViewModel {
         isRecordingVoice = false
         voiceRecordingDuration = 0
         hasVoiceRecording = false
+        cleanupRecordingFile()
         selectedMarketProgram = nil
         selectedWorkoutLog = nil
         selectedTags = []
         isPosting = false
+        recordingError = nil
     }
 }
