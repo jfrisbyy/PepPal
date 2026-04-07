@@ -4690,6 +4690,130 @@ enum CompoundDatabase {
             ]
         ),
 
+        CompoundProfile(
+            name: "ACE-031",
+            peptideType: "Soluble ActRIIB-Fc Fusion Protein",
+            categories: [.muscleGrowth],
+            overview: "ACE-031 (Ramatercept) is a highly advanced, synthetic fusion protein designed to build massive amounts of muscle. Like Follistatin, its primary goal is to block Myostatin (the protein that tells your muscles to stop growing). However, ACE-031 does this in a completely different way. Instead of acting as a decoy in the blood, ACE-031 is literally a fake, floating version of the receptor that Myostatin normally binds to on your muscle cells. Myostatin binds to the fake receptor (ACE-031) instead of your actual muscle, neutralizing the 'stop growing' signal.",
+            protocols: [
+                CompoundProtocol(goalName: "Standard Protocol", description: "Weekly or biweekly dosing for muscle hypertrophy", typicalDose: "1 mg (1000 mcg)", frequency: "Once every 7-14 days", duration: "4 weeks max (2-4 total injections)"),
+                CompoundProtocol(goalName: "Aggressive Protocol", description: "Higher dose biweekly", typicalDose: "1-3 mg", frequency: "Once every 7-14 days", duration: "4 weeks max"),
+            ],
+            sideEffects: ["Epistaxis (nosebleeds)", "Gum bleeding", "Telangiectasias (spider veins)", "Rapid weight gain", "Tendon rupture risk"],
+            structuredSideEffects: [
+                CompoundSideEffect(name: "Epistaxis (Nosebleeds)", severity: .significant, frequency: 45),
+                CompoundSideEffect(name: "Gum Bleeding", severity: .moderate, frequency: 35),
+                CompoundSideEffect(name: "Telangiectasias (Spider Veins)", severity: .moderate, frequency: 30),
+                CompoundSideEffect(name: "Rapid Weight Gain", severity: .mild, frequency: 60),
+                CompoundSideEffect(name: "Tendon Rupture Risk", severity: .significant, frequency: 15),
+            ],
+            communityUsers: 312,
+            averageRating: 3.8,
+            stackPartners: ["BPC-157", "IGF-1 LR3"],
+            iconName: "bolt.shield.fill",
+            keyFacts: CompoundKeyFacts(molecularWeight: "~90 kDa (Fusion Protein)", administrationRoute: "Subcutaneous", halfLife: "10-15 days", storageTemp: "2-8°C", reconstitution: "BAC Water", typicalDoseRange: "1-3 mg per injection"),
+            primaryUseCases: ["Extreme muscle hypertrophy by neutralizing Myostatin and Activin", "Rapid lean mass gain", "Research in muscular dystrophy therapies"],
+            tieredDosing: [
+                TieredDose(tier: "Standard", dose: "1 mg (1000 mcg)", frequency: "Once every 7-14 days", timingNotes: "Anytime"),
+                TieredDose(tier: "Aggressive", dose: "1-3 mg", frequency: "Once every 7-14 days", timingNotes: "Anytime"),
+            ],
+            cycleLength: "4 weeks maximum (2-4 total injections)",
+            loadingProtocol: "No",
+            onOffCycling: "4 weeks on / 3-4 months off minimum",
+            reconstitutionGuide: ReconstitutionGuide(typicalVialSize: "1 mg", diluent: "Bacteriostatic Water (BW)", reconstitutionMath: "Add 1 mL of BW to a 1 mg (1000mcg) vial. 1 mg dose = 1.0 mL (100 units on an insulin syringe).", storageLyophilized: "Freezer (-20°C) for 3-5 years, or fridge (2-8°C) for 1-2 years", storageReconstituted: "Fridge (2-8°C) for 14-21 days", handlingNotes: "Complex fusion protein — handle with care. Do not shake."),
+            bloodworkMarkers: [
+                BloodworkMarker(marker: "Complete Blood Count (CBC)", baseline: "Required", onCycle: "Required", reason: "Monitor platelet levels and red blood cell counts due to bleeding risks"),
+                BloodworkMarker(marker: "Coagulation Panel (PT/INR)", baseline: "Required", onCycle: "Required", reason: "Ensure blood clotting mechanisms are functioning normally"),
+            ],
+            nutritionalSupport: [
+                "Vitamin K2 & Vitamin C: To support blood clotting and capillary health, attempting to mitigate the bleeding side effects of the drug.",
+                "Caloric Surplus: You cannot build muscle out of thin air. If you block myostatin but don't eat, you will not grow. 500-1000 calories above maintenance.",
+            ],
+            beginnerTips: [
+                "ACE-031 is arguably the most powerful muscle-building peptide ever created, but also one of the most dangerous due to bleeding side effects.",
+                "Clinical trials were HALTED in 2013 because the drug caused spontaneous nosebleeds, gum bleeding, and dilated blood vessels in the skin.",
+                "Extremely high rate of counterfeit products on the market. Real ACE-031 is very expensive to synthesize.",
+                "Do NOT use if you are on blood thinners (Warfarin, Eliquis, Aspirin) or have a history of bleeding disorders.",
+            ],
+            evidence: EvidenceSummary(level: "Moderate", keyStudies: [
+                "Phase 1 (Healthy Adults): A single injection of ACE-031 (3 mg/kg) resulted in a 5.1% increase in thigh muscle volume in just 29 days.",
+                "Phase 2 (Duchenne Muscular Dystrophy): Halted in 2013 due to epistaxis, gingival bleeding, and telangiectasias.",
+            ], researchGaps: "Development abandoned due to off-target vascular effects. No long-term safety data available."),
+            stackDetails: [
+                StackDetail(partner: "BPC-157", purpose: "Safe Hypertrophy", notes: "Mandatory — BPC-157 strengthens tendons and promotes healthy angiogenesis, which may help counteract the vascular side effects of ACE-031."),
+                StackDetail(partner: "IGF-1 LR3", purpose: "The 'Pro' Stack", notes: "ACE-031 removes the 'stop' signal for muscle growth; IGF-1 LR3 provides the ultimate 'go' signal by creating new muscle cells."),
+            ],
+            detailedSideEffects: DetailedSideEffects(common: ["Epistaxis (nosebleeds)", "Gum bleeding", "Rapid weight gain", "Increased appetite"], uncommon: ["Telangiectasias (spider veins on skin)", "Bruising easily"], rare: ["Severe hemorrhage", "Tendon rupture from rapid strength gains"], contraindications: ["Blood thinners (Warfarin, Eliquis, Aspirin)", "History of aneurysms, strokes, or bleeding disorders", "Active cancer", "Women (extreme muscle growth risk)"]),
+            isWADAProhibited: true,
+            wadaCategory: "S4 Hormone and Metabolic Modulators",
+            subtitle: "The Soluble ActRIIB Receptor",
+            whatIsIt: "ACE-031 (also known as Ramatercept) is a highly advanced, synthetic fusion protein designed to build massive amounts of muscle. Like Follistatin, its primary goal is to block Myostatin (the protein that tells your muscles to stop growing). However, ACE-031 does this in a completely different way. Instead of acting as a decoy in the blood, ACE-031 is literally a fake, floating version of the receptor that Myostatin normally binds to on your muscle cells. Myostatin binds to the fake receptor (ACE-031) instead of your actual muscle, neutralizing the 'stop growing' signal.",
+            howItWorks: "Imagine your muscle cell is a house with a specific keyhole on the front door. Myostatin is the key. When the key goes into the keyhole, the house stops building new rooms. ACE-031 is a drug made of millions of fake keyholes floating around in your blood. The Myostatin keys get stuck in the fake keyholes before they can ever reach the real house. Because the real house never gets the 'stop' signal, it just keeps building more and more rooms (muscle).",
+            whatToExpect: [
+                TimelineEntry(timeframe: "Week 1-2", description: "Rapid weight gain, massive increase in appetite, and potential nosebleeds or gum bleeding."),
+                TimelineEntry(timeframe: "Week 4-6", description: "Noticeable, rapid increases in lean muscle mass and strength."),
+                TimelineEntry(timeframe: "Week 8+", description: "Not recommended. Clinical trials were halted due to severe side effects (bleeding) that compound over time."),
+            ],
+            watchOut: "ACE-031 is arguably the most powerful muscle-building peptide ever created, but it is also one of the most dangerous. In 2013, the pharmaceutical companies developing it (Acceleron and Shire) completely halted all clinical trials in boys with Muscular Dystrophy. The drug was causing spontaneous nosebleeds, gum bleeding, and dilated blood vessels in the skin. While it builds muscle like nothing else, the bleeding side effects make it highly risky for biohackers.",
+            beforeYouStart: [
+                "Understand the bleeding risk: ACE-031 interferes with blood vessel formation. If you are prone to nosebleeds or take blood thinners, do NOT use this.",
+                "Verify your source: Like Follistatin, real ACE-031 is a massive, complex fusion protein. It is incredibly expensive to synthesize. Cheap vials are fake.",
+                "Purchase supplies: Insulin syringes (31g, 5/16\", 1mL), Bacteriostatic Water, Alcohol Swabs.",
+            ],
+            dosingSchedule: [
+                DosingPhase(phase: "Standard Protocol", dose: "1 mg (1000 mcg)", frequency: "Once every 7-14 days", timing: "Anytime"),
+                DosingPhase(phase: "Aggressive Protocol", dose: "1-3 mg", frequency: "Once every 7-14 days", timing: "Anytime"),
+            ],
+            injectionSiteGuide: "Subcutaneous fat in the abdomen. Because it is a systemic decoy receptor, there is no benefit to injecting it directly into a specific muscle.",
+            discontinuationProtocol: "Stop after 4 weeks maximum (2-4 total injections). The drug takes over a month to fully clear your system after the last injection. At least 3-4 months off before considering another cycle.",
+            communityConsensus: [
+                "The 'Bleeding' Reality: The side effects that halted the clinical trials are very real. Users frequently report waking up with blood on their pillows from spontaneous nosebleeds, and bleeding gums when brushing their teeth.",
+                "The Muscle Gain: Despite the side effects, users who have sourced legitimate ACE-031 report muscle gains that rival or exceed high-dose anabolic steroids, often gaining 5-10 lbs of lean tissue in a single month.",
+                "The Price: Legitimate ACE-031 can cost hundreds of dollars per milligram, making a single cycle cost well over $1,000.",
+            ],
+            drugInteractions: [
+                DrugInteraction(substance: "NSAIDs (Ibuprofen/Aspirin)", riskLevel: "SEVERE", details: "NSAIDs thin the blood. Combining them with ACE-031 drastically increases the risk of severe, uncontrollable bleeding."),
+                DrugInteraction(substance: "Anabolic Steroids", riskLevel: "Synergistic", details: "Steroids increase protein synthesis; ACE-031 removes the limit on how much protein can be synthesized."),
+            ],
+            sideEffectManagement: [
+                "Epistaxis (Nosebleeds): Keep a humidifier in your room. If nosebleeds become frequent or heavy, discontinue the drug immediately.",
+                "Telangiectasias: The appearance of small, dilated blood vessels (spider veins) on the skin. This is a direct pharmacological effect of the drug blocking BMP-9 and BMP-10.",
+                "Tendon Rupture Risk: Do NOT attempt 1-Rep Max lifts. Focus on hypertrophy (8-15 reps) to protect the joints from the rapidly increasing muscle strength.",
+            ],
+            womenConsiderations: [
+                "Strictly avoided by women due to the extreme muscle growth and the severe bleeding risks.",
+            ],
+            trainingGuide: [
+                "Volume over Weight: Because your muscles will get stronger faster than your tendons, you must avoid powerlifting (1-3 reps). Focus on high-volume bodybuilding training to stimulate the muscle without snapping a tendon.",
+                "Track body weight daily (it should climb rapidly).",
+                "Monitor for any signs of unexplained bruising or bleeding.",
+            ],
+            legalStatus: [
+                "US: Available as a research chemical. Not FDA approved for human use. Clinical trials halted in 2013.",
+                "WADA: Banned in competitive sports under section S4 (Myostatin inhibitors).",
+            ],
+            costInfo: "Research Chemical Vendors: ~$100-$200 per 1mg vial. Extremely high rate of counterfeit products on the market.",
+            comparisons: [
+                CompoundComparison(feature: "Mechanism", values: ["ACE-031": "Soluble ActRIIB decoy receptor", "Follistatin 344": "Binds directly to Myostatin", "YK-11": "SARM that induces Follistatin"]),
+                CompoundComparison(feature: "Half-life", values: ["ACE-031": "10-15 days", "Follistatin 344": "1-2 hours", "YK-11": "~12 hours"]),
+                CompoundComparison(feature: "Administration", values: ["ACE-031": "Weekly Injection", "Follistatin 344": "Daily Injection", "YK-11": "Daily Oral"]),
+                CompoundComparison(feature: "Bleeding Risk", values: ["ACE-031": "High", "Follistatin 344": "Low", "YK-11": "Low"]),
+            ],
+            deepDive: "ACE-031 (Ramatercept) is a recombinant fusion protein. It is engineered by taking the extracellular domain of the human Activin receptor type IIB (ActRIIB) and fusing it to the Fc portion of a human immunoglobulin G1 (IgG1) antibody.\n\nThe Fc Fusion: The addition of the IgG1-Fc domain is a common pharmacological trick used to drastically extend the half-life of a protein. It prevents rapid renal clearance and allows the molecule to be recycled by the neonatal Fc receptor (FcRn), extending the half-life of ACE-031 to an incredible 10-15 days.\n\nMechanism Deep Dive:\n1. The TGF-β Superfamily: Muscle growth is negatively regulated by several proteins in the TGF-β superfamily, primarily Myostatin (GDF-8), Activin A, and GDF-11. These proteins normally bind to the ActRIIB receptor on the surface of muscle cells, triggering a Smad2/3 signaling cascade that halts muscle protein synthesis.\n\n2. The Decoy Receptor: ACE-031 acts as a highly potent, circulating decoy receptor. Because it is the ActRIIB receptor (just floating freely in the blood), Myostatin and Activin bind to it with extremely high affinity.\n\n3. The Result: By trapping these negative regulators in the blood, ACE-031 prevents them from ever reaching the actual muscle cells. The Smad2/3 inhibition is lifted, and the Akt/mTOR pathway is disinhibited, leading to massive, unchecked muscle hypertrophy.\n\nClinical Trial Summary:\n- Phase 1 (Healthy Adults): In a single ascending-dose study in healthy postmenopausal women, a single injection of ACE-031 (3 mg/kg) resulted in a massive 5.1% increase in thigh muscle volume in just 29 days.\n- Phase 2 (Duchenne Muscular Dystrophy): Acceleron Pharma and Shire initiated a Phase 2 trial in boys with DMD. The drug was highly effective at building muscle.\n- The Halt (2013): The trial was abruptly halted, and development of ACE-031 was abandoned. The boys were experiencing epistaxis (nosebleeds), gingival bleeding, and the development of telangiectasias (small, dilated blood vessels on the skin).\n\nThe Off-Target Effects (Why it bleeds): The ActRIIB receptor doesn't just bind Myostatin; it also binds Bone Morphogenetic Proteins 9 and 10 (BMP-9 and BMP-10). These proteins are crucial for angiogenesis (the formation and maintenance of blood vessels). By acting as a decoy for BMP-9/10, ACE-031 disrupts normal capillary formation, leading to fragile blood vessels that spontaneously rupture and bleed. This off-target effect is the sole reason the drug failed clinical trials.\n\nLong-term use is impossible and highly dangerous due to the progressive degradation of capillary integrity.",
+            faq: [
+                FAQItem(question: "Is ACE-031 better than Follistatin?", answer: "For building muscle, yes. It is significantly more potent and only requires one injection every week or two, compared to Follistatin's daily injections. However, the side effects (bleeding) make it much more dangerous."),
+                FAQItem(question: "Why do I get nosebleeds on this?", answer: "ACE-031 accidentally blocks proteins (BMP-9 and BMP-10) that your body needs to keep your tiny blood vessels (capillaries) strong. Without those proteins, the capillaries in your nose and gums become fragile and break easily."),
+                FAQItem(question: "Can I take it if I'm on Aspirin?", answer: "Absolutely NOT. Aspirin thins the blood. Combining a blood thinner with a drug that makes your blood vessels fragile is a recipe for a severe, potentially life-threatening hemorrhage."),
+                FAQItem(question: "If the clinical trials were stopped, why do bodybuilders still use it?", answer: "Because it works. In the world of elite bodybuilding, many athletes are willing to accept severe health risks (like nosebleeds) in exchange for gaining 10 lbs of pure muscle in a month."),
+                FAQItem(question: "How do I know if my ACE-031 is real?", answer: "It is very difficult to know without laboratory testing. However, if you take it and do not experience a massive increase in appetite, rapid weight gain, and potentially minor bleeding (gums/nose) within 14 days, it is likely fake."),
+            ],
+            references: [
+                "Attie, K. M., et al. (2013). A single ascending-dose study of muscle regulator ACE-031 in healthy volunteers. Muscle & Nerve.",
+                "Campbell, C., et al. (2017). Myostatin inhibitor ACE-031 treatment of ambulatory boys with Duchenne muscular dystrophy: Results of a randomized, placebo-controlled clinical trial. Muscle & Nerve.",
+                "Sako, D., et al. (2010). Characterization of the ligand binding functionality of the extracellular domain of activin receptor type IIb. The Journal of Biological Chemistry.",
+            ]
+        ),
+
         // MARK: - Category 11: Supplements & Precursors
 
         CompoundProfile(
