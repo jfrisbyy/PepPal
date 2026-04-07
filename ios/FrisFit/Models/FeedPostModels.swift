@@ -143,7 +143,15 @@ nonisolated struct WorkoutLogAttachment: Sendable {
     let date: Date
 }
 
-nonisolated struct FeedPost: Identifiable, Sendable {
+nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
+    nonisolated static func == (lhs: FeedPost, rhs: FeedPost) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    nonisolated func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
     let id: UUID
     let user: SocialUser
     let timestamp: Date

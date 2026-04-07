@@ -85,9 +85,30 @@ struct FeedPostCard: View {
                 Color(.tertiarySystemFill)
                     .aspectRatio(photos.count == 1 ? 16/9 : 1, contentMode: .fit)
                     .overlay {
-                        Image(systemName: "photo")
-                            .font(.title2)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                        if let urlString = photo.imageURL, let url = URL(string: urlString) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                case .failure:
+                                    Image(systemName: "photo")
+                                        .font(.title2)
+                                        .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                                case .empty:
+                                    ProgressView()
+                                        .tint(PepTheme.teal)
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                            .allowsHitTesting(false)
+                        } else {
+                            Image(systemName: "photo")
+                                .font(.title2)
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                        }
                     }
                     .clipShape(.rect(cornerRadius: 10))
             }

@@ -87,6 +87,9 @@ struct SocialView: View {
             .sheet(isPresented: $showComposer) {
                 PostComposerView(socialViewModel: viewModel)
             }
+            .navigationDestination(for: FeedPost.self) { post in
+                PostDetailView(post: post, viewModel: viewModel)
+            }
             .navigationDestination(for: SocialUser.self) { user in
                 UserProfileView(user: user, viewModel: profileViewModel)
             }
@@ -154,15 +157,18 @@ struct SocialView: View {
                 } else {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.filteredFeedPosts) { post in
-                            FeedPostCard(
-                                post: post,
-                                onHighFive: {
-                                    viewModel.toggleFeedHighFive(for: post.id)
-                                },
-                                onComment: {
-                                    commentFeedPost = post
-                                }
-                            )
+                            NavigationLink(value: post) {
+                                FeedPostCard(
+                                    post: post,
+                                    onHighFive: {
+                                        viewModel.toggleFeedHighFive(for: post.id)
+                                    },
+                                    onComment: {
+                                        commentFeedPost = post
+                                    }
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal)
