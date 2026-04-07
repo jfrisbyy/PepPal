@@ -67,12 +67,23 @@ struct WizardCompound: Identifiable {
     let id = UUID()
     let name: String
     var doseText: String = "250"
+    var doseUnit: String = "mcg"
     var frequency: String = "Daily"
     var injectionRoute: InjectionRoute = .subcutaneous
     var timeOfDay: String = "Morning"
 
     var profile: CompoundProfile? {
         CompoundDatabase.all.first { $0.name == name }
+    }
+
+    var protocolDefault: ProtocolDefault? {
+        ProtocolDefaultsDatabase.defaults(for: name)
+    }
+
+    func isDefaultDose(for level: ExperienceLevel) -> Bool {
+        guard let pd = protocolDefault else { return false }
+        let range = pd.doseRange(for: level)
+        return doseText == range.defaultDoseText
     }
 }
 
@@ -505,14 +516,33 @@ struct ProtocolSetupWizardView: View {
                 selectedCompounds.removeAll { $0.name == compound.name }
             } else {
                 var wc = WizardCompound(name: compound.name)
-                if let level = experienceLevel,
-                   let tiered = compound.tieredDosing.first(where: { $0.tier == level.tierKey }) {
+                let level = experienceLevel ?? .beginner
+
+                if let pd = ProtocolDefaultsDatabase.defaults(for: compound.name) {
+                    let range = pd.doseRange(for: level)
+                    wc.doseText = range.defaultDoseText
+                    wc.doseUnit = range.unit
+                    let routeStr = pd.route.lowercased()
+                    if routeStr.contains("oral") {
+                        wc.injectionRoute = .oral
+                    } else if routeStr.contains("nasal") {
+                        wc.injectionRoute = .nasal
+                    } else if routeStr.contains("intramuscular") {
+                        wc.injectionRoute = .intramuscular
+                    } else {
+                        wc.injectionRoute = .subcutaneous
+                    }
+                } else if let tiered = compound.tieredDosing.first(where: { $0.tier == level.tierKey }) {
                     wc.doseText = tiered.dose.replacingOccurrences(of: "[^0-9.]", with: "", options: .regularExpression)
                     wc.frequency = tiered.frequency
+                    let route = InjectionRoute.allCases.first { compound.keyFacts.administrationRoute.localizedCaseInsensitiveContains($0.rawValue) } ?? .subcutaneous
+                    wc.injectionRoute = route
+                } else {
+                    let route = InjectionRoute.allCases.first { compound.keyFacts.administrationRoute.localizedCaseInsensitiveContains($0.rawValue) } ?? .subcutaneous
+                    wc.injectionRoute = route
                 }
-                let route = InjectionRoute.allCases.first { compound.keyFacts.administrationRoute.localizedCaseInsensitiveContains($0.rawValue) } ?? .subcutaneous
-                wc.injectionRoute = route
-                if let tiered = compound.tieredDosing.first(where: { $0.tier == (experienceLevel?.tierKey ?? "Beginner") }) {
+
+                if let tiered = compound.tieredDosing.first(where: { $0.tier == level.tierKey }) {
                     wc.timeOfDay = tiered.timingNotes
                 }
                 selectedCompounds.append(wc)
@@ -616,6 +646,39 @@ struct ProtocolSetupWizardView: View {
                 .font(.subheadline)
                 .foregroundStyle(PepTheme.textSecondary)
 
+            VStack(alignment: .leading, spacing: 8) {
+                Text("EXPERIENCE LEVEL")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary)
+
+                Picker("", selection: Binding(
+                    get: { experienceLevel ?? .beginner },
+                    set: { newLevel in
+                        let oldLevel = experienceLevel
+                        experienceLevel = newLevel
+                        if oldLevel != newLevel {
+                            applyDefaultDoses(for: newLevel)
+                        }
+                    }
+                )) {
+                    ForEach(ExperienceLevel.allCases) { level in
+                        HStack(spacing: 4) {
+                            Image(systemName: level.icon)
+                            Text(level.rawValue)
+                        }
+                        .tag(level)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+            .padding(12)
+            .background(PepTheme.cardSurface)
+            .clipShape(.rect(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+            )
+
             if experienceLevel == .beginner {
                 beginnerTipBanner(
                     icon: "info.circle.fill",
@@ -632,6 +695,8 @@ struct ProtocolSetupWizardView: View {
 
     private func dosingCard(for wc: WizardCompound, at index: Int) -> some View {
         let profile = wc.profile
+        let pd = wc.protocolDefault
+        let currentLevel = experienceLevel ?? .beginner
 
         return GlassCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -643,7 +708,15 @@ struct ProtocolSetupWizardView: View {
                         .font(.system(.headline, weight: .bold))
                         .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
-                    if let kf = profile?.keyFacts {
+                    if let pd {
+                        Text(pd.route)
+                            .font(.system(.caption2, design: .rounded, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(PepTheme.elevated)
+                            .clipShape(.capsule)
+                    } else if let kf = profile?.keyFacts {
                         Text(kf.typicalDoseRange)
                             .font(.system(.caption2, design: .rounded, weight: .medium))
                             .foregroundStyle(PepTheme.textSecondary)
@@ -654,13 +727,65 @@ struct ProtocolSetupWizardView: View {
                     }
                 }
 
-                if let profile, !profile.tieredDosing.isEmpty {
+                if let pd {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("RECOMMENDED DOSES")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        ForEach(ExperienceLevel.allCases) { level in
+                            let range = pd.doseRange(for: level)
+                            let isCurrentLevel = level == currentLevel
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(isCurrentLevel ? level.color : PepTheme.elevated)
+                                    .frame(width: 6, height: 6)
+                                Text(level.rawValue)
+                                    .font(.system(.caption2, weight: isCurrentLevel ? .bold : .regular))
+                                    .foregroundStyle(isCurrentLevel ? level.color : PepTheme.textSecondary)
+                                Text("— \(range.displayString)")
+                                    .font(.caption2)
+                                    .foregroundStyle(isCurrentLevel ? PepTheme.textPrimary : PepTheme.textSecondary)
+                                Spacer()
+                                if isCurrentLevel {
+                                    Image(systemName: "arrow.right.circle.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(level.color)
+                                }
+                            }
+                        }
+
+                        if !pd.defaultFrequency.isEmpty {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                Text(pd.defaultFrequency)
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                            .padding(.top, 2)
+                        }
+                        if !pd.defaultCycle.isEmpty {
+                            HStack(spacing: 4) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                Text("Cycle: \(pd.defaultCycle)")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                        }
+                    }
+                    .padding(10)
+                    .background(PepTheme.elevated.opacity(0.5))
+                    .clipShape(.rect(cornerRadius: 8))
+                } else if let profile, !profile.tieredDosing.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("TIERED DOSING")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundStyle(PepTheme.textSecondary)
                         ForEach(profile.tieredDosing) { tier in
-                            let isCurrentTier = tier.tier == (experienceLevel?.tierKey ?? "")
+                            let isCurrentTier = tier.tier == currentLevel.tierKey
                             HStack(spacing: 6) {
                                 Circle()
                                     .fill(isCurrentTier ? PepTheme.teal : PepTheme.elevated)
@@ -681,33 +806,48 @@ struct ProtocolSetupWizardView: View {
                 }
 
                 VStack(spacing: 12) {
-                    HStack {
-                        Text("Dose")
-                            .font(.system(.caption, weight: .semibold))
-                            .foregroundStyle(PepTheme.textSecondary)
-                        Spacer()
-                        HStack(spacing: 4) {
-                            TextField("Dose", text: Binding(
-                                get: { selectedCompounds[safe: index]?.doseText ?? "" },
-                                set: { newVal in
-                                    if index < selectedCompounds.count {
-                                        selectedCompounds[index].doseText = newVal
-                                    }
-                                }
-                            ))
-                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                            .multilineTextAlignment(.trailing)
-                            .keyboardType(.decimalPad)
-                            .frame(width: 70)
-                            Text("mcg")
-                                .font(.caption)
+                    VStack(spacing: 4) {
+                        HStack {
+                            Text("Dose")
+                                .font(.system(.caption, weight: .semibold))
                                 .foregroundStyle(PepTheme.textSecondary)
+                            Spacer()
+                            HStack(spacing: 4) {
+                                TextField("Dose", text: Binding(
+                                    get: { selectedCompounds[safe: index]?.doseText ?? "" },
+                                    set: { newVal in
+                                        if index < selectedCompounds.count {
+                                            selectedCompounds[index].doseText = newVal
+                                        }
+                                    }
+                                ))
+                                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                .foregroundStyle(PepTheme.textPrimary)
+                                .multilineTextAlignment(.trailing)
+                                .keyboardType(.decimalPad)
+                                .frame(width: 70)
+                                Text(wc.doseUnit)
+                                    .font(.caption)
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(PepTheme.elevated)
+                            .clipShape(.rect(cornerRadius: 8))
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .background(PepTheme.elevated)
-                        .clipShape(.rect(cornerRadius: 8))
+
+                        if wc.isDefaultDose(for: currentLevel) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.green)
+                                Text("Recommended starting protocol")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(.green.opacity(0.8))
+                            }
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
                     }
 
                     HStack {
@@ -1080,7 +1220,7 @@ struct ProtocolSetupWizardView: View {
                                 Spacer()
                             }
                             HStack(spacing: 16) {
-                                reviewDetail("Dose", "\(wc.doseText) mcg")
+                                reviewDetail("Dose", "\(wc.doseText) \(wc.doseUnit)")
                                 reviewDetail("Freq", wc.frequency)
                                 reviewDetail("Route", wc.injectionRoute.rawValue)
                             }
@@ -1171,7 +1311,7 @@ struct ProtocolSetupWizardView: View {
                                 .font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(phase.color)
                             if phase != .offCycle {
-                                Text(selectedCompounds.map { "\($0.name) \($0.doseText)mcg" }.joined(separator: " + "))
+                                Text(selectedCompounds.map { "\($0.name) \($0.doseText)\($0.doseUnit)" }.joined(separator: " + "))
                                     .font(.system(size: 8))
                                     .foregroundStyle(PepTheme.textSecondary)
                                     .lineLimit(1)
@@ -1483,6 +1623,20 @@ struct ProtocolSetupWizardView: View {
         if let maxCycle = profiles.compactMap({ extractWeeks(from: $0.cycleLength) }).max() {
             let activeWeeks = maxCycle
             maintenanceWeeks = max(1, activeWeeks - loadingWeeks - taperingWeeks)
+        }
+    }
+
+    private func applyDefaultDoses(for level: ExperienceLevel) {
+        for i in selectedCompounds.indices {
+            if let pd = ProtocolDefaultsDatabase.defaults(for: selectedCompounds[i].name) {
+                let range = pd.doseRange(for: level)
+                selectedCompounds[i].doseText = range.defaultDoseText
+                selectedCompounds[i].doseUnit = range.unit
+            } else if let profile = selectedCompounds[i].profile,
+                      let tiered = profile.tieredDosing.first(where: { $0.tier == level.tierKey }) {
+                selectedCompounds[i].doseText = tiered.dose.replacingOccurrences(of: "[^0-9.]", with: "", options: .regularExpression)
+                selectedCompounds[i].frequency = tiered.frequency
+            }
         }
     }
 
