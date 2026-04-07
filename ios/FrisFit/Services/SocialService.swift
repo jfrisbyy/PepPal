@@ -235,6 +235,18 @@ final class SocialService {
         return publicURL.absoluteString
     }
 
+    func fetchUserPosts(userId: String, limit: Int = 50) async throws -> [SupabaseFeedPostWithProfile] {
+        let response: [SupabaseFeedPostWithProfile] = try await supabase
+            .from("feed_posts")
+            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .eq("user_id", value: userId)
+            .order("created_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+        return response
+    }
+
     func fetchCommentCount(postId: String) async throws -> Int {
         let response: [SupabasePostComment] = try await supabase
             .from("post_comments")

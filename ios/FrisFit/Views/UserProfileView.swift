@@ -13,9 +13,12 @@ struct UserProfileView: View {
     @State private var followerCount: Int = 0
     @State private var followingCount: Int = 0
     @State private var isLoadingRelationship: Bool = true
+    @State private var userPosts: [UserPost] = []
+    @State private var isLoadingPosts: Bool = true
     @Environment(\.dismiss) private var dismiss
 
     private let messagingService = MessagingService.shared
+    private let socialService = SocialService.shared
 
     enum UserProfileTab: String, CaseIterable {
         case posts = "Posts"
@@ -23,33 +26,7 @@ struct UserProfileView: View {
         case about = "About"
     }
 
-    private var mockPosts: [UserPost] {
-        let now = Date()
-        return [
-            UserPost(
-                authorId: user.id,
-                content: "Great session today! Feeling stronger every week.",
-                timestamp: now.addingTimeInterval(-7200),
-                likeCount: 15,
-                commentCount: 3,
-                workoutAttachment: WorkoutPostAttachment(workoutName: user.activeProgramName ?? "Full Body", duration: 55, exerciseCount: 5, fpEarned: 280)
-            ),
-            UserPost(
-                authorId: user.id,
-                content: "New week, new goals. Let's get it!",
-                timestamp: now.addingTimeInterval(-172800),
-                likeCount: 22,
-                commentCount: 7
-            ),
-            UserPost(
-                authorId: user.id,
-                content: "Recovery day. Foam rolling and stretching. Don't skip it.",
-                timestamp: now.addingTimeInterval(-345600),
-                likeCount: 34,
-                commentCount: 5
-            ),
-        ]
-    }
+
 
     var body: some View {
         ScrollView {
@@ -70,7 +47,34 @@ struct UserProfileView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await loadRelationshipData()
+            await loadUserPosts()
         }
+    }
+
+    private func loadUserPosts() async {
+        isLoadingPosts = true
+        do {
+            let currentUserId = try AuthService.shared.currentUserId()
+            let targetUserId = user.id.uuidString
+            let supabasePosts = try await socialService.fetchUserPosts(userId: targetUserId)
+            let postIds = supabasePosts.map { $0.id }
+            let likedIds = try await socialService.fetchLikedPostIds(userId: currentUserId, postIds: postIds)
+
+            userPosts = supabasePosts.map { sp in
+                UserPost(
+                    id: UUID(uuidString: sp.id) ?? UUID(),
+                    authorId: UUID(uuidString: sp.user_id) ?? UUID(),
+                    content: sp.text_content ?? "",
+                    timestamp: socialService.parseDate(sp.created_at),
+                    likeCount: sp.high_five_count ?? 0,
+                    isLiked: likedIds.contains(sp.id),
+                    commentCount: 0
+                )
+            }
+        } catch {
+            userPosts = []
+        }
+        isLoadingPosts = false
     }
 
     private func loadRelationshipData() async {
@@ -364,9 +368,17 @@ struct UserProfileView: View {
 
     private var postsContent: some View {
         LazyVStack(spacing: 0) {
-            ForEach(mockPosts) { post in
-                userPostRow(post)
-                Divider().overlay(PepTheme.separatorColor)
+            if isLoadingPosts {
+                ProgressView()
+                    .padding(.vertical, 32)
+                    .frame(maxWidth: .infinity)
+            } else if userPosts.isEmpty {
+                emptyState(icon: "text.bubble", title: "No Posts Yet", message: "\(user.name) hasn't posted anything yet.")
+            } else {
+                ForEach(userPosts) { post in
+                    userPostRow(post)
+                    Divider().overlay(PepTheme.separatorColor)
+                }
             }
         }
     }

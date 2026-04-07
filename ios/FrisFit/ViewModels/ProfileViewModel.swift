@@ -148,8 +148,11 @@ final class ProfileViewModel {
         }.sorted { $0.sessionCount > $1.sessionCount }
     }
 
+    var isLoadingPosts: Bool = false
+
     let streakManager = StreakManager.shared
     let notificationService = NotificationService.shared
+    private let socialService = SocialService.shared
 
     var weightUnit: WeightUnit = .lbs
     var defaultRestSeconds: Int = 90
@@ -206,7 +209,6 @@ final class ProfileViewModel {
     }
 
     init() {
-        loadMockPosts()
         loadMockMarketItems()
     }
 
@@ -246,9 +248,9 @@ final class ProfileViewModel {
                 isCurrentUser: true
             )
 
-            loadMockPosts()
             loadMockMarketItems()
             isLoadingProfile = false
+            await loadUserPosts()
         } catch {
             profileError = error.localizedDescription
             isLoadingProfile = false
@@ -294,10 +296,55 @@ final class ProfileViewModel {
         }
     }
 
+    func loadUserPosts() async {
+        guard let session = AuthService.shared.session else { return }
+        let userId = session.user.id.uuidString
+        isLoadingPosts = true
+
+        do {
+            let supabasePosts = try await socialService.fetchUserPosts(userId: userId)
+            let postIds = supabasePosts.map { $0.id }
+            let likedIds = try await socialService.fetchLikedPostIds(userId: userId, postIds: postIds)
+
+            userPosts = supabasePosts.map { sp in
+                UserPost(
+                    id: UUID(uuidString: sp.id) ?? UUID(),
+                    authorId: UUID(uuidString: sp.user_id) ?? UUID(),
+                    content: sp.text_content ?? "",
+                    timestamp: socialService.parseDate(sp.created_at),
+                    likeCount: sp.high_five_count ?? 0,
+                    isLiked: likedIds.contains(sp.id),
+                    commentCount: 0
+                )
+            }
+        } catch {
+            userPosts = []
+        }
+
+        isLoadingPosts = false
+    }
+
     func togglePostLike(_ postId: UUID) {
         guard let index = userPosts.firstIndex(where: { $0.id == postId }) else { return }
+        let wasLiked = userPosts[index].isLiked
         userPosts[index].isLiked.toggle()
         userPosts[index].likeCount += userPosts[index].isLiked ? 1 : -1
+
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                let supabaseId = postId.uuidString.lowercased()
+                if wasLiked {
+                    try await socialService.unlikePost(postId: supabaseId, userId: userId)
+                } else {
+                    try await socialService.likePost(postId: supabaseId, userId: userId)
+                }
+            } catch {
+                guard let idx = userPosts.firstIndex(where: { $0.id == postId }) else { return }
+                userPosts[idx].isLiked = wasLiked
+                userPosts[idx].likeCount += wasLiked ? 1 : -1
+            }
+        }
     }
 
     func toggleFollow() {
@@ -355,49 +402,7 @@ final class ProfileViewModel {
         return Color(red: r, green: g, blue: b)
     }
 
-    private func loadMockPosts() {
-        let now = Date()
-        let profileId = profile.id
-        userPosts = [
-            UserPost(
-                authorId: profileId,
-                content: "Hit a new PR on bench today! 225 lbs for 5 reps. The grind never stops.",
-                timestamp: now.addingTimeInterval(-3600),
-                likeCount: 24,
-                commentCount: 6,
-                workoutAttachment: WorkoutPostAttachment(workoutName: "Push Day — Chest & Shoulders", duration: 54, exerciseCount: 6, fpEarned: 340)
-            ),
-            UserPost(
-                authorId: profileId,
-                content: "42-day streak! Almost halfway to the 100-day badge. Consistency is key.",
-                timestamp: now.addingTimeInterval(-86400),
-                likeCount: 47,
-                commentCount: 12
-            ),
-            UserPost(
-                authorId: profileId,
-                content: "Leg day was brutal. 315 squat felt heavy but I got it. Recovery day tomorrow.",
-                timestamp: now.addingTimeInterval(-259200),
-                likeCount: 31,
-                commentCount: 4,
-                workoutAttachment: WorkoutPostAttachment(workoutName: "Leg Day", duration: 62, exerciseCount: 5, fpEarned: 380)
-            ),
-            UserPost(
-                authorId: profileId,
-                content: "Just finished week 8 of PPL. Volume is climbing nicely. Time for a deload?",
-                timestamp: now.addingTimeInterval(-518400),
-                likeCount: 18,
-                commentCount: 8
-            ),
-            UserPost(
-                authorId: profileId,
-                content: "Morning cardio hits different when you're chasing that streak badge.",
-                timestamp: now.addingTimeInterval(-691200),
-                likeCount: 53,
-                commentCount: 15
-            ),
-        ]
-    }
+
 
     private func loadMockMarketItems() {
         let profileId = profile.id
