@@ -63,9 +63,9 @@ final class LocationTrackingService: NSObject, CLLocationManagerDelegate {
 
     private var onLocationUpdate: ((CLLocation) -> Void)?
 
-    private let minHorizontalAccuracy: Double = 30
+    private let minHorizontalAccuracy: Double = 20
     private let maxSpeedMps: Double = 50
-    private let minDistanceFilter: Double = 3
+    private let minDistanceFilter: Double = 5
 
     override init() {
         super.init()
@@ -89,9 +89,14 @@ final class LocationTrackingService: NSObject, CLLocationManagerDelegate {
         authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
     }
 
-    func startTracking(onUpdate: @escaping (CLLocation) -> Void) {
+    func setActivityType(_ type: CLActivityType) {
+        manager.activityType = type
+    }
+
+    func startTracking(activityType: CLActivityType = .fitness, onUpdate: @escaping (CLLocation) -> Void) {
         onLocationUpdate = onUpdate
         isTracking = true
+        manager.activityType = activityType
         if Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String] != nil {
             manager.allowsBackgroundLocationUpdates = true
             manager.showsBackgroundLocationIndicator = true

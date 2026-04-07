@@ -207,7 +207,7 @@ final class RunningViewModel {
             if !locationService.hasLocationPermission {
                 locationService.requestPermission()
             }
-            locationService.startTracking { [weak self] location in
+            locationService.startTracking(activityType: .fitness) { [weak self] location in
                 Task { @MainActor in
                     self?.handleLocationUpdate(location)
                 }
@@ -239,9 +239,9 @@ final class RunningViewModel {
         }
 
         let hasRealHR = !healthKit.collectedHeartRateSamples.isEmpty
-        let avgHR = hasRealHR ? healthKit.averageHeartRateDuringWorkout : (currentHeartRate > 0 ? currentHeartRate : Int.random(in: 140...165))
-        let maxHR = hasRealHR ? healthKit.maxHeartRateDuringWorkout : Int.random(in: 170...190)
-        let zones = hasRealHR ? healthKit.heartRateZoneDistribution(totalDuration: elapsedSeconds) : generateHeartRateZoneDistribution()
+        let avgHR = hasRealHR ? healthKit.averageHeartRateDuringWorkout : currentHeartRate
+        let maxHR = hasRealHR ? healthKit.maxHeartRateDuringWorkout : currentHeartRate
+        let zones = hasRealHR ? healthKit.heartRateZoneDistribution(totalDuration: elapsedSeconds) : []
         let finalCalories = healthKit.liveActiveCalories > 0 ? Int(healthKit.liveActiveCalories) : estimateCalories()
 
         healthKit.stopAllLiveStreaming()
@@ -257,7 +257,7 @@ final class RunningViewModel {
             totalElevationLoss: totalElevationLoss,
             averageHeartRate: avgHR,
             maxHeartRate: maxHR,
-            cadence: currentCadence > 0 ? currentCadence : Int.random(in: 160...180),
+            cadence: currentCadence,
             caloriesBurned: finalCalories,
             splits: currentSplits,
             routeCoordinates: routePoints,
@@ -409,36 +409,24 @@ final class RunningViewModel {
 
             if healthKit.liveHeartRate > 0 {
                 currentHeartRate = healthKit.liveHeartRate
-            } else if currentHeartRate == 0 {
-                currentHeartRate = Int.random(in: 135...175)
-            }
-
-            if currentCadence == 0 {
-                currentCadence = Int.random(in: 162...184)
             }
         }
     }
 
     private func tickTreadmill() {
-        let simSpeed = Double.random(in: 0.0015...0.003)
-        currentDistanceMiles += simSpeed
-
         if healthKit.liveHeartRate > 0 {
             currentHeartRate = healthKit.liveHeartRate
-        } else {
-            currentHeartRate = Int.random(in: 135...175)
         }
-
-        if currentCadence == 0 {
-            currentCadence = Int.random(in: 162...184)
-        }
-
-        currentElevation += Double.random(in: -0.5...0.8)
 
         if healthKit.liveActiveCalories > 0 {
             currentCalories = Int(healthKit.liveActiveCalories)
         } else {
-            currentCalories = Int(currentDistanceMiles * 95)
+            currentCalories = estimateCalories()
+        }
+
+        if healthKit.liveDistanceWalkingRunning > 0 {
+            let hkDistanceMiles = healthKit.liveDistanceWalkingRunning / 1609.344
+            currentDistanceMiles = hkDistanceMiles
         }
 
         if currentDistanceMiles > 0 {
@@ -448,22 +436,7 @@ final class RunningViewModel {
         checkForSplit()
     }
 
-    private func generateHeartRateZoneDistribution() -> [HeartRateZoneDistribution] {
-        let total = elapsedSeconds
-        guard total > 0 else { return [] }
-        let z1 = Double.random(in: 0.05...0.15)
-        let z2 = Double.random(in: 0.2...0.35)
-        let z3 = Double.random(in: 0.25...0.35)
-        let z4 = Double.random(in: 0.1...0.2)
-        let z5 = 1.0 - z1 - z2 - z3 - z4
-        return [
-            HeartRateZoneDistribution(zone: .zone1, timeInZone: total * z1, percentage: z1),
-            HeartRateZoneDistribution(zone: .zone2, timeInZone: total * z2, percentage: z2),
-            HeartRateZoneDistribution(zone: .zone3, timeInZone: total * z3, percentage: z3),
-            HeartRateZoneDistribution(zone: .zone4, timeInZone: total * z4, percentage: z4),
-            HeartRateZoneDistribution(zone: .zone5, timeInZone: total * max(z5, 0), percentage: max(z5, 0)),
-        ]
-    }
+
 
     // MARK: - Shoe Management
 

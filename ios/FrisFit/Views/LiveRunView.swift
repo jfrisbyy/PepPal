@@ -238,9 +238,9 @@ struct LiveRunView: View {
 
     private var secondaryMetrics: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
-            miniMetric(icon: "heart.fill", value: "\(runVM.currentHeartRate)", label: "BPM", color: .red)
-            miniMetric(icon: "shoeprints.fill", value: "\(runVM.currentCadence)", label: "Cadence", color: .green)
-            miniMetric(icon: "flame.fill", value: "\(runVM.currentCalories)", label: "Cal", color: .orange)
+            miniMetric(icon: "heart.fill", value: runVM.currentHeartRate > 0 ? "\(runVM.currentHeartRate)" : "--", label: "BPM", color: .red)
+            miniMetric(icon: "shoeprints.fill", value: runVM.currentCadence > 0 ? "\(runVM.currentCadence)" : "--", label: "Cadence", color: .green)
+            miniMetric(icon: "flame.fill", value: runVM.currentCalories > 0 ? "\(runVM.currentCalories)" : "--", label: "Cal", color: .orange)
             miniMetric(icon: "mountain.2.fill", value: String(format: "%.0f", runVM.currentElevation), label: "Elev ft", color: accentColor)
         }
     }

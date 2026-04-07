@@ -206,7 +206,7 @@ final class CyclingViewModel {
             if !locationService.hasLocationPermission {
                 locationService.requestPermission()
             }
-            locationService.startTracking { [weak self] location in
+            locationService.startTracking(activityType: .otherNavigation) { [weak self] location in
                 Task { @MainActor in
                     self?.handleLocationUpdate(location)
                 }
@@ -238,9 +238,9 @@ final class CyclingViewModel {
         }
 
         let hasRealHR = !healthKit.collectedHeartRateSamples.isEmpty
-        let avgHR = hasRealHR ? healthKit.averageHeartRateDuringWorkout : (currentHeartRate > 0 ? currentHeartRate : Int.random(in: 135...160))
-        let maxHR = hasRealHR ? healthKit.maxHeartRateDuringWorkout : Int.random(in: 168...190)
-        let zones = hasRealHR ? healthKit.heartRateZoneDistribution(totalDuration: elapsedSeconds) : generateHeartRateZoneDistribution()
+        let avgHR = hasRealHR ? healthKit.averageHeartRateDuringWorkout : currentHeartRate
+        let maxHR = hasRealHR ? healthKit.maxHeartRateDuringWorkout : currentHeartRate
+        let zones = hasRealHR ? healthKit.heartRateZoneDistribution(totalDuration: elapsedSeconds) : []
         let finalCalories = healthKit.liveActiveCalories > 0 ? Int(healthKit.liveActiveCalories) : estimateCalories()
 
         healthKit.stopAllLiveStreaming()
@@ -257,10 +257,10 @@ final class CyclingViewModel {
             totalElevationLoss: totalElevationLoss,
             averageHeartRate: avgHR,
             maxHeartRate: maxHR,
-            averageCadence: currentCadence > 0 ? currentCadence : Int.random(in: 75...95),
-            maxCadence: Int.random(in: 100...120),
-            averagePower: currentPower > 0 ? currentPower : Int.random(in: 140...220),
-            maxPower: Int.random(in: 280...450),
+            averageCadence: currentCadence,
+            maxCadence: currentCadence,
+            averagePower: currentPower,
+            maxPower: currentPower,
             caloriesBurned: finalCalories,
             segments: currentSegments,
             routeCoordinates: routePoints,
@@ -425,15 +425,6 @@ final class CyclingViewModel {
 
             if healthKit.liveHeartRate > 0 {
                 currentHeartRate = healthKit.liveHeartRate
-            } else if currentHeartRate == 0 {
-                currentHeartRate = Int.random(in: 130...170)
-            }
-
-            if currentCadence == 0 {
-                currentCadence = Int.random(in: 75...100)
-            }
-            if currentPower == 0 {
-                currentPower = Int.random(in: 150...280)
             }
 
             segmentHeartRateSum += currentHeartRate
@@ -444,25 +435,24 @@ final class CyclingViewModel {
 
     private func tickIndoor() {
         movingSeconds += 1
-        let simSpeedMph = Double.random(in: 12...22)
-        let distIncrement = simSpeedMph / 3600
-        currentDistanceMiles += distIncrement
-        currentSpeed = simSpeedMph + Double.random(in: -2...2)
-        maxSpeedThisRide = max(maxSpeedThisRide, currentSpeed)
 
         if healthKit.liveHeartRate > 0 {
             currentHeartRate = healthKit.liveHeartRate
-        } else {
-            currentHeartRate = Int.random(in: 130...170)
         }
-
-        if currentCadence == 0 { currentCadence = Int.random(in: 75...100) }
-        if currentPower == 0 { currentPower = Int.random(in: 150...280) }
 
         if healthKit.liveActiveCalories > 0 {
             currentCalories = Int(healthKit.liveActiveCalories)
         } else {
             currentCalories = estimateCalories()
+        }
+
+        if healthKit.liveDistanceCycling > 0 {
+            let hkDistanceMiles = healthKit.liveDistanceCycling / 1609.344
+            currentDistanceMiles = hkDistanceMiles
+            if movingSeconds > 0 {
+                currentSpeed = currentDistanceMiles / (movingSeconds / 3600)
+            }
+            maxSpeedThisRide = max(maxSpeedThisRide, currentSpeed)
         }
 
         segmentHeartRateSum += currentHeartRate
@@ -472,22 +462,7 @@ final class CyclingViewModel {
         checkForSegment()
     }
 
-    private func generateHeartRateZoneDistribution() -> [HeartRateZoneDistribution] {
-        let total = elapsedSeconds
-        guard total > 0 else { return [] }
-        let z1 = Double.random(in: 0.08...0.18)
-        let z2 = Double.random(in: 0.25...0.38)
-        let z3 = Double.random(in: 0.2...0.3)
-        let z4 = Double.random(in: 0.08...0.18)
-        let z5 = max(1.0 - z1 - z2 - z3 - z4, 0)
-        return [
-            HeartRateZoneDistribution(zone: .zone1, timeInZone: total * z1, percentage: z1),
-            HeartRateZoneDistribution(zone: .zone2, timeInZone: total * z2, percentage: z2),
-            HeartRateZoneDistribution(zone: .zone3, timeInZone: total * z3, percentage: z3),
-            HeartRateZoneDistribution(zone: .zone4, timeInZone: total * z4, percentage: z4),
-            HeartRateZoneDistribution(zone: .zone5, timeInZone: total * z5, percentage: z5),
-        ]
-    }
+
 
     // MARK: - Bike Management
 

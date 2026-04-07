@@ -242,9 +242,9 @@ struct LiveRideView: View {
 
     private var secondaryMetrics: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
-            miniMetric(icon: "heart.fill", value: "\(cyclingVM.currentHeartRate)", label: "BPM", color: .red)
+            miniMetric(icon: "heart.fill", value: cyclingVM.currentHeartRate > 0 ? "\(cyclingVM.currentHeartRate)" : "--", label: "BPM", color: .red)
             miniMetric(icon: "mountain.2.fill", value: String(format: "%.0f", cyclingVM.currentElevationGain), label: "Elev ft", color: .green)
-            miniMetric(icon: "flame.fill", value: "\(cyclingVM.currentCalories)", label: "Cal", color: .orange)
+            miniMetric(icon: "flame.fill", value: cyclingVM.currentCalories > 0 ? "\(cyclingVM.currentCalories)" : "--", label: "Cal", color: .orange)
             miniMetric(icon: "bolt.fill", value: String(format: "%.1f", cyclingVM.maxSpeedThisRide), label: "Max MPH", color: accentColor)
         }
     }
@@ -279,7 +279,7 @@ struct LiveRideView: View {
                 Image(systemName: "bolt.heart.fill")
                     .font(.system(size: 14))
                     .foregroundStyle(.yellow)
-                Text("\(cyclingVM.currentPower)")
+                Text(cyclingVM.currentPower > 0 ? "\(cyclingVM.currentPower)" : "--")
                     .font(.system(size: 24, weight: .heavy, design: .rounded))
                     .foregroundStyle(PepTheme.textPrimary)
                 Text("Watts")
@@ -295,7 +295,7 @@ struct LiveRideView: View {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 14))
                     .foregroundStyle(.mint)
-                Text("\(cyclingVM.currentCadence)")
+                Text(cyclingVM.currentCadence > 0 ? "\(cyclingVM.currentCadence)" : "--")
                     .font(.system(size: 24, weight: .heavy, design: .rounded))
                     .foregroundStyle(PepTheme.textPrimary)
                 Text("RPM")
