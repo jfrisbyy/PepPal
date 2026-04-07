@@ -5,6 +5,7 @@ struct PostComposerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = PostComposerViewModel()
     @State private var isPosting: Bool = false
+    @State private var postError: String?
     let socialViewModel: SocialViewModel
 
     var body: some View {
@@ -70,6 +71,11 @@ struct PostComposerView: View {
                 WorkoutLogPickerSheet { log in
                     viewModel.selectedWorkoutLog = log
                 }
+            }
+            .alert("Post Failed", isPresented: Binding(get: { postError != nil }, set: { if !$0 { postError = nil } })) {
+                Button("OK") { postError = nil }
+            } message: {
+                Text(postError ?? "Something went wrong. Please try again.")
             }
         }
     }
@@ -517,13 +523,19 @@ struct PostComposerView: View {
     private func postAction() {
         guard viewModel.canPost, !viewModel.isOverLimit, !isPosting else { return }
         isPosting = true
+        postError = nil
         Task {
-            _ = await socialViewModel.createPost(
+            let result = await socialViewModel.createPost(
                 textContent: viewModel.textContent.trimmingCharacters(in: .whitespacesAndNewlines),
                 images: viewModel.loadedImages,
                 tags: Array(viewModel.selectedTags)
             )
-            dismiss()
+            if result != nil {
+                dismiss()
+            } else {
+                isPosting = false
+                postError = socialViewModel.feedError ?? "Something went wrong. Please try again."
+            }
         }
     }
 
