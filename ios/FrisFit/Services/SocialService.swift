@@ -98,7 +98,7 @@ final class SocialService {
     func fetchPosts(limit: Int = 50, offset: Int = 0) async throws -> [SupabaseFeedPostWithProfile] {
         let response: [SupabaseFeedPostWithProfile] = try await supabase
             .from("feed_posts")
-            .select("*, profiles!feed_posts_user_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .order("created_at", ascending: false)
             .range(from: offset, to: offset + limit - 1)
             .execute()
@@ -123,7 +123,7 @@ final class SocialService {
 
         let full: SupabaseFeedPostWithProfile = try await supabase
             .from("feed_posts")
-            .select("*, profiles!feed_posts_user_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .eq("id", value: created.id)
             .single()
             .execute()
@@ -142,7 +142,7 @@ final class SocialService {
     func fetchComments(postId: String) async throws -> [SupabasePostCommentWithProfile] {
         let response: [SupabasePostCommentWithProfile] = try await supabase
             .from("post_comments")
-            .select("*, profiles!post_comments_user_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .eq("post_id", value: postId)
             .order("created_at", ascending: true)
             .execute()
@@ -162,7 +162,7 @@ final class SocialService {
 
         let full: SupabasePostCommentWithProfile = try await supabase
             .from("post_comments")
-            .select("*, profiles!post_comments_user_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .eq("id", value: created.id)
             .single()
             .execute()
