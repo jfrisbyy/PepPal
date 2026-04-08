@@ -379,7 +379,10 @@ struct UserProfileView: View {
                 emptyState(icon: "text.bubble", title: "No Posts Yet", message: "\(user.name) hasn't posted anything yet.")
             } else {
                 ForEach(userPosts) { post in
-                    userPostRow(post)
+                    NavigationLink(value: feedPostFromUserPost(post)) {
+                        userPostRow(post)
+                    }
+                    .buttonStyle(.plain)
                     Divider().overlay(PepTheme.separatorColor)
                 }
             }
@@ -536,6 +539,33 @@ struct UserProfileView: View {
                     LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 0.5
                 )
+        )
+    }
+
+    private func feedPostFromUserPost(_ post: UserPost) -> FeedPost {
+        let socialUser = SocialUser(
+            id: user.id,
+            name: user.name,
+            username: user.username,
+            avatarInitial: user.avatarInitial,
+            avatarColor: user.avatarColor,
+            avatarURL: user.avatarURL,
+            activeProgramName: user.activeProgramName,
+            streak: user.streak,
+            totalFP: user.totalFP
+        )
+        let mediaItems: [FeedMediaItem] = post.mediaUrls.map { url in
+            FeedMediaItem(type: .photo, imageURL: url)
+        }
+        return FeedPost(
+            id: post.id,
+            user: socialUser,
+            timestamp: post.timestamp,
+            textContent: post.content,
+            media: mediaItems,
+            highFiveCount: post.likeCount,
+            isHighFived: post.isLiked,
+            supabaseId: post.id.uuidString.lowercased()
         )
     }
 
