@@ -6,31 +6,30 @@ nonisolated struct SupabaseProtocol: Codable, Sendable {
     let user_id: String?
     let name: String
     let goal: String?
-    let status: String?
     let start_date: String?
-    let end_date: String?
-    let notes: String?
+    let total_weeks: Int?
+    let experience_level: String?
+    let is_active: Bool?
     let created_at: String?
     let updated_at: String?
-    let loading_weeks: Int?
-    let maintenance_weeks: Int?
-    let tapering_weeks: Int?
-    let off_cycle_weeks: Int?
-    let total_weeks: Int?
 }
 
 nonisolated struct SupabaseProtocolInsert: Codable, Sendable {
     let user_id: String
     let name: String
     let goal: String
-    let status: String
     let start_date: String
-    let notes: String?
-    let loading_weeks: Int
-    let maintenance_weeks: Int
-    let tapering_weeks: Int
-    let off_cycle_weeks: Int
     let total_weeks: Int
+    let experience_level: String?
+    let is_active: Bool
+}
+
+nonisolated struct SupabaseProtocolUpdate: Codable, Sendable {
+    let is_active: Bool?
+    let name: String?
+    let goal: String?
+    let total_weeks: Int?
+    let experience_level: String?
 }
 
 nonisolated struct SupabaseCompound: Codable, Sendable {
@@ -40,13 +39,7 @@ nonisolated struct SupabaseCompound: Codable, Sendable {
     let dose_mcg: Double?
     let frequency: String?
     let time_of_day: String?
-    let injection_route: String?
-    let reconstitution_volume: Double?
-    let vial_size_mg: Double?
-    let vendor_name: String?
-    let batch_number: String?
-    let start_date: String?
-    let end_date: String?
+    let created_at: String?
 }
 
 nonisolated struct SupabaseCompoundInsert: Codable, Sendable {
@@ -55,11 +48,6 @@ nonisolated struct SupabaseCompoundInsert: Codable, Sendable {
     let dose_mcg: Double
     let frequency: String
     let time_of_day: String?
-    let injection_route: String
-    let reconstitution_volume: Double?
-    let vial_size_mg: Double?
-    let vendor_name: String?
-    let batch_number: String?
 }
 
 nonisolated struct SupabaseDoseLog: Codable, Sendable {
@@ -152,6 +140,19 @@ final class ProtocolService {
         return session.user.id.uuidString.lowercased()
     }
 
+    private func estimatePhases(totalWeeks: Int) -> (loading: Int, maintenance: Int, tapering: Int, offCycle: Int) {
+        guard totalWeeks > 0 else { return (0, 1, 0, 0) }
+        if totalWeeks <= 4 {
+            return (0, totalWeeks, 0, 0)
+        }
+        let offCycle = min(4, totalWeeks / 4)
+        let remaining = totalWeeks - offCycle
+        let loading = min(2, remaining / 4)
+        let tapering = min(1, remaining / 6)
+        let maintenance = max(1, remaining - loading - tapering)
+        return (loading, maintenance, tapering, offCycle)
+    }
+
     // MARK: - Protocols CRUD
 
     func fetchProtocols() async throws -> [PeptideProtocol] {
@@ -176,11 +177,8 @@ final class ProtocolService {
             let goal = ProtocolGoal.allCases.first { $0.rawValue == row.goal } ?? .custom
             let startDate = parseDate(row.start_date)
             let totalWeeks = row.total_weeks ?? 8
-            let loadingWeeks = row.loading_weeks ?? 1
-            let maintenanceWeeks = row.maintenance_weeks ?? 5
-            let taperingWeeks = row.tapering_weeks ?? 1
-            let offCycleWeeks = row.off_cycle_weeks ?? 4
-            let isActive = row.status == "active"
+            let phases = estimatePhases(totalWeeks: totalWeeks)
+            let isActive = row.is_active ?? false
 
             var proto = PeptideProtocol(
                 name: row.name,
@@ -188,10 +186,10 @@ final class ProtocolService {
                 compounds: compounds,
                 startDate: startDate,
                 totalWeeks: totalWeeks,
-                loadingWeeks: loadingWeeks,
-                maintenanceWeeks: maintenanceWeeks,
-                taperingWeeks: taperingWeeks,
-                offCycleWeeks: offCycleWeeks,
+                loadingWeeks: phases.loading,
+                maintenanceWeeks: phases.maintenance,
+                taperingWeeks: phases.tapering,
+                offCycleWeeks: phases.offCycle,
                 isActive: isActive,
                 doseLog: doseLogs,
                 sideEffectLog: sideEffects,
@@ -211,14 +209,10 @@ final class ProtocolService {
             user_id: userId,
             name: proto.name,
             goal: proto.goal.rawValue,
-            status: proto.isActive ? "active" : "inactive",
             start_date: iso8601.string(from: proto.startDate),
-            notes: nil,
-            loading_weeks: proto.loadingWeeks,
-            maintenance_weeks: proto.maintenanceWeeks,
-            tapering_weeks: proto.taperingWeeks,
-            off_cycle_weeks: proto.offCycleWeeks,
-            total_weeks: proto.totalWeeks
+            total_weeks: proto.totalWeeks,
+            experience_level: nil,
+            is_active: proto.isActive
         )
 
         let result: SupabaseProtocol = try await supabase
@@ -254,10 +248,17 @@ final class ProtocolService {
             .execute()
     }
 
-    func updateProtocolStatus(id: String, status: String) async throws {
+    func updateProtocolStatus(id: String, isActive: Bool) async throws {
+        let update = SupabaseProtocolUpdate(
+            is_active: isActive,
+            name: nil,
+            goal: nil,
+            total_weeks: nil,
+            experience_level: nil
+        )
         try await supabase
             .from("protocols")
-            .update(["status": status])
+            .update(update)
             .eq("id", value: id)
             .execute()
     }
@@ -273,16 +274,11 @@ final class ProtocolService {
             .value
 
         return rows.map { row in
-            let route = InjectionRoute.allCases.first { $0.rawValue == row.injection_route } ?? .subcutaneous
             var compound = ProtocolCompound(
                 compoundName: row.compound_name,
                 doseMcg: row.dose_mcg ?? 0,
                 frequency: row.frequency ?? "Daily",
-                injectionRoute: route,
-                reconstitutionVolume: row.reconstitution_volume,
-                vialSizeMg: row.vial_size_mg,
-                vendorName: row.vendor_name,
-                batchNumber: row.batch_number
+                injectionRoute: .subcutaneous
             )
             compound.supabaseId = row.id
             return compound
@@ -295,12 +291,7 @@ final class ProtocolService {
             compound_name: compound.compoundName,
             dose_mcg: compound.doseMcg,
             frequency: compound.frequency,
-            time_of_day: nil,
-            injection_route: compound.injectionRoute.rawValue,
-            reconstitution_volume: compound.reconstitutionVolume,
-            vial_size_mg: compound.vialSizeMg,
-            vendor_name: compound.vendorName,
-            batch_number: compound.batchNumber
+            time_of_day: nil
         )
 
         try await supabase

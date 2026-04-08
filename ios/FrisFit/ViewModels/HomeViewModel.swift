@@ -507,7 +507,9 @@ final class HomeViewModel {
                 let protocols = try await ProtocolService.shared.fetchProtocols()
                 allProtocols = protocols
                 activeProtocol = protocols.first { $0.isActive }
-            } catch {}
+            } catch {
+                print("[HomeVM] Failed to load protocols: \(error)")
+            }
         }
     }
 
@@ -523,6 +525,7 @@ final class HomeViewModel {
                 activeProtocol = saved
                 allProtocols.insert(saved, at: 0)
             } catch {
+                print("[HomeVM] Failed to save protocol: \(error)")
                 var localProto = proto
                 localProto.supabaseId = nil
                 activeProtocol = localProto

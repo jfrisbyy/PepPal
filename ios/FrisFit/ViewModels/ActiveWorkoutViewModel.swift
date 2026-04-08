@@ -236,7 +236,9 @@ final class ActiveWorkoutViewModel {
                     fpEarned: fpEarned,
                     exercises: exerciseDetails
                 )
-            } catch {}
+            } catch {
+                print("[ActiveWorkout] Failed to save workout: \(error)")
+            }
         }
     }
 

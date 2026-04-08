@@ -216,10 +216,8 @@ final class TrainViewModel {
                 var sports: [SportSession] = []
 
                 for workout in workouts {
-                    if let typeStr = workout.type, typeStr.hasPrefix("sport_") {
-                        if let session = WorkoutService.shared.toSportSession(workout) {
-                            sports.append(session)
-                        }
+                    if let session = WorkoutService.shared.toSportSession(workout) {
+                        sports.append(session)
                     } else {
                         let detail = WorkoutService.shared.toWorkoutHistoryDetail(workout)
                         history.append(detail)
@@ -229,7 +227,9 @@ final class TrainViewModel {
                 workoutHistory = history
                 sportSessions = sports
                 computePersonalRecords()
-            } catch {}
+            } catch {
+                print("[TrainVM] Failed to load workouts from Supabase: \(error)")
+            }
         }
     }
 
@@ -269,10 +269,12 @@ final class TrainViewModel {
             do {
                 let userId = try AuthService.shared.currentUserId()
                 _ = try await WorkoutService.shared.createWorkout(
-                    userId: userId, name: name, type: type,
+                    userId: userId, name: name, workoutType: type,
                     durationMinutes: durationMinutes, caloriesBurned: caloriesBurned, notes: notes
                 )
-            } catch {}
+            } catch {
+                print("[TrainVM] Failed to save workout: \(error)")
+            }
         }
     }
 
@@ -299,7 +301,9 @@ final class TrainViewModel {
                     fpEarned: fpEarned,
                     exercises: exercises
                 )
-            } catch {}
+            } catch {
+                print("[TrainVM] Failed to save workout details: \(error)")
+            }
         }
     }
 
@@ -315,7 +319,9 @@ final class TrainViewModel {
             do {
                 let userId = try AuthService.shared.currentUserId()
                 _ = try await WorkoutService.shared.createSportSession(userId: userId, session: session)
-            } catch {}
+            } catch {
+                print("[TrainVM] Failed to save sport session: \(error)")
+            }
         }
         StreakManager.shared.logActivity(type: .sportSession, sport: session.sport, durationMinutes: session.durationMinutes)
     }

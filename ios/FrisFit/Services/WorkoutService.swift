@@ -4,22 +4,33 @@ import Supabase
 nonisolated struct SupabaseWorkout: Codable, Sendable {
     let id: String?
     let user_id: String
+    let date: String?
     let name: String
-    let type: String?
+    let sport: String?
+    let workout_type: String?
     let duration_minutes: Int?
     let calories_burned: Int?
+    let distance: Double?
+    let exercises: String?
     let notes: String?
+    let fp_earned: Int?
+    let started_at: String?
     let completed_at: String?
     let created_at: String?
 }
 
 nonisolated struct CreateWorkoutPayload: Codable, Sendable {
     let user_id: String
+    let date: String
     let name: String
-    let type: String?
+    let sport: String?
+    let workout_type: String?
     let duration_minutes: Int?
     let calories_burned: Int?
+    let distance: Double?
+    let exercises: String?
     let notes: String?
+    let fp_earned: Int?
     let completed_at: String
 }
 
@@ -32,12 +43,6 @@ nonisolated struct WorkoutSetJSON: Codable, Sendable {
     let setNumber: Int
     let weight: Double
     let reps: Int
-}
-
-nonisolated struct WorkoutMetadataJSON: Codable, Sendable {
-    let totalVolume: Int?
-    let fpEarned: Int?
-    let exercises: [WorkoutExerciseJSON]?
 }
 
 nonisolated struct SportSessionJSON: Codable, Sendable {
@@ -86,6 +91,13 @@ final class WorkoutService {
         return f
     }()
 
+    private let dateOnlyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
     private func parseDate(_ string: String?) -> Date {
         guard let string else { return Date() }
         return iso8601.date(from: string) ?? iso8601Basic.date(from: string) ?? Date()
@@ -103,15 +115,32 @@ final class WorkoutService {
         return response
     }
 
-    func createWorkout(userId: String, name: String, type: String?, durationMinutes: Int?, caloriesBurned: Int?, notes: String?) async throws -> SupabaseWorkout {
+    func createWorkout(
+        userId: String,
+        name: String,
+        workoutType: String?,
+        sport: String? = nil,
+        durationMinutes: Int?,
+        caloriesBurned: Int?,
+        distance: Double? = nil,
+        exercisesJSON: String? = nil,
+        notes: String? = nil,
+        fpEarned: Int? = nil
+    ) async throws -> SupabaseWorkout {
+        let now = Date()
         let payload = CreateWorkoutPayload(
             user_id: userId,
+            date: dateOnlyFormatter.string(from: now),
             name: name,
-            type: type,
+            sport: sport,
+            workout_type: workoutType,
             duration_minutes: durationMinutes,
             calories_burned: caloriesBurned,
+            distance: distance,
+            exercises: exercisesJSON,
             notes: notes,
-            completed_at: iso8601.string(from: Date())
+            fp_earned: fpEarned,
+            completed_at: iso8601.string(from: now)
         )
 
         let created: SupabaseWorkout = try await supabase
@@ -142,16 +171,19 @@ final class WorkoutService {
                 }
             )
         }
-        let metadata = WorkoutMetadataJSON(totalVolume: totalVolume, fpEarned: fpEarned, exercises: exerciseJSON)
-        let notesString = (try? String(data: JSONEncoder().encode(metadata), encoding: .utf8)) ?? nil
+        let exercisesString = (try? String(data: JSONEncoder().encode(exerciseJSON), encoding: .utf8)) ?? nil
+        let notesJSON: [String: Int] = ["totalVolume": totalVolume]
+        let notesString = (try? String(data: JSONEncoder().encode(notesJSON), encoding: .utf8)) ?? nil
 
         return try await createWorkout(
             userId: userId,
             name: name,
-            type: type,
+            workoutType: type,
             durationMinutes: durationMinutes,
             caloriesBurned: caloriesBurned,
-            notes: notesString
+            exercisesJSON: exercisesString,
+            notes: notesString,
+            fpEarned: fpEarned
         )
     }
 
@@ -165,10 +197,12 @@ final class WorkoutService {
         return try await createWorkout(
             userId: userId,
             name: session.displayName,
-            type: "sport_\(session.sport.rawValue.lowercased())",
+            workoutType: "sport",
+            sport: session.sport.rawValue,
             durationMinutes: session.durationMinutes,
             caloriesBurned: nil,
-            notes: notesString
+            notes: notesString,
+            fpEarned: session.fpEarned
         )
     }
 
@@ -183,17 +217,15 @@ final class WorkoutService {
     func toWorkoutHistoryDetail(_ workout: SupabaseWorkout) -> WorkoutHistoryDetail {
         let date = parseDate(workout.completed_at)
         let durationMinutes = workout.duration_minutes ?? 0
+        let fpEarned = workout.fp_earned ?? ((durationMinutes * 5) + ((workout.calories_burned ?? 0) / 10))
 
         var exercises: [WorkoutHistoryExerciseDetail] = []
         var totalVolume = 0
-        var fpEarned = (durationMinutes * 5) + ((workout.calories_burned ?? 0) / 10)
 
-        if let notesStr = workout.notes,
-           let notesData = notesStr.data(using: .utf8),
-           let metadata = try? JSONDecoder().decode(WorkoutMetadataJSON.self, from: notesData) {
-            totalVolume = metadata.totalVolume ?? 0
-            fpEarned = metadata.fpEarned ?? fpEarned
-            exercises = (metadata.exercises ?? []).map { ex in
+        if let exercisesStr = workout.exercises,
+           let exercisesData = exercisesStr.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode([WorkoutExerciseJSON].self, from: exercisesData) {
+            exercises = decoded.map { ex in
                 WorkoutHistoryExerciseDetail(
                     exerciseName: ex.name,
                     sets: ex.sets.map { s in
@@ -201,6 +233,18 @@ final class WorkoutService {
                     }
                 )
             }
+            for ex in exercises {
+                for s in ex.sets {
+                    totalVolume += Int(s.weight) * s.reps
+                }
+            }
+        }
+
+        if let notesStr = workout.notes,
+           let notesData = notesStr.data(using: .utf8),
+           let meta = try? JSONDecoder().decode([String: Int].self, from: notesData),
+           let vol = meta["totalVolume"] {
+            totalVolume = vol
         }
 
         return WorkoutHistoryDetail(
@@ -214,13 +258,14 @@ final class WorkoutService {
     }
 
     func toSportSession(_ workout: SupabaseWorkout) -> SportSession? {
-        guard let typeStr = workout.type, typeStr.hasPrefix("sport_") else { return nil }
-        let sportName = String(typeStr.dropFirst(6))
+        let isSport = workout.workout_type == "sport" || (workout.workout_type?.hasPrefix("sport_") == true)
+        guard isSport || workout.sport != nil else { return nil }
 
         guard let notesStr = workout.notes,
               let notesData = notesStr.data(using: .utf8),
               let json = try? JSONDecoder().decode(SportSessionJSON.self, from: notesData) else {
-            let sport = Sport.allCases.first { $0.rawValue.lowercased() == sportName } ?? .custom
+            let sportName = workout.sport ?? ""
+            let sport = Sport.allCases.first { $0.rawValue.lowercased() == sportName.lowercased() } ?? .custom
             let sessionType = SportSessionType.allCases.first { $0.rawValue == "Training" } ?? .training
             return SportSession(
                 sport: sport,
