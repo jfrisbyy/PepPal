@@ -492,16 +492,22 @@ final class HomeViewModel {
     }
 
     func loadProtocolsFromSupabase() {
-        guard AuthService.shared.authState == .signedIn else { return }
+        guard AuthService.shared.authState == .signedIn else {
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                if AuthService.shared.authState == .signedIn, !protocolsLoaded {
+                    loadProtocolsFromSupabase()
+                }
+            }
+            return
+        }
+        protocolsLoaded = true
         Task {
             do {
                 let protocols = try await ProtocolService.shared.fetchProtocols()
                 allProtocols = protocols
                 activeProtocol = protocols.first { $0.isActive }
-                protocolsLoaded = true
-            } catch {
-                protocolsLoaded = true
-            }
+            } catch {}
         }
     }
 
@@ -531,6 +537,8 @@ final class HomeViewModel {
             await healthKit.fetchAllData()
         }
         checkActionLinkedTasks()
+        protocolsLoaded = false
+        loadProtocolsFromSupabase()
         try? await Task.sleep(for: .seconds(1))
     }
 

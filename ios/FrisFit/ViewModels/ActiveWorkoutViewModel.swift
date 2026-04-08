@@ -204,22 +204,37 @@ final class ActiveWorkoutViewModel {
             personalRecords: prs
         )
         isCompleted = true
-        saveToSupabase(durationMinutes: elapsedSeconds / 60, caloriesBurned: (elapsedSeconds / 60) * 8)
+        saveToSupabase(durationMinutes: elapsedSeconds / 60, caloriesBurned: (elapsedSeconds / 60) * 8, totalVolume: Int(totalVolume), fpEarned: fp)
         StreakManager.shared.logActivity(type: .workout, durationMinutes: elapsedSeconds / 60)
     }
 
-    private func saveToSupabase(durationMinutes: Int, caloriesBurned: Int) {
+    var completedExerciseDetails: [WorkoutHistoryExerciseDetail] {
+        exercises.filter { $0.completedSets > 0 }.enumerated().map { _, we in
+            let completedSets = we.sets.filter { $0.isCompleted }
+            return WorkoutHistoryExerciseDetail(
+                exerciseName: we.exercise.name,
+                sets: completedSets.enumerated().map { idx, s in
+                    WorkoutHistorySetDetail(setNumber: idx + 1, weight: s.weight, reps: s.effectiveReps)
+                }
+            )
+        }
+    }
+
+    private func saveToSupabase(durationMinutes: Int, caloriesBurned: Int, totalVolume: Int, fpEarned: Int) {
         guard AuthService.shared.authState == .signedIn else { return }
+        let exerciseDetails = completedExerciseDetails
         Task {
             do {
                 let userId = try AuthService.shared.currentUserId()
-                _ = try await WorkoutService.shared.createWorkout(
+                _ = try await WorkoutService.shared.createWorkoutWithDetails(
                     userId: userId,
                     name: workoutName,
                     type: "strength",
                     durationMinutes: durationMinutes,
                     caloriesBurned: caloriesBurned,
-                    notes: nil
+                    totalVolume: totalVolume,
+                    fpEarned: fpEarned,
+                    exercises: exerciseDetails
                 )
             } catch {}
         }

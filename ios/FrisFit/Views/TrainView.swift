@@ -277,7 +277,7 @@ struct TrainView: View {
                 }
             }
             .onAppear {
-                viewModel.loadSavedModes()
+                viewModel.loadAllData()
                 if isLoading {
                     Task {
                         try? await Task.sleep(for: .milliseconds(500))

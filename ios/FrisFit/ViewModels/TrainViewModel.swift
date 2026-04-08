@@ -13,6 +13,7 @@ final class TrainViewModel {
 
     private static let modesKey = "savedTrainModes"
     private static let lastModeKey = "lastActiveTrainModeId"
+    private static let programKey = "savedActiveProgram"
 
     var programName: String = ""
     var programType: ProgramType = .recurringSplit
@@ -27,106 +28,21 @@ final class TrainViewModel {
         WorkoutTemplate(name: "Leg Day", exerciseCount: 7, muscleGroups: [.quadriceps, .hamstrings, .glutes, .calves], estimatedMinutes: 60),
     ]
 
-    private var workoutsLoaded: Bool = false
+    private var dataLoaded: Bool = false
 
-    var workoutHistory: [WorkoutHistoryDetail] = {
-        let cal = Calendar.current
-        let now = Date()
-        return [
-            WorkoutHistoryDetail(name: "Push Day — Chest Focus", date: cal.date(byAdding: .day, value: -1, to: now)!, durationMinutes: 58, totalVolume: 12450, fpEarned: 340, exercises: [
-                WorkoutHistoryExerciseDetail(exerciseName: "Barbell Bench Press", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 185, reps: 10),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 205, reps: 8),
-                    WorkoutHistorySetDetail(setNumber: 3, weight: 225, reps: 5),
-                ]),
-                WorkoutHistoryExerciseDetail(exerciseName: "Incline Dumbbell Press", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 70, reps: 10),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 75, reps: 8),
-                    WorkoutHistorySetDetail(setNumber: 3, weight: 80, reps: 7),
-                ]),
-                WorkoutHistoryExerciseDetail(exerciseName: "Overhead Press", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 115, reps: 10),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 135, reps: 8),
-                    WorkoutHistorySetDetail(setNumber: 3, weight: 155, reps: 5),
-                ]),
-                WorkoutHistoryExerciseDetail(exerciseName: "Cable Flyes", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 30, reps: 12),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 35, reps: 10),
-                ]),
-            ]),
-            WorkoutHistoryDetail(name: "Pull Day — Back & Biceps", date: cal.date(byAdding: .day, value: -2, to: now)!, durationMinutes: 52, totalVolume: 10800, fpEarned: 310, exercises: [
-                WorkoutHistoryExerciseDetail(exerciseName: "Barbell Row", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 165, reps: 10),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 185, reps: 8),
-                    WorkoutHistorySetDetail(setNumber: 3, weight: 205, reps: 6),
-                ]),
-                WorkoutHistoryExerciseDetail(exerciseName: "Lat Pulldown", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 130, reps: 12),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 145, reps: 10),
-                    WorkoutHistorySetDetail(setNumber: 3, weight: 160, reps: 8),
-                ]),
-                WorkoutHistoryExerciseDetail(exerciseName: "Dumbbell Curl", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 35, reps: 12),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 40, reps: 10),
-                ]),
-            ]),
-            WorkoutHistoryDetail(name: "Leg Day Destroyer", date: cal.date(byAdding: .day, value: -4, to: now)!, durationMinutes: 65, totalVolume: 18200, fpEarned: 380, exercises: [
-                WorkoutHistoryExerciseDetail(exerciseName: "Barbell Back Squat", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 225, reps: 10),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 275, reps: 8),
-                    WorkoutHistorySetDetail(setNumber: 3, weight: 315, reps: 5),
-                ]),
-                WorkoutHistoryExerciseDetail(exerciseName: "Romanian Deadlift", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 185, reps: 10),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 225, reps: 8),
-                    WorkoutHistorySetDetail(setNumber: 3, weight: 245, reps: 6),
-                ]),
-                WorkoutHistoryExerciseDetail(exerciseName: "Leg Press", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 360, reps: 12),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 450, reps: 10),
-                ]),
-            ]),
-            WorkoutHistoryDetail(name: "Push Day — Shoulders", date: cal.date(byAdding: .day, value: -6, to: now)!, durationMinutes: 48, totalVolume: 9600, fpEarned: 290, exercises: [
-                WorkoutHistoryExerciseDetail(exerciseName: "Overhead Press", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 115, reps: 10),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 135, reps: 8),
-                    WorkoutHistorySetDetail(setNumber: 3, weight: 145, reps: 5),
-                ]),
-                WorkoutHistoryExerciseDetail(exerciseName: "Dumbbell Bench Press", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 75, reps: 10),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 80, reps: 8),
-                ]),
-            ]),
-            WorkoutHistoryDetail(name: "Pull Day — Heavy", date: cal.date(byAdding: .day, value: -8, to: now)!, durationMinutes: 55, totalVolume: 14200, fpEarned: 320, exercises: [
-                WorkoutHistoryExerciseDetail(exerciseName: "Barbell Row", sets: [
-                    WorkoutHistorySetDetail(setNumber: 1, weight: 175, reps: 8),
-                    WorkoutHistorySetDetail(setNumber: 2, weight: 195, reps: 6),
-                    WorkoutHistorySetDetail(setNumber: 3, weight: 215, reps: 5),
-                ]),
-            ]),
-            WorkoutHistoryDetail(name: "Active Recovery", date: cal.date(byAdding: .day, value: -9, to: now)!, durationMinutes: 30, totalVolume: 0, fpEarned: 120, exercises: []),
-        ]
-    }()
-
-    var sportSessions: [SportSession] = [
-        SportSession(sport: .basketball, sessionType: .game, durationMinutes: 90, intensity: 8, date: Date().addingTimeInterval(-150000), specificStats: .basketball(BasketballStats(points: 18, assists: 5, rebounds: 7))),
-        SportSession(sport: .running, sessionType: .training, durationMinutes: 35, intensity: 7, date: Date().addingTimeInterval(-350000), specificStats: .running(RunningStats(distanceMiles: 3.2, paceMinutesPerMile: 8.5))),
-        SportSession(sport: .swimming, sessionType: .practice, durationMinutes: 45, intensity: 6, date: Date().addingTimeInterval(-500000), specificStats: .swimming(SwimmingStats(laps: 30, stroke: .freestyle))),
-    ]
-
-    var personalRecords: [TrainPersonalRecord] = {
-        let cal = Calendar.current
-        let now = Date()
-        return [
-            TrainPersonalRecord(exerciseName: "Barbell Bench Press", weight: 225, reps: 5, dateAchieved: cal.date(byAdding: .day, value: -1, to: now)!, isNew: true, previousBest: 215),
-            TrainPersonalRecord(exerciseName: "Barbell Back Squat", weight: 315, reps: 5, dateAchieved: cal.date(byAdding: .day, value: -4, to: now)!, isNew: true, previousBest: 305),
-            TrainPersonalRecord(exerciseName: "Barbell Row", weight: 215, reps: 5, dateAchieved: cal.date(byAdding: .day, value: -8, to: now)!, isNew: false, previousBest: 205),
-            TrainPersonalRecord(exerciseName: "Overhead Press", weight: 155, reps: 5, dateAchieved: cal.date(byAdding: .day, value: -1, to: now)!, isNew: true, previousBest: 145),
-        ]
-    }()
+    var workoutHistory: [WorkoutHistoryDetail] = []
+    var sportSessions: [SportSession] = []
+    var personalRecords: [TrainPersonalRecord] = []
 
     var weeklyWorkoutGoal: Int = 5
-    var workoutsCompletedThisWeek: Int = 4
+
+    var workoutsCompletedThisWeek: Int {
+        let cal = Calendar.current
+        let weekStart = cal.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        let workoutCount = workoutHistory.filter { $0.date >= weekStart }.count
+        let sportCount = sportSessions.filter { $0.date >= weekStart }.count
+        return workoutCount + sportCount
+    }
 
     var combinedHistory: [CombinedHistoryItem] {
         var items: [CombinedHistoryItem] = []
@@ -161,7 +77,6 @@ final class TrainViewModel {
     }
 
     var muscleRecoveryItems: [MuscleRecoveryItem] {
-        let cal = Calendar.current
         let now = Date()
         var muscleLastWorked: [MuscleGroup: Date] = [:]
 
@@ -205,9 +120,8 @@ final class TrainViewModel {
     }
 
     var weeklyMuscleVolumes: [WeeklyMuscleVolume] {
-        let cal = Calendar.current
         let now = Date()
-        let weekStart = cal.date(byAdding: .day, value: -7, to: now)!
+        let weekStart = Calendar.current.date(byAdding: .day, value: -7, to: now)!
         var muscleSets: [MuscleGroup: Int] = [:]
 
         let thisWeek = workoutHistory.filter { $0.date >= weekStart }
@@ -230,9 +144,8 @@ final class TrainViewModel {
     }
 
     var weeklyInsight: TrainingInsight {
-        let cal = Calendar.current
         let now = Date()
-        let weekStart = cal.date(byAdding: .day, value: -7, to: now)!
+        let weekStart = Calendar.current.date(byAdding: .day, value: -7, to: now)!
         let thisWeek = workoutHistory.filter { $0.date >= weekStart }
         let sessions = thisWeek.count + sportSessions.filter { $0.date >= weekStart }.count
         let vol = thisWeek.reduce(0) { $0 + $1.totalVolume }
@@ -283,18 +196,71 @@ final class TrainViewModel {
         ]
     }
 
-    func loadWorkoutsFromSupabase() {
-        guard AuthService.shared.authState == .signedIn, !workoutsLoaded else { return }
-        workoutsLoaded = true
+    // MARK: - Data Loading
+
+    func loadAllData() {
+        loadSavedModes()
+        loadSavedProgram()
+        loadDataFromSupabase()
+    }
+
+    func loadDataFromSupabase() {
+        guard AuthService.shared.authState == .signedIn, !dataLoaded else { return }
+        dataLoaded = true
         Task {
             do {
                 let userId = try AuthService.shared.currentUserId()
                 let workouts = try await WorkoutService.shared.fetchWorkouts(userId: userId)
-                guard !workouts.isEmpty else { return }
-                let converted = workouts.map { WorkoutService.shared.toWorkoutHistoryDetail($0) }
-                workoutHistory = converted
+
+                var history: [WorkoutHistoryDetail] = []
+                var sports: [SportSession] = []
+
+                for workout in workouts {
+                    if let typeStr = workout.type, typeStr.hasPrefix("sport_") {
+                        if let session = WorkoutService.shared.toSportSession(workout) {
+                            sports.append(session)
+                        }
+                    } else {
+                        let detail = WorkoutService.shared.toWorkoutHistoryDetail(workout)
+                        history.append(detail)
+                    }
+                }
+
+                workoutHistory = history
+                sportSessions = sports
+                computePersonalRecords()
             } catch {}
         }
+    }
+
+    private func computePersonalRecords() {
+        var bestByExercise: [String: (weight: Double, reps: Int, date: Date)] = [:]
+
+        for entry in workoutHistory {
+            for exercise in entry.exercises {
+                for set in exercise.sets where set.weight > 0 {
+                    let key = exercise.exerciseName
+                    if let existing = bestByExercise[key] {
+                        if set.weight > existing.weight {
+                            bestByExercise[key] = (set.weight, set.reps, entry.date)
+                        }
+                    } else {
+                        bestByExercise[key] = (set.weight, set.reps, entry.date)
+                    }
+                }
+            }
+        }
+
+        personalRecords = bestByExercise.map { name, record in
+            TrainPersonalRecord(
+                exerciseName: name,
+                weight: record.weight,
+                reps: record.reps,
+                dateAchieved: record.date,
+                isNew: Calendar.current.dateComponents([.day], from: record.date, to: Date()).day ?? 999 <= 7,
+                previousBest: nil
+            )
+        }.sorted { $0.dateAchieved > $1.dateAchieved }
     }
 
     func saveWorkoutToSupabase(name: String, type: String?, durationMinutes: Int?, caloriesBurned: Int?, notes: String?) {
@@ -310,17 +276,51 @@ final class TrainViewModel {
         }
     }
 
+    func saveWorkoutWithDetailsToSupabase(
+        name: String,
+        type: String?,
+        durationMinutes: Int?,
+        caloriesBurned: Int?,
+        totalVolume: Int,
+        fpEarned: Int,
+        exercises: [WorkoutHistoryExerciseDetail]
+    ) {
+        guard AuthService.shared.authState == .signedIn else { return }
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                _ = try await WorkoutService.shared.createWorkoutWithDetails(
+                    userId: userId,
+                    name: name,
+                    type: type,
+                    durationMinutes: durationMinutes,
+                    caloriesBurned: caloriesBurned,
+                    totalVolume: totalVolume,
+                    fpEarned: fpEarned,
+                    exercises: exercises
+                )
+            } catch {}
+        }
+    }
+
+    func addWorkoutToHistory(_ detail: WorkoutHistoryDetail) {
+        workoutHistory.insert(detail, at: 0)
+        computePersonalRecords()
+    }
+
     func addSportSession(_ session: SportSession) {
         sportSessions.insert(session, at: 0)
-        saveWorkoutToSupabase(
-            name: session.displayName,
-            type: "sport",
-            durationMinutes: session.durationMinutes,
-            caloriesBurned: nil,
-            notes: nil
-        )
+        guard AuthService.shared.authState == .signedIn else { return }
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                _ = try await WorkoutService.shared.createSportSession(userId: userId, session: session)
+            } catch {}
+        }
         StreakManager.shared.logActivity(type: .sportSession, sport: session.sport, durationMinutes: session.durationMinutes)
     }
+
+    // MARK: - Program Builder
 
     func resetBuilder() {
         programName = ""
@@ -362,6 +362,7 @@ final class TrainViewModel {
             isActive: true
         )
         activeProgram = program
+        saveProgram()
     }
 
     var canProceedFromSetup: Bool {
@@ -422,6 +423,8 @@ final class TrainViewModel {
         return sessionsForSport(sport).filter { $0.date >= weekStart }
     }
 
+    // MARK: - Modes
+
     func addMode(_ mode: TrainMode) {
         availableModes.append(mode)
         currentMode = mode
@@ -463,15 +466,38 @@ final class TrainViewModel {
         UserDefaults.standard.set(currentMode.id.uuidString, forKey: Self.lastModeKey)
     }
 
+    // MARK: - Program Persistence
+
+    private func saveProgram() {
+        guard let program = activeProgram else {
+            UserDefaults.standard.removeObject(forKey: Self.programKey)
+            return
+        }
+        if let data = try? JSONEncoder().encode(program) {
+            UserDefaults.standard.set(data, forKey: Self.programKey)
+        }
+    }
+
+    func loadSavedProgram() {
+        guard let data = UserDefaults.standard.data(forKey: Self.programKey),
+              let program = try? JSONDecoder().decode(TrainingProgram.self, from: data) else { return }
+        activeProgram = program
+    }
+
+    func deleteProgram() {
+        activeProgram = nil
+        UserDefaults.standard.removeObject(forKey: Self.programKey)
+    }
+
     func progressiveOverloadTrend(for exerciseName: String) -> String {
         let matching = workoutHistory.flatMap { entry in
             entry.exercises.filter { $0.exerciseName == exerciseName }
         }
-        guard matching.count >= 2 else { return "→" }
+        guard matching.count >= 2 else { return "\u{2192}" }
         let recent = matching.first?.sets.map { $0.weight }.max() ?? 0
         let previous = matching.dropFirst().first?.sets.map { $0.weight }.max() ?? 0
-        if recent > previous { return "↑" }
-        if recent < previous { return "↓" }
-        return "→"
+        if recent > previous { return "\u{2191}" }
+        if recent < previous { return "\u{2193}" }
+        return "\u{2192}"
     }
 }
