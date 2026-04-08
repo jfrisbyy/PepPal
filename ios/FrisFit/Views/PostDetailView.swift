@@ -43,6 +43,7 @@ struct PostDetailView: View {
             }
         }
         .task {
+            viewModel.ensurePostInFeed(post)
             await viewModel.loadComments(for: post.id)
             if let updated = viewModel.feedPosts.first(where: { $0.id == post.id }) {
                 comments = updated.comments

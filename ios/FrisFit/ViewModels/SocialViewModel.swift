@@ -145,6 +145,12 @@ final class SocialViewModel {
         }
     }
 
+    func ensurePostInFeed(_ post: FeedPost) {
+        if !feedPosts.contains(where: { $0.id == post.id }) {
+            feedPosts.append(post)
+        }
+    }
+
     func addFeedComment(to postID: UUID, text: String) async {
         guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
         let supabaseId = feedPosts[index].supabaseId ?? postID.uuidString
