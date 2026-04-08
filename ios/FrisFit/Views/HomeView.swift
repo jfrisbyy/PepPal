@@ -98,7 +98,6 @@ struct HomeView: View {
             }
             todaysPlanCard
             pepInsightCard
-            activityFeedSection
             quickStatsBar
         }
         .padding(.horizontal)
