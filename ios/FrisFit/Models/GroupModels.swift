@@ -64,6 +64,13 @@ struct GroupMember: Identifiable, Sendable {
     let joinedAt: Date
 }
 
+nonisolated struct CreateGroupJoinRequestNotification: Codable, Sendable {
+    let user_id: String
+    let type: String
+    let title: String
+    let body: String
+}
+
 struct GroupMessage: Identifiable, Sendable {
     let id: UUID
     let sender: SocialUser

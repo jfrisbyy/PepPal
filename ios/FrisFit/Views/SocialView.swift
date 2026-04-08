@@ -168,6 +168,9 @@ struct SocialView: View {
                                     },
                                     onRepost: {
                                         viewModel.toggleRepost(for: post.id)
+                                    },
+                                    onDelete: {
+                                        viewModel.deletePost(post.id)
                                     }
                                 )
                             }

@@ -157,4 +157,22 @@ extension Date {
         if days < 7 { return "\(days)d ago" }
         return "\(days / 7)w ago"
     }
+
+    func formattedPostDate() -> String {
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+        if calendar.isDateInToday(self) {
+            formatter.dateFormat = "h:mm a"
+            return "Today, \(formatter.string(from: self))"
+        } else if calendar.isDateInYesterday(self) {
+            formatter.dateFormat = "h:mm a"
+            return "Yesterday, \(formatter.string(from: self))"
+        } else if calendar.isDate(self, equalTo: Date(), toGranularity: .year) {
+            formatter.dateFormat = "MMM d, h:mm a"
+            return formatter.string(from: self)
+        } else {
+            formatter.dateFormat = "MMM d, yyyy, h:mm a"
+            return formatter.string(from: self)
+        }
+    }
 }

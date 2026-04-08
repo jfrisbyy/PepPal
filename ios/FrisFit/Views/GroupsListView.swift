@@ -267,20 +267,37 @@ struct GroupsListView: View {
                 .foregroundStyle(PepTheme.textSecondary)
                 .lineLimit(2)
 
-            Button {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    viewModel.joinGroup(group)
+            if viewModel.isRequestPending(for: group.id) {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 12))
+                    Text("Request Sent")
+                        .font(.system(.subheadline, weight: .semibold))
                 }
-            } label: {
-                Text(group.privacy == .privateGroup ? "Request to Join" : "Join Group")
-                    .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(PepTheme.invertedText)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(group.accentColor)
-                    .clipShape(.capsule)
+                .foregroundStyle(PepTheme.textSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(PepTheme.elevated)
+                .clipShape(.capsule)
+                .overlay(
+                    Capsule().strokeBorder(PepTheme.separatorColor, lineWidth: 1)
+                )
+            } else {
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        viewModel.joinGroup(group)
+                    }
+                } label: {
+                    Text(group.privacy == .privateGroup ? "Request to Join" : "Join Group")
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundStyle(PepTheme.invertedText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(group.accentColor)
+                        .clipShape(.capsule)
+                }
+                .sensoryFeedback(.impact(weight: .medium), trigger: viewModel.myGroups.count)
             }
-            .sensoryFeedback(.impact(weight: .medium), trigger: viewModel.myGroups.count)
         }
         .padding(14)
         .background(PepTheme.cardSurface)

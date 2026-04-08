@@ -417,7 +417,7 @@ struct UserProfileView: View {
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
 
-                    Text(post.timestamp.timeAgoDisplay())
+                    Text(post.timestamp.formattedPostDate())
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
                 }

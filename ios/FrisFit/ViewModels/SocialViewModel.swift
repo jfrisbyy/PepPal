@@ -288,6 +288,18 @@ final class SocialViewModel {
         posts[index].comments.append(comment)
     }
 
+    func deletePost(_ postID: UUID) {
+        guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
+        let supabaseId = feedPosts[index].supabaseId ?? postID.uuidString
+        feedPosts.remove(at: index)
+
+        Task {
+            do {
+                try await socialService.deletePost(postId: supabaseId)
+            } catch {}
+        }
+    }
+
     func addFeedPost(_ post: FeedPost) {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
             feedPosts.insert(post, at: 0)

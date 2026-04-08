@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @State private var viewModel = ProfileViewModel()
+    @State private var socialViewModel = SocialViewModel()
     @State private var isLoading: Bool = true
     @State private var selectedTab: ProfileTab = .posts
     @State private var showEditProfile: Bool = false
@@ -69,6 +70,9 @@ struct ProfileView: View {
                 case .userProfile(let user):
                     UserProfileView(user: user, viewModel: viewModel)
                 }
+            }
+            .navigationDestination(for: FeedPost.self) { post in
+                PostDetailView(post: post, viewModel: socialViewModel)
             }
         }
     }
@@ -248,13 +252,43 @@ struct ProfileView: View {
                 profileEmptyState(icon: "text.bubble", title: "No Posts Yet", message: "Share your workouts and thoughts with the community.")
             } else {
                 ForEach(posts) { post in
-                    ProfilePostRow(post: post, profile: viewModel.profile) {
-                        viewModel.togglePostLike(post.id)
+                    NavigationLink(value: feedPostFromUserPost(post)) {
+                        ProfilePostRow(post: post, profile: viewModel.profile) {
+                            viewModel.togglePostLike(post.id)
+                        }
                     }
+                    .buttonStyle(.plain)
                     Divider().overlay(PepTheme.separatorColor)
                 }
             }
         }
+    }
+
+    private func feedPostFromUserPost(_ post: UserPost) -> FeedPost {
+        let user = SocialUser(
+            id: viewModel.profile.id,
+            name: viewModel.profile.displayName,
+            username: viewModel.profile.username,
+            avatarInitial: viewModel.profile.initials,
+            avatarColor: viewModel.profile.avatarColor,
+            avatarURL: viewModel.profile.avatarUrl,
+            activeProgramName: viewModel.profile.activeProgram,
+            streak: viewModel.profile.currentStreak,
+            totalFP: viewModel.profile.totalFP
+        )
+        let mediaItems: [FeedMediaItem] = post.mediaUrls.map { url in
+            FeedMediaItem(type: .photo, imageURL: url)
+        }
+        return FeedPost(
+            id: post.id,
+            user: user,
+            timestamp: post.timestamp,
+            textContent: post.content,
+            media: mediaItems,
+            highFiveCount: post.likeCount,
+            isHighFived: post.isLiked,
+            supabaseId: post.id.uuidString.lowercased()
+        )
     }
 
     private var healthTab: some View {
@@ -406,7 +440,7 @@ struct ProfilePostRow: View {
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
 
-                    Text(post.timestamp.timeAgoDisplay())
+                    Text(post.timestamp.formattedPostDate())
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
                 }

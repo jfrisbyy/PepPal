@@ -6,10 +6,19 @@ struct FeedPostCard: View {
     let onHighFive: () -> Void
     let onComment: () -> Void
     let onRepost: () -> Void
+    var onDelete: (() -> Void)? = nil
+    var onReport: (() -> Void)? = nil
 
     @State private var highFiveBounce: Int = 0
     @State private var repostBounce: Int = 0
+    @State private var showDeleteConfirm: Bool = false
+    @State private var showReportConfirm: Bool = false
     private var audioPlayer: AudioPlayerService { AudioPlayerService.shared }
+
+    private var isOwnPost: Bool {
+        guard let userId = try? AuthService.shared.currentUserId() else { return false }
+        return post.user.id.uuidString.lowercased() == userId.lowercased()
+    }
 
     var body: some View {
         GlassCard {
@@ -59,18 +68,52 @@ struct FeedPostCard: View {
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
                 }
-                Text(post.timestamp.timeAgoDisplay())
+                Text(post.timestamp.formattedPostDate())
                     .font(.caption2)
                     .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
 
-            Button { } label: {
+            Menu {
+                if isOwnPost {
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        Label("Delete Post", systemImage: "trash")
+                    }
+                }
+                Button {
+                    showReportConfirm = true
+                } label: {
+                    Label("Report", systemImage: "flag")
+                }
+                Button {
+                    UIPasteboard.general.string = post.textContent
+                } label: {
+                    Label("Copy Text", systemImage: "doc.on.doc")
+                }
+            } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 14))
                     .foregroundStyle(PepTheme.textSecondary)
                     .frame(width: 32, height: 32)
+            }
+            .alert("Delete Post?", isPresented: $showDeleteConfirm) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    onDelete?()
+                }
+            } message: {
+                Text("This action cannot be undone.")
+            }
+            .alert("Report Post?", isPresented: $showReportConfirm) {
+                Button("Cancel", role: .cancel) {}
+                Button("Report", role: .destructive) {
+                    onReport?()
+                }
+            } message: {
+                Text("This post will be flagged for review.")
             }
         }
     }

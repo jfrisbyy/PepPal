@@ -1,4 +1,5 @@
 import SwiftUI
+import Supabase
 
 @Observable
 final class GroupsViewModel {
@@ -6,6 +7,7 @@ final class GroupsViewModel {
     var discoverGroups: [FitGroup] = []
     var searchQuery: String = ""
     var isSearching: Bool = false
+    var pendingRequestGroupIDs: Set<UUID> = []
 
     var filteredMyGroups: [FitGroup] {
         if searchQuery.isEmpty { return myGroups }
@@ -56,12 +58,39 @@ final class GroupsViewModel {
     }
 
     func joinGroup(_ group: FitGroup) {
-        var joined = group
-        let member = GroupMember(id: UUID(), user: meUser, role: .member, joinedAt: Date())
-        joined.members.append(member)
-        joined.memberCount += 1
-        myGroups.append(joined)
-        discoverGroups.removeAll { $0.id == group.id }
+        if group.privacy == .privateGroup {
+            pendingRequestGroupIDs.insert(group.id)
+            sendJoinRequestNotification(for: group)
+        } else {
+            var joined = group
+            let member = GroupMember(id: UUID(), user: meUser, role: .member, joinedAt: Date())
+            joined.members.append(member)
+            joined.memberCount += 1
+            myGroups.append(joined)
+            discoverGroups.removeAll { $0.id == group.id }
+        }
+    }
+
+    func isRequestPending(for groupID: UUID) -> Bool {
+        pendingRequestGroupIDs.contains(groupID)
+    }
+
+    private func sendJoinRequestNotification(for group: FitGroup) {
+        Task {
+            do {
+                let _ = try AuthService.shared.currentUserId()
+                let payload = CreateGroupJoinRequestNotification(
+                    user_id: group.creatorID.uuidString.lowercased(),
+                    type: "group_join_request",
+                    title: "Group Join Request",
+                    body: "\(meUser.name) has requested to join \(group.name)"
+                )
+                try await SupabaseService.shared.client
+                    .from("notifications")
+                    .insert(payload)
+                    .execute()
+            } catch {}
+        }
     }
 
     func leaveGroup(_ groupID: UUID) {
