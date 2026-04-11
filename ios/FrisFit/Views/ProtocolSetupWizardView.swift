@@ -40,6 +40,11 @@ nonisolated enum ExperienceLevel: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+nonisolated enum ProtocolPath: String, Sendable {
+    case newProtocol = "new"
+    case existingProtocol = "existing"
+}
+
 nonisolated struct ProtocolTemplate: Identifiable, Sendable {
     let id = UUID()
     let name: String
@@ -87,25 +92,72 @@ struct WizardCompound: Identifiable {
     }
 }
 
+nonisolated enum StartDateShortcut: String, CaseIterable, Identifiable, Sendable {
+    case thisWeek = "This week"
+    case oneToTwoWeeks = "1–2 weeks ago"
+    case aboutAMonth = "About a month ago"
+    case twoToThreeMonths = "2–3 months ago"
+    case threeMonthsPlus = "3+ months ago"
+    case pickExact = "Pick exact date"
+
+    var id: String { rawValue }
+
+    var approximateDate: Date? {
+        let cal = Calendar.current
+        switch self {
+        case .thisWeek: return cal.date(byAdding: .day, value: -3, to: Date())
+        case .oneToTwoWeeks: return cal.date(byAdding: .day, value: -10, to: Date())
+        case .aboutAMonth: return cal.date(byAdding: .weekOfYear, value: -4, to: Date())
+        case .twoToThreeMonths: return cal.date(byAdding: .month, value: -2, to: Date()) // ~10 weeks
+        case .threeMonthsPlus: return cal.date(byAdding: .month, value: -4, to: Date())
+        case .pickExact: return nil
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .thisWeek: return "calendar.badge.clock"
+        case .oneToTwoWeeks: return "calendar"
+        case .aboutAMonth: return "calendar.badge.minus"
+        case .twoToThreeMonths: return "clock.arrow.circlepath"
+        case .threeMonthsPlus: return "clock.badge.checkmark"
+        case .pickExact: return "calendar.day.timeline.left"
+        }
+    }
+}
+
 struct ProtocolSetupWizardView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var protocolPath: ProtocolPath?
     @State private var currentStep: Int = 0
-    @State private var experienceLevel: ExperienceLevel?
+    @State private var experienceLevel: ExperienceLevel? = .intermediate
     @State private var selectedGoal: ProtocolGoal?
     @State private var protocolName: String = ""
     @State private var selectedCompounds: [WizardCompound] = []
-    @State private var cycleWeeks: Int = 8
-    @State private var loadingWeeks: Int = 1
-    @State private var maintenanceWeeks: Int = 5
-    @State private var taperingWeeks: Int = 1
-    @State private var offCycleWeeks: Int = 4
+    @State private var startDate: Date = Date()
+    @State private var hasPlannedEndDate: Bool = false
+    @State private var endDate: Date = Calendar.current.date(byAdding: .weekOfYear, value: 8, to: Date()) ?? Date()
+    @State private var durationWeeks: Int = 8
+    @State private var showAdvancedCycle: Bool = false
+    @State private var loadingWeeks: Int = 0
+    @State private var maintenanceWeeks: Int = 4
+    @State private var taperingWeeks: Int = 0
+    @State private var offCycleWeeks: Int = 0
+    @State private var selectedStartShortcut: StartDateShortcut?
+    @State private var showExactDatePicker: Bool = false
     @State private var showTemplates: Bool = false
     @State private var searchText: String = ""
-    @State private var showCycleConflict: Bool = false
     @State private var expandedTooltip: String?
     let onComplete: (PeptideProtocol) -> Void
 
-    private let stepCount = 6
+    private var steps: [String] {
+        if protocolPath == nil {
+            return ["Choose Path"]
+        }
+        return ["Goal", "Compounds", "Dosing", "Schedule", "Review"]
+    }
+
+    private var stepCount: Int { steps.count }
 
     private var templates: [ProtocolTemplate] {
         [
@@ -189,27 +241,29 @@ struct ProtocolSetupWizardView: View {
         if let goal = selectedGoal {
             result = result.filter { $0.goal == goal }
         }
-        if let level = experienceLevel {
-            result = result.filter { $0.experienceLevel.rawValue <= level.rawValue || $0.experienceLevel == .beginner }
-        }
         return result
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                progressBar
+                if protocolPath != nil {
+                    progressBar
+                }
 
                 ScrollView {
                     VStack(spacing: 20) {
-                        switch currentStep {
-                        case 0: experienceStep
-                        case 1: goalStep
-                        case 2: compoundStep
-                        case 3: dosingStep
-                        case 4: scheduleStep
-                        case 5: reviewStep
-                        default: EmptyView()
+                        if protocolPath == nil {
+                            pathSelectionStep
+                        } else {
+                            switch currentStep {
+                            case 0: goalStep
+                            case 1: compoundStep
+                            case 2: dosingStep
+                            case 3: scheduleStep
+                            case 4: reviewStep
+                            default: EmptyView()
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -217,10 +271,12 @@ struct ProtocolSetupWizardView: View {
                 }
                 .scrollIndicators(.hidden)
 
-                bottomBar
+                if protocolPath != nil {
+                    bottomBar
+                }
             }
             .background(PepTheme.background.ignoresSafeArea())
-            .navigationTitle("New Protocol")
+            .navigationTitle(protocolPath == nil ? "New Protocol" : (protocolPath == .existingProtocol ? "Log Current Protocol" : "New Protocol"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -248,70 +304,113 @@ struct ProtocolSetupWizardView: View {
         .padding(.vertical, 8)
     }
 
-    // MARK: - Step 0: Experience Level
+    // MARK: - Step 0: Choose Path
 
-    private var experienceStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("What's your experience level?")
-                .font(.system(.title2, design: .rounded, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
-
-            Text("This personalizes dosing defaults, educational content, and compound suggestions")
-                .font(.subheadline)
-                .foregroundStyle(PepTheme.textSecondary)
-
-            VStack(spacing: 10) {
-                ForEach(ExperienceLevel.allCases) { level in
-                    let isSelected = experienceLevel == level
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            experienceLevel = level
-                        }
-                    } label: {
-                        HStack(spacing: 14) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(level.color.opacity(isSelected ? 0.2 : 0.1))
-                                    .frame(width: 48, height: 48)
-                                Image(systemName: level.icon)
-                                    .font(.title3)
-                                    .foregroundStyle(level.color)
-                            }
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(level.rawValue)
-                                    .font(.system(.body, weight: .semibold))
-                                    .foregroundStyle(PepTheme.textPrimary)
-                                Text(level.description)
-                                    .font(.caption)
-                                    .foregroundStyle(PepTheme.textSecondary)
-                                    .lineLimit(2)
-                            }
-
-                            Spacer()
-
-                            if isSelected {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.title3)
-                                    .foregroundStyle(PepTheme.teal)
-                            }
-                        }
-                        .padding(14)
-                        .background(PepTheme.cardSurface.overlay(isSelected ? PepTheme.teal.opacity(0.05) : Color.clear))
-                        .clipShape(.rect(cornerRadius: 14))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .strokeBorder(isSelected ? PepTheme.teal : PepTheme.glassBorderTop, lineWidth: isSelected ? 1.5 : 0.5)
-                        )
-                    }
-                    .sensoryFeedback(.selection, trigger: experienceLevel)
-                }
+    private var pathSelectionStep: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("How would you like to start?")
+                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("Choose based on where you are in your journey")
+                    .font(.subheadline)
+                    .foregroundStyle(PepTheme.textSecondary)
             }
+
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    protocolPath = .newProtocol
+                }
+            } label: {
+                HStack(spacing: 16) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(
+                                LinearGradient(colors: [PepTheme.teal.opacity(0.2), PepTheme.teal.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                            )
+                            .frame(width: 56, height: 56)
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(PepTheme.teal)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Start a New Protocol")
+                            .font(.system(.headline, weight: .bold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("I'm about to begin something new")
+                            .font(.subheadline)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .padding(16)
+                .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+                .clipShape(.rect(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(
+                            LinearGradient(colors: [PepTheme.teal.opacity(0.3), PepTheme.teal.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            lineWidth: 1
+                        )
+                )
+            }
+            .sensoryFeedback(.impact(weight: .medium), trigger: protocolPath)
+
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    protocolPath = .existingProtocol
+                }
+            } label: {
+                HStack(spacing: 16) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(
+                                LinearGradient(colors: [PepTheme.blue.opacity(0.2), PepTheme.blue.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                            )
+                            .frame(width: 56, height: 56)
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.title2)
+                            .foregroundStyle(PepTheme.blue)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Log a Current Protocol")
+                            .font(.system(.headline, weight: .bold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("I'm already taking something and want to track it")
+                            .font(.subheadline)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .padding(16)
+                .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+                .clipShape(.rect(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(
+                            LinearGradient(colors: [PepTheme.blue.opacity(0.3), PepTheme.blue.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            lineWidth: 1
+                        )
+                )
+            }
+            .sensoryFeedback(.impact(weight: .medium), trigger: protocolPath)
         }
-        .padding(.top, 8)
+        .padding(.top, 12)
     }
 
-    // MARK: - Step 1: Goal + Templates
+    // MARK: - Step 1: Goal
 
     private var goalStep: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -356,7 +455,7 @@ struct ProtocolSetupWizardView: View {
             .sensoryFeedback(.impact(weight: .light), trigger: showTemplates)
 
             VStack(spacing: 10) {
-                ForEach(ProtocolGoal.allCases) { goal in
+                ForEach(ProtocolGoal.allCases.filter { $0 != .custom }) { goal in
                     let isSelected = selectedGoal == goal
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -400,7 +499,7 @@ struct ProtocolSetupWizardView: View {
         .padding(.top, 8)
     }
 
-    // MARK: - Step 2: Compound Selection (Enhanced)
+    // MARK: - Step 2: Compound Selection
 
     private var compoundStep: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -411,13 +510,6 @@ struct ProtocolSetupWizardView: View {
             Text("Choose the compounds for your protocol")
                 .font(.subheadline)
                 .foregroundStyle(PepTheme.textSecondary)
-
-            if experienceLevel == .beginner {
-                beginnerTipBanner(
-                    icon: "lightbulb.fill",
-                    text: "As a beginner, we've highlighted the safest and most well-researched compounds. Look for the \(Image(systemName: "leaf.fill")) icon."
-                )
-            }
 
             HStack {
                 Image(systemName: "magnifyingglass")
@@ -516,7 +608,7 @@ struct ProtocolSetupWizardView: View {
                 selectedCompounds.removeAll { $0.name == compound.name }
             } else {
                 var wc = WizardCompound(name: compound.name)
-                let level = experienceLevel ?? .beginner
+                let level = experienceLevel ?? .intermediate
 
                 if let pd = ProtocolDefaultsDatabase.defaults(for: compound.name) {
                     let range = pd.doseRange(for: level)
@@ -564,7 +656,7 @@ struct ProtocolSetupWizardView: View {
                             Text(compound.name)
                                 .font(.system(.subheadline, weight: .semibold))
                                 .foregroundStyle(PepTheme.textPrimary)
-                            if experienceLevel == .beginner && isBeginnerSafe {
+                            if isBeginnerSafe {
                                 Image(systemName: "leaf.fill")
                                     .font(.system(size: 9))
                                     .foregroundStyle(.green)
@@ -634,7 +726,7 @@ struct ProtocolSetupWizardView: View {
         .sensoryFeedback(.impact(weight: .light), trigger: isAdded)
     }
 
-    // MARK: - Step 3: Dosing Configuration
+    // MARK: - Step 3: Dosing
 
     private var dosingStep: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -652,7 +744,7 @@ struct ProtocolSetupWizardView: View {
                     .foregroundStyle(PepTheme.textSecondary)
 
                 Picker("", selection: Binding(
-                    get: { experienceLevel ?? .beginner },
+                    get: { experienceLevel ?? .intermediate },
                     set: { newLevel in
                         let oldLevel = experienceLevel
                         experienceLevel = newLevel
@@ -696,7 +788,7 @@ struct ProtocolSetupWizardView: View {
     private func dosingCard(for wc: WizardCompound, at index: Int) -> some View {
         let profile = wc.profile
         let pd = wc.protocolDefault
-        let currentLevel = experienceLevel ?? .beginner
+        let currentLevel = experienceLevel ?? .intermediate
 
         return GlassCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -841,7 +933,7 @@ struct ProtocolSetupWizardView: View {
                                 Image(systemName: "checkmark.seal.fill")
                                     .font(.system(size: 9))
                                     .foregroundStyle(.green)
-                                Text("Recommended starting protocol")
+                                Text("Recommended starting dose")
                                     .font(.system(size: 10, weight: .medium))
                                     .foregroundStyle(.green.opacity(0.8))
                             }
@@ -960,11 +1052,22 @@ struct ProtocolSetupWizardView: View {
         .padding(.vertical, 2)
     }
 
-    // MARK: - Step 4: Schedule (Compound-Aware)
+    // MARK: - Step 4: Schedule
 
     private var scheduleStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Cycle Schedule")
+            if protocolPath == .existingProtocol {
+                existingProtocolSchedule
+            } else {
+                newProtocolSchedule
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private var newProtocolSchedule: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Schedule")
                 .font(.system(.title2, design: .rounded, weight: .bold))
                 .foregroundStyle(PepTheme.textPrimary)
 
@@ -972,98 +1075,272 @@ struct ProtocolSetupWizardView: View {
                 Text("Protocol Name")
                     .font(.system(.caption, weight: .semibold))
                     .foregroundStyle(PepTheme.textSecondary)
-                TextField("e.g. BPC-157 Recovery", text: $protocolName)
+                TextField("e.g. Semaglutide Protocol", text: $protocolName)
                     .font(.body)
                     .foregroundStyle(PepTheme.textPrimary)
                     .padding(12)
                     .background(PepTheme.elevated)
                     .clipShape(.rect(cornerRadius: 12))
             }
+            .onAppear {
+                if protocolName.isEmpty {
+                    let names = selectedCompounds.map(\.name)
+                    protocolName = names.count == 1 ? "\(names[0]) Protocol" : names.joined(separator: " + ")
+                }
+            }
 
-            if let conflict = cycleConflictMessage {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(PepTheme.amber)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Cycle Length Conflict")
-                            .font(.system(.caption, weight: .bold))
-                            .foregroundStyle(PepTheme.amber)
-                        Text(conflict)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Start Date")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                DatePicker("", selection: $startDate, in: ...Date(), displayedComponents: .date)
+                    .datePickerStyle(.compact)
+                    .tint(PepTheme.teal)
+                    .labelsHidden()
+                    .padding(12)
+                    .background(PepTheme.elevated)
+                    .clipShape(.rect(cornerRadius: 12))
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle(isOn: $hasPlannedEndDate.animation(.spring(response: 0.35))) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Do you have a planned end date?")
+                            .font(.system(.subheadline, weight: .medium))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("Leave off for open-ended protocols")
                             .font(.caption)
                             .foregroundStyle(PepTheme.textSecondary)
-                        Button {
-                            alignToLongestCycle()
-                        } label: {
-                            Text("Align to longest cycle")
+                    }
+                }
+                .tint(PepTheme.teal)
+
+                if hasPlannedEndDate {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Duration")
                                 .font(.system(.caption, weight: .semibold))
-                                .foregroundStyle(PepTheme.teal)
+                                .foregroundStyle(PepTheme.textSecondary)
+                            Stepper("\(durationWeeks) weeks", value: $durationWeeks, in: 1...52)
+                                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                .foregroundStyle(PepTheme.textPrimary)
                         }
                     }
+                    .padding(12)
+                    .background(PepTheme.elevated)
+                    .clipShape(.rect(cornerRadius: 12))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .padding(14)
+            .background(PepTheme.cardSurface)
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+            )
+
+            advancedCyclePlanningSection
+        }
+    }
+
+    private var existingProtocolSchedule: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("When did you start?")
+                .font(.system(.title2, design: .rounded, weight: .bold))
+                .foregroundStyle(PepTheme.textPrimary)
+
+            Text("Select approximately when you began this protocol")
+                .font(.subheadline)
+                .foregroundStyle(PepTheme.textSecondary)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Protocol Name")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                TextField("e.g. Semaglutide Protocol", text: $protocolName)
+                    .font(.body)
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .padding(12)
+                    .background(PepTheme.elevated)
+                    .clipShape(.rect(cornerRadius: 12))
+            }
+            .onAppear {
+                if protocolName.isEmpty {
+                    let names = selectedCompounds.map(\.name)
+                    protocolName = names.count == 1 ? "\(names[0]) Protocol" : names.joined(separator: " + ")
+                }
+            }
+
+            VStack(spacing: 8) {
+                ForEach(StartDateShortcut.allCases) { shortcut in
+                    let isSelected = selectedStartShortcut == shortcut
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedStartShortcut = shortcut
+                            if shortcut == .pickExact {
+                                showExactDatePicker = true
+                            } else if let date = shortcut.approximateDate {
+                                startDate = date
+                                showExactDatePicker = false
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: shortcut.icon)
+                                .font(.system(size: 15))
+                                .foregroundStyle(isSelected ? PepTheme.teal : PepTheme.textSecondary)
+                                .frame(width: 24)
+                            Text(shortcut.rawValue)
+                                .font(.system(.subheadline, weight: .medium))
+                                .foregroundStyle(PepTheme.textPrimary)
+                            Spacer()
+                            if isSelected && shortcut != .pickExact {
+                                Text(startDate.formatted(date: .abbreviated, time: .omitted))
+                                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                                    .foregroundStyle(PepTheme.teal)
+                            }
+                            if isSelected {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(PepTheme.teal)
+                            }
+                        }
+                        .padding(12)
+                        .background(isSelected ? PepTheme.teal.opacity(0.05) : PepTheme.cardSurface)
+                        .clipShape(.rect(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(isSelected ? PepTheme.teal : PepTheme.glassBorderTop, lineWidth: isSelected ? 1.5 : 0.5)
+                        )
+                    }
+                    .sensoryFeedback(.selection, trigger: selectedStartShortcut)
+                }
+            }
+
+            if showExactDatePicker {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Pick your start date")
+                        .font(.system(.caption, weight: .semibold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                    DatePicker("", selection: $startDate, in: ...Date(), displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .tint(PepTheme.teal)
                 }
                 .padding(12)
-                .background(PepTheme.amber.opacity(0.08))
-                .clipShape(.rect(cornerRadius: 12))
+                .background(PepTheme.cardSurface)
+                .clipShape(.rect(cornerRadius: 14))
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            VStack(spacing: 12) {
-                phaseStepperWithTooltip(
-                    label: "Loading Phase", value: $loadingWeeks,
-                    color: CyclePhase.loading.color, range: 0...4,
-                    tooltip: "A ramp-up period where the body saturates with the compound. Some compounds (like TB-500) require loading to reach therapeutic levels."
-                )
-                phaseStepperWithTooltip(
-                    label: "Maintenance Phase", value: $maintenanceWeeks,
-                    color: CyclePhase.maintenance.color, range: 1...20,
-                    tooltip: "The core phase where the compound is at full effect. Most therapeutic benefits occur here."
-                )
-                phaseStepperWithTooltip(
-                    label: "Tapering Phase", value: $taperingWeeks,
-                    color: CyclePhase.tapering.color, range: 0...4,
-                    tooltip: "Gradually reducing the dose to ease off the compound. Helps the body adjust and reduces potential rebound effects."
-                )
-                phaseStepperWithTooltip(
-                    label: "Off-Cycle", value: $offCycleWeeks,
-                    color: CyclePhase.offCycle.color, range: 0...12,
-                    tooltip: "A rest period between cycles to prevent desensitization and give the body a break. Duration depends on the compound."
-                )
-            }
-
-            if !selectedCompounds.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("COMPOUND CYCLE DATA")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(PepTheme.textSecondary)
-                    ForEach(selectedCompounds) { wc in
-                        if let profile = wc.profile {
-                            HStack(spacing: 8) {
-                                Circle()
-                                    .fill(profile.categories.first?.color ?? PepTheme.teal)
-                                    .frame(width: 6, height: 6)
-                                Text(wc.name)
-                                    .font(.system(.caption, weight: .semibold))
-                                    .foregroundStyle(PepTheme.textPrimary)
-                                Spacer()
-                                VStack(alignment: .trailing, spacing: 1) {
-                                    Text(profile.cycleLength)
-                                        .font(.caption2)
-                                        .foregroundStyle(PepTheme.textSecondary)
-                                    Text(profile.onOffCycling)
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(PepTheme.textSecondary)
-                                }
-                            }
-                            .padding(8)
-                            .background(PepTheme.elevated.opacity(0.5))
-                            .clipShape(.rect(cornerRadius: 8))
-                        }
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle(isOn: $hasPlannedEndDate.animation(.spring(response: 0.35))) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Do you have a planned end date?")
+                            .font(.system(.subheadline, weight: .medium))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("Leave off for open-ended protocols")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
-            }
+                .tint(PepTheme.teal)
 
-            phaseTimeline
+                if hasPlannedEndDate {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Duration")
+                                .font(.system(.caption, weight: .semibold))
+                                .foregroundStyle(PepTheme.textSecondary)
+                            Stepper("\(durationWeeks) weeks", value: $durationWeeks, in: 1...52)
+                                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                .foregroundStyle(PepTheme.textPrimary)
+                        }
+                    }
+                    .padding(12)
+                    .background(PepTheme.elevated)
+                    .clipShape(.rect(cornerRadius: 12))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .padding(14)
+            .background(PepTheme.cardSurface)
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+            )
+
+            advancedCyclePlanningSection
         }
-        .padding(.top, 8)
-        .onAppear { autoPopulateSchedule() }
+    }
+
+    private var advancedCyclePlanningSection: some View {
+        VStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    showAdvancedCycle.toggle()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "gearshape.2.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(PepTheme.textSecondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Advanced: Define Cycle Phases")
+                            .font(.system(.subheadline, weight: .medium))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("Useful for planned cycles with distinct dosing phases")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .rotationEffect(.degrees(showAdvancedCycle ? 180 : 0))
+                }
+                .padding(14)
+                .background(PepTheme.cardSurface)
+                .clipShape(.rect(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                )
+            }
+            .sensoryFeedback(.selection, trigger: showAdvancedCycle)
+
+            if showAdvancedCycle {
+                VStack(spacing: 12) {
+                    phaseStepperWithTooltip(
+                        label: "Loading Phase", value: $loadingWeeks,
+                        color: CyclePhase.loading.color, range: 0...4,
+                        tooltip: "A ramp-up period where the body saturates with the compound."
+                    )
+                    phaseStepperWithTooltip(
+                        label: "Maintenance Phase", value: $maintenanceWeeks,
+                        color: CyclePhase.maintenance.color, range: 0...20,
+                        tooltip: "The core phase where the compound is at full effect."
+                    )
+                    phaseStepperWithTooltip(
+                        label: "Tapering Phase", value: $taperingWeeks,
+                        color: CyclePhase.tapering.color, range: 0...4,
+                        tooltip: "Gradually reducing the dose to ease off the compound."
+                    )
+                    phaseStepperWithTooltip(
+                        label: "Off-Cycle", value: $offCycleWeeks,
+                        color: CyclePhase.offCycle.color, range: 0...12,
+                        tooltip: "A rest period between cycles to prevent desensitization."
+                    )
+
+                    phaseTimeline
+                }
+                .padding(14)
+                .background(PepTheme.elevated.opacity(0.3))
+                .clipShape(.rect(cornerRadius: 14))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
     }
 
     private func phaseStepperWithTooltip(label: String, value: Binding<Int>, color: Color, range: ClosedRange<Int>, tooltip: String) -> some View {
@@ -1166,7 +1443,7 @@ struct ProtocolSetupWizardView: View {
         }
     }
 
-    // MARK: - Step 5: Comprehensive Review
+    // MARK: - Step 5: Review
 
     private var reviewStep: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1196,14 +1473,15 @@ struct ProtocolSetupWizardView: View {
                         }
                     }
 
-                    if let level = experienceLevel {
-                        HStack(spacing: 4) {
-                            Image(systemName: level.icon)
-                                .font(.system(size: 10))
-                            Text(level.rawValue)
-                                .font(.system(.caption2, weight: .medium))
+                    if protocolPath == .existingProtocol {
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 12))
+                                .foregroundStyle(PepTheme.blue)
+                            Text("Logging existing protocol")
+                                .font(.system(.caption, weight: .medium))
+                                .foregroundStyle(PepTheme.blue)
                         }
-                        .foregroundStyle(level.color)
                     }
 
                     Divider().overlay(PepTheme.separatorColor)
@@ -1235,21 +1513,48 @@ struct ProtocolSetupWizardView: View {
 
                     Divider().overlay(PepTheme.separatorColor)
 
-                    let total = loadingWeeks + maintenanceWeeks + taperingWeeks + offCycleWeeks
                     HStack(spacing: 16) {
-                        reviewStat("Duration", "\(total) weeks")
+                        reviewStat("Started", startDate.formatted(date: .abbreviated, time: .omitted))
+                        if hasPlannedEndDate {
+                            reviewStat("Duration", "\(durationWeeks) weeks")
+                        } else {
+                            reviewStat("Duration", "Ongoing")
+                        }
                         reviewStat("Compounds", "\(selectedCompounds.count)")
-                        reviewStat("Loading", loadingWeeks > 0 ? "\(loadingWeeks)w" : "None")
-                        reviewStat("Off-Cycle", offCycleWeeks > 0 ? "\(offCycleWeeks)w" : "None")
+                    }
+
+                    if protocolPath == .existingProtocol {
+                        let currentWeek = max(1, (Calendar.current.dateComponents([.day], from: startDate, to: Date()).day ?? 0) / 7 + 1)
+                        HStack(spacing: 6) {
+                            Image(systemName: "calendar.badge.clock")
+                                .font(.system(size: 12))
+                                .foregroundStyle(PepTheme.teal)
+                            Text("Currently in Week \(currentWeek)")
+                                .font(.system(.caption, weight: .semibold))
+                                .foregroundStyle(PepTheme.teal)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(PepTheme.teal.opacity(0.06))
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+
+                    if showAdvancedCycle && (loadingWeeks > 0 || taperingWeeks > 0 || offCycleWeeks > 0) {
+                        HStack(spacing: 12) {
+                            if loadingWeeks > 0 { reviewStat("Loading", "\(loadingWeeks)w") }
+                            if maintenanceWeeks > 0 { reviewStat("Maintenance", "\(maintenanceWeeks)w") }
+                            if taperingWeeks > 0 { reviewStat("Tapering", "\(taperingWeeks)w") }
+                            if offCycleWeeks > 0 { reviewStat("Off-Cycle", "\(offCycleWeeks)w") }
+                        }
                     }
                 }
             }
 
-            calendarPreview
+            if hasPlannedEndDate || showAdvancedCycle {
+                calendarPreview
+            }
 
             warningsSection
-
-            reconstitutionSection
         }
         .padding(.top, 8)
     }
@@ -1277,58 +1582,59 @@ struct ProtocolSetupWizardView: View {
     }
 
     private var calendarPreview: some View {
-        let total = loadingWeeks + maintenanceWeeks + taperingWeeks + offCycleWeeks
+        let total: Int = {
+            if showAdvancedCycle {
+                return loadingWeeks + maintenanceWeeks + taperingWeeks + offCycleWeeks
+            }
+            return hasPlannedEndDate ? durationWeeks : 0
+        }()
+        guard total > 0 else { return AnyView(EmptyView()) }
+
         let weeksToShow = min(total, 8)
-
-        return GlassCard {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Image(systemName: "calendar")
-                        .foregroundStyle(PepTheme.teal)
-                    Text("Schedule Preview")
-                        .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Spacer()
-                    Text("First \(weeksToShow) weeks")
-                        .font(.caption2)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-
-                ForEach(0..<weeksToShow, id: \.self) { week in
-                    let phase = phaseForWeek(week + 1)
-                    HStack(spacing: 8) {
-                        Text("W\(week + 1)")
-                            .font(.system(.caption2, design: .rounded, weight: .bold))
-                            .foregroundStyle(PepTheme.textSecondary)
-                            .frame(width: 24)
-
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(phase.color)
-                            .frame(width: 3, height: 24)
-
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(phase.rawValue)
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(phase.color)
-                            if phase != .offCycle {
-                                Text(selectedCompounds.map { "\($0.name) \($0.doseText)\($0.doseUnit)" }.joined(separator: " + "))
-                                    .font(.system(size: 8))
-                                    .foregroundStyle(PepTheme.textSecondary)
-                                    .lineLimit(1)
-                            }
-                        }
+        return AnyView(
+            GlassCard {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Image(systemName: "calendar")
+                            .foregroundStyle(PepTheme.teal)
+                        Text("Schedule Preview")
+                            .font(.system(.subheadline, weight: .semibold))
+                            .foregroundStyle(PepTheme.textPrimary)
                         Spacer()
+                        Text("First \(weeksToShow) weeks")
+                            .font(.caption2)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
 
-                        if phase != .offCycle {
-                            let dailyDoses = selectedCompounds.filter { dosesPerWeek(frequency: $0.frequency) > 0 }
-                            Text("\(dailyDoses.count > 0 ? "\(totalInjectionsPerWeek) inj/wk" : "")")
-                                .font(.system(size: 8, weight: .medium))
+                    ForEach(0..<weeksToShow, id: \.self) { week in
+                        let phase = phaseForWeek(week + 1)
+                        HStack(spacing: 8) {
+                            Text("W\(week + 1)")
+                                .font(.system(.caption2, design: .rounded, weight: .bold))
                                 .foregroundStyle(PepTheme.textSecondary)
+                                .frame(width: 24)
+
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(phase.color)
+                                .frame(width: 3, height: 24)
+
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(phase.rawValue)
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(phase.color)
+                                if phase != .offCycle {
+                                    Text(selectedCompounds.map { "\($0.name) \($0.doseText)\($0.doseUnit)" }.joined(separator: " + "))
+                                        .font(.system(size: 8))
+                                        .foregroundStyle(PepTheme.textSecondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                            Spacer()
                         }
                     }
                 }
             }
-        }
+        )
     }
 
     private var warningsSection: some View {
@@ -1356,47 +1662,6 @@ struct ProtocolSetupWizardView: View {
                                 .font(.caption)
                                 .foregroundStyle(PepTheme.textSecondary)
                         }
-                    }
-                }
-            }
-        )
-    }
-
-    private var reconstitutionSection: some View {
-        let compoundsWithRecon = selectedCompounds.compactMap { wc -> (WizardCompound, ReconstitutionGuide)? in
-            guard let profile = wc.profile else { return nil }
-            let guide = profile.reconstitutionGuide
-            guard guide.reconstitutionMath != "N/A — taken orally" && guide.reconstitutionMath != "N/A" else { return nil }
-            return (wc, guide)
-        }
-        guard !compoundsWithRecon.isEmpty else { return AnyView(EmptyView()) }
-
-        return AnyView(
-            GlassCard {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Image(systemName: "flask.fill")
-                            .foregroundStyle(PepTheme.blue)
-                        Text("Reconstitution Instructions")
-                            .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-
-                    ForEach(compoundsWithRecon, id: \.0.id) { wc, guide in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(wc.name)
-                                .font(.system(.caption, weight: .bold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                            Text(guide.reconstitutionMath)
-                                .font(.caption2)
-                                .foregroundStyle(PepTheme.textSecondary)
-                            Text("Storage: \(guide.storageReconstituted)")
-                                .font(.system(size: 9))
-                                .foregroundStyle(PepTheme.textSecondary)
-                        }
-                        .padding(8)
-                        .background(PepTheme.elevated.opacity(0.5))
-                        .clipShape(.rect(cornerRadius: 8))
                     }
                 }
             }
@@ -1490,6 +1755,20 @@ struct ProtocolSetupWizardView: View {
                             .background(PepTheme.elevated)
                             .clipShape(.rect(cornerRadius: 12))
                     }
+                } else {
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            protocolPath = nil
+                        }
+                    } label: {
+                        Text("Back")
+                            .font(.system(.body, weight: .semibold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(PepTheme.elevated)
+                            .clipShape(.rect(cornerRadius: 12))
+                    }
                 }
 
                 Button {
@@ -1501,7 +1780,7 @@ struct ProtocolSetupWizardView: View {
                         completeSetup()
                     }
                 } label: {
-                    Text(currentStep == stepCount - 1 ? "Start Protocol" : "Continue")
+                    Text(continueButtonTitle)
                         .font(.system(.body, weight: .bold))
                         .foregroundStyle(PepTheme.invertedText)
                         .frame(maxWidth: .infinity)
@@ -1516,16 +1795,26 @@ struct ProtocolSetupWizardView: View {
         }
     }
 
+    private var continueButtonTitle: String {
+        if currentStep == stepCount - 1 {
+            return protocolPath == .existingProtocol ? "Save Protocol" : "Start Protocol"
+        }
+        return "Continue"
+    }
+
     // MARK: - Helpers
 
     private var canContinue: Bool {
         switch currentStep {
-        case 0: return experienceLevel != nil
-        case 1: return selectedGoal != nil
-        case 2: return !selectedCompounds.isEmpty
-        case 3: return selectedCompounds.allSatisfy { !$0.doseText.isEmpty }
+        case 0: return selectedGoal != nil
+        case 1: return !selectedCompounds.isEmpty
+        case 2: return selectedCompounds.allSatisfy { !$0.doseText.isEmpty }
+        case 3:
+            if protocolPath == .existingProtocol {
+                return selectedStartShortcut != nil
+            }
+            return true
         case 4: return true
-        case 5: return true
         default: return false
         }
     }
@@ -1539,13 +1828,9 @@ struct ProtocolSetupWizardView: View {
         case .healing: category = .healing
         case .cognitive: category = .cognitive
         case .tanning: category = .tanning
-        case .custom: return []
+        case .general, .custom: return []
         }
-        var compounds = CompoundDatabase.compounds(for: category)
-        if experienceLevel == .beginner {
-            compounds = compounds.filter { $0.tieredDosing.contains { $0.tier == "Beginner" } }
-        }
-        return compounds
+        return CompoundDatabase.compounds(for: category)
     }
 
     private var filteredCompounds: [CompoundProfile] {
@@ -1559,71 +1844,15 @@ struct ProtocolSetupWizardView: View {
         }
     }
 
-    private var cycleConflictMessage: String? {
-        let profiles = selectedCompounds.compactMap { $0.profile }
-        guard profiles.count > 1 else { return nil }
-        let lengths = profiles.compactMap { extractWeeks(from: $0.cycleLength) }
-        guard let minLen = lengths.min(), let maxLen = lengths.max(), minLen != maxLen else { return nil }
-
-        let names = zip(selectedCompounds, profiles).compactMap { wc, profile -> String? in
-            guard let weeks = extractWeeks(from: profile.cycleLength) else { return nil }
-            return "\(wc.name) recommends \(weeks) weeks"
-        }
-        return names.joined(separator: ", ") + " — align to the longer?"
-    }
-
-    private var totalInjectionsPerWeek: Int {
-        selectedCompounds.reduce(0) { $0 + dosesPerWeek(frequency: $1.frequency) }
-    }
-
-    private func dosesPerWeek(frequency: String) -> Int {
-        let lower = frequency.lowercased()
-        if lower.contains("3x daily") { return 21 }
-        if lower.contains("2x daily") { return 14 }
-        if lower.contains("1x daily") || lower == "daily" { return 7 }
-        if lower.contains("3x weekly") { return 3 }
-        if lower.contains("2x weekly") { return 2 }
-        if lower.contains("1x weekly") || lower == "weekly" { return 1 }
-        return 0
-    }
-
-    private func extractWeeks(from cycleLength: String) -> Int? {
-        let pattern = #"(\d+)\s*(?:-\d+)?\s*weeks?"#
-        guard let range = cycleLength.range(of: pattern, options: .regularExpression) else { return nil }
-        let match = String(cycleLength[range])
-        guard let num = match.components(separatedBy: CharacterSet.decimalDigits.inverted).first(where: { !$0.isEmpty }),
-              let weeks = Int(num) else { return nil }
-        return weeks
-    }
-
     private func phaseForWeek(_ week: Int) -> CyclePhase {
-        if week <= loadingWeeks { return .loading }
-        if week <= loadingWeeks + maintenanceWeeks { return .maintenance }
-        if week <= loadingWeeks + maintenanceWeeks + taperingWeeks { return .tapering }
-        return .offCycle
-    }
-
-    private func autoPopulateSchedule() {
-        let profiles = selectedCompounds.compactMap { $0.profile }
-        guard !profiles.isEmpty else { return }
-
-        let hasLoading = profiles.contains { $0.loadingProtocol.lowercased().contains("yes") }
-        if hasLoading {
-            loadingWeeks = max(loadingWeeks, 4)
+        if showAdvancedCycle {
+            if loadingWeeks > 0 && week <= loadingWeeks { return .loading }
+            if week <= loadingWeeks + maintenanceWeeks { return .maintenance }
+            if taperingWeeks > 0 && week <= loadingWeeks + maintenanceWeeks + taperingWeeks { return .tapering }
+            if offCycleWeeks > 0 { return .offCycle }
+            return .maintenance
         }
-
-        if let maxCycle = profiles.compactMap({ extractWeeks(from: $0.cycleLength) }).max() {
-            let activeWeeks = maxCycle
-            maintenanceWeeks = max(1, activeWeeks - loadingWeeks - taperingWeeks)
-        }
-    }
-
-    private func alignToLongestCycle() {
-        let profiles = selectedCompounds.compactMap { $0.profile }
-        if let maxCycle = profiles.compactMap({ extractWeeks(from: $0.cycleLength) }).max() {
-            let activeWeeks = maxCycle
-            maintenanceWeeks = max(1, activeWeeks - loadingWeeks - taperingWeeks)
-        }
+        return .maintenance
     }
 
     private func applyDefaultDoses(for level: ExperienceLevel) {
@@ -1647,6 +1876,11 @@ struct ProtocolSetupWizardView: View {
         maintenanceWeeks = template.maintenanceWeeks
         taperingWeeks = template.taperingWeeks
         offCycleWeeks = template.offCycleWeeks
+        hasPlannedEndDate = true
+        durationWeeks = template.totalWeeks
+        if template.loadingWeeks > 0 || template.taperingWeeks > 0 || template.offCycleWeeks > 0 {
+            showAdvancedCycle = true
+        }
 
         selectedCompounds = template.compounds.map { tc in
             var wc = WizardCompound(name: tc.name)
@@ -1659,7 +1893,7 @@ struct ProtocolSetupWizardView: View {
 
         showTemplates = false
         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-            currentStep = 5
+            currentStep = 4
         }
     }
 
@@ -1727,16 +1961,31 @@ struct ProtocolSetupWizardView: View {
             )
         }
 
-        let total = loadingWeeks + maintenanceWeeks + taperingWeeks + offCycleWeeks
+        let finalTotalWeeks: Int? = {
+            if hasPlannedEndDate { return durationWeeks }
+            if showAdvancedCycle {
+                let total = loadingWeeks + maintenanceWeeks + taperingWeeks + offCycleWeeks
+                return total > 0 ? total : nil
+            }
+            return nil
+        }()
+
+        let finalLoading: Int? = showAdvancedCycle && loadingWeeks > 0 ? loadingWeeks : nil
+        let finalMaintenance: Int? = showAdvancedCycle && maintenanceWeeks > 0 ? maintenanceWeeks : nil
+        let finalTapering: Int? = showAdvancedCycle && taperingWeeks > 0 ? taperingWeeks : nil
+        let finalOffCycle: Int? = showAdvancedCycle && offCycleWeeks > 0 ? offCycleWeeks : nil
+
         let proto = PeptideProtocol(
             name: protocolName.isEmpty ? "My Protocol" : protocolName,
-            goal: selectedGoal ?? .custom,
+            goal: selectedGoal ?? .general,
             compounds: compounds,
-            totalWeeks: total,
-            loadingWeeks: loadingWeeks,
-            maintenanceWeeks: maintenanceWeeks,
-            taperingWeeks: taperingWeeks,
-            offCycleWeeks: offCycleWeeks
+            startDate: startDate,
+            totalWeeks: finalTotalWeeks,
+            loadingWeeks: finalLoading,
+            maintenanceWeeks: finalMaintenance,
+            taperingWeeks: finalTapering,
+            offCycleWeeks: finalOffCycle,
+            isExistingProtocol: protocolPath == .existingProtocol
         )
         onComplete(proto)
         dismiss()

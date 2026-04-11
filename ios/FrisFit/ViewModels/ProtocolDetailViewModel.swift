@@ -261,16 +261,20 @@ final class ProtocolDetailViewModel {
     // MARK: - Cycle Progress
 
     var cycleProgressFraction: Double {
-        let totalDays = max(1, protocolData.totalWeeks * 7)
-        return min(Double(protocolData.currentDay) / Double(totalDays), 1.0)
+        guard let tw = protocolData.totalWeeks, tw > 0 else {
+            let etw = protocolData.effectiveTotalWeeks
+            guard etw > 0 else { return 0 }
+            return min(Double(protocolData.currentDay) / Double(etw * 7), 1.0)
+        }
+        return min(Double(protocolData.currentDay) / Double(tw * 7), 1.0)
     }
 
     var currentPhaseProgress: Double {
         let day = protocolData.currentDay
         let phase = protocolData.currentPhase
-        let loadDays = protocolData.loadingWeeks * 7
-        let mainDays = protocolData.maintenanceWeeks * 7
-        let taperDays = protocolData.taperingWeeks * 7
+        let loadDays = (protocolData.loadingWeeks ?? 0) * 7
+        let mainDays = (protocolData.maintenanceWeeks ?? 0) * 7
+        let taperDays = (protocolData.taperingWeeks ?? 0) * 7
 
         switch phase {
         case .loading:
@@ -283,17 +287,18 @@ final class ProtocolDetailViewModel {
             return taperDays > 0 ? Double(daysInPhase) / Double(taperDays) : 0
         case .pct, .offCycle:
             let daysInPhase = day - loadDays - mainDays - taperDays
-            let offDays = protocolData.offCycleWeeks * 7
+            let offDays = (protocolData.offCycleWeeks ?? 0) * 7
             return offDays > 0 ? Double(daysInPhase) / Double(offDays) : 0
         }
     }
 
     var daysRemainingInPhase: Int {
+        guard protocolData.hasPhases else { return 0 }
         let day = protocolData.currentDay
-        let loadDays = protocolData.loadingWeeks * 7
-        let mainDays = protocolData.maintenanceWeeks * 7
-        let taperDays = protocolData.taperingWeeks * 7
-        let offDays = protocolData.offCycleWeeks * 7
+        let loadDays = (protocolData.loadingWeeks ?? 0) * 7
+        let mainDays = (protocolData.maintenanceWeeks ?? 0) * 7
+        let taperDays = (protocolData.taperingWeeks ?? 0) * 7
+        let offDays = (protocolData.offCycleWeeks ?? 0) * 7
 
         switch protocolData.currentPhase {
         case .loading: return max(0, loadDays - day)

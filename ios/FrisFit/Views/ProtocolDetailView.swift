@@ -232,60 +232,77 @@ struct ProtocolDetailView: View {
     // MARK: - Cycle Timeline
 
     private var cycleTimelineSection: some View {
-        CollapsibleSection(
-            title: "Cycle Timeline",
-            icon: "calendar.badge.clock",
-            iconColor: PepTheme.blue,
-            isExpanded: viewModel.isSectionExpanded("timeline"),
-            toggle: { viewModel.toggleSection("timeline") }
-        ) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 4) {
-                    Text("Day \(viewModel.protocolData.currentDay)")
-                        .font(.system(.subheadline, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("of \(viewModel.protocolData.totalWeeks * 7)")
-                        .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary)
-                    Spacer()
-                    Text("\(Int(viewModel.cycleProgressFraction * 100))% complete")
-                        .font(.system(.caption, design: .rounded, weight: .semibold))
-                        .foregroundStyle(PepTheme.teal)
+        Group {
+            if viewModel.protocolData.hasPhases || viewModel.protocolData.totalWeeks != nil {
+                CollapsibleSection(
+                    title: "Cycle Timeline",
+                    icon: "calendar.badge.clock",
+                    iconColor: PepTheme.blue,
+                    isExpanded: viewModel.isSectionExpanded("timeline"),
+                    toggle: { viewModel.toggleSection("timeline") }
+                ) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(spacing: 4) {
+                            Text("Day \(viewModel.protocolData.currentDay)")
+                                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                                .foregroundStyle(PepTheme.textPrimary)
+                            if let tw = viewModel.protocolData.totalWeeks {
+                                Text("of \(tw * 7)")
+                                    .font(.system(.subheadline, weight: .medium))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            } else {
+                                Text("\u{2014} Ongoing")
+                                    .font(.system(.subheadline, weight: .medium))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                            Spacer()
+                            if viewModel.protocolData.totalWeeks != nil {
+                                Text("\(Int(viewModel.cycleProgressFraction * 100))% complete")
+                                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                                    .foregroundStyle(PepTheme.teal)
+                            }
+                        }
+
+                        if viewModel.protocolData.hasPhases {
+                            phaseProgressBar
+                            phaseLabels
+                        }
+                    }
                 }
-
-                phaseProgressBar
-
-                phaseLabels
             }
         }
     }
 
     private var phaseProgressBar: some View {
         let proto = viewModel.protocolData
-        let total = max(1, proto.loadingWeeks + proto.maintenanceWeeks + proto.taperingWeeks + proto.offCycleWeeks)
+        let lw = proto.loadingWeeks ?? 0
+        let mw = proto.maintenanceWeeks ?? 0
+        let tw = proto.taperingWeeks ?? 0
+        let ow = proto.offCycleWeeks ?? 0
+        let total = max(1, lw + mw + tw + ow)
 
         return GeometryReader { geo in
             ZStack(alignment: .leading) {
                 HStack(spacing: 2) {
-                    if proto.loadingWeeks > 0 {
+                    if lw > 0 {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(CyclePhase.loading.color.opacity(0.3))
-                            .frame(width: geo.size.width * CGFloat(proto.loadingWeeks) / CGFloat(total))
+                            .frame(width: geo.size.width * CGFloat(lw) / CGFloat(total))
                     }
-                    if proto.maintenanceWeeks > 0 {
+                    if mw > 0 {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(CyclePhase.maintenance.color.opacity(0.3))
-                            .frame(width: geo.size.width * CGFloat(proto.maintenanceWeeks) / CGFloat(total))
+                            .frame(width: geo.size.width * CGFloat(mw) / CGFloat(total))
                     }
-                    if proto.taperingWeeks > 0 {
+                    if tw > 0 {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(CyclePhase.tapering.color.opacity(0.3))
-                            .frame(width: geo.size.width * CGFloat(proto.taperingWeeks) / CGFloat(total))
+                            .frame(width: geo.size.width * CGFloat(tw) / CGFloat(total))
                     }
-                    if proto.offCycleWeeks > 0 {
+                    if ow > 0 {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(CyclePhase.offCycle.color.opacity(0.3))
-                            .frame(width: geo.size.width * CGFloat(proto.offCycleWeeks) / CGFloat(total))
+                            .frame(width: geo.size.width * CGFloat(ow) / CGFloat(total))
                     }
                 }
 
@@ -306,10 +323,10 @@ struct ProtocolDetailView: View {
     private var phaseLabels: some View {
         HStack(spacing: 6) {
             ForEach([
-                (CyclePhase.loading, viewModel.protocolData.loadingWeeks),
-                (CyclePhase.maintenance, viewModel.protocolData.maintenanceWeeks),
-                (CyclePhase.tapering, viewModel.protocolData.taperingWeeks),
-                (CyclePhase.offCycle, viewModel.protocolData.offCycleWeeks),
+                (CyclePhase.loading, viewModel.protocolData.loadingWeeks ?? 0),
+                (CyclePhase.maintenance, viewModel.protocolData.maintenanceWeeks ?? 0),
+                (CyclePhase.tapering, viewModel.protocolData.taperingWeeks ?? 0),
+                (CyclePhase.offCycle, viewModel.protocolData.offCycleWeeks ?? 0),
             ], id: \.0) { phase, weeks in
                 if weeks > 0 {
                     HStack(spacing: 4) {

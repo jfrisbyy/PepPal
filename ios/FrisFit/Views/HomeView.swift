@@ -252,68 +252,96 @@ struct HomeView: View {
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 2) {
-                            Text("Day \(proto.currentDay)")
-                                .font(.system(.title3, design: .rounded, weight: .bold))
+                            Text(proto.weekLabel)
+                                .font(.system(.caption, design: .rounded, weight: .bold))
                                 .foregroundStyle(PepTheme.teal)
-                            Text(proto.currentPhase.rawValue)
-                                .font(.system(.caption2, weight: .semibold))
-                                .foregroundStyle(proto.currentPhase.color)
+                            if proto.hasPhases {
+                                Text(proto.currentPhase.rawValue)
+                                    .font(.system(.caption2, weight: .semibold))
+                                    .foregroundStyle(proto.currentPhase.color)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(proto.currentPhase.color.opacity(0.12))
+                                    .clipShape(.capsule)
+                            }
+                        }
+                    }
+
+                    if !proto.compounds.isEmpty {
+                        HStack(spacing: 6) {
+                            ForEach(proto.compounds.prefix(3)) { compound in
+                                HStack(spacing: 4) {
+                                    Image(systemName: "pill.fill")
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(PepTheme.teal)
+                                    Text("\(compound.compoundName) \(Int(compound.doseMcg))\(compound.doseMcg >= 1000 ? "mcg" : "mcg")")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundStyle(PepTheme.textSecondary)
+                                }
                                 .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(proto.currentPhase.color.opacity(0.12))
+                                .padding(.vertical, 4)
+                                .background(PepTheme.elevated.opacity(0.5))
                                 .clipShape(.capsule)
+                            }
                         }
                     }
 
-                    if let nextDose = proto.nextDose {
-                        HStack(spacing: 10) {
-                            Image(systemName: "clock.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(PepTheme.amber)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Next Dose")
-                                    .font(.caption2)
-                                    .foregroundStyle(PepTheme.textSecondary)
-                                Text("\(Int(nextDose.doseMcg))mcg \(nextDose.compoundName)")
-                                    .font(.system(.subheadline, weight: .semibold))
-                                    .foregroundStyle(PepTheme.textPrimary)
+                    HStack(spacing: 12) {
+                        Button {
+                            showProtocolDetail = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "syringe.fill")
+                                    .font(.system(size: 12))
+                                Text("Log Dose")
+                                    .font(.system(.caption, weight: .bold))
                             }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                            .foregroundStyle(PepTheme.invertedText)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(PepTheme.teal)
+                            .clipShape(.capsule)
                         }
-                        .padding(10)
-                        .background(PepTheme.elevated.opacity(0.5))
-                        .clipShape(.rect(cornerRadius: 10))
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                     }
 
-                    let total = max(1, proto.loadingWeeks + proto.maintenanceWeeks + proto.taperingWeeks + proto.offCycleWeeks)
-                    GeometryReader { geo in
-                        HStack(spacing: 2) {
-                            if proto.loadingWeeks > 0 {
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(CyclePhase.loading.color)
-                                    .frame(width: geo.size.width * CGFloat(proto.loadingWeeks) / CGFloat(total))
-                            }
-                            if proto.maintenanceWeeks > 0 {
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(CyclePhase.maintenance.color)
-                                    .frame(width: geo.size.width * CGFloat(proto.maintenanceWeeks) / CGFloat(total))
-                            }
-                            if proto.taperingWeeks > 0 {
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(CyclePhase.tapering.color)
-                                    .frame(width: geo.size.width * CGFloat(proto.taperingWeeks) / CGFloat(total))
-                            }
-                            if proto.offCycleWeeks > 0 {
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(CyclePhase.offCycle.color)
-                                    .frame(width: geo.size.width * CGFloat(proto.offCycleWeeks) / CGFloat(total))
+                    if proto.hasPhases {
+                        let lw = proto.loadingWeeks ?? 0
+                        let mw = proto.maintenanceWeeks ?? 0
+                        let tw = proto.taperingWeeks ?? 0
+                        let ow = proto.offCycleWeeks ?? 0
+                        let total = max(1, lw + mw + tw + ow)
+                        GeometryReader { geo in
+                            HStack(spacing: 2) {
+                                if lw > 0 {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(CyclePhase.loading.color)
+                                        .frame(width: geo.size.width * CGFloat(lw) / CGFloat(total))
+                                }
+                                if mw > 0 {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(CyclePhase.maintenance.color)
+                                        .frame(width: geo.size.width * CGFloat(mw) / CGFloat(total))
+                                }
+                                if tw > 0 {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(CyclePhase.tapering.color)
+                                        .frame(width: geo.size.width * CGFloat(tw) / CGFloat(total))
+                                }
+                                if ow > 0 {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(CyclePhase.offCycle.color)
+                                        .frame(width: geo.size.width * CGFloat(ow) / CGFloat(total))
+                                }
                             }
                         }
+                        .frame(height: 6)
                     }
-                    .frame(height: 6)
                 }
             }
         }

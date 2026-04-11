@@ -253,7 +253,11 @@ final class PepChatViewModel {
             if let activeProtocol = protocols?.first(where: { $0.isActive }) {
                 let currentWeek = (activeProtocol.currentDay - 1) / 7 + 1
                 let phase = activeProtocol.currentPhase.rawValue
-                context += "- Active Protocol: \(activeProtocol.name) — Week \(currentWeek) of \(activeProtocol.totalWeeks) (\(phase) phase)\n"
+                if let tw = activeProtocol.totalWeeks {
+                    context += "- Active Protocol: \(activeProtocol.name) — Week \(currentWeek) of \(tw) (\(phase) phase)\n"
+                } else {
+                    context += "- Active Protocol: \(activeProtocol.name) — Week \(currentWeek), Ongoing (\(phase) phase)\n"
+                }
 
                 let compoundNames = activeProtocol.compounds.map { compound in
                     let doseMg = compound.doseMcg / 1000.0

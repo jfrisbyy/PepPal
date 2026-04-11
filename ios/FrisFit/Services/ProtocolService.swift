@@ -19,7 +19,7 @@ nonisolated struct SupabaseProtocolInsert: Codable, Sendable {
     let name: String
     let goal: String
     let start_date: String
-    let total_weeks: Int
+    let total_weeks: Int?
     let experience_level: String?
     let is_active: Bool
 }
@@ -140,10 +140,10 @@ final class ProtocolService {
         return session.user.id.uuidString.lowercased()
     }
 
-    private func estimatePhases(totalWeeks: Int) -> (loading: Int, maintenance: Int, tapering: Int, offCycle: Int) {
-        guard totalWeeks > 0 else { return (0, 1, 0, 0) }
+    private func estimatePhases(totalWeeks: Int?) -> (loading: Int?, maintenance: Int?, tapering: Int?, offCycle: Int?) {
+        guard let totalWeeks, totalWeeks > 0 else { return (nil, nil, nil, nil) }
         if totalWeeks <= 4 {
-            return (0, totalWeeks, 0, 0)
+            return (nil, totalWeeks, nil, nil)
         }
         let offCycle = min(4, totalWeeks / 4)
         let remaining = totalWeeks - offCycle
@@ -176,7 +176,7 @@ final class ProtocolService {
 
             let goal = ProtocolGoal.allCases.first { $0.rawValue == row.goal } ?? .custom
             let startDate = parseDate(row.start_date)
-            let totalWeeks = row.total_weeks ?? 8
+            let totalWeeks = row.total_weeks
             let phases = estimatePhases(totalWeeks: totalWeeks)
             let isActive = row.is_active ?? false
 

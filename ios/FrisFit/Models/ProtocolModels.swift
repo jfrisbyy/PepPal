@@ -6,6 +6,7 @@ nonisolated enum ProtocolGoal: String, CaseIterable, Identifiable, Sendable {
     case healing = "Healing & Recovery"
     case cognitive = "Cognitive Enhancement"
     case tanning = "Tanning & Cosmetic"
+    case general = "General / Just Track"
     case custom = "Custom"
 
     var id: String { rawValue }
@@ -17,6 +18,7 @@ nonisolated enum ProtocolGoal: String, CaseIterable, Identifiable, Sendable {
         case .healing: return "cross.case.fill"
         case .cognitive: return "brain.head.profile"
         case .tanning: return "sun.max.fill"
+        case .general: return "list.clipboard.fill"
         case .custom: return "slider.horizontal.3"
         }
     }
@@ -28,6 +30,7 @@ nonisolated enum ProtocolGoal: String, CaseIterable, Identifiable, Sendable {
         case .healing: return PepTheme.blue
         case .cognitive: return PepTheme.violet
         case .tanning: return .orange
+        case .general: return PepTheme.teal
         case .custom: return PepTheme.textSecondary
         }
     }
@@ -135,30 +138,32 @@ nonisolated struct PeptideProtocol: Identifiable, Sendable {
     let goal: ProtocolGoal
     var compounds: [ProtocolCompound]
     let startDate: Date
-    let totalWeeks: Int
-    let loadingWeeks: Int
-    let maintenanceWeeks: Int
-    let taperingWeeks: Int
-    let offCycleWeeks: Int
+    let totalWeeks: Int?
+    let loadingWeeks: Int?
+    let maintenanceWeeks: Int?
+    let taperingWeeks: Int?
+    let offCycleWeeks: Int?
     var isActive: Bool
     var doseLog: [DoseLogEntry]
     var sideEffectLog: [SideEffectEntry]
     var supplements: [SupplementEntry]
+    let isExistingProtocol: Bool
 
     init(
         name: String = "My Protocol",
         goal: ProtocolGoal = .custom,
         compounds: [ProtocolCompound] = [],
         startDate: Date = Date(),
-        totalWeeks: Int = 8,
-        loadingWeeks: Int = 1,
-        maintenanceWeeks: Int = 5,
-        taperingWeeks: Int = 1,
-        offCycleWeeks: Int = 4,
+        totalWeeks: Int? = 8,
+        loadingWeeks: Int? = 1,
+        maintenanceWeeks: Int? = 5,
+        taperingWeeks: Int? = 1,
+        offCycleWeeks: Int? = 4,
         isActive: Bool = true,
         doseLog: [DoseLogEntry] = [],
         sideEffectLog: [SideEffectEntry] = [],
-        supplements: [SupplementEntry] = []
+        supplements: [SupplementEntry] = [],
+        isExistingProtocol: Bool = false
     ) {
         self.id = UUID()
         self.name = name
@@ -174,18 +179,47 @@ nonisolated struct PeptideProtocol: Identifiable, Sendable {
         self.doseLog = doseLog
         self.sideEffectLog = sideEffectLog
         self.supplements = supplements
+        self.isExistingProtocol = isExistingProtocol
+    }
+
+    var isOpenEnded: Bool {
+        totalWeeks == nil
+    }
+
+    var hasPhases: Bool {
+        loadingWeeks != nil || taperingWeeks != nil || offCycleWeeks != nil
+    }
+
+    var effectiveTotalWeeks: Int {
+        if let tw = totalWeeks { return tw }
+        return (loadingWeeks ?? 0) + (maintenanceWeeks ?? 0) + (taperingWeeks ?? 0) + (offCycleWeeks ?? 0)
     }
 
     var currentDay: Int {
         max(1, Calendar.current.dateComponents([.day], from: startDate, to: Date()).day ?? 1)
     }
 
+    var currentWeek: Int {
+        (currentDay - 1) / 7 + 1
+    }
+
     var currentPhase: CyclePhase {
-        let week = (currentDay - 1) / 7 + 1
-        if week <= loadingWeeks { return .loading }
-        if week <= loadingWeeks + maintenanceWeeks { return .maintenance }
-        if week <= loadingWeeks + maintenanceWeeks + taperingWeeks { return .tapering }
+        guard hasPhases else { return .maintenance }
+        let week = currentWeek
+        let lw = loadingWeeks ?? 0
+        let mw = maintenanceWeeks ?? 0
+        let tw = taperingWeeks ?? 0
+        if lw > 0 && week <= lw { return .loading }
+        if week <= lw + mw { return .maintenance }
+        if tw > 0 && week <= lw + mw + tw { return .tapering }
         return .offCycle
+    }
+
+    var weekLabel: String {
+        if let tw = totalWeeks {
+            return "Week \(currentWeek) of \(tw)"
+        }
+        return "Week \(currentWeek) — Ongoing"
     }
 
     var nextDose: ProtocolCompound? {

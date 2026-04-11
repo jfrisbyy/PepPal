@@ -218,7 +218,7 @@ private struct ProtocolHistoryCard: View {
 
                 HStack(spacing: 16) {
                     statPill(icon: "calendar", value: dateFormatter.string(from: proto.startDate))
-                    statPill(icon: "clock", value: "\(proto.totalWeeks) weeks")
+                    statPill(icon: "clock", value: proto.totalWeeks != nil ? "\(proto.totalWeeks!) weeks" : "Ongoing")
                     statPill(icon: "flask.fill", value: "\(proto.compounds.count) compounds")
                 }
 
@@ -258,7 +258,7 @@ private struct ProtocolHistoryCard: View {
 
                         Spacer()
 
-                        let progress = min(1.0, Double(proto.currentDay) / Double(proto.totalWeeks * 7))
+                        let progress = min(1.0, Double(proto.currentDay) / Double((proto.totalWeeks ?? proto.effectiveTotalWeeks) * 7))
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(PepTheme.elevated)
