@@ -101,6 +101,7 @@ struct HomeView: View {
                 profileCompletionNudge
             }
             DailyDeckBannerView(viewModel: viewModel)
+            todaysPlanCard
             protocolCard
             BodyGoalSectionView(viewModel: bodyGoalViewModel)
             DailyActivityCard(viewModel: energyBalanceViewModel, onLogActivity: {
@@ -119,7 +120,6 @@ struct HomeView: View {
             if let encouragement = viewModel.streakEncouragement {
                 streakEncouragementCard(message: encouragement)
             }
-            todaysPlanCard
             pepInsightCard
             quickStatsBar
         }
