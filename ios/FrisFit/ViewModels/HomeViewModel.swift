@@ -453,6 +453,10 @@ final class HomeViewModel {
         }
     }
 
+    func reloadActiveProgram() {
+        loadActiveProgram()
+    }
+
     private func loadActiveProgram() {
         guard let data = UserDefaults.standard.data(forKey: Self.programKey),
               let program = try? JSONDecoder().decode(TrainingProgram.self, from: data) else {

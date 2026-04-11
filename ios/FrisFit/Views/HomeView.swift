@@ -18,6 +18,8 @@ struct HomeView: View {
     @State private var profileNudgeState = ProfileNudgeState()
     @State private var showEditProfileFromNudge: Bool = false
     @State private var showLogActivity: Bool = false
+    @State private var trainViewModel = TrainViewModel()
+    @State private var showProgramCreation: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -86,6 +88,23 @@ struct HomeView: View {
                 Task { await profileNudgeState.checkProfile() }
             }) {
                 EditProfileView(viewModel: profileNudgeState.profileViewModel)
+            }
+            .sheet(isPresented: $showProgramCreation) {
+                ProgramCreationView(viewModel: trainViewModel)
+            }
+            .fullScreenCover(isPresented: $trainViewModel.showProgramBuilder) {
+                ProgramBuilderView(viewModel: trainViewModel)
+            }
+            .onDisappear {}
+            .onChange(of: showProgramCreation) { _, isShowing in
+                if !isShowing {
+                    viewModel.reloadActiveProgram()
+                }
+            }
+            .onChange(of: trainViewModel.showProgramBuilder) { _, isShowing in
+                if !isShowing {
+                    viewModel.reloadActiveProgram()
+                }
             }
         }
     }
@@ -938,7 +957,9 @@ struct HomeView: View {
                                 .rotationEffect(.degrees(viewModel.isPlanExpanded ? 180 : 0))
                         }
 
-                        if viewModel.todaysPlan.isRestDay {
+                        if viewModel.activeProgram == nil {
+                            noProgramPlanContent
+                        } else if viewModel.todaysPlan.isRestDay {
                             restDayContent
                         } else {
                             workoutPlanSummary
@@ -949,7 +970,10 @@ struct HomeView: View {
             .buttonStyle(.scale)
             .sensoryFeedback(.selection, trigger: viewModel.isPlanExpanded)
 
-            if viewModel.isPlanExpanded && !viewModel.todaysPlan.isRestDay {
+            if viewModel.isPlanExpanded && viewModel.activeProgram == nil {
+                expandedNoProgramContent
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            } else if viewModel.isPlanExpanded && !viewModel.todaysPlan.isRestDay {
                 expandedPlanContent
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
@@ -1131,6 +1155,129 @@ struct HomeView: View {
         .padding(.horizontal, 12)
         .background(PepTheme.elevated.opacity(0.4))
         .clipShape(.rect(cornerRadius: 10))
+    }
+
+    private var noProgramPlanContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "figure.strengthtraining.traditional")
+                    .font(.title2)
+                    .foregroundStyle(PepTheme.teal.opacity(0.6))
+                Text("No Active Program")
+                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+
+            Text("Set up a program to see your daily plan")
+                .font(.subheadline)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+    }
+
+    private var expandedNoProgramContent: some View {
+        VStack(spacing: 14) {
+            noProgramPathButton(
+                icon: "square.grid.2x2.fill",
+                title: "Choose a Template",
+                subtitle: "PPL, Upper/Lower, Full Body & more",
+                color: PepTheme.teal
+            ) {
+                showProgramCreation = true
+            }
+
+            HStack(spacing: 8) {
+                noProgramSmallButton(
+                    icon: "sparkles",
+                    title: "Build with AI",
+                    color: PepTheme.violet
+                ) {
+                    showProgramCreation = true
+                }
+
+                noProgramSmallButton(
+                    icon: "doc.badge.plus",
+                    title: "From Scratch",
+                    color: PepTheme.amber
+                ) {
+                    trainViewModel.resetBuilder()
+                    trainViewModel.showProgramBuilder = true
+                }
+            }
+        }
+        .padding(16)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.5
+                )
+        )
+        .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 4)
+        .padding(.top, -8)
+    }
+
+    private func noProgramPathButton(icon: String, title: String, subtitle: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(color)
+                    .clipShape(.rect(cornerRadius: 10))
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            .padding(12)
+            .background(color.opacity(0.06))
+            .clipShape(.rect(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(color.opacity(0.15), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func noProgramSmallButton(icon: String, title: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(color)
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(color.opacity(0.06))
+            .clipShape(.rect(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(color.opacity(0.15), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var restDayContent: some View {
