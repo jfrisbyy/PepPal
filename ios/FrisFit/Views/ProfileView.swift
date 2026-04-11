@@ -6,6 +6,7 @@ struct ProfileView: View {
     @State private var isLoading: Bool = true
     @State private var selectedTab: ProfileTab = .posts
     @State private var showEditProfile: Bool = false
+    @State private var showReconCalculator: Bool = false
 
     enum ProfileTab: String, CaseIterable {
         case posts = "Posts"
@@ -55,6 +56,9 @@ struct ProfileView: View {
             .sheet(isPresented: $showEditProfile) {
                 EditProfileView(viewModel: viewModel)
             }
+            .sheet(isPresented: $showReconCalculator) {
+                ReconstitutionCalculatorView()
+            }
             .navigationDestination(for: ProfileDestination.self) { destination in
                 switch destination {
                 case .analytics:
@@ -69,6 +73,12 @@ struct ProfileView: View {
                     WorkoutHistoryDetailView(workout: workout)
                 case .userProfile(let user):
                     UserProfileView(user: user, viewModel: viewModel)
+                case .bloodwork:
+                    BloodworkTrackingView()
+                case .progressPhotos:
+                    ProgressPhotosView()
+                case .protocolHistory:
+                    ProtocolHistoryView()
                 }
             }
             .navigationDestination(for: FeedPost.self) { post in
@@ -307,13 +317,27 @@ struct ProfileView: View {
 
     private var healthTab: some View {
         VStack(spacing: 12) {
-            ProfileMenuRow(icon: "drop.fill", title: "Bloodwork Tracking", subtitle: "Log and track your lab results over time")
+            NavigationLink(value: ProfileDestination.bloodwork) {
+                ProfileMenuRow(icon: "drop.fill", title: "Bloodwork Tracking", subtitle: "Log and track your lab results over time")
+            }
+            .buttonStyle(.scale)
 
-            ProfileMenuRow(icon: "camera.fill", title: "Progress Photos", subtitle: "Document your journey with side-by-side comparisons")
+            NavigationLink(value: ProfileDestination.progressPhotos) {
+                ProfileMenuRow(icon: "camera.fill", title: "Progress Photos", subtitle: "Document your journey with side-by-side comparisons")
+            }
+            .buttonStyle(.scale)
 
-            ProfileMenuRow(icon: "pill.fill", title: "Protocol History", subtitle: "View past and current peptide protocols")
+            NavigationLink(value: ProfileDestination.protocolHistory) {
+                ProfileMenuRow(icon: "pill.fill", title: "Protocol History", subtitle: "View past and current peptide protocols")
+            }
+            .buttonStyle(.scale)
 
-            ProfileMenuRow(icon: "function", title: "Reconstitution Calculator", subtitle: "Quick dose and concentration math")
+            Button {
+                showReconCalculator = true
+            } label: {
+                ProfileMenuRow(icon: "function", title: "Reconstitution Calculator", subtitle: "Quick dose and concentration math")
+            }
+            .buttonStyle(.scale)
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
@@ -393,6 +417,9 @@ enum ProfileDestination: Hashable {
     case workoutHistory
     case historyDetail(WorkoutHistoryDetail)
     case userProfile(SocialUser)
+    case bloodwork
+    case progressPhotos
+    case protocolHistory
 }
 
 extension WorkoutHistoryDetail: Hashable {
