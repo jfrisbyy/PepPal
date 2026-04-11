@@ -53,6 +53,16 @@ final class EnergyBalanceViewModel {
         return min(fatConsumed / Double(fatTarget), 1.0)
     }
 
+    var dailyCalorieTarget: Int {
+        let base = bmr > 0 ? bmr : 1800
+        let tdee = base + activityCalories
+        switch goalType {
+        case "weightLoss", "cutting": return max(tdee - 500, 1200)
+        case "bulking", "muscleGain": return tdee + 300
+        default: return tdee
+        }
+    }
+
     func loadData() {
         guard !hasLoaded else { return }
         hasLoaded = true

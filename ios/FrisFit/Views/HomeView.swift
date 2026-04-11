@@ -101,9 +101,10 @@ struct HomeView: View {
             DailyDeckBannerView(viewModel: viewModel)
             protocolCard
             BodyGoalSectionView(viewModel: bodyGoalViewModel)
-            DailyEnergyCard(viewModel: energyBalanceViewModel, onLogActivity: {
+            DailyActivityCard(viewModel: energyBalanceViewModel, onLogActivity: {
                 showLogActivity = true
-            }, onTapNutrition: {
+            })
+            DailyNutritionCard(viewModel: energyBalanceViewModel, onTapNutrition: {
                 showNutrition = true
             })
             .navigationDestination(isPresented: $showNutrition) {
