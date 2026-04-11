@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var showLogOutConfirm: Bool = false
     @State private var appearanceManager = AppearanceManager.shared
     @State private var healthKit = HealthKitService.shared
+    @State private var reminderManager = ReminderManager.shared
 
     var body: some View {
         ScrollView {
@@ -13,8 +14,9 @@ struct SettingsView: View {
                 unitsSection
                 timerSection
                 healthKitSection
-                notificationsSection
-                notificationTypesSection
+                healthRemindersSection
+                activityRemindersSection
+                socialNotificationsSection
                 streakSection
                 appearanceSection
                 accountSection
@@ -88,107 +90,153 @@ struct SettingsView: View {
         }
     }
 
-    private var notificationsSection: some View {
-        SettingsCard(title: "Notifications") {
+    private var healthRemindersSection: some View {
+        SettingsCard(title: "Health Reminders") {
             VStack(spacing: 0) {
-                Toggle(isOn: $viewModel.notificationsEnabled) {
-                    Label("Push Notifications", systemImage: "bell.fill")
-                        .font(.body)
-                        .foregroundStyle(PepTheme.textPrimary)
+                if reminderManager.authorizationDenied {
+                    NotificationDeniedBanner()
+                    Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 8)
                 }
-                .tint(PepTheme.teal)
-                .onChange(of: viewModel.notificationsEnabled) { _, newValue in
-                    viewModel.notificationService.preferences.enabled = newValue
-                    if newValue {
-                        Task {
-                            _ = await viewModel.notificationService.requestAuthorization()
+
+                ReminderToggleRow(
+                    category: .dose,
+                    isEnabled: $reminderManager.doseEnabled,
+                    onToggle: { enabled in
+                        if enabled { requestPermissionIfNeeded() }
+                    }
+                ) {
+                    VStack(spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 11))
+                                .foregroundStyle(PepTheme.textSecondary)
+                            Text("Automatically scheduled from your active protocol compounds.")
+                                .font(.system(size: 11))
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
-                    } else {
-                        viewModel.notificationService.scheduleAllNotifications()
                     }
                 }
 
-                if viewModel.notificationsEnabled {
-                    Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 8)
+                NotificationDivider()
 
-                    HStack {
-                        Label("Reminder Time", systemImage: "alarm")
-                            .font(.body)
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Spacer()
-                        DatePicker("", selection: $viewModel.reminderTime, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .tint(PepTheme.teal)
-                            .onChange(of: viewModel.reminderTime) { _, newValue in
-                                viewModel.updateReminderTime(newValue)
-                            }
+                ReminderToggleRow(
+                    category: .bloodwork,
+                    isEnabled: $reminderManager.bloodworkEnabled,
+                    onToggle: { enabled in
+                        if enabled { requestPermissionIfNeeded() }
+                    }
+                ) {
+                    VStack(spacing: 8) {
+                        ReminderIntervalPicker(label: "Frequency", interval: $reminderManager.bloodworkInterval)
+                        ReminderTimePicker(label: "Reminder Time", icon: "clock", time: $reminderManager.bloodworkTime)
+                    }
+                }
+
+                NotificationDivider()
+
+                ReminderToggleRow(
+                    category: .weighIn,
+                    isEnabled: $reminderManager.weighInEnabled,
+                    onToggle: { enabled in
+                        if enabled { requestPermissionIfNeeded() }
+                    }
+                ) {
+                    VStack(spacing: 8) {
+                        ReminderDayPicker(label: "Day", day: $reminderManager.weighInDay)
+                        ReminderTimePicker(label: "Time", icon: "clock", time: $reminderManager.weighInTime)
                     }
                 }
             }
         }
     }
 
-    private var notificationTypesSection: some View {
-        Group {
-            if viewModel.notificationsEnabled {
-                SettingsCard(title: "Notification Types") {
-                    VStack(spacing: 0) {
-                        NotificationToggleRow(
-                            type: .workoutReminder,
-                            isOn: $viewModel.workoutReminders,
-                            viewModel: viewModel
-                        )
+    private var activityRemindersSection: some View {
+        SettingsCard(title: "Activity Reminders") {
+            VStack(spacing: 0) {
+                ReminderToggleRow(
+                    category: .workout,
+                    isEnabled: $reminderManager.workoutEnabled,
+                    onToggle: { enabled in
+                        if enabled { requestPermissionIfNeeded() }
+                    }
+                ) {
+                    ReminderTimePicker(label: "Reminder Time", icon: "clock", time: $reminderManager.workoutTime)
+                }
 
-                        NotificationDivider()
+                NotificationDivider()
 
-                        NotificationToggleRow(
-                            type: .friendWorkout,
-                            isOn: $viewModel.friendWorkoutNotifs,
-                            viewModel: viewModel
-                        )
-
-                        NotificationDivider()
-
-                        NotificationToggleRow(
-                            type: .friendLike,
-                            isOn: $viewModel.likeNotifs,
-                            viewModel: viewModel
-                        )
-
-                        NotificationDivider()
-
-                        NotificationToggleRow(
-                            type: .streakMilestone,
-                            isOn: $viewModel.streakMilestoneNotifs,
-                            viewModel: viewModel
-                        )
-
-                        NotificationDivider()
-
-                        NotificationToggleRow(
-                            type: .weeklyProgress,
-                            isOn: $viewModel.weeklyProgressNotifs,
-                            viewModel: viewModel
-                        )
-
-                        NotificationDivider()
-
-                        NotificationToggleRow(
-                            type: .restDayRecovery,
-                            isOn: $viewModel.restDayRecoveryNotifs,
-                            viewModel: viewModel
-                        )
-
-                        NotificationDivider()
-
-                        NotificationToggleRow(
-                            type: .streakWarning,
-                            isOn: $viewModel.streakWarningNotifs,
-                            viewModel: viewModel
-                        )
+                ReminderToggleRow(
+                    category: .mealLogging,
+                    isEnabled: $reminderManager.mealLoggingEnabled,
+                    onToggle: { enabled in
+                        if enabled { requestPermissionIfNeeded() }
+                    }
+                ) {
+                    VStack(spacing: 8) {
+                        ReminderTimePicker(label: "Breakfast", icon: "sunrise", time: $reminderManager.breakfastTime)
+                        ReminderTimePicker(label: "Lunch", icon: "sun.max", time: $reminderManager.lunchTime)
+                        ReminderTimePicker(label: "Dinner", icon: "moon", time: $reminderManager.dinnerTime)
                     }
                 }
             }
+        }
+    }
+
+    private var socialNotificationsSection: some View {
+        SettingsCard(title: "Social Notifications") {
+            VStack(spacing: 0) {
+                NotificationToggleRow(
+                    type: .friendWorkout,
+                    isOn: $viewModel.friendWorkoutNotifs,
+                    viewModel: viewModel
+                )
+
+                NotificationDivider()
+
+                NotificationToggleRow(
+                    type: .friendLike,
+                    isOn: $viewModel.likeNotifs,
+                    viewModel: viewModel
+                )
+
+                NotificationDivider()
+
+                NotificationToggleRow(
+                    type: .streakMilestone,
+                    isOn: $viewModel.streakMilestoneNotifs,
+                    viewModel: viewModel
+                )
+
+                NotificationDivider()
+
+                NotificationToggleRow(
+                    type: .weeklyProgress,
+                    isOn: $viewModel.weeklyProgressNotifs,
+                    viewModel: viewModel
+                )
+
+                NotificationDivider()
+
+                NotificationToggleRow(
+                    type: .restDayRecovery,
+                    isOn: $viewModel.restDayRecoveryNotifs,
+                    viewModel: viewModel
+                )
+
+                NotificationDivider()
+
+                NotificationToggleRow(
+                    type: .streakWarning,
+                    isOn: $viewModel.streakWarningNotifs,
+                    viewModel: viewModel
+                )
+            }
+        }
+    }
+
+    private func requestPermissionIfNeeded() {
+        Task {
+            _ = await reminderManager.requestAuthorizationIfNeeded()
         }
     }
 
