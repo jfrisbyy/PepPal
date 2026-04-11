@@ -82,7 +82,9 @@ struct HomeView: View {
             .sheet(isPresented: $viewModel.showEditSplit) {
                 EditSplitSheet(viewModel: viewModel)
             }
-            .sheet(isPresented: $showEditProfileFromNudge) {
+            .sheet(isPresented: $showEditProfileFromNudge, onDismiss: {
+                Task { await profileNudgeState.checkProfile() }
+            }) {
                 EditProfileView(viewModel: profileNudgeState.profileViewModel)
             }
         }
