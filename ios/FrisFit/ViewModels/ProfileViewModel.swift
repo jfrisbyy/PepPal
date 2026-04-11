@@ -230,6 +230,11 @@ final class ProfileViewModel {
             iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             let memberDate = sp.member_since.flatMap { iso.date(from: $0) } ?? Date()
 
+            let dobFormatter = DateFormatter()
+            dobFormatter.dateFormat = "yyyy-MM-dd"
+            let dob = sp.date_of_birth.flatMap { dobFormatter.date(from: $0) }
+            let sex = sp.biological_sex.flatMap { BiologicalSex(rawValue: $0) }
+
             profile = UserProfile(
                 id: UUID(uuidString: sp.id) ?? UUID(),
                 displayName: name,
@@ -246,7 +251,10 @@ final class ProfileViewModel {
                 followerCount: sp.follower_count ?? 0,
                 followingCount: sp.following_count ?? 0,
                 friendCount: sp.friend_count ?? 0,
-                isCurrentUser: true
+                isCurrentUser: true,
+                dateOfBirth: dob,
+                biologicalSex: sex,
+                heightCm: sp.height_cm
             )
 
             loadMockMarketItems()
@@ -258,10 +266,23 @@ final class ProfileViewModel {
         }
     }
 
-    func saveProfileEdits(displayName: String, username: String, bio: String, activeProgram: String?, avatarColor: String?) async {
+    func saveProfileEdits(
+        displayName: String,
+        username: String,
+        bio: String,
+        activeProgram: String?,
+        avatarColor: String?,
+        dateOfBirth: Date? = nil,
+        biologicalSex: BiologicalSex? = nil,
+        heightCm: Double? = nil
+    ) async {
         guard let session = AuthService.shared.session else { return }
         let userId = session.user.id.uuidString
         isSaving = true
+
+        let dobFormatter = DateFormatter()
+        dobFormatter.dateFormat = "yyyy-MM-dd"
+        let dobString = dateOfBirth.map { dobFormatter.string(from: $0) }
 
         let update = ProfileUpdate(
             display_name: displayName,
@@ -269,7 +290,10 @@ final class ProfileViewModel {
             bio: bio,
             avatar_url: nil,
             avatar_color: avatarColor,
-            active_program: activeProgram
+            active_program: activeProgram,
+            date_of_birth: dobString,
+            biological_sex: biologicalSex?.rawValue,
+            height_cm: heightCm
         )
 
         do {

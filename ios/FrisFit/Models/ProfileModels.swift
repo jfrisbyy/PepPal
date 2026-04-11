@@ -1,6 +1,20 @@
 import Foundation
 import SwiftUI
 
+nonisolated enum BiologicalSex: String, CaseIterable, Identifiable, Sendable, Codable {
+    case male = "male"
+    case female = "female"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .male: return "Male"
+        case .female: return "Female"
+        }
+    }
+}
+
 nonisolated struct UserProfile: Sendable {
     let id: UUID
     let displayName: String
@@ -20,6 +34,9 @@ nonisolated struct UserProfile: Sendable {
     var isFollowing: Bool
     var friendRequestStatus: FriendRequestStatus
     let isCurrentUser: Bool
+    let dateOfBirth: Date?
+    let biologicalSex: BiologicalSex?
+    let heightCm: Double?
 
     init(
         id: UUID = UUID(),
@@ -39,7 +56,10 @@ nonisolated struct UserProfile: Sendable {
         friendCount: Int = 0,
         isFollowing: Bool = false,
         friendRequestStatus: FriendRequestStatus = .none,
-        isCurrentUser: Bool = false
+        isCurrentUser: Bool = false,
+        dateOfBirth: Date? = nil,
+        biologicalSex: BiologicalSex? = nil,
+        heightCm: Double? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -59,6 +79,13 @@ nonisolated struct UserProfile: Sendable {
         self.isFollowing = isFollowing
         self.friendRequestStatus = friendRequestStatus
         self.isCurrentUser = isCurrentUser
+        self.dateOfBirth = dateOfBirth
+        self.biologicalSex = biologicalSex
+        self.heightCm = heightCm
+    }
+
+    var isBiometricProfileComplete: Bool {
+        dateOfBirth != nil && biologicalSex != nil && heightCm != nil
     }
 }
 

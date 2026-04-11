@@ -14,6 +14,8 @@ struct HomeView: View {
     @State private var showProtocolDetail: Bool = false
     @State private var bodyGoalViewModel = BodyGoalViewModel()
     @State private var dateSelectorHeight: CGFloat = 0
+    @State private var profileNudgeState = ProfileNudgeState()
+    @State private var showEditProfileFromNudge: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -71,9 +73,15 @@ struct HomeView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
-            .onAppear { viewModel.onAppear() }
+            .onAppear {
+                viewModel.onAppear()
+                Task { await profileNudgeState.checkProfile() }
+            }
             .sheet(isPresented: $viewModel.showEditSplit) {
                 EditSplitSheet(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showEditProfileFromNudge) {
+                EditProfileView(viewModel: profileNudgeState.profileViewModel)
             }
         }
     }
@@ -84,6 +92,9 @@ struct HomeView: View {
         VStack(spacing: 20) {
             if !viewModel.isSelectedDateToday {
                 selectedDateBanner
+            }
+            if !profileNudgeState.isComplete && !profileNudgeState.isDismissed {
+                profileCompletionNudge
             }
             DailyDeckBannerView(viewModel: viewModel)
             protocolCard
@@ -111,6 +122,65 @@ struct HomeView: View {
         .sheet(isPresented: $showReconCalculator) {
             ReconstitutionCalculatorView()
         }
+    }
+
+    private var profileCompletionNudge: some View {
+        Button {
+            showEditProfileFromNudge = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(PepTheme.amber.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "heart.text.clipboard")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(PepTheme.amber)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Complete Your Profile")
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("Add DOB, sex & height for accurate calorie tracking")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            .padding(14)
+            .background(PepTheme.cardSurface)
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(PepTheme.amber.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .overlay(alignment: .topTrailing) {
+            Button {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    profileNudgeState.isDismissed = true
+                }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .frame(width: 22, height: 22)
+                    .background(PepTheme.elevated)
+                    .clipShape(Circle())
+            }
+            .offset(x: 6, y: -6)
+        }
+        .transition(.asymmetric(
+            insertion: .move(edge: .top).combined(with: .opacity),
+            removal: .opacity
+        ))
     }
 
     // MARK: - Protocol Card

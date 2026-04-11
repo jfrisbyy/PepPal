@@ -17,6 +17,9 @@ nonisolated struct SupabaseProfile: Codable, Sendable {
     let follower_count: Int?
     let following_count: Int?
     let friend_count: Int?
+    let date_of_birth: String?
+    let biological_sex: String?
+    let height_cm: Double?
 }
 
 nonisolated struct ProfileUpdate: Codable, Sendable {
@@ -26,6 +29,9 @@ nonisolated struct ProfileUpdate: Codable, Sendable {
     let avatar_url: String?
     let avatar_color: String?
     let active_program: String?
+    let date_of_birth: String?
+    let biological_sex: String?
+    let height_cm: Double?
 }
 
 final class ProfileService {
@@ -81,7 +87,10 @@ final class ProfileService {
             bio: nil,
             avatar_url: urlString,
             avatar_color: nil,
-            active_program: nil
+            active_program: nil,
+            date_of_birth: nil,
+            biological_sex: nil,
+            height_cm: nil
         ))
 
         return urlString
