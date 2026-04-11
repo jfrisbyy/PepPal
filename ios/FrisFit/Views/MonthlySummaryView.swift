@@ -4,10 +4,14 @@ struct MonthlySummaryView: View {
     let summary: MonthlySummaryData
     let bodyGoalViewModel: BodyGoalViewModel
     var selectedMonthDate: Date = Date()
+    var programSummary: (programName: String, daysPerWeek: Int, totalDays: Int, dayNames: [String])? = nil
 
     var body: some View {
         VStack(spacing: 20) {
             monthOverviewCard
+            if programSummary != nil {
+                monthlyProgramCard
+            }
             weightTrendCard
             workoutTrendCard
             nutritionTrendCard
@@ -173,6 +177,86 @@ struct MonthlySummaryView: View {
             summaryStatCard(icon: "figure.walk", value: formattedNumber(summary.avgStepsPerDay), label: "Avg Steps/Day", color: .green)
             summaryStatCard(icon: "flame.fill", value: formattedNumber(summary.totalCaloriesBurned), label: "Total Cal Burned", color: .orange)
             summaryStatCard(icon: "clock.fill", value: "\(summary.totalExerciseMinutes) min", label: "Total Active", color: PepTheme.amber)
+        }
+    }
+
+    // MARK: - Program Overview
+
+    private var monthlyProgramCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "calendar.badge.checkmark")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.teal)
+                    SubheadText(text: "Training Program")
+                    Spacer()
+                }
+
+                if let info = programSummary {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "figure.strengthtraining.traditional")
+                                .font(.system(size: 22))
+                                .foregroundStyle(PepTheme.teal)
+                                .frame(width: 40, height: 40)
+                                .background(PepTheme.teal.opacity(0.12))
+                                .clipShape(.rect(cornerRadius: 10))
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(info.programName)
+                                    .font(.system(.headline, design: .rounded, weight: .bold))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                                Text("\(info.daysPerWeek) days/week")
+                                    .font(.system(.caption, weight: .medium))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                            Spacer()
+                        }
+
+                        Divider().overlay(PepTheme.shimmerHighlight)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Weekly Split")
+                                .font(.system(.caption, weight: .semibold))
+                                .foregroundStyle(PepTheme.textSecondary)
+
+                            let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: min(info.dayNames.count, 4))
+                            LazyVGrid(columns: columns, spacing: 6) {
+                                ForEach(Array(info.dayNames.enumerated()), id: \.offset) { _, name in
+                                    Text(name)
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(PepTheme.teal)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                        .background(PepTheme.teal.opacity(0.08))
+                                        .clipShape(.rect(cornerRadius: 8))
+                                }
+                            }
+                        }
+
+                        HStack(spacing: 16) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "target")
+                                    .font(.system(size: 11))
+                                Text("~\(info.totalDays) sessions this month")
+                                    .font(.system(.caption, weight: .medium))
+                            }
+                            .foregroundStyle(PepTheme.amber)
+
+                            Spacer()
+
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 11))
+                                Text("\(summary.totalWorkouts) completed")
+                                    .font(.system(.caption, weight: .medium))
+                            }
+                            .foregroundStyle(PepTheme.teal)
+                        }
+                    }
+                }
+            }
         }
     }
 

@@ -40,13 +40,13 @@ struct HomeView: View {
                             dailyContent
                         case .weekly:
                             VStack(spacing: 20) {
-                                WeeklySummaryView(summary: viewModel.weeklySummary, bodyGoalViewModel: bodyGoalViewModel, selectedWeekStart: viewModel.selectedWeekStart)
+                                WeeklySummaryView(summary: viewModel.weeklySummary, bodyGoalViewModel: bodyGoalViewModel, selectedWeekStart: viewModel.selectedWeekStart, weekSchedule: viewModel.weekSchedule(), programName: viewModel.activeProgram?.name)
                             }
                             .padding(.horizontal)
                             .padding(.bottom, 24)
                         case .monthly:
                             VStack(spacing: 20) {
-                                MonthlySummaryView(summary: viewModel.monthlySummary, bodyGoalViewModel: bodyGoalViewModel, selectedMonthDate: viewModel.selectedMonthDate)
+                                MonthlySummaryView(summary: viewModel.monthlySummary, bodyGoalViewModel: bodyGoalViewModel, selectedMonthDate: viewModel.selectedMonthDate, programSummary: viewModel.monthProgramSummary())
                             }
                             .padding(.horizontal)
                             .padding(.bottom, 24)

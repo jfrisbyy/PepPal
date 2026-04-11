@@ -4,10 +4,15 @@ struct WeeklySummaryView: View {
     let summary: WeeklySummaryData
     let bodyGoalViewModel: BodyGoalViewModel
     var selectedWeekStart: Date = Date()
+    var weekSchedule: [(dayLabel: String, programDay: ProgramDay?, isToday: Bool)] = []
+    var programName: String? = nil
 
     var body: some View {
         VStack(spacing: 20) {
             weekOverviewCard
+            if programName != nil {
+                weeklyProgramCard
+            }
             weightProgressCard
             exerciseChartCard
             nutritionChartCard
@@ -192,6 +197,85 @@ struct WeeklySummaryView: View {
             summaryStatCard(icon: "figure.walk", value: formattedNumber(summary.totalSteps), label: "Total Steps", color: .green)
             summaryStatCard(icon: "flame.fill", value: "\(summary.totalCaloriesBurned)", label: "Calories Burned", color: .orange)
             summaryStatCard(icon: "clock.fill", value: "\(summary.totalExerciseMinutes) min", label: "Active Time", color: PepTheme.amber)
+        }
+    }
+
+    // MARK: - Program Schedule
+
+    private var weeklyProgramCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "calendar.badge.checkmark")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.teal)
+                    SubheadText(text: "Training Schedule")
+                    Spacer()
+                    if let name = programName {
+                        Text(name)
+                            .font(.system(.caption, design: .rounded, weight: .semibold))
+                            .foregroundStyle(PepTheme.teal)
+                            .lineLimit(1)
+                    }
+                }
+
+                VStack(spacing: 6) {
+                    ForEach(Array(weekSchedule.enumerated()), id: \.offset) { _, entry in
+                        HStack(spacing: 12) {
+                            Text(entry.dayLabel)
+                                .font(.system(.caption, design: .rounded, weight: entry.isToday ? .bold : .medium))
+                                .foregroundStyle(entry.isToday ? PepTheme.teal : PepTheme.textSecondary)
+                                .frame(width: 36, alignment: .leading)
+
+                            if let day = entry.programDay {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "dumbbell.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(entry.isToday ? PepTheme.teal : PepTheme.textPrimary.opacity(0.7))
+                                    Text(day.name)
+                                        .font(.system(.subheadline, weight: entry.isToday ? .semibold : .regular))
+                                        .foregroundStyle(entry.isToday ? PepTheme.textPrimary : PepTheme.textPrimary.opacity(0.85))
+                                }
+
+                                Spacer()
+
+                                Text("\(day.exercises.count) exercises")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            } else {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "bed.double.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                                    Text("Rest Day")
+                                        .font(.system(.subheadline, weight: .regular))
+                                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                                }
+                                Spacer()
+                            }
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 10)
+                        .background(
+                            entry.isToday
+                                ? PepTheme.teal.opacity(0.08)
+                                : Color.clear
+                        )
+                        .clipShape(.rect(cornerRadius: 8))
+                    }
+                }
+
+                let trainingDays = weekSchedule.filter { $0.programDay != nil }.count
+                let restDays = 7 - trainingDays
+                HStack(spacing: 16) {
+                    Label("\(trainingDays) training days", systemImage: "figure.strengthtraining.traditional")
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundStyle(PepTheme.teal)
+                    Label("\(restDays) rest", systemImage: "moon.fill")
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
         }
     }
 

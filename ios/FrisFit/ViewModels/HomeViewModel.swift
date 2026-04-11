@@ -26,6 +26,10 @@ final class HomeViewModel {
     let notificationService = NotificationService.shared
     let healthKit = HealthKitService.shared
 
+    var activeProgram: TrainingProgram? = nil
+    private static let programKey = "savedActiveProgram"
+    private static let programStartDayKey = "programStartDayOffset"
+
     private let calendar = Calendar.current
 
     var calendarWeekDays: [CalendarDay] {
@@ -439,6 +443,7 @@ final class HomeViewModel {
     }
 
     func onAppear() {
+        loadActiveProgram()
         streakManager.checkAndHandleMissedDay()
         streakManager.loadFromSupabase()
         Task {
@@ -467,6 +472,51 @@ final class HomeViewModel {
                 }
             }
         }
+    }
+
+    private func loadActiveProgram() {
+        guard let data = UserDefaults.standard.data(forKey: Self.programKey),
+              let program = try? JSONDecoder().decode(TrainingProgram.self, from: data) else {
+            activeProgram = nil
+            return
+        }
+        activeProgram = program
+    }
+
+    func programDayForWeekday(_ weekdayIndex: Int) -> ProgramDay? {
+        guard let program = activeProgram else { return nil }
+        let startOffset = UserDefaults.standard.integer(forKey: Self.programStartDayKey)
+        let adjusted = (weekdayIndex - startOffset + 7) % 7
+        guard adjusted < program.days.count else { return nil }
+        return program.days[adjusted]
+    }
+
+    func weekSchedule() -> [(dayLabel: String, programDay: ProgramDay?, isToday: Bool)] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let dayFormatter = DateFormatter()
+        dayFormatter.dateFormat = "EEE"
+
+        guard let weekStart = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedWeekStart)) else { return [] }
+
+        return (0..<7).map { offset in
+            let date = cal.date(byAdding: .day, value: offset, to: weekStart) ?? weekStart
+            let dayOfWeek = cal.component(.weekday, from: date)
+            let mondayBased = (dayOfWeek + 5) % 7
+            let day = programDayForWeekday(mondayBased)
+            let label = dayFormatter.string(from: date)
+            let isTodayFlag = cal.isDate(date, inSameDayAs: today)
+            return (dayLabel: label, programDay: day, isToday: isTodayFlag)
+        }
+    }
+
+    func monthProgramSummary() -> (programName: String, daysPerWeek: Int, totalDays: Int, dayNames: [String])? {
+        guard let program = activeProgram else { return nil }
+        let names = program.days.map(\.name)
+        let cal = Calendar.current
+        let range = cal.range(of: .weekOfMonth, in: .month, for: selectedMonthDate) ?? (0..<4)
+        let totalDays = range.count * program.daysPerWeek
+        return (programName: program.name, daysPerWeek: program.daysPerWeek, totalDays: totalDays, dayNames: names)
     }
 
     func loadTasksFromSupabase() {
