@@ -153,6 +153,7 @@ final class ProfileViewModel {
     let streakManager = StreakManager.shared
     let notificationService = NotificationService.shared
     private let socialService = SocialService.shared
+    private let likeManager = LikeManager.shared
 
     var weightUnit: WeightUnit = .lbs
     var defaultRestSeconds: Int = 90
@@ -306,14 +307,20 @@ final class ProfileViewModel {
             let postIds = supabasePosts.map { $0.id }
             let likedIds = try await socialService.fetchLikedPostIds(userId: userId, postIds: postIds)
 
+            var counts: [String: Int] = [:]
+            for sp in supabasePosts {
+                counts[sp.id] = sp.high_five_count ?? 0
+            }
+            likeManager.bulkSetState(likedIds: likedIds, counts: counts)
+
             userPosts = supabasePosts.map { sp in
                 UserPost(
                     id: UUID(uuidString: sp.id) ?? UUID(),
                     authorId: UUID(uuidString: sp.user_id) ?? UUID(),
                     content: sp.text_content ?? "",
                     timestamp: socialService.parseDate(sp.created_at),
-                    likeCount: sp.high_five_count ?? 0,
-                    isLiked: likedIds.contains(sp.id),
+                    likeCount: likeManager.likeCount(postId: sp.id, fallback: sp.high_five_count ?? 0),
+                    isLiked: likeManager.isLiked(postId: sp.id),
                     commentCount: 0,
                     mediaUrls: sp.media_urls ?? [],
                     audioUrl: sp.audio_url,
@@ -329,25 +336,10 @@ final class ProfileViewModel {
 
     func togglePostLike(_ postId: UUID) {
         guard let index = userPosts.firstIndex(where: { $0.id == postId }) else { return }
-        let wasLiked = userPosts[index].isLiked
-        userPosts[index].isLiked.toggle()
-        userPosts[index].likeCount += userPosts[index].isLiked ? 1 : -1
-
-        Task {
-            do {
-                let userId = try AuthService.shared.currentUserId()
-                let supabaseId = postId.uuidString.lowercased()
-                if wasLiked {
-                    try await socialService.unlikePost(postId: supabaseId, userId: userId)
-                } else {
-                    try await socialService.likePost(postId: supabaseId, userId: userId)
-                }
-            } catch {
-                guard let idx = userPosts.firstIndex(where: { $0.id == postId }) else { return }
-                userPosts[idx].isLiked = wasLiked
-                userPosts[idx].likeCount += wasLiked ? 1 : -1
-            }
-        }
+        let supabaseId = postId.uuidString.lowercased()
+        likeManager.toggleLike(postId: supabaseId)
+        userPosts[index].isLiked = likeManager.isLiked(postId: supabaseId)
+        userPosts[index].likeCount = likeManager.likeCount(postId: supabaseId, fallback: userPosts[index].likeCount)
     }
 
     func toggleFollow() {

@@ -14,6 +14,11 @@ struct FeedPostCard: View {
     @State private var showDeleteConfirm: Bool = false
     @State private var showReportConfirm: Bool = false
     private var audioPlayer: AudioPlayerService { AudioPlayerService.shared }
+    private let likeManager = LikeManager.shared
+
+    private var postSupabaseId: String {
+        post.supabaseId ?? post.id.uuidString.lowercased()
+    }
 
     private var isOwnPost: Bool {
         guard let userId = try? AuthService.shared.currentUserId() else { return false }
@@ -318,13 +323,13 @@ struct FeedPostCard: View {
                 likeBounce += 1
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: post.isLiked ? "heart.fill" : "heart")
+                    Image(systemName: likeManager.isLiked(postId: postSupabaseId) ? "heart.fill" : "heart")
                         .font(.system(size: 17))
-                        .foregroundStyle(post.isLiked ? .red : PepTheme.textSecondary)
+                        .foregroundStyle(likeManager.isLiked(postId: postSupabaseId) ? .red : PepTheme.textSecondary)
                         .symbolEffect(.bounce, value: likeBounce)
-                    Text("\(post.likeCount)")
+                    Text("\(likeManager.likeCount(postId: postSupabaseId, fallback: post.likeCount))")
                         .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(post.isLiked ? .red : PepTheme.textSecondary)
+                        .foregroundStyle(likeManager.isLiked(postId: postSupabaseId) ? .red : PepTheme.textSecondary)
                 }
                 .contentShape(.rect)
             }

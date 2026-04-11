@@ -17,7 +17,7 @@ final class SocialViewModel {
 
     private let socialService = SocialService.shared
     private let messagingService = MessagingService.shared
-    private var likedPostIds: Set<String> = []
+    private let likeManager = LikeManager.shared
     private var repostedPostIds: Set<String> = []
     private var commentCounts: [String: Int] = [:]
     private var followingIds: Set<String> = []
@@ -71,14 +71,20 @@ final class SocialViewModel {
             let supabasePosts = try await socialService.fetchPosts(limit: 50)
 
             let postIds = supabasePosts.map { $0.id }
-            likedPostIds = try await socialService.fetchLikedPostIds(userId: userId, postIds: postIds)
+            let likedIds = try await socialService.fetchLikedPostIds(userId: userId, postIds: postIds)
             repostedPostIds = try await socialService.fetchRepostedPostIds(userId: userId, postIds: postIds)
+
+            var counts: [String: Int] = [:]
+            for sp in supabasePosts {
+                counts[sp.id] = sp.high_five_count ?? 0
+            }
+            likeManager.bulkSetState(likedIds: likedIds, counts: counts)
 
             var newFeedPosts: [FeedPost] = []
             for sp in supabasePosts {
                 let user = socialService.socialUserFromAuthor(sp.profiles)
                 let tags = (sp.tags ?? []).compactMap { FeedTag(rawValue: $0) }
-                let isLiked = likedPostIds.contains(sp.id)
+                let isLiked = likeManager.isLiked(postId: sp.id)
                 let isReposted = repostedPostIds.contains(sp.id)
 
                 var mediaItems: [FeedMediaItem] = (sp.media_urls ?? []).map { url in
@@ -123,26 +129,10 @@ final class SocialViewModel {
 
     func toggleFeedLike(for postID: UUID) {
         guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
-        let wasLiked = feedPosts[index].isLiked
-        feedPosts[index].isLiked.toggle()
-        feedPosts[index].likeCount += feedPosts[index].isLiked ? 1 : -1
-
         let supabaseId = feedPosts[index].supabaseId ?? postID.uuidString
-
-        Task {
-            do {
-                let userId = try AuthService.shared.currentUserId()
-                if wasLiked {
-                    try await socialService.unlikePost(postId: supabaseId, userId: userId)
-                } else {
-                    try await socialService.likePost(postId: supabaseId, userId: userId)
-                }
-            } catch {
-                guard let idx = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
-                feedPosts[idx].isLiked = wasLiked
-                feedPosts[idx].likeCount += wasLiked ? 1 : -1
-            }
-        }
+        likeManager.toggleLike(postId: supabaseId)
+        feedPosts[index].isLiked = likeManager.isLiked(postId: supabaseId)
+        feedPosts[index].likeCount = likeManager.likeCount(postId: supabaseId, fallback: feedPosts[index].likeCount)
     }
 
     func ensurePostInFeed(_ post: FeedPost) {
@@ -283,8 +273,10 @@ final class SocialViewModel {
 
     func toggleLike(for postID: UUID) {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
-        posts[index].isLiked.toggle()
-        posts[index].likeCount += posts[index].isLiked ? 1 : -1
+        let supabaseId = postID.uuidString.lowercased()
+        likeManager.toggleLike(postId: supabaseId)
+        posts[index].isLiked = likeManager.isLiked(postId: supabaseId)
+        posts[index].likeCount = likeManager.likeCount(postId: supabaseId, fallback: posts[index].likeCount)
     }
 
     func addComment(to postID: UUID, text: String) {

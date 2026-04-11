@@ -19,6 +19,7 @@ struct UserProfileView: View {
 
     private let messagingService = MessagingService.shared
     private let socialService = SocialService.shared
+    private let likeManager = LikeManager.shared
 
     enum UserProfileTab: String, CaseIterable {
         case posts = "Posts"
@@ -60,14 +61,20 @@ struct UserProfileView: View {
             let postIds = supabasePosts.map { $0.id }
             let likedIds = try await socialService.fetchLikedPostIds(userId: currentUserId, postIds: postIds)
 
+            var counts: [String: Int] = [:]
+            for sp in supabasePosts {
+                counts[sp.id] = sp.high_five_count ?? 0
+            }
+            likeManager.bulkSetState(likedIds: likedIds, counts: counts)
+
             userPosts = supabasePosts.map { sp in
                 UserPost(
                     id: UUID(uuidString: sp.id) ?? UUID(),
                     authorId: UUID(uuidString: sp.user_id) ?? UUID(),
                     content: sp.text_content ?? "",
                     timestamp: socialService.parseDate(sp.created_at),
-                    likeCount: sp.high_five_count ?? 0,
-                    isLiked: likedIds.contains(sp.id),
+                    likeCount: likeManager.likeCount(postId: sp.id, fallback: sp.high_five_count ?? 0),
+                    isLiked: likeManager.isLiked(postId: sp.id),
                     commentCount: 0,
                     mediaUrls: sp.media_urls ?? [],
                     audioUrl: sp.audio_url,
@@ -473,13 +480,14 @@ struct UserProfileView: View {
                 }
 
                 HStack(spacing: 24) {
+                    let pid = post.id.uuidString.lowercased()
                     HStack(spacing: 5) {
-                        Image(systemName: "heart")
+                        Image(systemName: likeManager.isLiked(postId: pid) ? "heart.fill" : "heart")
                             .font(.system(size: 14))
-                        Text("\(post.likeCount)")
+                        Text("\(likeManager.likeCount(postId: pid, fallback: post.likeCount))")
                             .font(.caption)
                     }
-                    .foregroundStyle(PepTheme.textSecondary)
+                    .foregroundStyle(likeManager.isLiked(postId: pid) ? .red : PepTheme.textSecondary)
 
                     HStack(spacing: 5) {
                         Image(systemName: "bubble.left")
@@ -557,15 +565,16 @@ struct UserProfileView: View {
         let mediaItems: [FeedMediaItem] = post.mediaUrls.map { url in
             FeedMediaItem(type: .photo, imageURL: url)
         }
+        let pid = post.id.uuidString.lowercased()
         return FeedPost(
             id: post.id,
             user: socialUser,
             timestamp: post.timestamp,
             textContent: post.content,
             media: mediaItems,
-            likeCount: post.likeCount,
-            isLiked: post.isLiked,
-            supabaseId: post.id.uuidString.lowercased()
+            likeCount: likeManager.likeCount(postId: pid, fallback: post.likeCount),
+            isLiked: likeManager.isLiked(postId: pid),
+            supabaseId: pid
         )
     }
 

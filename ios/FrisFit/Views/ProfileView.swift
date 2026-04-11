@@ -279,15 +279,16 @@ struct ProfileView: View {
         let mediaItems: [FeedMediaItem] = post.mediaUrls.map { url in
             FeedMediaItem(type: .photo, imageURL: url)
         }
+        let pid = post.id.uuidString.lowercased()
         return FeedPost(
             id: post.id,
             user: user,
             timestamp: post.timestamp,
             textContent: post.content,
             media: mediaItems,
-            likeCount: post.likeCount,
-            isLiked: post.isLiked,
-            supabaseId: post.id.uuidString.lowercased()
+            likeCount: LikeManager.shared.likeCount(postId: pid, fallback: post.likeCount),
+            isLiked: LikeManager.shared.isLiked(postId: pid),
+            supabaseId: pid
         )
     }
 
@@ -408,6 +409,11 @@ struct ProfilePostRow: View {
     let onLike: () -> Void
 
     @State private var likeBounce: Int = 0
+    private let likeManager = LikeManager.shared
+
+    private var postSupabaseId: String {
+        post.id.uuidString.lowercased()
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -470,11 +476,11 @@ struct ProfilePostRow: View {
                         likeBounce += 1
                     } label: {
                         HStack(spacing: 5) {
-                            Image(systemName: post.isLiked ? "heart.fill" : "heart")
+                            Image(systemName: likeManager.isLiked(postId: postSupabaseId) ? "heart.fill" : "heart")
                                 .font(.system(size: 14))
-                                .foregroundStyle(post.isLiked ? .red : PepTheme.textSecondary)
+                                .foregroundStyle(likeManager.isLiked(postId: postSupabaseId) ? .red : PepTheme.textSecondary)
                                 .symbolEffect(.bounce, value: likeBounce)
-                            Text("\(post.likeCount)")
+                            Text("\(likeManager.likeCount(postId: postSupabaseId, fallback: post.likeCount))")
                                 .font(.caption)
                                 .foregroundStyle(PepTheme.textSecondary)
                         }
