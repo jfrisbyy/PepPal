@@ -497,41 +497,28 @@ struct TrainView: View {
                 Text("No Active Program")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PepTheme.textPrimary)
-                Text("Get started with a template, AI builder, or from scratch")
+                Text("Set up a training program to get started")
                     .font(.caption)
                     .foregroundStyle(PepTheme.textSecondary)
                     .multilineTextAlignment(.center)
             }
 
-            VStack(spacing: 8) {
-                noProgramPathButton(
-                    icon: "square.grid.2x2.fill",
-                    title: "Choose a Template",
-                    subtitle: "PPL, Upper/Lower, Full Body & more",
-                    color: PepTheme.teal
-                ) {
-                    showProgramCreation = true
-                }
-
+            Button {
+                showProgramCreation = true
+            } label: {
                 HStack(spacing: 8) {
-                    noProgramSmallButton(
-                        icon: "sparkles",
-                        title: "Build with AI",
-                        color: PepTheme.violet
-                    ) {
-                        showProgramCreation = true
-                    }
-
-                    noProgramSmallButton(
-                        icon: "doc.badge.plus",
-                        title: "From Scratch",
-                        color: PepTheme.amber
-                    ) {
-                        viewModel.resetBuilder()
-                        viewModel.showProgramBuilder = true
-                    }
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("Build Program")
+                        .font(.system(size: 14, weight: .semibold))
                 }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(PepTheme.teal)
+                .clipShape(.rect(cornerRadius: 10))
             }
+            .buttonStyle(.plain)
 
             Button {
                 startEmptyWorkout()
@@ -547,64 +534,6 @@ struct TrainView: View {
             }
             .buttonStyle(.plain)
         }
-    }
-
-    private func noProgramPathButton(icon: String, title: String, subtitle: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .background(color)
-                    .clipShape(.rect(cornerRadius: 10))
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text(subtitle)
-                        .font(.system(size: 11))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-            .padding(12)
-            .background(color.opacity(0.06))
-            .clipShape(.rect(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(color.opacity(0.15), lineWidth: 0.5)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func noProgramSmallButton(icon: String, title: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(color)
-                Text(title)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(color.opacity(0.06))
-            .clipShape(.rect(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(color.opacity(0.15), lineWidth: 0.5)
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Consistency Ring
