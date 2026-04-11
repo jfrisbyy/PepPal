@@ -101,10 +101,14 @@ struct HomeView: View {
             DailyDeckBannerView(viewModel: viewModel)
             protocolCard
             BodyGoalSectionView(viewModel: bodyGoalViewModel)
-            DailyEnergyBalanceCard(viewModel: energyBalanceViewModel) {
+            DailyEnergyCard(viewModel: energyBalanceViewModel, onLogActivity: {
                 showLogActivity = true
+            }, onTapNutrition: {
+                showNutrition = true
+            })
+            .navigationDestination(isPresented: $showNutrition) {
+                NutritionView()
             }
-            nutritionCard
             if viewModel.healthKit.isAuthorized {
                 stepsModuleCard
                 healthStatsCard
@@ -1145,56 +1149,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Nutrition
 
-    private var nutritionCard: some View {
-        Button {
-            showNutrition = true
-        } label: {
-            GlassCard {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack {
-                        Image(systemName: "fork.knife")
-                            .font(.subheadline)
-                            .foregroundStyle(PepTheme.teal)
-                        SubheadText(text: "Nutrition Snapshot")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                    }
-
-                    let dayNutrition = viewModel.selectedDateNutrition
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text("\(dayNutrition.caloriesConsumed)")
-                            .font(.system(.title3, design: .rounded, weight: .bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text("/ \(dayNutrition.caloriesTarget) cal")
-                            .font(.system(.caption, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-
-                    NutritionProgressBar(
-                        label: "Calories",
-                        current: dayNutrition.caloriesConsumed,
-                        target: dayNutrition.caloriesTarget,
-                        color: PepTheme.teal
-                    )
-
-                    NutritionProgressBar(
-                        label: "Protein",
-                        current: dayNutrition.proteinConsumed,
-                        target: dayNutrition.proteinTarget,
-                        color: PepTheme.amber
-                    )
-                }
-            }
-        }
-        .buttonStyle(.scale)
-        .navigationDestination(isPresented: $showNutrition) {
-            NutritionView()
-        }
-    }
 
     // MARK: - Finn Insight
 

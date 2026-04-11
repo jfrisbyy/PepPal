@@ -6,6 +6,12 @@ final class EnergyBalanceViewModel {
     var activityCalories: Int = 0
     var caloriesConsumed: Int = 0
     var activityCount: Int = 0
+    var proteinConsumed: Double = 0
+    var carbsConsumed: Double = 0
+    var fatConsumed: Double = 0
+    var proteinTarget: Int = 150
+    var carbsTarget: Int = 250
+    var fatTarget: Int = 73
     var isLoading: Bool = false
     var hasLoaded: Bool = false
     var goalType: String = "weightLoss"
@@ -16,7 +22,7 @@ final class EnergyBalanceViewModel {
 
     var balanceLabel: String {
         let val = abs(balance)
-        return isDeficit ? "\(val) deficit" : "\(val) surplus"
+        return isDeficit ? "\(val) cal deficit" : "\(val) cal surplus"
     }
 
     var isGoalAligned: Bool {
@@ -30,6 +36,21 @@ final class EnergyBalanceViewModel {
     var burnProgress: Double {
         guard totalBurn > 0, caloriesConsumed > 0 else { return 0 }
         return min(Double(caloriesConsumed) / Double(totalBurn), 2.0)
+    }
+
+    var proteinProgress: Double {
+        guard proteinTarget > 0 else { return 0 }
+        return min(proteinConsumed / Double(proteinTarget), 1.0)
+    }
+
+    var carbsProgress: Double {
+        guard carbsTarget > 0 else { return 0 }
+        return min(carbsConsumed / Double(carbsTarget), 1.0)
+    }
+
+    var fatProgress: Double {
+        guard fatTarget > 0 else { return 0 }
+        return min(fatConsumed / Double(fatTarget), 1.0)
     }
 
     func loadData() {
@@ -63,11 +84,22 @@ final class EnergyBalanceViewModel {
             activityCalories = calData.calories
             activityCount = calData.count
 
-            caloriesConsumed = meals.reduce(0) { total, meal in
+            var totalCal = 0
+            var totalPro = 0.0
+            var totalCarb = 0.0
+            var totalFt = 0.0
+            for meal in meals {
                 let cal = meal.calories ?? 0
                 let servings = meal.servings
-                return total + Int(Double(cal) * servings)
+                totalCal += Int(Double(cal) * servings)
+                totalPro += (meal.protein_g ?? 0) * servings
+                totalCarb += (meal.carbs_g ?? 0) * servings
+                totalFt += (meal.fat_g ?? 0) * servings
             }
+            caloriesConsumed = totalCal
+            proteinConsumed = totalPro
+            carbsConsumed = totalCarb
+            fatConsumed = totalFt
 
             if let goal {
                 goalType = goal.goal_type
