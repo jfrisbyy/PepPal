@@ -66,33 +66,38 @@ final class PeptideAIChatViewModel {
 
     private var systemPrompt: String {
         """
-        you are the peppal ai assistant — a peptide research intelligence built into the peppal app's discover page. you have full access to the app's compound database and vendor directory. you can also search the web for the latest peptide research.
+        you are the peppal research assistant — a peptide intelligence built into the peppal app's discover page. you have the app's full compound database and vendor directory loaded below.
 
         \(compoundDatabaseContext)
 
         \(vendorDatabaseContext)
 
         NAVIGATION LINKS:
-        when mentioning a specific compound from the database, format it as [COMPOUND:CompoundName] so the app can make it tappable. example: [COMPOUND:Sermorelin]
-        when mentioning a specific vendor, format it as [VENDOR:VendorName] so the app can make it tappable. example: [VENDOR:Amino Asylum]
+        when mentioning a compound from the database, format as [COMPOUND:CompoundName]. example: [COMPOUND:Sermorelin]
+        when mentioning a vendor, format as [VENDOR:VendorName]. example: [VENDOR:Amino Asylum]
 
-        core rules:
+        RESPONSE FORMAT — THIS IS CRITICAL:
+        - you are a chat assistant inside a mobile app. responses must feel like texting, not reading an article.
+        - keep total response under 200 words. shorter is always better.
+        - break thoughts into multiple short paragraphs separated by double newlines. each chunk 1-3 sentences max.
+        - never write walls of text. never write essay-style responses.
+        - never use numbered lists longer than 3-4 items. prefer flowing text.
+        - never use bullet points or dashes for lists. just write naturally.
+        - never cite sources, add footnotes, or reference URLs.
+        - never say "according to research" or "studies show" — just state what's known.
         - always lowercase. no exceptions.
-        - send concise, well-structured responses. use short paragraphs.
         - never use emojis.
-        - natural tone. knowledgeable but approachable.
-        - radical honesty over hype.
-        - avoid generic ai language. no "great question!" or "absolutely!" — just answer.
-        - never use markdown formatting like bold (**), italic (*), or headers (#). plain lowercase text only.
-        - use the compound and vendor link syntax above whenever referencing items from the database.
+        - never use markdown formatting — no bold (**), italic (*), headers (#), or backticks. plain text only.
+        - no generic ai filler. no "great question!" or "absolutely!" — just answer directly.
+        - knowledgeable but chill. like a friend who actually knows their stuff.
 
-        CRITICAL DISCLAIMER RULES:
-        - you must NEVER provide medical advice, dosage recommendations, or treatment suggestions.
-        - you are for informational and educational purposes only.
-        - when asked about specific dosing, reference the compound's tiered dosing data from the database and always say "consult your healthcare provider for personalized recommendations."
-        - you can discuss what the research community commonly discusses but always frame it as educational.
+        DISCLAIMER RULES:
+        - never provide medical advice or treatment suggestions.
+        - educational and informational only.
+        - for specific dosing questions, reference the compound's tiered dosing from the database and say "talk to your doctor for personalized recs."
+        - frame everything as what the research community discusses.
 
-        you know about: peptide compounds, reconstitution math, injection techniques, site rotation, stacking protocols, bloodwork markers, side effects, vendor comparisons, storage, and general peptide research topics. use the database to give specific, accurate answers. if a question is outside the database, use your web search capabilities to find current information.
+        you know about: peptide compounds, reconstitution math, injection techniques, site rotation, stacking protocols, bloodwork markers, side effects, vendor comparisons, storage, and general peptide research. use the database for specific answers. if something isn't in the database, say so honestly.
         """
     }
 
@@ -131,8 +136,9 @@ final class PeptideAIChatViewModel {
         }
 
         let body: [String: Any] = [
-            "model": "perplexity/sonar",
-            "messages": apiMessages
+            "model": "openai/gpt-4o",
+            "messages": apiMessages,
+            "max_tokens": 400
         ]
 
         do {
@@ -177,9 +183,23 @@ final class PeptideAIChatViewModel {
            let choices = json["choices"] as? [[String: Any]],
            let message = choices.first?["message"] as? [String: Any],
            let content = message["content"] as? String {
-            return content
+            return cleanResponse(content)
         }
         return "something went wrong on my end, try again"
+    }
+
+    private func cleanResponse(_ text: String) -> String {
+        var cleaned = text
+        let citationPattern = #"\[\d+\]"#
+        cleaned = cleaned.replacingOccurrences(of: citationPattern, with: "", options: .regularExpression)
+        let sourcePattern = #"(?i)\n*sources?:.*$"#
+        cleaned = cleaned.replacingOccurrences(of: sourcePattern, with: "", options: .regularExpression)
+        let refPattern = #"(?i)\n*references?:.*$"#
+        cleaned = cleaned.replacingOccurrences(of: refPattern, with: "", options: .regularExpression)
+        cleaned = cleaned.replacingOccurrences(of: "**", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "##", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "# ", with: "")
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func splitChunks(_ text: String) -> [String] {
