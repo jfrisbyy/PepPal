@@ -108,7 +108,7 @@ struct DiscoverView: View {
                     .frame(width: 56, height: 56)
                     .shadow(color: PepTheme.teal.opacity(0.4), radius: 12, x: 0, y: 4)
 
-                Image(systemName: "sparkles")
+                Image(systemName: "questionmark")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(.white)
             }
