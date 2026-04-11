@@ -5,13 +5,15 @@ import AVFoundation
 enum MealLogMode: Int, CaseIterable {
     case photo = 0
     case describe = 1
-    case quickAdd = 2
+    case search = 2
+    case quickAdd = 3
 
     var label: String {
         switch self {
-        case .photo: return "Photo"
+        case .photo: return "Scan"
         case .describe: return "Describe"
-        case .quickAdd: return "Quick Add"
+        case .search: return "Search"
+        case .quickAdd: return "Manual"
         }
     }
 
@@ -19,15 +21,8 @@ enum MealLogMode: Int, CaseIterable {
         switch self {
         case .photo: return "camera.fill"
         case .describe: return "text.bubble.fill"
-        case .quickAdd: return "bolt.fill"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .photo: return PepTheme.amber
-        case .describe: return PepTheme.violet
-        case .quickAdd: return PepTheme.teal
+        case .search: return "magnifyingglass"
+        case .quickAdd: return "square.and.pencil"
         }
     }
 }
@@ -38,122 +33,48 @@ struct MealLogView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedMode: MealLogMode = .photo
 
+    @State private var selectedPhoto: PhotosPickerItem? = nil
+    @State private var capturedImage: UIImage? = nil
+    @State private var isPhotoAnalyzing: Bool = false
+    @State private var photoEstimatedItems: [EstimatedFoodItem] = []
+    @State private var photoOverlays: [PhotoFoodOverlay] = []
+    @State private var photoHasResult: Bool = false
+    @State private var showCamera: Bool = false
+    @State private var showPhotoPicker: Bool = false
+    @State private var showClarifySheet: Bool = false
+    @State private var selectedOverlayIndex: Int? = nil
+    @State private var scanLineOffset: CGFloat = 0
+
+    @State private var descriptionText: String = ""
+    @State private var isDescribeAnalyzing: Bool = false
+    @State private var describeEstimatedItems: [EstimatedFoodItem] = []
+    @State private var describeHasResult: Bool = false
+    @State private var describeError: String? = nil
+
+    @State private var selectedFood: FoodItem? = nil
+    @State private var foodServings: Double = 1.0
+
+    @State private var quickName: String = ""
+    @State private var quickCalories: String = ""
+    @State private var quickProtein: String = ""
+    @State private var quickCarbs: String = ""
+    @State private var quickFat: String = ""
+
     var body: some View {
         ZStack(alignment: .top) {
             PepTheme.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                header
+                headerBar
                 modeSelector
-                tabContent
-            }
-        }
-    }
-
-    private var header: some View {
-        HStack {
-            Button { dismiss() } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .frame(width: 32, height: 32)
-                    .background(PepTheme.elevated)
-                    .clipShape(Circle())
-            }
-
-            Spacer()
-
-            Text("Log \(mealTime.rawValue)")
-                .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(PepTheme.textPrimary)
-
-            Spacer()
-
-            Color.clear.frame(width: 32, height: 32)
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
-    }
-
-    private var modeSelector: some View {
-        HStack(spacing: 4) {
-            ForEach(MealLogMode.allCases, id: \.rawValue) { mode in
-                Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        selectedMode = mode
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: mode.icon)
-                            .font(.system(size: 12, weight: .semibold))
-                        Text(mode.label)
-                            .font(.system(.caption, weight: .semibold))
-                    }
-                    .foregroundStyle(selectedMode == mode ? PepTheme.invertedText : PepTheme.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(
-                        selectedMode == mode ? mode.color : Color.clear,
-                        in: .rect(cornerRadius: 10)
-                    )
-                }
-                .sensoryFeedback(.selection, trigger: selectedMode)
-            }
-        }
-        .padding(4)
-        .background(PepTheme.elevated)
-        .clipShape(.rect(cornerRadius: 14))
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-    }
-
-    private var tabContent: some View {
-        TabView(selection: $selectedMode) {
-            PhotoMealTab(viewModel: viewModel, mealTime: mealTime, dismissParent: { dismiss() })
-                .tag(MealLogMode.photo)
-
-            DescribeMealTab(viewModel: viewModel, mealTime: mealTime, dismissParent: { dismiss() })
-                .tag(MealLogMode.describe)
-
-            QuickAddTab(viewModel: viewModel, mealTime: mealTime, dismissParent: { dismiss() })
-                .tag(MealLogMode.quickAdd)
-        }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: selectedMode)
-    }
-}
-
-struct PhotoMealTab: View {
-    @Bindable var viewModel: NutritionViewModel
-    let mealTime: MealTime
-    let dismissParent: () -> Void
-    @State private var selectedPhoto: PhotosPickerItem? = nil
-    @State private var capturedImage: UIImage? = nil
-    @State private var isAnalyzing: Bool = false
-    @State private var estimatedItems: [EstimatedFoodItem] = []
-    @State private var overlays: [PhotoFoodOverlay] = []
-    @State private var hasResult: Bool = false
-    @State private var showPhotoPicker: Bool = false
-    @State private var showCamera: Bool = false
-    @State private var showClarifySheet: Bool = false
-    @State private var selectedOverlayIndex: Int? = nil
-    @State private var scanLineOffset: CGFloat = 0
-
-    var body: some View {
-        Group {
-            if capturedImage == nil {
-                captureState
-            } else if isAnalyzing {
-                analyzingState
-            } else if hasResult {
-                resultState
+                    .padding(.top, 4)
+                tabPages
             }
         }
         .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhoto, matching: .images)
         .onChange(of: selectedPhoto) { _, newValue in
             guard let newValue else { return }
-            loadImage(from: newValue)
+            loadPhoto(from: newValue)
         }
         .fullScreenCover(isPresented: $showCamera) {
             CameraCaptureView { image in
@@ -164,95 +85,212 @@ struct PhotoMealTab: View {
             }
         }
         .sheet(isPresented: $showClarifySheet) {
-            if let idx = selectedOverlayIndex, idx < estimatedItems.count {
-                ClarifyItemSheet(item: $estimatedItems[idx])
+            if let idx = selectedOverlayIndex, idx < photoEstimatedItems.count {
+                ClarifyItemSheet(item: $photoEstimatedItems[idx])
                     .presentationDetents([.medium])
                     .presentationDragIndicator(.visible)
             }
         }
+        .sheet(item: $selectedFood) { food in
+            FoodDetailSheet(food: food, servings: $foodServings, onAdd: {
+                viewModel.logMeal(food: food, servings: foodServings, mealTime: mealTime)
+                selectedFood = nil
+                foodServings = 1.0
+                dismiss()
+            })
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
         .onAppear {
-            #if targetEnvironment(simulator)
-            #else
-            if capturedImage == nil && !hasResult {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            #if !targetEnvironment(simulator)
+            if capturedImage == nil && !photoHasResult {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     showCamera = true
                 }
             }
             #endif
         }
+        .onChange(of: selectedMode) { _, _ in
+            viewModel.searchText = ""
+            viewModel.selectedCategory = nil
+        }
     }
 
-    private var captureState: some View {
-        VStack(spacing: 24) {
+    // MARK: - Header
+
+    private var headerBar: some View {
+        HStack {
+            Button { dismiss() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .frame(width: 34, height: 34)
+                    .background(PepTheme.elevated)
+                    .clipShape(Circle())
+            }
+
             Spacer()
 
-            #if targetEnvironment(simulator)
-            VStack(spacing: 16) {
-                Image(systemName: "camera.badge.ellipsis")
-                    .font(.system(size: 44))
-                    .foregroundStyle(PepTheme.textSecondary)
-
-                Text("Camera Preview")
-                    .font(.system(.headline, design: .rounded, weight: .semibold))
+            VStack(spacing: 1) {
+                Text("Log Meal")
+                    .font(.system(.subheadline, weight: .bold))
                     .foregroundStyle(PepTheme.textPrimary)
-
-                Text("Install this app on your device\nvia the Rork App to use the camera.")
-                    .font(.subheadline)
+                Text(mealTime.rawValue)
+                    .font(.system(.caption2, weight: .medium))
                     .foregroundStyle(PepTheme.textSecondary)
-                    .multilineTextAlignment(.center)
             }
-            .padding(28)
-            .frame(maxWidth: .infinity)
-            .background(PepTheme.cardSurface)
-            .clipShape(.rect(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-            )
-            .padding(.horizontal, 24)
-            #endif
 
-            VStack(spacing: 12) {
-                Button {
-                    #if targetEnvironment(simulator)
-                    #else
-                    showCamera = true
-                    #endif
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "camera.fill")
-                        Text("Take Photo")
-                            .font(.system(.body, weight: .semibold))
-                    }
-                    .foregroundStyle(PepTheme.invertedText)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(PepTheme.amber, in: .rect(cornerRadius: 12))
-                }
-                .buttonStyle(.scale)
+            Spacer()
 
+            Color.clear.frame(width: 34, height: 34)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 2)
+    }
+
+    // MARK: - Mode Selector
+
+    private var modeSelector: some View {
+        HStack(spacing: 0) {
+            ForEach(MealLogMode.allCases, id: \.rawValue) { mode in
                 Button {
-                    showPhotoPicker = true
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "photo.on.rectangle.angled")
-                        Text("Choose from Library")
-                            .font(.system(.body, weight: .semibold))
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        selectedMode = mode
                     }
-                    .foregroundStyle(PepTheme.amber)
+                } label: {
+                    VStack(spacing: 5) {
+                        Image(systemName: mode.icon)
+                            .font(.system(size: 16, weight: .semibold))
+                        Text(mode.label)
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundStyle(selectedMode == mode ? PepTheme.teal : PepTheme.textSecondary.opacity(0.7))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(PepTheme.amber.opacity(0.12), in: .rect(cornerRadius: 12))
+                    .padding(.vertical, 10)
+                    .background(
+                        selectedMode == mode
+                            ? PepTheme.teal.opacity(0.12)
+                            : Color.clear,
+                        in: .rect(cornerRadius: 12)
+                    )
                 }
-                .buttonStyle(.scale)
+                .sensoryFeedback(.selection, trigger: selectedMode)
             }
-            .padding(.horizontal, 24)
+        }
+        .padding(.horizontal, 4)
+        .padding(4)
+        .background(PepTheme.elevated.opacity(0.6))
+        .clipShape(.rect(cornerRadius: 16))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 6)
+    }
+
+    // MARK: - Tab Pages
+
+    private var tabPages: some View {
+        TabView(selection: $selectedMode) {
+            photoTab
+                .tag(MealLogMode.photo)
+            describeTab
+                .tag(MealLogMode.describe)
+            searchTab
+                .tag(MealLogMode.search)
+            quickAddTab
+                .tag(MealLogMode.quickAdd)
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .animation(.spring(response: 0.3, dampingFraction: 0.9), value: selectedMode)
+    }
+
+    // MARK: - Photo Tab
+
+    private var photoTab: some View {
+        Group {
+            if capturedImage == nil {
+                photoCaptureState
+            } else if isPhotoAnalyzing {
+                photoAnalyzingState
+            } else if photoHasResult {
+                photoResultState
+            }
+        }
+    }
+
+    private var photoCaptureState: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            VStack(spacing: 20) {
+                #if targetEnvironment(simulator)
+                VStack(spacing: 14) {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.system(size: 48))
+                        .foregroundStyle(PepTheme.teal.opacity(0.5))
+
+                    Text("Camera Preview")
+                        .font(.system(.headline, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+
+                    Text("Install this app on your device\nvia the Rork App to use the camera.")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(32)
+                .frame(maxWidth: .infinity)
+                .background(PepTheme.cardSurface)
+                .clipShape(.rect(cornerRadius: 20))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                )
+                .padding(.horizontal, 24)
+                #endif
+
+                VStack(spacing: 10) {
+                    Button {
+                        #if !targetEnvironment(simulator)
+                        showCamera = true
+                        #endif
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Take Photo")
+                                .font(.system(.body, weight: .semibold))
+                        }
+                        .foregroundStyle(PepTheme.invertedText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(PepTheme.teal, in: .rect(cornerRadius: 14))
+                    }
+                    .buttonStyle(.scale)
+
+                    Button {
+                        showPhotoPicker = true
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "photo.on.rectangle.angled")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Choose from Library")
+                                .font(.system(.subheadline, weight: .semibold))
+                        }
+                        .foregroundStyle(PepTheme.teal)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(PepTheme.teal.opacity(0.1), in: .rect(cornerRadius: 12))
+                    }
+                    .buttonStyle(.scale)
+                }
+                .padding(.horizontal, 32)
+            }
 
             Spacer()
         }
     }
 
-    private var analyzingState: some View {
+    private var photoAnalyzingState: some View {
         VStack(spacing: 0) {
             if let image = capturedImage {
                 ZStack {
@@ -268,7 +306,7 @@ struct PhotoMealTab: View {
                     Rectangle()
                         .fill(
                             LinearGradient(
-                                colors: [PepTheme.amber.opacity(0), PepTheme.amber.opacity(0.6), PepTheme.amber.opacity(0)],
+                                colors: [PepTheme.teal.opacity(0), PepTheme.teal.opacity(0.6), PepTheme.teal.opacity(0)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -276,28 +314,29 @@ struct PhotoMealTab: View {
                         .frame(height: 3)
                         .offset(y: scanLineOffset)
                         .onAppear {
-                            withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: true)) {
+                            scanLineOffset = -120
+                            withAnimation(.linear(duration: 1.8).repeatForever(autoreverses: true)) {
                                 scanLineOffset = 120
                             }
                         }
                 }
-                .frame(height: 280)
+                .frame(height: 260)
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
             }
 
             Spacer()
 
-            VStack(spacing: 16) {
+            VStack(spacing: 14) {
                 ProgressView()
-                    .tint(PepTheme.amber)
-                    .scaleEffect(1.2)
+                    .tint(PepTheme.teal)
+                    .scaleEffect(1.1)
 
                 Text("Analyzing your meal...")
-                    .font(.system(.headline, design: .rounded, weight: .semibold))
+                    .font(.system(.headline, weight: .semibold))
                     .foregroundStyle(PepTheme.textPrimary)
 
-                Text("Identifying food items and estimating nutrition")
+                Text("Identifying items & estimating nutrition")
                     .font(.caption)
                     .foregroundStyle(PepTheme.textSecondary)
             }
@@ -306,16 +345,16 @@ struct PhotoMealTab: View {
         }
     }
 
-    private var resultState: some View {
+    private var photoResultState: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: 14) {
                 if let image = capturedImage {
                     photoWithOverlays(image: image)
                 }
 
-                totalSummaryCard
+                nutritionSummaryCard(items: photoEstimatedItems)
 
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Detected Items")
                             .font(.system(.subheadline, weight: .semibold))
@@ -323,50 +362,36 @@ struct PhotoMealTab: View {
                         Spacer()
                         Text("Tap to adjust")
                             .font(.caption2)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                     }
                     .padding(.horizontal, 4)
 
-                    ForEach(Array(estimatedItems.enumerated()), id: \.element.id) { index, item in
+                    ForEach(Array(photoEstimatedItems.enumerated()), id: \.element.id) { index, item in
                         Button {
                             selectedOverlayIndex = index
                             showClarifySheet = true
                         } label: {
-                            detectedItemRow(item: item, index: index)
+                            estimatedItemRow(item: item, index: index, accent: PepTheme.teal)
                         }
                         .buttonStyle(.scale)
                     }
                 }
 
-                VStack(spacing: 10) {
-                    Button {
-                        addAllToMealLog()
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill")
-                            Text("Add All to \(mealTime.rawValue)")
-                                .font(.system(.body, weight: .semibold))
-                        }
-                        .foregroundStyle(PepTheme.invertedText)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(PepTheme.teal, in: .rect(cornerRadius: 12))
-                    }
+                addAllButton(items: photoEstimatedItems)
 
-                    Button {
-                        resetState()
-                    } label: {
-                        Text("Try Another Photo")
-                            .font(.system(.subheadline, weight: .medium))
-                            .foregroundStyle(PepTheme.amber)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(PepTheme.amber.opacity(0.12), in: .rect(cornerRadius: 10))
-                    }
+                Button {
+                    resetPhotoState()
+                } label: {
+                    Text("Retake Photo")
+                        .font(.system(.subheadline, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(PepTheme.elevated, in: .rect(cornerRadius: 10))
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 24)
+            .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
     }
@@ -379,20 +404,23 @@ struct PhotoMealTab: View {
                     .aspectRatio(contentMode: .fill)
                     .allowsHitTesting(false)
 
-                ForEach(Array(overlays.enumerated()), id: \.element.id) { index, overlay in
+                ForEach(Array(photoOverlays.enumerated()), id: \.element.id) { _, overlay in
                     let x = overlay.relativeX * geo.size.width
                     let y = overlay.relativeY * geo.size.height
 
                     overlayTag(item: overlay.item)
-                        .position(x: min(max(x, 60), geo.size.width - 60), y: min(max(y, 20), geo.size.height - 20))
+                        .position(
+                            x: min(max(x, 60), geo.size.width - 60),
+                            y: min(max(y, 20), geo.size.height - 20)
+                        )
                 }
             }
         }
-        .frame(height: 260)
+        .frame(height: 240)
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(PepTheme.amber.opacity(0.2), lineWidth: 0.5)
+                .strokeBorder(PepTheme.teal.opacity(0.15), lineWidth: 0.5)
         )
     }
 
@@ -408,43 +436,445 @@ struct PhotoMealTab: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(PepTheme.amber.opacity(0.85).background(.ultraThinMaterial))
+        .background(PepTheme.teal.opacity(0.85).background(.ultraThinMaterial))
         .clipShape(.rect(cornerRadius: 8))
-        .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 2)
+        .shadow(color: .black.opacity(0.35), radius: 5, x: 0, y: 2)
     }
 
-    private var totalSummaryCard: some View {
-        let totalCal = estimatedItems.reduce(0) { $0 + $1.calories }
-        let totalP = estimatedItems.reduce(0) { $0 + $1.protein }
-        let totalC = estimatedItems.reduce(0) { $0 + $1.carbs }
-        let totalF = estimatedItems.reduce(0) { $0 + $1.fat }
+    // MARK: - Describe Tab
 
-        return HStack(spacing: 16) {
-            VStack(spacing: 2) {
-                Text("\(totalCal)")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundStyle(PepTheme.teal)
-                Text("total cal")
-                    .font(.caption2)
-                    .foregroundStyle(PepTheme.textSecondary)
+    private var describeTab: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                if !describeHasResult {
+                    describeInputSection
+                } else {
+                    describeResultSection
+                }
             }
-            Spacer()
-            HStack(spacing: 14) {
-                miniMacro(label: "Protein", value: Int(totalP), color: PepTheme.teal)
-                miniMacro(label: "Carbs", value: Int(totalC), color: PepTheme.amber)
-                miniMacro(label: "Fat", value: Int(totalF), color: PepTheme.violet)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 32)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private var describeInputSection: some View {
+        VStack(spacing: 18) {
+            TextEditor(text: $descriptionText)
+                .font(.body)
+                .foregroundStyle(PepTheme.textPrimary)
+                .scrollContentBackground(.hidden)
+                .frame(minHeight: 100, maxHeight: 140)
+                .padding(14)
+                .background(PepTheme.cardSurface)
+                .clipShape(.rect(cornerRadius: 14))
+                .overlay(
+                    Group {
+                        if descriptionText.isEmpty {
+                            Text("Describe what you ate...\ne.g. \"Grilled chicken, rice, and a side salad\"")
+                                .font(.body)
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                                .padding(18)
+                                .allowsHitTesting(false)
+                        }
+                    },
+                    alignment: .topLeading
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                )
+
+            if let error = describeError {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .padding(12)
+                .background(Color.orange.opacity(0.08))
+                .clipShape(.rect(cornerRadius: 10))
+            }
+
+            Button {
+                analyzeDescription()
+            } label: {
+                HStack(spacing: 10) {
+                    if isDescribeAnalyzing {
+                        ProgressView()
+                            .tint(PepTheme.invertedText)
+                    } else {
+                        Image(systemName: "sparkles")
+                    }
+                    Text(isDescribeAnalyzing ? "Analyzing..." : "Estimate Nutrition")
+                        .font(.system(.body, weight: .semibold))
+                }
+                .foregroundStyle(PepTheme.invertedText)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isDescribeAnalyzing
+                        ? PepTheme.elevated : PepTheme.violet,
+                    in: .rect(cornerRadius: 12)
+                )
+            }
+            .disabled(descriptionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isDescribeAnalyzing)
+            .sensoryFeedback(.impact(weight: .medium), trigger: isDescribeAnalyzing)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Quick suggestions")
+                    .font(.system(.caption, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+
+                let suggestions = [
+                    "Chicken breast with rice and broccoli",
+                    "Two slices of pepperoni pizza",
+                    "Greek yogurt with granola and berries",
+                    "Protein shake with banana and peanut butter"
+                ]
+
+                FlowLayout(spacing: 8) {
+                    ForEach(suggestions, id: \.self) { suggestion in
+                        Button {
+                            descriptionText = suggestion
+                        } label: {
+                            Text(suggestion)
+                                .font(.system(.caption2, weight: .medium))
+                                .foregroundStyle(PepTheme.textPrimary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(PepTheme.cardSurface)
+                                .clipShape(.rect(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                                )
+                        }
+                    }
+                }
             }
         }
-        .padding(14)
+        .padding(.top, 4)
+    }
+
+    private var describeResultSection: some View {
+        VStack(spacing: 14) {
+            nutritionSummaryCard(items: describeEstimatedItems)
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Estimated Items")
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Spacer()
+                }
+
+                ForEach(Array(describeEstimatedItems.enumerated()), id: \.element.id) { index, item in
+                    estimatedItemRow(item: item, index: index, accent: PepTheme.violet)
+                }
+            }
+
+            addAllButton(items: describeEstimatedItems)
+
+            Button {
+                describeHasResult = false
+                describeEstimatedItems = []
+            } label: {
+                Text("Re-describe")
+                    .font(.system(.subheadline, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .background(PepTheme.elevated, in: .rect(cornerRadius: 10))
+            }
+        }
+    }
+
+    // MARK: - Search Tab
+
+    private var searchTab: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+
+                TextField("Search foods...", text: $viewModel.searchText)
+                    .font(.system(.body, weight: .medium))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .autocorrectionDisabled()
+
+                if !viewModel.searchText.isEmpty {
+                    Button {
+                        viewModel.searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                    }
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(PepTheme.cardSurface)
+            .clipShape(.rect(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+
+            searchCategoryFilter
+
+            if viewModel.filteredFoods.isEmpty {
+                searchEmptyState
+            } else {
+                searchFoodList
+            }
+        }
+    }
+
+    private var searchCategoryFilter: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                searchCategoryChip(label: "All", category: nil)
+                ForEach(FoodCategory.allCases, id: \.rawValue) { category in
+                    searchCategoryChip(label: category.rawValue, category: category)
+                }
+            }
+            .padding(.vertical, 6)
+        }
+        .contentMargins(.horizontal, 16)
+    }
+
+    private func searchCategoryChip(label: String, category: FoodCategory?) -> some View {
+        let isSelected = viewModel.selectedCategory == category
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                viewModel.selectedCategory = category
+            }
+        } label: {
+            Text(label)
+                .font(.system(.caption2, weight: .semibold))
+                .foregroundStyle(isSelected ? PepTheme.invertedText : PepTheme.textSecondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(isSelected ? PepTheme.teal : PepTheme.elevated.opacity(0.8))
+                .clipShape(.rect(cornerRadius: 8))
+        }
+    }
+
+    private var searchFoodList: some View {
+        ScrollView {
+            LazyVStack(spacing: 2) {
+                ForEach(viewModel.filteredFoods) { food in
+                    Button {
+                        foodServings = 1.0
+                        selectedFood = food
+                    } label: {
+                        searchFoodRow(food)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 32)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private func searchFoodRow(_ food: FoodItem) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(food.name)
+                    .font(.system(.subheadline, weight: .medium))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(1)
+
+                HStack(spacing: 5) {
+                    if !food.brand.isEmpty {
+                        Text(food.brand)
+                            .foregroundStyle(PepTheme.teal.opacity(0.8))
+                        Text("·")
+                    }
+                    Text(food.servingSize)
+                }
+                .font(.caption2)
+                .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 3) {
+                Text("\(food.calories)")
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                +
+                Text(" cal")
+                    .font(.caption2)
+                    .foregroundStyle(PepTheme.textSecondary)
+
+                HStack(spacing: 5) {
+                    Text("P:\(Int(food.protein))")
+                        .foregroundStyle(PepTheme.teal)
+                    Text("C:\(Int(food.carbs))")
+                        .foregroundStyle(PepTheme.amber)
+                    Text("F:\(Int(food.fat))")
+                        .foregroundStyle(PepTheme.violet)
+                }
+                .font(.system(.caption2, design: .rounded, weight: .semibold))
+            }
+
+            Image(systemName: "plus.circle.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(PepTheme.teal)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 12))
+    }
+
+    private var searchEmptyState: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "fork.knife.circle")
+                .font(.system(size: 40))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.3))
+            Text("No foods found")
+                .font(.system(.subheadline, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+            Text("Try a different search term")
+                .font(.caption)
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Quick Add Tab
+
+    private var quickAddTab: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                VStack(spacing: 12) {
+                    quickField(label: "Name", text: $quickName, placeholder: "e.g. Lunch out", isNumeric: false)
+                    quickField(label: "Calories", text: $quickCalories, placeholder: "500", isNumeric: true)
+
+                    HStack(spacing: 10) {
+                        quickField(label: "Protein (g)", text: $quickProtein, placeholder: "0", isNumeric: true)
+                        quickField(label: "Carbs (g)", text: $quickCarbs, placeholder: "0", isNumeric: true)
+                        quickField(label: "Fat (g)", text: $quickFat, placeholder: "0", isNumeric: true)
+                    }
+                }
+                .padding(.top, 8)
+
+                Button {
+                    let cal = Int(quickCalories) ?? 0
+                    guard cal > 0 else { return }
+                    viewModel.quickAddMeal(
+                        name: quickName,
+                        calories: cal,
+                        protein: Double(quickProtein) ?? 0,
+                        carbs: Double(quickCarbs) ?? 0,
+                        fat: Double(quickFat) ?? 0,
+                        mealTime: mealTime
+                    )
+                    dismiss()
+                } label: {
+                    Text("Add Entry")
+                        .font(.system(.body, weight: .semibold))
+                        .foregroundStyle(PepTheme.invertedText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            quickCalories.isEmpty ? PepTheme.elevated : PepTheme.teal,
+                            in: .rect(cornerRadius: 12)
+                        )
+                }
+                .disabled(quickCalories.isEmpty)
+                .sensoryFeedback(.impact(weight: .light), trigger: quickCalories)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 32)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private func quickField(label: String, text: Binding<String>, placeholder: String, isNumeric: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label)
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+
+            TextField(placeholder, text: text)
+                .font(.system(.body, weight: .medium))
+                .foregroundStyle(PepTheme.textPrimary)
+                .keyboardType(isNumeric ? .decimalPad : .default)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
+                .background(PepTheme.cardSurface)
+                .clipShape(.rect(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                )
+        }
+    }
+
+    // MARK: - Shared Components
+
+    private func nutritionSummaryCard(items: [EstimatedFoodItem]) -> some View {
+        let totalCal = items.reduce(0) { $0 + $1.calories }
+        let totalP = items.reduce(0) { $0 + $1.protein }
+        let totalC = items.reduce(0) { $0 + $1.carbs }
+        let totalF = items.reduce(0) { $0 + $1.fat }
+
+        return HStack(spacing: 0) {
+            VStack(spacing: 2) {
+                Text("\(totalCal)")
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .foregroundStyle(PepTheme.teal)
+                Text("cal")
+                    .font(.system(.caption2, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+
+            dividerLine
+
+            macroColumn(label: "Protein", value: Int(totalP), color: PepTheme.teal)
+                .frame(maxWidth: .infinity)
+
+            dividerLine
+
+            macroColumn(label: "Carbs", value: Int(totalC), color: PepTheme.amber)
+                .frame(maxWidth: .infinity)
+
+            dividerLine
+
+            macroColumn(label: "Fat", value: Int(totalF), color: PepTheme.violet)
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.vertical, 14)
         .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(PepTheme.teal.opacity(0.12), lineWidth: 0.5)
+                .strokeBorder(PepTheme.teal.opacity(0.1), lineWidth: 0.5)
         )
     }
 
-    private func miniMacro(label: String, value: Int, color: Color) -> some View {
+    private var dividerLine: some View {
+        Rectangle()
+            .fill(PepTheme.glassBorderTop)
+            .frame(width: 0.5, height: 32)
+    }
+
+    private func macroColumn(label: String, value: Int, color: Color) -> some View {
         VStack(spacing: 2) {
             Text("\(value)g")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
@@ -455,22 +885,23 @@ struct PhotoMealTab: View {
         }
     }
 
-    private func detectedItemRow(item: EstimatedFoodItem, index: Int) -> some View {
+    private func estimatedItemRow(item: EstimatedFoodItem, index: Int, accent: Color) -> some View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(PepTheme.amber.opacity(0.15))
-                    .frame(width: 36, height: 36)
+                    .fill(accent.opacity(0.12))
+                    .frame(width: 34, height: 34)
                 Text("\(index + 1)")
                     .font(.system(.caption, design: .rounded, weight: .bold))
-                    .foregroundStyle(PepTheme.amber)
+                    .foregroundStyle(accent)
             }
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
                     .font(.system(.subheadline, weight: .medium))
                     .foregroundStyle(PepTheme.textPrimary)
-                HStack(spacing: 6) {
+                    .lineLimit(1)
+                HStack(spacing: 5) {
                     Text(item.amount)
                     Text("·")
                     Text("P:\(Int(item.protein))g")
@@ -483,20 +914,16 @@ struct PhotoMealTab: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 1) {
+            VStack(alignment: .trailing, spacing: 0) {
                 Text("\(item.calories)")
                     .font(.system(.subheadline, design: .rounded, weight: .bold))
                     .foregroundStyle(PepTheme.textPrimary)
                 Text("cal")
-                    .font(.caption2)
+                    .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(PepTheme.textSecondary)
             }
-
-            Image(systemName: "pencil.circle.fill")
-                .font(.body)
-                .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
         }
-        .padding(12)
+        .padding(11)
         .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 12))
         .overlay(
@@ -505,7 +932,37 @@ struct PhotoMealTab: View {
         )
     }
 
-    private func loadImage(from item: PhotosPickerItem) {
+    private func addAllButton(items: [EstimatedFoodItem]) -> some View {
+        Button {
+            for item in items {
+                viewModel.quickAddMeal(
+                    name: item.name,
+                    calories: item.calories,
+                    protein: item.protein,
+                    carbs: item.carbs,
+                    fat: item.fat,
+                    mealTime: mealTime
+                )
+            }
+            dismiss()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                Text("Add to \(mealTime.rawValue)")
+                    .font(.system(.body, weight: .semibold))
+            }
+            .foregroundStyle(PepTheme.invertedText)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(PepTheme.teal, in: .rect(cornerRadius: 12))
+        }
+        .buttonStyle(.scale)
+        .sensoryFeedback(.success, trigger: items.count)
+    }
+
+    // MARK: - Actions
+
+    private func loadPhoto(from item: PhotosPickerItem) {
         Task {
             guard let data = try? await item.loadTransferable(type: Data.self),
                   let uiImage = UIImage(data: data) else { return }
@@ -515,7 +972,7 @@ struct PhotoMealTab: View {
     }
 
     private func analyzePhoto(data: Data) {
-        isAnalyzing = true
+        isPhotoAnalyzing = true
         scanLineOffset = -120
 
         let compressedData: Data
@@ -528,429 +985,46 @@ struct PhotoMealTab: View {
 
         Task {
             do {
-                let (result, photoOverlays) = try await NutritionAIService.shared.estimateFromPhoto(compressedData)
-                estimatedItems = result.items
-                overlays = photoOverlays
-                hasResult = true
+                let (result, overlays) = try await NutritionAIService.shared.estimateFromPhoto(compressedData)
+                photoEstimatedItems = result.items
+                photoOverlays = overlays
+                photoHasResult = true
             } catch {
-                estimatedItems = [
+                photoEstimatedItems = [
                     EstimatedFoodItem(name: "Estimated Meal", amount: "1 serving", calories: 500, protein: 25, carbs: 50, fat: 18)
                 ]
-                overlays = [
-                    PhotoFoodOverlay(item: estimatedItems[0], relativeX: 0.5, relativeY: 0.5)
+                photoOverlays = [
+                    PhotoFoodOverlay(item: photoEstimatedItems[0], relativeX: 0.5, relativeY: 0.5)
                 ]
-                hasResult = true
+                photoHasResult = true
             }
-            isAnalyzing = false
+            isPhotoAnalyzing = false
         }
-    }
-
-    private func addAllToMealLog() {
-        for item in estimatedItems {
-            viewModel.quickAddMeal(
-                name: item.name,
-                calories: item.calories,
-                protein: item.protein,
-                carbs: item.carbs,
-                fat: item.fat,
-                mealTime: mealTime
-            )
-        }
-        dismissParent()
-    }
-
-    private func resetState() {
-        capturedImage = nil
-        selectedPhoto = nil
-        estimatedItems = []
-        overlays = []
-        hasResult = false
-    }
-}
-
-struct DescribeMealTab: View {
-    @Bindable var viewModel: NutritionViewModel
-    let mealTime: MealTime
-    let dismissParent: () -> Void
-    @State private var description: String = ""
-    @State private var isAnalyzing: Bool = false
-    @State private var estimatedItems: [EstimatedFoodItem] = []
-    @State private var hasResult: Bool = false
-    @State private var errorMessage: String? = nil
-    @State private var pulseAnimation: Bool = false
-
-    private var totalCalories: Int { estimatedItems.reduce(0) { $0 + $1.calories } }
-    private var totalProtein: Double { estimatedItems.reduce(0) { $0 + $1.protein } }
-    private var totalCarbs: Double { estimatedItems.reduce(0) { $0 + $1.carbs } }
-    private var totalFat: Double { estimatedItems.reduce(0) { $0 + $1.fat } }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                if !hasResult {
-                    inputSection
-                } else {
-                    resultSection
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
-        }
-        .scrollIndicators(.hidden)
-    }
-
-    private var inputSection: some View {
-        VStack(spacing: 24) {
-            VStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(PepTheme.violet.opacity(0.12))
-                        .frame(width: 56, height: 56)
-                        .scaleEffect(pulseAnimation ? 1.08 : 1.0)
-
-                    Image(systemName: "text.bubble.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(PepTheme.violet)
-                }
-                .onAppear {
-                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                        pulseAnimation = true
-                    }
-                }
-
-                Text("Describe What You Ate")
-                    .font(.system(.headline, design: .rounded, weight: .bold))
-                    .foregroundStyle(PepTheme.textPrimary)
-
-                Text("AI will estimate the calories and macros")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-            .padding(.top, 8)
-
-            VStack(alignment: .leading, spacing: 8) {
-                TextEditor(text: $description)
-                    .font(.body)
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .scrollContentBackground(.hidden)
-                    .frame(minHeight: 100)
-                    .padding(14)
-                    .background(PepTheme.elevated)
-                    .clipShape(.rect(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-                    )
-
-                Text("e.g. \"Two scrambled eggs, toast with butter, and orange juice\"")
-                    .font(.caption2)
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
-                    .padding(.horizontal, 4)
-            }
-
-            if let error = errorMessage {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-                .padding(12)
-                .background(Color.orange.opacity(0.1))
-                .clipShape(.rect(cornerRadius: 10))
-            }
-
-            Button {
-                analyzeDescription()
-            } label: {
-                HStack(spacing: 10) {
-                    if isAnalyzing {
-                        ProgressView()
-                            .tint(PepTheme.invertedText)
-                    } else {
-                        Image(systemName: "sparkles")
-                    }
-                    Text(isAnalyzing ? "Analyzing..." : "Estimate Nutrition")
-                        .font(.system(.body, weight: .semibold))
-                }
-                .foregroundStyle(PepTheme.invertedText)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                    description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isAnalyzing
-                        ? PepTheme.elevated : PepTheme.violet,
-                    in: .rect(cornerRadius: 12)
-                )
-            }
-            .disabled(description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isAnalyzing)
-
-            quickSuggestions
-        }
-    }
-
-    private var quickSuggestions: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Quick suggestions")
-                .font(.system(.caption, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
-
-            let suggestions = [
-                "Chicken breast with rice and broccoli",
-                "Two slices of pepperoni pizza",
-                "Greek yogurt with granola and berries",
-                "Protein shake with banana and peanut butter"
-            ]
-
-            ForEach(suggestions, id: \.self) { suggestion in
-                Button {
-                    description = suggestion
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.turn.down.right")
-                            .font(.caption2)
-                            .foregroundStyle(PepTheme.violet.opacity(0.6))
-                        Text(suggestion)
-                            .font(.system(.caption, weight: .medium))
-                            .foregroundStyle(PepTheme.textPrimary)
-                            .multilineTextAlignment(.leading)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(PepTheme.cardSurface)
-                    .clipShape(.rect(cornerRadius: 10))
-                }
-            }
-        }
-    }
-
-    private var resultSection: some View {
-        VStack(spacing: 20) {
-            HStack(spacing: 16) {
-                VStack(spacing: 2) {
-                    Text("\(totalCalories)")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundStyle(PepTheme.teal)
-                    Text("calories")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-                Spacer()
-                HStack(spacing: 16) {
-                    resultMacro(label: "Protein", value: Int(totalProtein), color: PepTheme.teal)
-                    resultMacro(label: "Carbs", value: Int(totalCarbs), color: PepTheme.amber)
-                    resultMacro(label: "Fat", value: Int(totalFat), color: PepTheme.violet)
-                }
-            }
-            .padding(16)
-            .background(PepTheme.cardSurface)
-            .clipShape(.rect(cornerRadius: 14))
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Estimated Items")
-                    .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-
-                ForEach($estimatedItems) { $item in
-                    describeItemRow(item: $item)
-                }
-            }
-
-            VStack(spacing: 10) {
-                Button {
-                    addAllToMealLog()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                        Text("Add All to \(mealTime.rawValue)")
-                            .font(.system(.body, weight: .semibold))
-                    }
-                    .foregroundStyle(PepTheme.invertedText)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(PepTheme.teal, in: .rect(cornerRadius: 12))
-                }
-
-                Button {
-                    hasResult = false
-                    estimatedItems = []
-                } label: {
-                    Text("Re-describe")
-                        .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(PepTheme.violet)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(PepTheme.violet.opacity(0.12), in: .rect(cornerRadius: 10))
-                }
-            }
-        }
-    }
-
-    private func resultMacro(label: String, value: Int, color: Color) -> some View {
-        VStack(spacing: 2) {
-            Text("\(value)g")
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(color)
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(PepTheme.textSecondary)
-        }
-    }
-
-    private func describeItemRow(item: Binding<EstimatedFoodItem>) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(item.wrappedValue.name)
-                    .font(.system(.subheadline, weight: .medium))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Text(item.wrappedValue.amount)
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-
-            Spacer()
-
-            VStack(spacing: 1) {
-                TextField("", value: item.calories, format: .number)
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 54)
-                Text("cal")
-                    .font(.caption2)
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(PepTheme.cardSurface)
-        .clipShape(.rect(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-        )
     }
 
     private func analyzeDescription() {
-        isAnalyzing = true
-        errorMessage = nil
+        isDescribeAnalyzing = true
+        describeError = nil
 
         Task {
             do {
-                let result = try await NutritionAIService.shared.estimateFromDescription(description)
-                estimatedItems = result.items
-                hasResult = true
+                let result = try await NutritionAIService.shared.estimateFromDescription(descriptionText)
+                describeEstimatedItems = result.items
+                describeHasResult = true
             } catch {
-                errorMessage = "Could not estimate nutrition. Please try again."
+                describeError = "Could not estimate nutrition. Please try again."
             }
-            isAnalyzing = false
+            isDescribeAnalyzing = false
         }
     }
 
-    private func addAllToMealLog() {
-        for item in estimatedItems {
-            viewModel.quickAddMeal(
-                name: item.name,
-                calories: item.calories,
-                protein: item.protein,
-                carbs: item.carbs,
-                fat: item.fat,
-                mealTime: mealTime
-            )
-        }
-        dismissParent()
+    private func resetPhotoState() {
+        capturedImage = nil
+        selectedPhoto = nil
+        photoEstimatedItems = []
+        photoOverlays = []
+        photoHasResult = false
     }
 }
 
-struct QuickAddTab: View {
-    @Bindable var viewModel: NutritionViewModel
-    let mealTime: MealTime
-    let dismissParent: () -> Void
-    @State private var name: String = ""
-    @State private var caloriesText: String = ""
-    @State private var proteinText: String = ""
-    @State private var carbsText: String = ""
-    @State private var fatText: String = ""
 
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                VStack(spacing: 8) {
-                    ZStack {
-                        Circle()
-                            .fill(PepTheme.teal.opacity(0.12))
-                            .frame(width: 56, height: 56)
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 24))
-                            .foregroundStyle(PepTheme.teal)
-                    }
-
-                    Text("Quick Add")
-                        .font(.system(.headline, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-
-                    Text("Manually enter calories & macros")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-                .padding(.top, 8)
-
-                VStack(spacing: 14) {
-                    quickField(label: "Name (optional)", text: $name, placeholder: "e.g. Lunch out")
-                    quickField(label: "Calories *", text: $caloriesText, placeholder: "e.g. 500")
-                    HStack(spacing: 12) {
-                        quickField(label: "Protein (g)", text: $proteinText, placeholder: "0")
-                        quickField(label: "Carbs (g)", text: $carbsText, placeholder: "0")
-                        quickField(label: "Fat (g)", text: $fatText, placeholder: "0")
-                    }
-                }
-
-                Button {
-                    let cal = Int(caloriesText) ?? 0
-                    guard cal > 0 else { return }
-                    viewModel.quickAddMeal(
-                        name: name,
-                        calories: cal,
-                        protein: Double(proteinText) ?? 0,
-                        carbs: Double(carbsText) ?? 0,
-                        fat: Double(fatText) ?? 0,
-                        mealTime: mealTime
-                    )
-                    dismissParent()
-                } label: {
-                    Text("Add Entry")
-                        .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(PepTheme.invertedText)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(
-                            (caloriesText.isEmpty ? PepTheme.elevated : PepTheme.teal),
-                            in: .rect(cornerRadius: 12)
-                        )
-                }
-                .disabled(caloriesText.isEmpty)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
-        }
-        .scrollIndicators(.hidden)
-    }
-
-    private func quickField(label: String, text: Binding<String>, placeholder: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(PepTheme.textSecondary)
-            TextField(placeholder, text: text)
-                .font(.system(.body, weight: .medium))
-                .foregroundStyle(PepTheme.textPrimary)
-                .keyboardType(label.contains("Name") ? .default : .decimalPad)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(PepTheme.elevated)
-                .clipShape(.rect(cornerRadius: 10))
-        }
-    }
-}
