@@ -202,6 +202,7 @@ final class ActiveWorkoutViewModel {
             duration: TimeInterval(elapsedSeconds),
             totalVolume: totalVolume,
             totalSets: totalSets,
+            caloriesBurned: calories,
             fpEarned: fp,
             personalRecords: prs
         )

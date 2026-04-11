@@ -180,6 +180,7 @@ nonisolated struct WorkoutHistoryDetail: Identifiable, Sendable {
     let date: Date
     let durationMinutes: Int
     let totalVolume: Int
+    let caloriesBurned: Int
     let fpEarned: Int
     let exercises: [WorkoutHistoryExerciseDetail]
 }

@@ -75,6 +75,7 @@ nonisolated struct WorkoutSummary: Sendable {
     let duration: TimeInterval
     let totalVolume: Double
     let totalSets: Int
+    let caloriesBurned: Int
     let fpEarned: Int
     let personalRecords: [PersonalRecord]
 }

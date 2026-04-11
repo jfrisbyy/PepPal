@@ -86,13 +86,48 @@ struct WorkoutSummaryView: View {
     }
 
     private var statsGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            statCard(icon: "clock.fill", label: "Duration", value: formattedDuration)
-            statCard(icon: "scalemass.fill", label: "Volume", value: formattedVolume)
-            statCard(icon: "checkmark.circle.fill", label: "Sets", value: "\(summary.totalSets)")
-            statCard(icon: "flame.fill", label: "Exercises", value: "\(summary.totalSets > 0 ? summary.totalSets / 3 : 0)")
+        VStack(spacing: 12) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                statCard(icon: "clock.fill", label: "Duration", value: formattedDuration)
+                caloriesCard
+                statCard(icon: "scalemass.fill", label: "Volume", value: formattedVolume)
+                statCard(icon: "checkmark.circle.fill", label: "Sets", value: "\(summary.totalSets)")
+            }
+
+            let exerciseCount = summary.totalSets > 0 ? summary.totalSets / 3 : 0
+            statCard(icon: "figure.strengthtraining.traditional", label: "Exercises", value: "\(exerciseCount)")
         }
         .padding(.horizontal, 4)
+    }
+
+    private var caloriesCard: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "flame.fill")
+                .font(.title3)
+                .foregroundStyle(.orange)
+
+            Text("\(summary.caloriesBurned)")
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundStyle(PepTheme.textPrimary)
+
+            Text("Calories")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(
+            LinearGradient(
+                colors: [Color.orange.opacity(0.08), Color.orange.opacity(0.03)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color.orange.opacity(0.25), lineWidth: 0.5)
+        )
     }
 
     private func statCard(icon: String, label: String, value: String) -> some View {

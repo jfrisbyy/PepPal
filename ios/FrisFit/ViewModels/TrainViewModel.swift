@@ -151,16 +151,7 @@ final class TrainViewModel {
         let vol = thisWeek.reduce(0) { $0 + $1.totalVolume }
         let dur = thisWeek.isEmpty ? 0 : thisWeek.reduce(0) { $0 + $1.durationMinutes } / max(thisWeek.count, 1)
         let fp = thisWeek.reduce(0) { $0 + $1.fpEarned } + sportSessions.filter { $0.date >= weekStart }.reduce(0) { $0 + $1.fpEarned }
-        let cal_burn = thisWeek.reduce(0) { acc, entry in
-            let weightKg = latestWeightKg()
-            return acc + METCalculator.caloriesBurned(
-                sport: nil,
-                workoutType: "strength",
-                durationMinutes: entry.durationMinutes,
-                weightKg: weightKg,
-                intensity: 6
-            )
-        }
+        let cal_burn = thisWeek.reduce(0) { $0 + $1.caloriesBurned }
         let sportCalBurn = sportSessions.filter { $0.date >= weekStart }.reduce(0) { acc, session in
             let weightKg = latestWeightKg()
             return acc + METCalculator.caloriesBurned(

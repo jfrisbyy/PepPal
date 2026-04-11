@@ -252,6 +252,7 @@ final class WorkoutService {
             date: date,
             durationMinutes: durationMinutes,
             totalVolume: totalVolume,
+            caloriesBurned: workout.calories_burned ?? 0,
             fpEarned: fpEarned,
             exercises: exercises
         )

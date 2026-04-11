@@ -66,7 +66,7 @@ final class ProfileViewModel {
         let cal = Calendar.current
         let now = Date()
         return [
-            WorkoutHistoryDetail(name: "Push Day — Chest, Shoulders, Triceps", date: cal.date(byAdding: .day, value: -1, to: now)!, durationMinutes: 54, totalVolume: 18_450, fpEarned: 340, exercises: [
+            WorkoutHistoryDetail(name: "Push Day — Chest, Shoulders, Triceps", date: cal.date(byAdding: .day, value: -1, to: now)!, durationMinutes: 54, totalVolume: 18_450, caloriesBurned: 347, fpEarned: 340, exercises: [
                 WorkoutHistoryExerciseDetail(exerciseName: "Barbell Bench Press", sets: [
                     WorkoutHistorySetDetail(setNumber: 1, weight: 185, reps: 10),
                     WorkoutHistorySetDetail(setNumber: 2, weight: 205, reps: 8),
@@ -83,7 +83,7 @@ final class ProfileViewModel {
                     WorkoutHistorySetDetail(setNumber: 3, weight: 155, reps: 5),
                 ]),
             ]),
-            WorkoutHistoryDetail(name: "Pull Day — Back & Biceps", date: cal.date(byAdding: .day, value: -3, to: now)!, durationMinutes: 48, totalVolume: 15_200, fpEarned: 310, exercises: [
+            WorkoutHistoryDetail(name: "Pull Day — Back & Biceps", date: cal.date(byAdding: .day, value: -3, to: now)!, durationMinutes: 48, totalVolume: 15_200, caloriesBurned: 308, fpEarned: 310, exercises: [
                 WorkoutHistoryExerciseDetail(exerciseName: "Barbell Row", sets: [
                     WorkoutHistorySetDetail(setNumber: 1, weight: 165, reps: 10),
                     WorkoutHistorySetDetail(setNumber: 2, weight: 185, reps: 8),
@@ -95,7 +95,7 @@ final class ProfileViewModel {
                     WorkoutHistorySetDetail(setNumber: 3, weight: 160, reps: 8),
                 ]),
             ]),
-            WorkoutHistoryDetail(name: "Leg Day", date: cal.date(byAdding: .day, value: -5, to: now)!, durationMinutes: 62, totalVolume: 22_800, fpEarned: 380, exercises: [
+            WorkoutHistoryDetail(name: "Leg Day", date: cal.date(byAdding: .day, value: -5, to: now)!, durationMinutes: 62, totalVolume: 22_800, caloriesBurned: 398, fpEarned: 380, exercises: [
                 WorkoutHistoryExerciseDetail(exerciseName: "Barbell Back Squat", sets: [
                     WorkoutHistorySetDetail(setNumber: 1, weight: 225, reps: 10),
                     WorkoutHistorySetDetail(setNumber: 2, weight: 275, reps: 8),
@@ -107,20 +107,20 @@ final class ProfileViewModel {
                     WorkoutHistorySetDetail(setNumber: 3, weight: 245, reps: 6),
                 ]),
             ]),
-            WorkoutHistoryDetail(name: "Push Day — Chest, Shoulders, Triceps", date: cal.date(byAdding: .day, value: -7, to: now)!, durationMinutes: 51, totalVolume: 17_600, fpEarned: 330, exercises: [
+            WorkoutHistoryDetail(name: "Push Day — Chest, Shoulders, Triceps", date: cal.date(byAdding: .day, value: -7, to: now)!, durationMinutes: 51, totalVolume: 17_600, caloriesBurned: 327, fpEarned: 330, exercises: [
                 WorkoutHistoryExerciseDetail(exerciseName: "Barbell Bench Press", sets: [
                     WorkoutHistorySetDetail(setNumber: 1, weight: 185, reps: 10),
                     WorkoutHistorySetDetail(setNumber: 2, weight: 200, reps: 8),
                     WorkoutHistorySetDetail(setNumber: 3, weight: 215, reps: 6),
                 ]),
             ]),
-            WorkoutHistoryDetail(name: "Upper Body", date: cal.date(byAdding: .day, value: -9, to: now)!, durationMinutes: 45, totalVolume: 14_300, fpEarned: 290, exercises: [
+            WorkoutHistoryDetail(name: "Upper Body", date: cal.date(byAdding: .day, value: -9, to: now)!, durationMinutes: 45, totalVolume: 14_300, caloriesBurned: 289, fpEarned: 290, exercises: [
                 WorkoutHistoryExerciseDetail(exerciseName: "Dumbbell Bench Press", sets: [
                     WorkoutHistorySetDetail(setNumber: 1, weight: 75, reps: 10),
                     WorkoutHistorySetDetail(setNumber: 2, weight: 80, reps: 8),
                 ]),
             ]),
-            WorkoutHistoryDetail(name: "Leg Day", date: cal.date(byAdding: .day, value: -12, to: now)!, durationMinutes: 58, totalVolume: 21_400, fpEarned: 360, exercises: [
+            WorkoutHistoryDetail(name: "Leg Day", date: cal.date(byAdding: .day, value: -12, to: now)!, durationMinutes: 58, totalVolume: 21_400, caloriesBurned: 372, fpEarned: 360, exercises: [
                 WorkoutHistoryExerciseDetail(exerciseName: "Barbell Back Squat", sets: [
                     WorkoutHistorySetDetail(setNumber: 1, weight: 225, reps: 10),
                     WorkoutHistorySetDetail(setNumber: 2, weight: 275, reps: 7),
