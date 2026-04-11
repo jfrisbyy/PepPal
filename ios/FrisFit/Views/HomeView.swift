@@ -13,9 +13,11 @@ struct HomeView: View {
     @State private var showStepDetail: Bool = false
     @State private var showProtocolDetail: Bool = false
     @State private var bodyGoalViewModel = BodyGoalViewModel()
+    @State private var energyBalanceViewModel = EnergyBalanceViewModel()
     @State private var dateSelectorHeight: CGFloat = 0
     @State private var profileNudgeState = ProfileNudgeState()
     @State private var showEditProfileFromNudge: Bool = false
+    @State private var showLogActivity: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -99,6 +101,9 @@ struct HomeView: View {
             DailyDeckBannerView(viewModel: viewModel)
             protocolCard
             BodyGoalSectionView(viewModel: bodyGoalViewModel)
+            DailyEnergyBalanceCard(viewModel: energyBalanceViewModel) {
+                showLogActivity = true
+            }
             nutritionCard
             if viewModel.healthKit.isAuthorized {
                 stepsModuleCard
@@ -121,6 +126,10 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showReconCalculator) {
             ReconstitutionCalculatorView()
+        }
+        .sheet(isPresented: $showLogActivity) {
+            LogActivitySheet()
+                .presentationDetents([.large])
         }
     }
 

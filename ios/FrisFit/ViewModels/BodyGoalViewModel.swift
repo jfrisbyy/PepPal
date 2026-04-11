@@ -156,6 +156,9 @@ final class BodyGoalViewModel {
             weightEntries = weights
             measurements = meas
             errorMessage = nil
+            if let latestWeight = weights.last?.weight, latestWeight > 0 {
+                UserDefaults.standard.set(latestWeight, forKey: "cachedWeightLbs")
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -201,6 +204,7 @@ final class BodyGoalViewModel {
                 let entry = try await BodyGoalsService.shared.logWeight(weight: weight, note: newWeighInNote)
                 weightEntries.append(entry)
                 weightEntries.sort { $0.date < $1.date }
+                UserDefaults.standard.set(weight, forKey: "cachedWeightLbs")
 
                 if supabaseGoalId != nil {
                     _ = try? await BodyGoalsService.shared.upsertGoal(

@@ -192,6 +192,8 @@ final class ActiveWorkoutViewModel {
         let totalVolume = exercises.reduce(0.0) { $0 + $1.totalVolume }
         let totalSets = exercises.reduce(0) { $0 + $1.completedSets }
         let fp = calculateFP(totalSets: totalSets, totalVolume: totalVolume, duration: elapsedSeconds)
+        let durationMinutes = elapsedSeconds / 60
+        let calories = estimateCaloriesBurned(durationMinutes: durationMinutes)
 
         let prs = generateMockPRs()
 
@@ -204,8 +206,45 @@ final class ActiveWorkoutViewModel {
             personalRecords: prs
         )
         isCompleted = true
-        saveToSupabase(durationMinutes: elapsedSeconds / 60, caloriesBurned: (elapsedSeconds / 60) * 8, totalVolume: Int(totalVolume), fpEarned: fp)
-        StreakManager.shared.logActivity(type: .workout, durationMinutes: elapsedSeconds / 60)
+        saveToSupabase(durationMinutes: durationMinutes, caloriesBurned: calories, totalVolume: Int(totalVolume), fpEarned: fp)
+        logToActivityLogs(durationMinutes: durationMinutes, caloriesBurned: calories)
+        StreakManager.shared.logActivity(type: .workout, durationMinutes: durationMinutes)
+    }
+
+    private func estimateCaloriesBurned(durationMinutes: Int) -> Int {
+        let weightKg = latestWeightKg()
+        return METCalculator.caloriesBurned(
+            sport: nil,
+            workoutType: "strength",
+            durationMinutes: durationMinutes,
+            weightKg: weightKg,
+            intensity: 6
+        )
+    }
+
+    private func latestWeightKg() -> Double {
+        let cached = UserDefaults.standard.double(forKey: "cachedWeightLbs")
+        let lbs = cached > 0 ? cached : 175.0
+        return lbs * 0.453592
+    }
+
+    private func logToActivityLogs(durationMinutes: Int, caloriesBurned: Int) {
+        guard AuthService.shared.authState == .signedIn else { return }
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                try await ActivityLogService.shared.logActivity(
+                    userId: userId,
+                    activityType: "workout",
+                    sport: nil,
+                    durationMinutes: durationMinutes,
+                    caloriesBurned: caloriesBurned,
+                    metValue: 5.0
+                )
+            } catch {
+                print("[ActiveWorkout] Failed to log activity: \(error)")
+            }
+        }
     }
 
     var completedExerciseDetails: [WorkoutHistoryExerciseDetail] {

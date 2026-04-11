@@ -151,8 +151,27 @@ final class TrainViewModel {
         let vol = thisWeek.reduce(0) { $0 + $1.totalVolume }
         let dur = thisWeek.isEmpty ? 0 : thisWeek.reduce(0) { $0 + $1.durationMinutes } / max(thisWeek.count, 1)
         let fp = thisWeek.reduce(0) { $0 + $1.fpEarned } + sportSessions.filter { $0.date >= weekStart }.reduce(0) { $0 + $1.fpEarned }
-        let cal_burn = thisWeek.reduce(0) { $0 + $1.durationMinutes * 8 }
-        return TrainingInsight(totalSessions: sessions, totalVolume: vol, avgDuration: dur, totalFP: fp, totalCaloriesBurned: cal_burn)
+        let cal_burn = thisWeek.reduce(0) { acc, entry in
+            let weightKg = latestWeightKg()
+            return acc + METCalculator.caloriesBurned(
+                sport: nil,
+                workoutType: "strength",
+                durationMinutes: entry.durationMinutes,
+                weightKg: weightKg,
+                intensity: 6
+            )
+        }
+        let sportCalBurn = sportSessions.filter { $0.date >= weekStart }.reduce(0) { acc, session in
+            let weightKg = latestWeightKg()
+            return acc + METCalculator.caloriesBurned(
+                sport: session.sport.rawValue,
+                workoutType: "sport",
+                durationMinutes: session.durationMinutes,
+                weightKg: weightKg,
+                intensity: session.intensity
+            )
+        }
+        return TrainingInsight(totalSessions: sessions, totalVolume: vol, avgDuration: dur, totalFP: fp, totalCaloriesBurned: cal_burn + sportCalBurn)
     }
 
     var warmupExercises: [WarmupExercise] {
@@ -315,15 +334,37 @@ final class TrainViewModel {
     func addSportSession(_ session: SportSession) {
         sportSessions.insert(session, at: 0)
         guard AuthService.shared.authState == .signedIn else { return }
+        let weightKg = latestWeightKg()
+        let calories = METCalculator.caloriesBurned(
+            sport: session.sport.rawValue,
+            workoutType: "sport",
+            durationMinutes: session.durationMinutes,
+            weightKg: weightKg,
+            intensity: session.intensity
+        )
         Task {
             do {
                 let userId = try AuthService.shared.currentUserId()
                 _ = try await WorkoutService.shared.createSportSession(userId: userId, session: session)
+                try await ActivityLogService.shared.logActivity(
+                    userId: userId,
+                    activityType: "sport",
+                    sport: session.sport.rawValue,
+                    durationMinutes: session.durationMinutes,
+                    caloriesBurned: calories,
+                    metValue: nil
+                )
             } catch {
                 print("[TrainVM] Failed to save sport session: \(error)")
             }
         }
         StreakManager.shared.logActivity(type: .sportSession, sport: session.sport, durationMinutes: session.durationMinutes)
+    }
+
+    private func latestWeightKg() -> Double {
+        let cached = UserDefaults.standard.double(forKey: "cachedWeightLbs")
+        let lbs = cached > 0 ? cached : 175.0
+        return lbs * 0.453592
     }
 
     // MARK: - Program Builder
