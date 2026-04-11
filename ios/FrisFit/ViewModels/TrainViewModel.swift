@@ -14,6 +14,7 @@ final class TrainViewModel {
     private static let modesKey = "savedTrainModes"
     private static let lastModeKey = "lastActiveTrainModeId"
     private static let programKey = "savedActiveProgram"
+    private static let programStartDayKey = "programStartDayOffset"
 
     var programName: String = ""
     var programType: ProgramType = .recurringSplit
@@ -63,17 +64,29 @@ final class TrainViewModel {
 
     var todayWorkoutDay: ProgramDay? {
         guard let program = activeProgram else { return nil }
-        let dayOfWeek = Calendar.current.component(.weekday, from: Date())
-        let dayIndex = (dayOfWeek + 5) % 7
+        let dayIndex = todayProgramDayIndex
         guard dayIndex < program.days.count else { return nil }
         return program.days[dayIndex]
     }
 
     var isRestDay: Bool {
         guard let program = activeProgram else { return false }
+        return todayProgramDayIndex >= program.days.count
+    }
+
+    private var todayProgramDayIndex: Int {
+        let startOffset = UserDefaults.standard.integer(forKey: Self.programStartDayKey)
         let dayOfWeek = Calendar.current.component(.weekday, from: Date())
-        let dayIndex = (dayOfWeek + 5) % 7
-        return dayIndex >= program.days.count
+        let mondayBased = (dayOfWeek + 5) % 7
+        let adjusted = (mondayBased - startOffset + 7) % 7
+        return adjusted
+    }
+
+    var todayScheduledDayName: String? {
+        guard let program = activeProgram else { return nil }
+        let idx = todayProgramDayIndex
+        guard idx < program.days.count else { return nil }
+        return program.days[idx].name
     }
 
     var muscleRecoveryItems: [MuscleRecoveryItem] {
@@ -400,6 +413,12 @@ final class TrainViewModel {
             isActive: true
         )
         activeProgram = program
+        saveProgram()
+    }
+
+    func activateTemplateProgram(_ program: TrainingProgram, startDayOffset: Int) {
+        activeProgram = program
+        UserDefaults.standard.set(startDayOffset, forKey: Self.programStartDayKey)
         saveProgram()
     }
 

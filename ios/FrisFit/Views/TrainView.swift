@@ -19,6 +19,7 @@ struct TrainView: View {
     @State private var expandedItemId: UUID? = nil
     @State private var showAllRecovery: Bool = false
     @State private var showAnalyticsDetail: Bool = false
+    @State private var showProgramCreation: Bool = false
     @State private var showLiveRun: Bool = false
     @State private var showLiveRide: Bool = false
     @State private var showBasketballGameLog: Bool = false
@@ -137,6 +138,10 @@ struct TrainView: View {
             }
             .fullScreenCover(isPresented: $viewModel.showProgramBuilder) {
                 ProgramBuilderView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showProgramCreation) {
+                ProgramCreationView(viewModel: viewModel)
+                    .presentationDetents([.large])
             }
             .sheet(isPresented: $showSportSelector) {
                 SportSelectorView { sport in
@@ -474,38 +479,122 @@ struct TrainView: View {
     }
 
     private var noProgamContent: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                Image(systemName: "questionmark.circle")
-                    .font(.title3)
+        VStack(spacing: 14) {
+            VStack(spacing: 6) {
+                Image(systemName: "figure.strengthtraining.traditional")
+                    .font(.system(size: 28))
+                    .foregroundStyle(PepTheme.teal.opacity(0.6))
+                Text("No Active Program")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("Get started with a template, AI builder, or from scratch")
+                    .font(.caption)
                     .foregroundStyle(PepTheme.textSecondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("No Active Program")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("Create a program or start a quick workout")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            VStack(spacing: 8) {
+                noProgramPathButton(
+                    icon: "square.grid.2x2.fill",
+                    title: "Choose a Template",
+                    subtitle: "PPL, Upper/Lower, Full Body & more",
+                    color: PepTheme.teal
+                ) {
+                    showProgramCreation = true
+                }
+
+                HStack(spacing: 8) {
+                    noProgramSmallButton(
+                        icon: "sparkles",
+                        title: "Build with AI",
+                        color: PepTheme.violet
+                    ) {
+                        showProgramCreation = true
+                    }
+
+                    noProgramSmallButton(
+                        icon: "doc.badge.plus",
+                        title: "From Scratch",
+                        color: PepTheme.amber
+                    ) {
+                        viewModel.resetBuilder()
+                        viewModel.showProgramBuilder = true
+                    }
                 }
             }
 
             Button {
                 startEmptyWorkout()
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "bolt.fill")
-                        .font(.caption)
+                        .font(.system(size: 11))
                     Text("Quick Workout")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.system(size: 13, weight: .semibold))
                 }
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(PepTheme.teal)
-                .clipShape(.rect(cornerRadius: 12))
+                .foregroundStyle(PepTheme.teal)
+                .padding(.top, 2)
             }
-            .buttonStyle(.scale)
+            .buttonStyle(.plain)
         }
+    }
+
+    private func noProgramPathButton(icon: String, title: String, subtitle: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(color)
+                    .clipShape(.rect(cornerRadius: 10))
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            .padding(12)
+            .background(color.opacity(0.06))
+            .clipShape(.rect(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(color.opacity(0.15), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func noProgramSmallButton(icon: String, title: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(color)
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(color.opacity(0.06))
+            .clipShape(.rect(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(color.opacity(0.15), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Consistency Ring
@@ -937,8 +1026,7 @@ struct TrainView: View {
 
             HStack(spacing: 10) {
                 Button {
-                    viewModel.resetBuilder()
-                    viewModel.showProgramBuilder = true
+                    showProgramCreation = true
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.rectangle.on.folder")
