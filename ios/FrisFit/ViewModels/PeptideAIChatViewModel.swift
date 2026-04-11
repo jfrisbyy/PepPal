@@ -136,7 +136,7 @@ final class PeptideAIChatViewModel {
         }
 
         let body: [String: Any] = [
-            "model": "openai/gpt-4o",
+            "model": "perplexity/sonar",
             "messages": apiMessages,
             "max_tokens": 400
         ]

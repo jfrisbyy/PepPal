@@ -90,7 +90,7 @@ struct PeptideAIChatView: View {
                     Circle()
                         .fill(.green)
                         .frame(width: 6, height: 6)
-                    Text("Compound Database · Research Assistant")
+                    Text("Live Research · Compound Database")
                         .font(.system(.caption2, weight: .medium))
                         .foregroundStyle(PepTheme.textSecondary)
                 }
