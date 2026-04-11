@@ -33,58 +33,89 @@ struct BodyGoalSectionView: View {
 
                             Spacer()
 
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(PepTheme.textSecondary)
-                                .rotationEffect(.degrees(viewModel.isExpanded ? 180 : 0))
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .tint(PepTheme.teal)
+                            } else {
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                    .rotationEffect(.degrees(viewModel.isExpanded ? 180 : 0))
+                            }
                         }
 
-                        HStack(spacing: 20) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(String(format: "%.1f", viewModel.currentWeight))
-                                    .font(.system(.title2, design: .rounded, weight: .bold))
-                                    .foregroundStyle(PepTheme.textPrimary)
-                                Text("Current lbs")
-                                    .font(.system(.caption2, weight: .medium))
-                                    .foregroundStyle(PepTheme.textSecondary)
-                            }
-
-                            Rectangle()
-                                .fill(PepTheme.shimmerHighlight)
-                                .frame(width: 1, height: 30)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(String(format: "%.1f", viewModel.targetWeight))
-                                    .font(.system(.title2, design: .rounded, weight: .bold))
-                                    .foregroundStyle(viewModel.currentGoal.color)
-                                Text("Goal lbs")
-                                    .font(.system(.caption2, weight: .medium))
-                                    .foregroundStyle(PepTheme.textSecondary)
-                            }
-
-                            Rectangle()
-                                .fill(PepTheme.shimmerHighlight)
-                                .frame(width: 1, height: 30)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 2) {
-                                    Image(systemName: viewModel.weeklyChange <= 0 ? "arrow.down.right" : "arrow.up.right")
-                                        .font(.system(size: 10, weight: .bold))
-                                    Text(String(format: "%.1f", abs(viewModel.weeklyChange)))
-                                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        if viewModel.currentWeight > 0 {
+                            HStack(spacing: 20) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(String(format: "%.1f", viewModel.currentWeight))
+                                        .font(.system(.title2, design: .rounded, weight: .bold))
+                                        .foregroundStyle(PepTheme.textPrimary)
+                                    Text("Current lbs")
+                                        .font(.system(.caption2, weight: .medium))
+                                        .foregroundStyle(PepTheme.textSecondary)
                                 }
-                                .foregroundStyle(
-                                    (viewModel.currentGoal == .weightLoss || viewModel.currentGoal == .cutting)
-                                    ? (viewModel.weeklyChange <= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
-                                    : (viewModel.weeklyChange >= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
-                                )
-                                Text("This week")
-                                    .font(.system(.caption2, weight: .medium))
+
+                                Rectangle()
+                                    .fill(PepTheme.shimmerHighlight)
+                                    .frame(width: 1, height: 30)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(String(format: "%.1f", viewModel.targetWeight))
+                                        .font(.system(.title2, design: .rounded, weight: .bold))
+                                        .foregroundStyle(viewModel.currentGoal.color)
+                                    Text("Goal lbs")
+                                        .font(.system(.caption2, weight: .medium))
+                                        .foregroundStyle(PepTheme.textSecondary)
+                                }
+
+                                Rectangle()
+                                    .fill(PepTheme.shimmerHighlight)
+                                    .frame(width: 1, height: 30)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 2) {
+                                        Image(systemName: viewModel.weeklyChange <= 0 ? "arrow.down.right" : "arrow.up.right")
+                                            .font(.system(size: 10, weight: .bold))
+                                        Text(String(format: "%.1f", abs(viewModel.weeklyChange)))
+                                            .font(.system(.title3, design: .rounded, weight: .bold))
+                                    }
+                                    .foregroundStyle(
+                                        viewModel.currentGoal.isLosing
+                                        ? (viewModel.weeklyChange <= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
+                                        : (viewModel.weeklyChange >= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
+                                    )
+                                    Text("This week")
+                                        .font(.system(.caption2, weight: .medium))
+                                        .foregroundStyle(PepTheme.textSecondary)
+                                }
+                            }
+
+                            goalProgressBar
+                        } else if !viewModel.isLoading {
+                            HStack(spacing: 8) {
+                                Image(systemName: "scalemass")
+                                    .font(.caption)
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                Text("Log your first weigh-in to start tracking")
+                                    .font(.caption)
                                     .foregroundStyle(PepTheme.textSecondary)
                             }
                         }
 
-                        goalProgressBar
+                        if let days = viewModel.daysSinceLastWeighIn, days >= 3 {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(PepTheme.amber)
+                                Text("Last weigh-in was \(days) days ago")
+                                    .font(.system(.caption2, weight: .medium))
+                                    .foregroundStyle(PepTheme.amber)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(PepTheme.amber.opacity(0.1))
+                            .clipShape(.capsule)
+                        }
                     }
                 }
             }
@@ -95,6 +126,9 @@ struct BodyGoalSectionView: View {
                 expandedContent
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
+        }
+        .onAppear {
+            viewModel.loadData()
         }
         .sheet(isPresented: $viewModel.showWeighInSheet) {
             WeighInSheet(viewModel: viewModel)
@@ -108,7 +142,7 @@ struct BodyGoalSectionView: View {
         }
         .sheet(isPresented: $viewModel.showGoalPicker) {
             GoalPickerSheet(viewModel: viewModel)
-                .presentationDetents([.medium])
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $viewModel.showFullDetail) {
@@ -299,7 +333,7 @@ struct WeighInSheet: View {
                     Image(systemName: "info.circle.fill")
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
-                    Text("Last weigh-in: \(String(format: "%.1f", lastEntry.weight)) lbs")
+                    Text("Last weigh-in: \(String(format: "%.1f", lastEntry.weight)) lbs on \(lastEntry.date.formatted(.dateTime.month(.abbreviated).day()))")
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
                 }
@@ -308,15 +342,21 @@ struct WeighInSheet: View {
             Button {
                 viewModel.logWeighIn()
             } label: {
-                Text("Save Weigh-In")
-                    .font(.system(.body, weight: .semibold))
-                    .foregroundStyle(PepTheme.invertedText)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(PepTheme.teal, in: .rect(cornerRadius: 12))
+                HStack(spacing: 8) {
+                    if viewModel.isSaving {
+                        ProgressView()
+                            .tint(PepTheme.invertedText)
+                    }
+                    Text("Save Weigh-In")
+                        .font(.system(.body, weight: .semibold))
+                }
+                .foregroundStyle(PepTheme.invertedText)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(PepTheme.teal, in: .rect(cornerRadius: 12))
             }
             .buttonStyle(.scale)
-            .disabled(viewModel.newWeighInValue.isEmpty)
+            .disabled(viewModel.newWeighInValue.isEmpty || viewModel.isSaving)
             .opacity(viewModel.newWeighInValue.isEmpty ? 0.5 : 1)
 
             Spacer()
@@ -345,6 +385,17 @@ struct MeasurementSheet: View {
                 }
                 .padding(.top, 8)
 
+                if let lastMeasurement = viewModel.measurements.last {
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Text("Last measured: \(lastMeasurement.date.formatted(.dateTime.month(.abbreviated).day().year()))")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                }
+
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                     measurementField(label: "Chest", value: $viewModel.newChest, icon: "figure.arms.open")
                     measurementField(label: "Waist", value: $viewModel.newWaist, icon: "figure.stand")
@@ -359,14 +410,21 @@ struct MeasurementSheet: View {
                 Button {
                     viewModel.logMeasurement()
                 } label: {
-                    Text("Save Measurements")
-                        .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(PepTheme.invertedText)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(PepTheme.teal, in: .rect(cornerRadius: 12))
+                    HStack(spacing: 8) {
+                        if viewModel.isSaving {
+                            ProgressView()
+                                .tint(PepTheme.invertedText)
+                        }
+                        Text("Save Measurements")
+                            .font(.system(.body, weight: .semibold))
+                    }
+                    .foregroundStyle(PepTheme.invertedText)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(PepTheme.teal, in: .rect(cornerRadius: 12))
                 }
                 .buttonStyle(.scale)
+                .disabled(viewModel.isSaving)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
@@ -401,76 +459,203 @@ struct MeasurementSheet: View {
 struct GoalPickerSheet: View {
     @Bindable var viewModel: BodyGoalViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedGoal: FitnessGoalType = .weightLoss
+    @State private var showDetails: Bool = false
 
     var body: some View {
-        VStack(spacing: 20) {
-            VStack(spacing: 4) {
-                Text("Your Goal")
+        ScrollView {
+            VStack(spacing: 20) {
+                VStack(spacing: 4) {
+                    Text("Set Your Goal")
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("Choose a goal type and set your target")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .padding(.top, 8)
+
+                VStack(spacing: 8) {
+                    ForEach(FitnessGoalType.allCases) { goal in
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                selectedGoal = goal
+                                showDetails = true
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    Circle()
+                                        .fill(goal.color.opacity(0.15))
+                                        .frame(width: 40, height: 40)
+                                    Image(systemName: goal.icon)
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(goal.color)
+                                }
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(goal.rawValue)
+                                        .font(.system(.subheadline, weight: .semibold))
+                                        .foregroundStyle(PepTheme.textPrimary)
+                                    Text(goal.subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(PepTheme.textSecondary)
+                                }
+
+                                Spacer()
+
+                                if selectedGoal == goal {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.title3)
+                                        .foregroundStyle(goal.color)
+                                }
+                            }
+                            .padding(12)
+                            .background(
+                                selectedGoal == goal
+                                ? goal.color.opacity(0.08)
+                                : PepTheme.elevated.opacity(0.5)
+                            )
+                            .clipShape(.rect(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .strokeBorder(
+                                        selectedGoal == goal ? goal.color.opacity(0.3) : Color.clear,
+                                        lineWidth: 1
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if showDetails {
+                    goalDetailsSection
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+
+                Button {
+                    viewModel.currentGoal = selectedGoal
+                    viewModel.saveGoal()
+                } label: {
+                    HStack(spacing: 8) {
+                        if viewModel.isSaving {
+                            ProgressView()
+                                .tint(PepTheme.invertedText)
+                        }
+                        Text("Save Goal")
+                            .font(.system(.body, weight: .semibold))
+                    }
+                    .foregroundStyle(PepTheme.invertedText)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(selectedGoal.color, in: .rect(cornerRadius: 12))
+                }
+                .buttonStyle(.scale)
+                .disabled(viewModel.isSaving)
+                .padding(.top, 4)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+        .scrollIndicators(.hidden)
+        .presentationContentInteraction(.scrolls)
+        .background(PepTheme.background.ignoresSafeArea())
+        .onAppear {
+            selectedGoal = viewModel.currentGoal
+            showDetails = true
+        }
+    }
+
+    private var goalDetailsSection: some View {
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Target Weight (lbs)")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                TextField("e.g. 175.0", text: $viewModel.goalTargetWeightText)
+                    .keyboardType(.decimalPad)
                     .font(.system(.title3, design: .rounded, weight: .bold))
                     .foregroundStyle(PepTheme.textPrimary)
-                Text("What are you working towards?")
-                    .font(.subheadline)
+                    .padding(14)
+                    .background(PepTheme.elevated)
+                    .clipShape(.rect(cornerRadius: 12))
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Target Date")
+                    .font(.system(.caption, weight: .semibold))
                     .foregroundStyle(PepTheme.textSecondary)
+                DatePicker("", selection: $viewModel.targetDate, in: Date()..., displayedComponents: .date)
+                    .datePickerStyle(.compact)
+                    .labelsHidden()
+                    .tint(selectedGoal.color)
+                    .padding(10)
+                    .background(PepTheme.elevated)
+                    .clipShape(.rect(cornerRadius: 12))
             }
-            .padding(.top, 8)
 
-            VStack(spacing: 8) {
-                ForEach(FitnessGoalType.allCases) { goal in
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            viewModel.currentGoal = goal
-                        }
-                        dismiss()
-                    } label: {
-                        HStack(spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .fill(goal.color.opacity(0.15))
-                                    .frame(width: 40, height: 40)
-                                Image(systemName: goal.icon)
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundStyle(goal.color)
-                            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Weekly Rate (lbs/week)")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                TextField("e.g. 1.0", text: $viewModel.goalWeeklyRateText)
+                    .keyboardType(.decimalPad)
+                    .font(.system(.body, design: .rounded, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .padding(14)
+                    .background(PepTheme.elevated)
+                    .clipShape(.rect(cornerRadius: 12))
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(goal.rawValue)
-                                    .font(.system(.subheadline, weight: .semibold))
-                                    .foregroundStyle(PepTheme.textPrimary)
-                                Text(goal.subtitle)
-                                    .font(.caption)
-                                    .foregroundStyle(PepTheme.textSecondary)
-                            }
-
-                            Spacer()
-
-                            if viewModel.currentGoal == goal {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.title3)
-                                    .foregroundStyle(goal.color)
-                            }
-                        }
-                        .padding(12)
-                        .background(
-                            viewModel.currentGoal == goal
-                            ? goal.color.opacity(0.08)
-                            : PepTheme.elevated.opacity(0.5)
-                        )
-                        .clipShape(.rect(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(
-                                    viewModel.currentGoal == goal ? goal.color.opacity(0.3) : Color.clear,
-                                    lineWidth: 1
-                                )
-                        )
-                    }
-                    .buttonStyle(.plain)
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 10))
+                    Text(rateRecommendation)
+                        .font(.system(.caption2, weight: .medium))
                 }
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
-            Spacer()
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Height (cm)")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                HStack {
+                    Text(String(format: "%.0f cm", viewModel.heightCm))
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Spacer()
+                    Text(heightInFeetInches)
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                Slider(value: $viewModel.heightCm, in: 120...220, step: 1)
+                    .tint(selectedGoal.color)
+            }
         }
-        .padding(.horizontal, 20)
-        .background(PepTheme.background.ignoresSafeArea())
+        .padding(16)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    private var rateRecommendation: String {
+        if selectedGoal.isLosing {
+            return "Recommended: 0.5-1.0 lbs/week for sustainable fat loss"
+        } else if selectedGoal.isGaining {
+            return "Recommended: 0.25-0.5 lbs/week for lean muscle gain"
+        } else {
+            return "Set a rate to track maintenance consistency"
+        }
+    }
+
+    private var heightInFeetInches: String {
+        let totalInches = viewModel.heightCm / 2.54
+        let feet = Int(totalInches / 12)
+        let inches = Int(totalInches.truncatingRemainder(dividingBy: 12))
+        return "\(feet)'\(inches)\""
     }
 }

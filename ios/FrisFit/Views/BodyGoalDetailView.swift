@@ -31,6 +31,9 @@ struct BodyGoalDetailView: View {
         .background(PepTheme.background.ignoresSafeArea())
         .navigationTitle("Body & Goals")
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable {
+            await viewModel.refresh()
+        }
         .sheet(isPresented: $viewModel.showWeighInSheet) {
             WeighInSheet(viewModel: viewModel)
                 .presentationDetents([.medium])
@@ -81,10 +84,12 @@ struct BodyGoalDetailView: View {
                             .foregroundStyle(viewModel.currentGoal.color)
                     }
 
-                    HStack(spacing: 16) {
-                        statPill(label: "Start", value: String(format: "%.1f", viewModel.startingWeight))
-                        statPill(label: "Current", value: String(format: "%.1f", viewModel.currentWeight))
-                        statPill(label: "Goal", value: String(format: "%.1f", viewModel.targetWeight))
+                    if viewModel.currentWeight > 0 {
+                        HStack(spacing: 16) {
+                            statPill(label: "Start", value: String(format: "%.1f", viewModel.startingWeight))
+                            statPill(label: "Current", value: String(format: "%.1f", viewModel.currentWeight))
+                            statPill(label: "Goal", value: String(format: "%.1f", viewModel.targetWeight))
+                        }
                     }
                 }
             }
@@ -92,6 +97,32 @@ struct BodyGoalDetailView: View {
             HStack(spacing: 12) {
                 bmiMiniCard
                 weeklyChangeMiniCard
+            }
+
+            if let estDate = viewModel.estimatedCompletionDate {
+                HStack(spacing: 8) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 12))
+                        .foregroundStyle(PepTheme.teal)
+                    Text("Est. goal date: \(estDate.formatted(.dateTime.month(.abbreviated).day().year()))")
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundStyle(PepTheme.textPrimary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(PepTheme.teal.opacity(0.08))
+                .clipShape(.capsule)
+            }
+
+            if let avgWeekly = viewModel.averageWeeklyChange {
+                HStack(spacing: 8) {
+                    Image(systemName: "chart.line.flattrend.xyaxis")
+                        .font(.system(size: 12))
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Text("Avg. weekly change: \(String(format: "%+.1f", avgWeekly)) lbs")
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
             }
         }
         .padding(16)
@@ -237,9 +268,15 @@ struct BodyGoalDetailView: View {
                         .font(.system(.subheadline, weight: .semibold))
                         .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
-                    Text(String(format: "%.1f lbs total", abs(viewModel.totalChange)))
-                        .font(.system(.caption, design: .rounded, weight: .bold))
-                        .foregroundStyle(viewModel.totalChange <= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
+                    if viewModel.weightEntries.count > 0 {
+                        Text(String(format: "%.1f lbs total", abs(viewModel.totalChange)))
+                            .font(.system(.caption, design: .rounded, weight: .bold))
+                            .foregroundStyle(
+                                viewModel.currentGoal.isLosing
+                                ? (viewModel.totalChange <= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
+                                : (viewModel.totalChange >= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
+                            )
+                    }
                 }
 
                 if viewModel.weightChartData.count > 1 {
@@ -263,12 +300,26 @@ struct BodyGoalDetailView: View {
 
     private var weightHistory: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("History")
-                .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(PepTheme.textPrimary)
+            HStack {
+                Text("History")
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Spacer()
+                Text("\(viewModel.weightEntries.count) entries")
+                    .font(.caption)
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
 
-            ForEach(viewModel.weightEntries.reversed()) { entry in
-                weightEntryRow(entry)
+            if viewModel.weightEntries.isEmpty {
+                EmptyStateView(
+                    icon: "scalemass",
+                    title: "No Weight Entries",
+                    message: "Log your first weigh-in to start tracking your progress."
+                )
+            } else {
+                ForEach(viewModel.weightEntries.reversed()) { entry in
+                    weightEntryRow(entry)
+                }
             }
         }
     }
@@ -325,6 +376,15 @@ struct BodyGoalDetailView: View {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
         )
+        .contextMenu {
+            if entry.supabaseId != nil {
+                Button(role: .destructive) {
+                    viewModel.deleteWeightEntry(entry)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+        }
     }
 
     // MARK: - Measurements Section
@@ -354,12 +414,21 @@ struct BodyGoalDetailView: View {
                     message: "Track your body measurements to see changes over time."
                 )
             } else {
-                ForEach(viewModel.measurements.reversed()) { measurement in
-                    measurementCard(measurement)
-                }
-
                 if viewModel.measurements.count >= 2 {
                     measurementComparisonCard
+                }
+
+                ForEach(viewModel.measurements.reversed()) { measurement in
+                    measurementCard(measurement)
+                        .contextMenu {
+                            if measurement.supabaseId != nil {
+                                Button(role: .destructive) {
+                                    viewModel.deleteMeasurement(measurement)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
                 }
             }
         }
@@ -410,7 +479,7 @@ struct BodyGoalDetailView: View {
                     Image(systemName: "arrow.left.arrow.right")
                         .font(.caption)
                         .foregroundStyle(PepTheme.violet)
-                    Text("Changes")
+                    Text("Changes Since Last")
                         .font(.system(.subheadline, weight: .semibold))
                         .foregroundStyle(PepTheme.textPrimary)
                 }
@@ -438,7 +507,7 @@ struct BodyGoalDetailView: View {
                 HStack(spacing: 3) {
                     Image(systemName: change < 0 ? "arrow.down" : (change > 0 ? "arrow.up" : "minus"))
                         .font(.system(size: 8, weight: .bold))
-                    Text(String(format: "%.1f\"", abs(change)))
+                    Text(String(format: "%+.1f\"", change))
                         .font(.system(.caption, design: .rounded, weight: .bold))
                 }
                 .foregroundStyle(change == 0 ? PepTheme.textSecondary : (change < 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : PepTheme.amber))
@@ -451,69 +520,12 @@ struct BodyGoalDetailView: View {
 
     private var photosSection: some View {
         VStack(spacing: 16) {
-            if viewModel.progressPhotos.isEmpty {
-                EmptyStateView(
-                    icon: "camera.fill",
-                    title: "No Progress Photos",
-                    message: "Start documenting your transformation by adding progress photos."
-                )
-            } else {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    ForEach(viewModel.progressPhotos) { photo in
-                        photoCard(photo)
-                    }
-
-                    addPhotoCard
-                }
-            }
+            EmptyStateView(
+                icon: "camera.fill",
+                title: "Progress Photos Coming Soon",
+                message: "Photo tracking with side-by-side comparisons will be available in a future update."
+            )
         }
-    }
-
-    private func photoCard(_ photo: ProgressPhoto) -> some View {
-        VStack(spacing: 0) {
-            Color(PepTheme.elevated)
-                .frame(height: 180)
-                .overlay {
-                    VStack(spacing: 8) {
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 32))
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.3))
-                        Text(photo.label)
-                            .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                    }
-                }
-                .clipShape(.rect(cornerRadius: 12))
-
-            Text(photo.date.formatted(.dateTime.month(.abbreviated).day()))
-                .font(.system(.caption2, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
-                .padding(.top, 6)
-        }
-    }
-
-    private var addPhotoCard: some View {
-        Button {
-        } label: {
-            Color(PepTheme.elevated.opacity(0.3))
-                .frame(height: 180)
-                .overlay {
-                    VStack(spacing: 8) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundStyle(PepTheme.teal.opacity(0.6))
-                        Text("Add Photo")
-                            .font(.system(.caption2, weight: .semibold))
-                            .foregroundStyle(PepTheme.teal.opacity(0.8))
-                    }
-                }
-                .clipShape(.rect(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(PepTheme.teal.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
-                )
-        }
-        .buttonStyle(.scale)
     }
 }
 

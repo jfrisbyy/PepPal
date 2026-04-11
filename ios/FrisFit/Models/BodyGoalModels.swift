@@ -40,6 +40,20 @@ nonisolated enum FitnessGoalType: String, CaseIterable, Identifiable, Sendable, 
         case .cutting: return "Aggressive deficit"
         }
     }
+
+    var isGaining: Bool {
+        switch self {
+        case .weightGain, .bulking: return true
+        default: return false
+        }
+    }
+
+    var isLosing: Bool {
+        switch self {
+        case .weightLoss, .cutting: return true
+        default: return false
+        }
+    }
 }
 
 nonisolated struct WeightEntry: Identifiable, Sendable, Codable {
@@ -47,12 +61,14 @@ nonisolated struct WeightEntry: Identifiable, Sendable, Codable {
     let weight: Double
     let date: Date
     let note: String
+    var supabaseId: String?
 
-    init(id: UUID = UUID(), weight: Double, date: Date, note: String = "") {
+    init(id: UUID = UUID(), weight: Double, date: Date, note: String = "", supabaseId: String? = nil) {
         self.id = id
         self.weight = weight
         self.date = date
         self.note = note
+        self.supabaseId = supabaseId
     }
 }
 
@@ -67,8 +83,9 @@ nonisolated struct BodyMeasurement: Identifiable, Sendable, Codable {
     let thighLeft: Double?
     let thighRight: Double?
     let neck: Double?
+    var supabaseId: String?
 
-    init(id: UUID = UUID(), date: Date, chest: Double? = nil, waist: Double? = nil, hips: Double? = nil, bicepLeft: Double? = nil, bicepRight: Double? = nil, thighLeft: Double? = nil, thighRight: Double? = nil, neck: Double? = nil) {
+    init(id: UUID = UUID(), date: Date, chest: Double? = nil, waist: Double? = nil, hips: Double? = nil, bicepLeft: Double? = nil, bicepRight: Double? = nil, thighLeft: Double? = nil, thighRight: Double? = nil, neck: Double? = nil, supabaseId: String? = nil) {
         self.id = id
         self.date = date
         self.chest = chest
@@ -79,6 +96,7 @@ nonisolated struct BodyMeasurement: Identifiable, Sendable, Codable {
         self.thighLeft = thighLeft
         self.thighRight = thighRight
         self.neck = neck
+        self.supabaseId = supabaseId
     }
 }
 
@@ -86,11 +104,17 @@ nonisolated struct ProgressPhoto: Identifiable, Sendable {
     let id: UUID
     let date: Date
     let label: String
+    var photoUrl: String?
+    var category: String?
+    var supabaseId: String?
 
-    init(id: UUID = UUID(), date: Date, label: String = "") {
+    init(id: UUID = UUID(), date: Date, label: String = "", photoUrl: String? = nil, category: String? = nil, supabaseId: String? = nil) {
         self.id = id
         self.date = date
         self.label = label
+        self.photoUrl = photoUrl
+        self.category = category
+        self.supabaseId = supabaseId
     }
 }
 
