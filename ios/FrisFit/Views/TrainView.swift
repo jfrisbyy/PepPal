@@ -143,6 +143,10 @@ struct TrainView: View {
                 ProgramCreationView(viewModel: viewModel)
                     .presentationDetents([.large])
             }
+            .sheet(isPresented: $viewModel.showProgramManagement) {
+                ProgramManagementView(viewModel: viewModel)
+                    .presentationDetents([.large])
+            }
             .sheet(isPresented: $showSportSelector) {
                 SportSelectorView { sport in
                     selectedSport = sport
@@ -372,13 +376,23 @@ struct TrainView: View {
                     }
                     Spacer()
                     if let program = viewModel.activeProgram {
-                        Text("Week \(program.currentWeek)")
-                            .font(.system(size: 11, weight: .semibold))
+                        Button {
+                            viewModel.showProgramManagement = true
+                        } label: {
+                            HStack(spacing: 5) {
+                                Text(program.name)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .lineLimit(1)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 8, weight: .bold))
+                            }
                             .foregroundStyle(PepTheme.teal)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
                             .background(PepTheme.teal.opacity(0.12))
                             .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 

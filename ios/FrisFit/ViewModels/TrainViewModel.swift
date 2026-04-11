@@ -3,8 +3,10 @@ import SwiftUI
 @Observable
 final class TrainViewModel {
     var activeProgram: TrainingProgram? = nil
+    var savedPrograms: [TrainingProgram] = []
     var showProgramBuilder: Bool = false
     var showExerciseLibrary: Bool = false
+    var showProgramManagement: Bool = false
 
     var currentMode: TrainMode = TrainMode(type: .main)
     var availableModes: [TrainMode] = [TrainMode(type: .main)]
@@ -14,6 +16,7 @@ final class TrainViewModel {
     private static let modesKey = "savedTrainModes"
     private static let lastModeKey = "lastActiveTrainModeId"
     private static let programKey = "savedActiveProgram"
+    private static let allProgramsKey = "savedAllPrograms"
     private static let programStartDayKey = "programStartDayOffset"
 
     var programName: String = ""
@@ -533,17 +536,122 @@ final class TrainViewModel {
         if let data = try? JSONEncoder().encode(program) {
             UserDefaults.standard.set(data, forKey: Self.programKey)
         }
+        syncActiveProgramToList()
+    }
+
+    private func saveAllPrograms() {
+        if let data = try? JSONEncoder().encode(savedPrograms) {
+            UserDefaults.standard.set(data, forKey: Self.allProgramsKey)
+        }
+    }
+
+    private func syncActiveProgramToList() {
+        guard let program = activeProgram else { return }
+        if let idx = savedPrograms.firstIndex(where: { $0.id == program.id }) {
+            savedPrograms[idx] = program
+        } else {
+            savedPrograms.append(program)
+        }
+        saveAllPrograms()
     }
 
     func loadSavedProgram() {
-        guard let data = UserDefaults.standard.data(forKey: Self.programKey),
-              let program = try? JSONDecoder().decode(TrainingProgram.self, from: data) else { return }
-        activeProgram = program
+        if let data = UserDefaults.standard.data(forKey: Self.allProgramsKey),
+           let programs = try? JSONDecoder().decode([TrainingProgram].self, from: data) {
+            savedPrograms = programs
+        }
+        if let data = UserDefaults.standard.data(forKey: Self.programKey),
+           let program = try? JSONDecoder().decode(TrainingProgram.self, from: data) {
+            activeProgram = program
+        }
     }
 
     func deleteProgram() {
+        guard let program = activeProgram else { return }
+        savedPrograms.removeAll { $0.id == program.id }
         activeProgram = nil
         UserDefaults.standard.removeObject(forKey: Self.programKey)
+        saveAllPrograms()
+    }
+
+    func deleteProgramById(_ id: UUID) {
+        let wasActive = activeProgram?.id == id
+        savedPrograms.removeAll { $0.id == id }
+        if wasActive {
+            activeProgram = nil
+            UserDefaults.standard.removeObject(forKey: Self.programKey)
+        }
+        saveAllPrograms()
+    }
+
+    func switchToProgram(_ program: TrainingProgram) {
+        var updated = program
+        updated.isActive = true
+        if var old = activeProgram, old.id != program.id {
+            old.isActive = false
+            if let idx = savedPrograms.firstIndex(where: { $0.id == old.id }) {
+                savedPrograms[idx] = old
+            }
+        }
+        activeProgram = updated
+        if let idx = savedPrograms.firstIndex(where: { $0.id == updated.id }) {
+            savedPrograms[idx] = updated
+        }
+        saveProgram()
+        saveAllPrograms()
+    }
+
+    func addProgramToLibrary(_ program: TrainingProgram) {
+        var p = program
+        p.isActive = false
+        savedPrograms.append(p)
+        saveAllPrograms()
+    }
+
+    func duplicateProgram(_ program: TrainingProgram) {
+        let copy = TrainingProgram(
+            name: program.name + " (Copy)",
+            type: program.type,
+            daysPerWeek: program.daysPerWeek,
+            days: program.days,
+            isActive: false
+        )
+        savedPrograms.append(copy)
+        saveAllPrograms()
+    }
+
+    func updateProgram(_ program: TrainingProgram) {
+        if let idx = savedPrograms.firstIndex(where: { $0.id == program.id }) {
+            savedPrograms[idx] = program
+        }
+        if activeProgram?.id == program.id {
+            activeProgram = program
+            saveProgram()
+        }
+        saveAllPrograms()
+    }
+
+    func swapExerciseInProgram(programId: UUID, dayId: UUID, exerciseIndex: Int, newExercise: Exercise) {
+        guard let pIdx = savedPrograms.firstIndex(where: { $0.id == programId }),
+              let dIdx = savedPrograms[pIdx].days.firstIndex(where: { $0.id == dayId }),
+              exerciseIndex < savedPrograms[pIdx].days[dIdx].exercises.count else { return }
+        let old = savedPrograms[pIdx].days[dIdx].exercises[exerciseIndex]
+        savedPrograms[pIdx].days[dIdx].exercises[exerciseIndex] = ProgramExercise(
+            exercise: newExercise,
+            targetSets: old.targetSets,
+            targetRepsMin: old.targetRepsMin,
+            targetRepsMax: old.targetRepsMax,
+            restSeconds: old.restSeconds
+        )
+        if activeProgram?.id == programId {
+            activeProgram = savedPrograms[pIdx]
+            saveProgram()
+        }
+        saveAllPrograms()
+    }
+
+    var inactivePrograms: [TrainingProgram] {
+        savedPrograms.filter { $0.id != activeProgram?.id }
     }
 
     func progressiveOverloadTrend(for exerciseName: String) -> String {

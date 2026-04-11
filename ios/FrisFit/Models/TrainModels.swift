@@ -62,10 +62,10 @@ nonisolated struct ProgramDay: Identifiable, Sendable, Codable {
 
 nonisolated struct TrainingProgram: Identifiable, Sendable, Codable {
     let id: UUID
-    let name: String
-    let type: ProgramType
-    let daysPerWeek: Int
-    let days: [ProgramDay]
+    var name: String
+    var type: ProgramType
+    var daysPerWeek: Int
+    var days: [ProgramDay]
     let createdAt: Date
     var isActive: Bool
     var currentWeek: Int
