@@ -363,10 +363,10 @@ final class HomeViewModel {
     var finnInsight: String { pepInsight }
 
     var activityFeed: [FriendActivity] = [
-        FriendActivity(friendName: "Marcus", workoutName: "Leg Day Destroyer", fpEarned: 340, timeAgo: "25m ago", highFived: false),
-        FriendActivity(friendName: "Sophia", workoutName: "Morning HIIT", fpEarned: 280, timeAgo: "1h ago", highFived: true),
-        FriendActivity(friendName: "Jake", workoutName: "Upper Body Strength", fpEarned: 310, timeAgo: "2h ago", highFived: false),
-        FriendActivity(friendName: "Aisha", workoutName: "Yoga Flow", fpEarned: 150, timeAgo: "3h ago", highFived: false),
+        FriendActivity(friendName: "Marcus", workoutName: "Leg Day Destroyer", fpEarned: 340, timeAgo: "25m ago", liked: false),
+        FriendActivity(friendName: "Sophia", workoutName: "Morning HIIT", fpEarned: 280, timeAgo: "1h ago", liked: true),
+        FriendActivity(friendName: "Jake", workoutName: "Upper Body Strength", fpEarned: 310, timeAgo: "2h ago", liked: false),
+        FriendActivity(friendName: "Aisha", workoutName: "Yoga Flow", fpEarned: 150, timeAgo: "3h ago", liked: false),
     ]
 
     var quickStats: QuickStats {
@@ -549,7 +549,7 @@ final class HomeViewModel {
         _ = streakManager.useStreakFreeze()
     }
 
-    func toggleHighFive(for activity: FriendActivity) {
+    func toggleLike(for activity: FriendActivity) {
         guard let index = activityFeed.firstIndex(where: { $0.id == activity.id }) else { return }
         let current = activityFeed[index]
         activityFeed[index] = FriendActivity(
@@ -557,7 +557,7 @@ final class HomeViewModel {
             workoutName: current.workoutName,
             fpEarned: current.fpEarned,
             timeAgo: current.timeAgo,
-            highFived: !current.highFived
+            liked: !current.liked
         )
     }
 }

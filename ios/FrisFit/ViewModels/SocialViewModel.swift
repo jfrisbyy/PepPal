@@ -96,8 +96,8 @@ final class SocialViewModel {
                     timestamp: socialService.parseDate(sp.created_at),
                     textContent: sp.text_content ?? "",
                     media: mediaItems,
-                    highFiveCount: sp.high_five_count ?? 0,
-                    isHighFived: isLiked,
+                    likeCount: sp.high_five_count ?? 0,
+                    isLiked: isLiked,
                     comments: [],
                     repostCount: sp.repost_count ?? 0,
                     isReposted: isReposted,
@@ -121,26 +121,26 @@ final class SocialViewModel {
         await loadFeed()
     }
 
-    func toggleFeedHighFive(for postID: UUID) {
+    func toggleFeedLike(for postID: UUID) {
         guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
-        let wasHighFived = feedPosts[index].isHighFived
-        feedPosts[index].isHighFived.toggle()
-        feedPosts[index].highFiveCount += feedPosts[index].isHighFived ? 1 : -1
+        let wasLiked = feedPosts[index].isLiked
+        feedPosts[index].isLiked.toggle()
+        feedPosts[index].likeCount += feedPosts[index].isLiked ? 1 : -1
 
         let supabaseId = feedPosts[index].supabaseId ?? postID.uuidString
 
         Task {
             do {
                 let userId = try AuthService.shared.currentUserId()
-                if wasHighFived {
+                if wasLiked {
                     try await socialService.unlikePost(postId: supabaseId, userId: userId)
                 } else {
                     try await socialService.likePost(postId: supabaseId, userId: userId)
                 }
             } catch {
                 guard let idx = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
-                feedPosts[idx].isHighFived = wasHighFived
-                feedPosts[idx].highFiveCount += wasHighFived ? 1 : -1
+                feedPosts[idx].isLiked = wasLiked
+                feedPosts[idx].likeCount += wasLiked ? 1 : -1
             }
         }
     }
@@ -237,8 +237,8 @@ final class SocialViewModel {
                 timestamp: socialService.parseDate(created.created_at),
                 textContent: created.text_content ?? "",
                 media: mediaItems,
-                highFiveCount: 0,
-                isHighFived: false,
+                likeCount: 0,
+                isLiked: false,
                 comments: [],
                 repostCount: 0,
                 tags: feedTags,
@@ -281,10 +281,10 @@ final class SocialViewModel {
         }
     }
 
-    func toggleHighFive(for postID: UUID) {
+    func toggleLike(for postID: UUID) {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
-        posts[index].isHighFived.toggle()
-        posts[index].highFiveCount += posts[index].isHighFived ? 1 : -1
+        posts[index].isLiked.toggle()
+        posts[index].likeCount += posts[index].isLiked ? 1 : -1
     }
 
     func addComment(to postID: UUID, text: String) {

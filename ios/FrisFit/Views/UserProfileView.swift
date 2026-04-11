@@ -563,8 +563,8 @@ struct UserProfileView: View {
             timestamp: post.timestamp,
             textContent: post.content,
             media: mediaItems,
-            highFiveCount: post.likeCount,
-            isHighFived: post.isLiked,
+            likeCount: post.likeCount,
+            isLiked: post.isLiked,
             supabaseId: post.id.uuidString.lowercased()
         )
     }

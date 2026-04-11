@@ -116,7 +116,7 @@ struct AppNotification: Identifiable {
         case "new_follow": return "person.badge.plus"
         case "friend_request": return "person.2.fill"
         case "new_message": return "bubble.left.fill"
-        case "friend_high_five": return "hand.raised.fill"
+        case "friend_like", "friend_high_five": return "heart.fill"
         default: return "bell.fill"
         }
     }
@@ -126,7 +126,7 @@ struct AppNotification: Identifiable {
         case "new_follow": return PepTheme.teal
         case "friend_request": return PepTheme.violet
         case "new_message": return .blue
-        case "friend_high_five": return PepTheme.amber
+        case "friend_like", "friend_high_five": return .red
         default: return PepTheme.textSecondary
         }
     }

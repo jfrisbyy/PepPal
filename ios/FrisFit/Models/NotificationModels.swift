@@ -3,7 +3,7 @@ import Foundation
 nonisolated enum NotificationType: String, CaseIterable, Sendable {
     case workoutReminder = "workout_reminder"
     case friendWorkout = "friend_workout"
-    case friendHighFive = "friend_high_five"
+    case friendLike = "friend_like"
     case streakMilestone = "streak_milestone"
     case weeklyProgress = "weekly_progress"
     case restDayRecovery = "rest_day_recovery"
@@ -13,7 +13,7 @@ nonisolated enum NotificationType: String, CaseIterable, Sendable {
         switch self {
         case .workoutReminder: "Workout Reminders"
         case .friendWorkout: "Friend Workouts"
-        case .friendHighFive: "High-Fives"
+        case .friendLike: "Likes"
         case .streakMilestone: "Streak Milestones"
         case .weeklyProgress: "Weekly Progress"
         case .restDayRecovery: "Recovery Tips"
@@ -25,7 +25,7 @@ nonisolated enum NotificationType: String, CaseIterable, Sendable {
         switch self {
         case .workoutReminder: "Daily reminders at your preferred time"
         case .friendWorkout: "When friends complete a workout"
-        case .friendHighFive: "When someone high-fives your post"
+        case .friendLike: "When someone likes your post"
         case .streakMilestone: "Celebrate streak achievements"
         case .weeklyProgress: "Weekly FP progress summary"
         case .restDayRecovery: "Recovery tips from Finn on rest days"
@@ -37,7 +37,7 @@ nonisolated enum NotificationType: String, CaseIterable, Sendable {
         switch self {
         case .workoutReminder: "alarm.fill"
         case .friendWorkout: "person.fill.checkmark"
-        case .friendHighFive: "hand.raised.fill"
+        case .friendLike: "heart.fill"
         case .streakMilestone: "flame.fill"
         case .weeklyProgress: "chart.bar.fill"
         case .restDayRecovery: "bed.double.fill"

@@ -63,7 +63,7 @@ nonisolated struct FriendActivity: Identifiable, Sendable {
     let workoutName: String
     let fpEarned: Int
     let timeAgo: String
-    let highFived: Bool
+    let liked: Bool
 }
 
 nonisolated struct QuickStats: Sendable {

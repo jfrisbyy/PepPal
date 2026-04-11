@@ -8,7 +8,7 @@ struct PostDetailView: View {
     @State private var commentText: String = ""
     @State private var isLoadingComments: Bool = true
     @State private var comments: [PostComment] = []
-    @State private var highFiveBounce: Int = 0
+    @State private var likeBounce: Int = 0
     @State private var repostBounce: Int = 0
     @State private var selectedPhotoURL: String?
     @State private var showDeleteConfirm: Bool = false
@@ -370,23 +370,23 @@ struct PostDetailView: View {
     private var actionBar: some View {
         HStack(spacing: 0) {
             Button {
-                viewModel.toggleFeedHighFive(for: post.id)
-                highFiveBounce += 1
+                viewModel.toggleFeedLike(for: post.id)
+                likeBounce += 1
             } label: {
                 let currentPost = viewModel.feedPosts.first(where: { $0.id == post.id }) ?? post
                 HStack(spacing: 6) {
-                    Image(systemName: currentPost.isHighFived ? "hand.raised.fill" : "hand.raised")
+                    Image(systemName: currentPost.isLiked ? "heart.fill" : "heart")
                         .font(.system(size: 18))
-                        .foregroundStyle(currentPost.isHighFived ? PepTheme.amber : PepTheme.textSecondary)
-                        .symbolEffect(.bounce, value: highFiveBounce)
-                    Text("\(currentPost.highFiveCount)")
+                        .foregroundStyle(currentPost.isLiked ? .red : PepTheme.textSecondary)
+                        .symbolEffect(.bounce, value: likeBounce)
+                    Text("\(currentPost.likeCount)")
                         .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(currentPost.isHighFived ? PepTheme.amber : PepTheme.textSecondary)
+                        .foregroundStyle(currentPost.isLiked ? .red : PepTheme.textSecondary)
                 }
                 .contentShape(.rect)
             }
             .buttonStyle(.scale)
-            .sensoryFeedback(.impact(weight: .medium), trigger: highFiveBounce)
+            .sensoryFeedback(.impact(weight: .medium), trigger: likeBounce)
 
             Spacer()
 

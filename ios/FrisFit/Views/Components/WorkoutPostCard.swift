@@ -2,11 +2,11 @@ import SwiftUI
 
 struct WorkoutPostCard: View {
     let post: WorkoutPost
-    let onHighFive: () -> Void
+    let onLike: () -> Void
     let onComment: () -> Void
     var onUserTap: (() -> Void)? = nil
 
-    @State private var highFiveBounce: Int = 0
+    @State private var likeBounce: Int = 0
 
     var body: some View {
         GlassCard {
@@ -82,23 +82,23 @@ struct WorkoutPostCard: View {
 
                 HStack(spacing: 24) {
                     Button {
-                        onHighFive()
-                        highFiveBounce += 1
+                        onLike()
+                        likeBounce += 1
                     } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: post.isHighFived ? "hand.raised.fill" : "hand.raised")
+                            Image(systemName: post.isLiked ? "heart.fill" : "heart")
                                 .font(.system(size: 18))
-                                .foregroundStyle(post.isHighFived ? PepTheme.amber : PepTheme.textSecondary)
-                                .symbolEffect(.bounce, value: highFiveBounce)
+                                .foregroundStyle(post.isLiked ? .red : PepTheme.textSecondary)
+                                .symbolEffect(.bounce, value: likeBounce)
 
-                            Text("\(post.highFiveCount)")
+                            Text("\(post.likeCount)")
                                 .font(.system(.subheadline, weight: .medium))
-                                .foregroundStyle(post.isHighFived ? PepTheme.amber : PepTheme.textSecondary)
+                                .foregroundStyle(post.isLiked ? .red : PepTheme.textSecondary)
                         }
                         .contentShape(.rect)
                     }
                     .buttonStyle(.scale)
-                    .sensoryFeedback(.impact(weight: .medium), trigger: highFiveBounce)
+                    .sensoryFeedback(.impact(weight: .medium), trigger: likeBounce)
 
                     Button {
                         onComment()

@@ -3,13 +3,13 @@ import AVFoundation
 
 struct FeedPostCard: View {
     let post: FeedPost
-    let onHighFive: () -> Void
+    let onLike: () -> Void
     let onComment: () -> Void
     let onRepost: () -> Void
     var onDelete: (() -> Void)? = nil
     var onReport: (() -> Void)? = nil
 
-    @State private var highFiveBounce: Int = 0
+    @State private var likeBounce: Int = 0
     @State private var repostBounce: Int = 0
     @State private var showDeleteConfirm: Bool = false
     @State private var showReportConfirm: Bool = false
@@ -314,22 +314,22 @@ struct FeedPostCard: View {
     private var actionBar: some View {
         HStack(spacing: 0) {
             Button {
-                onHighFive()
-                highFiveBounce += 1
+                onLike()
+                likeBounce += 1
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: post.isHighFived ? "hand.raised.fill" : "hand.raised")
+                    Image(systemName: post.isLiked ? "heart.fill" : "heart")
                         .font(.system(size: 17))
-                        .foregroundStyle(post.isHighFived ? PepTheme.amber : PepTheme.textSecondary)
-                        .symbolEffect(.bounce, value: highFiveBounce)
-                    Text("\(post.highFiveCount)")
+                        .foregroundStyle(post.isLiked ? .red : PepTheme.textSecondary)
+                        .symbolEffect(.bounce, value: likeBounce)
+                    Text("\(post.likeCount)")
                         .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(post.isHighFived ? PepTheme.amber : PepTheme.textSecondary)
+                        .foregroundStyle(post.isLiked ? .red : PepTheme.textSecondary)
                 }
                 .contentShape(.rect)
             }
             .buttonStyle(.scale)
-            .sensoryFeedback(.impact(weight: .medium), trigger: highFiveBounce)
+            .sensoryFeedback(.impact(weight: .medium), trigger: likeBounce)
 
             Spacer()
 

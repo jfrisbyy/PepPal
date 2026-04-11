@@ -51,8 +51,8 @@ nonisolated struct WorkoutPost: Identifiable, Sendable {
     let totalVolume: Int
     let fpEarned: Int
     let exercisesCompleted: Int
-    var highFiveCount: Int
-    var isHighFived: Bool
+    var likeCount: Int
+    var isLiked: Bool
     var comments: [PostComment]
 }
 

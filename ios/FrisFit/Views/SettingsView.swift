@@ -150,8 +150,8 @@ struct SettingsView: View {
                         NotificationDivider()
 
                         NotificationToggleRow(
-                            type: .friendHighFive,
-                            isOn: $viewModel.highFiveNotifs,
+                            type: .friendLike,
+                            isOn: $viewModel.likeNotifs,
                             viewModel: viewModel
                         )
 

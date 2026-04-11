@@ -157,8 +157,8 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
     let timestamp: Date
     let textContent: String
     let media: [FeedMediaItem]
-    var highFiveCount: Int
-    var isHighFived: Bool
+    var likeCount: Int
+    var isLiked: Bool
     var comments: [PostComment]
     var repostCount: Int
     var isReposted: Bool
@@ -173,8 +173,8 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
         timestamp: Date = Date(),
         textContent: String = "",
         media: [FeedMediaItem] = [],
-        highFiveCount: Int = 0,
-        isHighFived: Bool = false,
+        likeCount: Int = 0,
+        isLiked: Bool = false,
         comments: [PostComment] = [],
         repostCount: Int = 0,
         isReposted: Bool = false,
@@ -187,8 +187,8 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
         self.timestamp = timestamp
         self.textContent = textContent
         self.media = media
-        self.highFiveCount = highFiveCount
-        self.isHighFived = isHighFived
+        self.likeCount = likeCount
+        self.isLiked = isLiked
         self.comments = comments
         self.repostCount = repostCount
         self.isReposted = isReposted

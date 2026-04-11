@@ -1197,7 +1197,7 @@ struct HomeView: View {
                 VStack(spacing: 0) {
                     ForEach(viewModel.activityFeed) { activity in
                         ActivityFeedRow(activity: activity) {
-                            viewModel.toggleHighFive(for: activity)
+                            viewModel.toggleLike(for: activity)
                         }
 
                         if activity.id != viewModel.activityFeed.last?.id {
@@ -1604,9 +1604,9 @@ struct NutritionProgressBar: View {
 
 struct ActivityFeedRow: View {
     let activity: FriendActivity
-    let onHighFive: () -> Void
+    let onLike: () -> Void
 
-    @State private var highFiveTap: Int = 0
+    @State private var likeTap: Int = 0
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1642,15 +1642,15 @@ struct ActivityFeedRow: View {
             Spacer()
 
             Button {
-                onHighFive()
-                highFiveTap += 1
+                onLike()
+                likeTap += 1
             } label: {
-                Image(systemName: activity.highFived ? "hand.raised.fill" : "hand.raised")
+                Image(systemName: activity.liked ? "heart.fill" : "heart")
                     .font(.system(size: 18))
-                    .foregroundStyle(activity.highFived ? PepTheme.amber : PepTheme.textSecondary)
+                    .foregroundStyle(activity.liked ? .red : PepTheme.textSecondary)
                     .contentTransition(.symbolEffect(.replace))
             }
-            .sensoryFeedback(.impact(weight: .light), trigger: highFiveTap)
+            .sensoryFeedback(.impact(weight: .light), trigger: likeTap)
         }
         .padding(.vertical, 8)
     }

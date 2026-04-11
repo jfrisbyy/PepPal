@@ -111,7 +111,7 @@ final class NotificationService {
 
         let content = UNMutableNotificationContent()
         content.title = "\(friendName) just crushed it"
-        content.body = "Completed \(workoutName). Give them a high-five!"
+        content.body = "Completed \(workoutName). Show them some love!"
         content.sound = .default
         content.categoryIdentifier = NotificationType.friendWorkout.rawValue
 
@@ -124,17 +124,17 @@ final class NotificationService {
         UNUserNotificationCenter.current().add(request)
     }
 
-    func sendHighFiveNotification(fromFriend: String) {
-        guard preferences.enabledTypes.contains(.friendHighFive) else { return }
+    func sendLikeNotification(fromFriend: String) {
+        guard preferences.enabledTypes.contains(.friendLike) else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "High-Five! ✋"
-        content.body = "\(fromFriend) high-fived your workout post!"
+        content.title = "New Like ❤️"
+        content.body = "\(fromFriend) liked your post!"
         content.sound = .default
-        content.categoryIdentifier = NotificationType.friendHighFive.rawValue
+        content.categoryIdentifier = NotificationType.friendLike.rawValue
 
         let request = UNNotificationRequest(
-            identifier: "high_five_\(UUID().uuidString)",
+            identifier: "like_\(UUID().uuidString)",
             content: content,
             trigger: nil
         )

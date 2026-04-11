@@ -167,7 +167,7 @@ final class ProfileViewModel {
     }()
 
     var friendWorkoutNotifs: Bool = true
-    var highFiveNotifs: Bool = true
+    var likeNotifs: Bool = true
     var streakMilestoneNotifs: Bool = true
     var weeklyProgressNotifs: Bool = true
     var restDayRecoveryNotifs: Bool = true

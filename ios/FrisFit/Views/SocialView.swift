@@ -160,8 +160,8 @@ struct SocialView: View {
                             NavigationLink(value: post) {
                                 FeedPostCard(
                                     post: post,
-                                    onHighFive: {
-                                        viewModel.toggleFeedHighFive(for: post.id)
+                                    onLike: {
+                                        viewModel.toggleFeedLike(for: post.id)
                                     },
                                     onComment: {
                                         commentFeedPost = post
