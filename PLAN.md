@@ -1,70 +1,52 @@
-# Real GPS Tracking & HealthKit Integration
+# Smarter Protocol Setup: Compound-Aware Dosing, Skip Goal for Existing Protocols, Log Past Doses
 
-## Problem
-Both Run and Ride modes originally faked all data. GPS tracking has been implemented. Heart rate, cadence, calories, and workout saving were still using random/estimated values instead of real Apple Health data.
+## What's Changing
 
-## What's Been Implemented
+The protocol setup flow is getting a major intelligence upgrade. The system will know what unit each compound uses (mg vs mcg), skip unnecessary steps when logging an existing protocol, remove the experience level picker, and let users log past doses with specific dates.
 
-### 1. Location Tracking Service (Complete)
-- Shared location service using phone GPS for real-time position updates
-- High-accuracy fitness tracking (~5m precision)
-- Location permission handling
-- Background location updates
-- GPS noise/jitter filtering
-- Real distance between consecutive GPS points
-- Real altitude from GPS for elevation tracking
+---
 
-### 2. Running Mode — Real Data (Complete)
-- **Real distance**: From actual GPS coordinates
-- **Real pace**: From actual distance over time
-- **Real route**: Actual path drawn on map
-- **Real elevation**: From GPS altitude with gain/loss
-- **Real splits**: Triggered at actual mile/km boundaries
-- **Auto-pause**: Detects stopped movement
-- **Real heart rate**: Streamed live from Apple Watch via HealthKit (falls back to estimates if unavailable)
-- **Real calories**: From HealthKit active energy burned (falls back to MET-based estimation)
-- **Workout saved to HealthKit**: With distance, calories, and heart rate samples
-- **Heart rate zones**: Computed from actual HR samples collected during workout
+### **Features**
 
-### 3. Cycling Mode — Real Data (Complete)
-- **Real speed**: From GPS speed data
-- **Real distance**: From actual GPS coordinates
-- **Real route**: Actual cycling path on map
-- **Real elevation gain**: From altitude changes with climb detection
-- **Moving time vs elapsed time**: Separates stops from riding
-- **Real heart rate**: Streamed live from Apple Watch via HealthKit
-- **Real calories**: From HealthKit active energy burned
-- **Workout saved to HealthKit**: With distance, calories, and heart rate samples
-- **Heart rate zones**: Computed from actual HR samples
+- **"Log Current Protocol" skips the goal step entirely** — goes straight from path selection to compound selection (3 steps instead of 5: Compounds → Dosing → Schedule/Review)
+- **"Start New Protocol" keeps the goal step** but it becomes optional (can skip it)
+- **Experience level picker is removed** from the dosing screen — doses default to sensible mid-range values based on compound data
+- **Compound-aware dose units** — each compound automatically shows the correct unit:
+  - Semaglutide → mg (0.25–2.4)
+  - Tirzepatide → mg (2.5–15)
+  - Retatrutide → mg (1–12)
+  - Tesamorelin → mg (1–2)
+  - MK-677 → mg (10–25)
+  - BPC-157 → mcg (250–500)
+  - Ipamorelin → mcg (100–300)
+  - Sermorelin → mcg (200–500)
+  - …and so on for all compounds in the database
+- **Dose input shows the compound's natural unit** — no more seeing "mcg" for compounds that are always dosed in mg
+- **Simplified dosing card for "Log Current Protocol"** — just shows a clean dose input, frequency, and route without the tiered dosing recommendation panel (you already know what you're taking)
+- **Log past doses when saving an existing protocol** — after saving, a sheet asks "Want to log any past doses?" with the ability to add multiple entries with custom dates and dosages
+- **Dose logging sheet updated** to show the correct unit per compound (mg or mcg) instead of always showing "mcg"
+- **All display surfaces updated** — home screen protocol cards, protocol detail view, and dose history will show the proper unit (e.g. "2.5 mg Semaglutide" not "2500 mcg")
 
-### 4. Swimming Mode — HealthKit Integration (Complete)
-- **Import swim workouts**: Pulls swim sessions from Apple Health (recorded by Apple Watch)
-- **Heart rate data**: Reads HR samples from imported swim workouts
-- **Distance and laps**: Calculated from HealthKit swim distance data
-- **Calories**: Read from HealthKit workout data
-- **Heart rate zones**: Computed from actual HR samples per swim
-- **Save swims to HealthKit**: Manual swim logs saved back to Apple Health
-- **Sync button**: UI button on Swimming Dashboard to import from HealthKit
+---
 
-### 5. HealthKit Service Enhancements
-- **Live heart rate streaming**: HKAnchoredObjectQuery streams HR in real-time during workouts
-- **Live calories streaming**: Anchored query for active energy burned during workouts
-- **Heart rate zone computation**: Real zone distribution from collected HR samples
-- **Enhanced workout saving**: Saves workouts with distance, calories, and HR sample arrays
-- **VO2 Max reading**: Fetches latest VO2 Max from HealthKit
-- **Swim workout fetching**: Queries swimming workouts with associated HR/distance/calorie data
-- **Extended read types**: distanceSwimming, swimmingStrokeCount, runningStrideLength, vo2Max
-- **Extended write types**: distanceWalkingRunning, distanceCycling, distanceSwimming, heartRate
+### **Design**
 
-### 6. Permissions & Entitlements (Complete)
-- HealthKit entitlement enabled
-- Health Share and Health Update usage descriptions
-- Location When In Use and Always permissions
-- Background location capability
+- The dosing card for existing protocols is cleaner and more streamlined — just the compound name, a dose field with the correct unit, frequency picker, and route
+- The recommended dose range still appears as a subtle hint below the dose field (e.g. "Typical: 0.25–2.4 mg weekly") but without the beginner/intermediate/advanced breakdown
+- Past dose logging uses a simple list-style sheet where each row has: date picker, dose amount, and an add button
+- The flow for logging an existing protocol feels noticeably faster — 3 taps to get through if you know what you're on
 
-### 7. Data Flow
-- When HealthKit is enabled and authorized, live workouts stream real HR and calories
-- If Apple Watch data is unavailable (no watch paired, simulator), falls back to estimates
-- Completed workouts are saved to HealthKit with all collected samples
-- Swimming data can be imported from Apple Watch recordings
-- All existing sample/demo data remains for UI demonstration
+---
+
+### **Flow Changes**
+
+**New Protocol path:** Choose Path → Goal (optional) → Compounds → Dosing → Schedule → Review
+**Log Current Protocol path:** Choose Path → Compounds → Dosing → Schedule → Review (no goal step)
+
+---
+
+### **Data & Storage**
+
+- A new compound-to-unit mapping system determines the correct unit for each compound
+- The database field `dose_mcg` continues to store values in mcg internally for consistency — compounds dosed in mg are converted (e.g. 2.5 mg stored as 2500 mcg) and displayed back in mg
+- Past dose entries are saved to the existing `dose_logs` table with the user-specified dates

@@ -197,7 +197,7 @@ struct ProtocolDetailView: View {
                             Text("Log Next Dose")
                                 .font(.system(.headline, weight: .bold))
                                 .foregroundStyle(PepTheme.textPrimary)
-                            Text("\(Int(nextDose.doseMcg))mcg \(nextDose.compoundName)")
+                            Text("\(CompoundUnitHelper.displayDoseShort(nextDose.doseMcg, for: nextDose.compoundName)) \(nextDose.compoundName)")
                                 .font(.system(.subheadline, weight: .medium))
                                 .foregroundStyle(PepTheme.textSecondary)
                         }
@@ -398,7 +398,7 @@ struct ProtocolDetailView: View {
                 }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("\(Int(dose.doseMcg))mcg \(dose.compoundName)")
+                Text("\(CompoundUnitHelper.displayDoseShort(dose.doseMcg, for: dose.compoundName)) \(dose.compoundName)")
                     .font(.system(.subheadline, weight: .semibold))
                     .foregroundStyle(PepTheme.textPrimary)
                 HStack(spacing: 6) {
@@ -660,7 +660,7 @@ struct ProtocolDetailView: View {
 
                         Spacer()
 
-                        Text("\(Int(step.doseMcg))mcg")
+                        Text(CompoundUnitHelper.displayDoseShort(step.doseMcg, for: viewModel.protocolData.compounds.first?.compoundName ?? ""))
                             .font(.system(.subheadline, design: .rounded, weight: .bold))
                             .foregroundStyle(step.isCompleted ? .green : PepTheme.textSecondary)
                     }

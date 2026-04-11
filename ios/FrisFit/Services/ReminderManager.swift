@@ -138,7 +138,7 @@ final class ReminderManager {
                 for (index, time) in times.enumerated() {
                     let components = Calendar.current.dateComponents([.hour, .minute], from: time)
                     let routeName = compound.injectionRoute.rawValue.lowercased()
-                    let doseStr = self.formatDose(compound.doseMcg)
+                    let doseStr = CompoundUnitHelper.displayDoseShort(compound.doseMcg, for: compound.compoundName)
 
                     let content = UNMutableNotificationContent()
                     content.title = "Time for your \(compound.compoundName) dose"
@@ -267,18 +267,8 @@ final class ReminderManager {
         return [baseTime]
     }
 
-    private func formatDose(_ mcg: Double) -> String {
-        if mcg >= 1000 {
-            let mg = mcg / 1000
-            if mg == mg.rounded() {
-                return "\(Int(mg))mg"
-            }
-            return String(format: "%.1fmg", mg)
-        }
-        if mcg == mcg.rounded() {
-            return "\(Int(mcg))mcg"
-        }
-        return String(format: "%.1fmcg", mcg)
+    private func formatDose(_ mcg: Double, compoundName: String = "") -> String {
+        CompoundUnitHelper.displayDoseShort(mcg, for: compoundName)
     }
 
     // MARK: - Persistence

@@ -20,7 +20,8 @@ struct LogDoseSheet: View {
                                         let isSelected = viewModel.newDoseCompound == compound.compoundName
                                         Button {
                                             viewModel.newDoseCompound = compound.compoundName
-                                            viewModel.newDoseMcg = "\(Int(compound.doseMcg))"
+                                            let displayVal = CompoundUnitHelper.fromMcg(compound.doseMcg, for: compound.compoundName)
+                                            viewModel.newDoseMcg = displayVal == displayVal.rounded() && displayVal >= 1 ? String(Int(displayVal)) : String(format: "%.2g", displayVal)
                                         } label: {
                                             Text(compound.compoundName)
                                                 .font(.system(.subheadline, weight: .semibold))
@@ -43,11 +44,11 @@ struct LogDoseSheet: View {
                             .foregroundStyle(PepTheme.textSecondary)
 
                         HStack {
-                            TextField("250", text: $viewModel.newDoseMcg)
+                            TextField("Dose", text: $viewModel.newDoseMcg)
                                 .font(.system(.title2, design: .rounded, weight: .bold))
                                 .foregroundStyle(PepTheme.textPrimary)
                                 .keyboardType(.decimalPad)
-                            Text("mcg")
+                            Text(CompoundUnitHelper.unit(for: viewModel.newDoseCompound).rawValue)
                                 .font(.system(.subheadline, weight: .medium))
                                 .foregroundStyle(PepTheme.textSecondary)
                         }

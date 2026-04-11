@@ -71,7 +71,7 @@ nonisolated struct TemplateCompound: Sendable {
 struct WizardCompound: Identifiable {
     let id = UUID()
     let name: String
-    var doseText: String = "250"
+    var doseText: String = ""
     var doseUnit: String = "mcg"
     var frequency: String = "Daily"
     var injectionRoute: InjectionRoute = .subcutaneous
@@ -85,10 +85,54 @@ struct WizardCompound: Identifiable {
         ProtocolDefaultsDatabase.defaults(for: name)
     }
 
-    func isDefaultDose(for level: ExperienceLevel) -> Bool {
-        guard let pd = protocolDefault else { return false }
-        let range = pd.doseRange(for: level)
-        return doseText == range.defaultDoseText
+    init(name: String) {
+        self.name = name
+        let unit = CompoundUnitHelper.unit(for: name)
+        self.doseUnit = unit.rawValue
+        self.doseText = CompoundUnitHelper.defaultDoseText(for: name)
+
+        if let pd = ProtocolDefaultsDatabase.defaults(for: name) {
+            let routeStr = pd.route.lowercased()
+            if routeStr.contains("oral") {
+                self.injectionRoute = .oral
+            } else if routeStr.contains("nasal") {
+                self.injectionRoute = .nasal
+            } else if routeStr.contains("intramuscular") {
+                self.injectionRoute = .intramuscular
+            } else {
+                self.injectionRoute = .subcutaneous
+            }
+            if pd.defaultFrequency.lowercased().contains("weekly") {
+                if pd.defaultFrequency.contains("2x") || pd.defaultFrequency.contains("twice") {
+                    self.frequency = "2x weekly"
+                } else {
+                    self.frequency = "1x weekly"
+                }
+            } else if pd.defaultFrequency.contains("2x") || pd.defaultFrequency.contains("twice") {
+                self.frequency = "2x daily"
+            } else if pd.defaultFrequency.contains("3x") {
+                self.frequency = "3x daily"
+            } else if pd.defaultFrequency.lowercased().contains("as needed") {
+                self.frequency = "As needed"
+            } else {
+                self.frequency = "1x daily"
+            }
+        } else if let profile = CompoundDatabase.all.first(where: { $0.name == name }) {
+            let route = InjectionRoute.allCases.first { profile.keyFacts.administrationRoute.localizedCaseInsensitiveContains($0.rawValue) } ?? .subcutaneous
+            self.injectionRoute = route
+            if let tiered = profile.tieredDosing.first(where: { $0.tier == "Intermediate" }) ?? profile.tieredDosing.first {
+                self.timeOfDay = tiered.timingNotes
+                if tiered.frequency.lowercased().contains("weekly") {
+                    self.frequency = tiered.frequency.contains("2") ? "2x weekly" : "1x weekly"
+                } else if tiered.frequency.contains("2") {
+                    self.frequency = "2x daily"
+                } else if tiered.frequency.contains("3") {
+                    self.frequency = "3x daily"
+                } else {
+                    self.frequency = "1x daily"
+                }
+            }
+        }
     }
 }
 
@@ -108,7 +152,7 @@ nonisolated enum StartDateShortcut: String, CaseIterable, Identifiable, Sendable
         case .thisWeek: return cal.date(byAdding: .day, value: -3, to: Date())
         case .oneToTwoWeeks: return cal.date(byAdding: .day, value: -10, to: Date())
         case .aboutAMonth: return cal.date(byAdding: .weekOfYear, value: -4, to: Date())
-        case .twoToThreeMonths: return cal.date(byAdding: .month, value: -2, to: Date()) // ~10 weeks
+        case .twoToThreeMonths: return cal.date(byAdding: .month, value: -2, to: Date())
         case .threeMonthsPlus: return cal.date(byAdding: .month, value: -4, to: Date())
         case .pickExact: return nil
         }
@@ -130,7 +174,6 @@ struct ProtocolSetupWizardView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var protocolPath: ProtocolPath?
     @State private var currentStep: Int = 0
-    @State private var experienceLevel: ExperienceLevel? = .intermediate
     @State private var selectedGoal: ProtocolGoal?
     @State private var protocolName: String = ""
     @State private var selectedCompounds: [WizardCompound] = []
@@ -148,11 +191,20 @@ struct ProtocolSetupWizardView: View {
     @State private var showTemplates: Bool = false
     @State private var searchText: String = ""
     @State private var expandedTooltip: String?
+    @State private var showPastDoseSheet: Bool = false
+    @State private var savedProtocol: PeptideProtocol?
     let onComplete: (PeptideProtocol) -> Void
+
+    private var isExistingPath: Bool {
+        protocolPath == .existingProtocol
+    }
 
     private var steps: [String] {
         if protocolPath == nil {
             return ["Choose Path"]
+        }
+        if isExistingPath {
+            return ["Compounds", "Dosing", "Schedule", "Review"]
         }
         return ["Goal", "Compounds", "Dosing", "Schedule", "Review"]
     }
@@ -163,7 +215,7 @@ struct ProtocolSetupWizardView: View {
         [
             ProtocolTemplate(
                 name: "BPC-157 Standard Recovery",
-                subtitle: "8 weeks, 250mcg subcutaneous daily",
+                subtitle: "8 weeks, 250 mcg subcutaneous daily",
                 goal: .healing,
                 icon: "cross.case.fill",
                 compounds: [TemplateCompound(name: "BPC-157", doseMcg: 250, frequency: "1x daily", route: .subcutaneous, timeOfDay: "Morning")],
@@ -196,7 +248,7 @@ struct ProtocolSetupWizardView: View {
             ),
             ProtocolTemplate(
                 name: "Semaglutide Weight Loss",
-                subtitle: "Slow titration, ongoing",
+                subtitle: "Slow titration, 0.25 mg weekly",
                 goal: .weightLoss,
                 icon: "scalemass.fill",
                 compounds: [TemplateCompound(name: "Semaglutide", doseMcg: 250, frequency: "1x weekly", route: .subcutaneous, timeOfDay: "Morning")],
@@ -217,7 +269,7 @@ struct ProtocolSetupWizardView: View {
             ),
             ProtocolTemplate(
                 name: "Visceral Fat Blaster",
-                subtitle: "Tesamorelin, 12 weeks",
+                subtitle: "Tesamorelin, 1 mg daily",
                 goal: .weightLoss,
                 icon: "flame.fill",
                 compounds: [TemplateCompound(name: "Tesamorelin", doseMcg: 1000, frequency: "1x daily", route: .subcutaneous, timeOfDay: "Morning")],
@@ -256,14 +308,7 @@ struct ProtocolSetupWizardView: View {
                         if protocolPath == nil {
                             pathSelectionStep
                         } else {
-                            switch currentStep {
-                            case 0: goalStep
-                            case 1: compoundStep
-                            case 2: dosingStep
-                            case 3: scheduleStep
-                            case 4: reviewStep
-                            default: EmptyView()
-                            }
+                            currentStepView
                         }
                     }
                     .padding(.horizontal)
@@ -276,7 +321,7 @@ struct ProtocolSetupWizardView: View {
                 }
             }
             .background(PepTheme.background.ignoresSafeArea())
-            .navigationTitle(protocolPath == nil ? "New Protocol" : (protocolPath == .existingProtocol ? "Log Current Protocol" : "New Protocol"))
+            .navigationTitle(protocolPath == nil ? "New Protocol" : (isExistingPath ? "Log Current Protocol" : "New Protocol"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -287,10 +332,38 @@ struct ProtocolSetupWizardView: View {
             .sheet(isPresented: $showTemplates) {
                 templateSheet
             }
+            .sheet(isPresented: $showPastDoseSheet) {
+                if let proto = savedProtocol {
+                    PastDoseLoggingSheet(protocolData: proto) {
+                        onComplete(proto)
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 
-    // MARK: - Progress Bar
+    @ViewBuilder
+    private var currentStepView: some View {
+        if isExistingPath {
+            switch currentStep {
+            case 0: compoundStep
+            case 1: dosingStep
+            case 2: scheduleStep
+            case 3: reviewStep
+            default: EmptyView()
+            }
+        } else {
+            switch currentStep {
+            case 0: goalStep
+            case 1: compoundStep
+            case 2: dosingStep
+            case 3: scheduleStep
+            case 4: reviewStep
+            default: EmptyView()
+            }
+        }
+    }
 
     private var progressBar: some View {
         HStack(spacing: 4) {
@@ -304,7 +377,7 @@ struct ProtocolSetupWizardView: View {
         .padding(.vertical, 8)
     }
 
-    // MARK: - Step 0: Choose Path
+    // MARK: - Path Selection
 
     private var pathSelectionStep: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -322,42 +395,11 @@ struct ProtocolSetupWizardView: View {
                     protocolPath = .newProtocol
                 }
             } label: {
-                HStack(spacing: 16) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(
-                                LinearGradient(colors: [PepTheme.teal.opacity(0.2), PepTheme.teal.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                            )
-                            .frame(width: 56, height: 56)
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(PepTheme.teal)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Start a New Protocol")
-                            .font(.system(.headline, weight: .bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text("I'm about to begin something new")
-                            .font(.subheadline)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-                .padding(16)
-                .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-                .clipShape(.rect(cornerRadius: 16))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(
-                            LinearGradient(colors: [PepTheme.teal.opacity(0.3), PepTheme.teal.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                            lineWidth: 1
-                        )
+                pathCard(
+                    title: "Start a New Protocol",
+                    subtitle: "I'm about to begin something new",
+                    icon: "plus.circle.fill",
+                    color: PepTheme.teal
                 )
             }
             .sensoryFeedback(.impact(weight: .medium), trigger: protocolPath)
@@ -367,42 +409,11 @@ struct ProtocolSetupWizardView: View {
                     protocolPath = .existingProtocol
                 }
             } label: {
-                HStack(spacing: 16) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(
-                                LinearGradient(colors: [PepTheme.blue.opacity(0.2), PepTheme.blue.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                            )
-                            .frame(width: 56, height: 56)
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.title2)
-                            .foregroundStyle(PepTheme.blue)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Log a Current Protocol")
-                            .font(.system(.headline, weight: .bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text("I'm already taking something and want to track it")
-                            .font(.subheadline)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-                .padding(16)
-                .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-                .clipShape(.rect(cornerRadius: 16))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(
-                            LinearGradient(colors: [PepTheme.blue.opacity(0.3), PepTheme.blue.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                            lineWidth: 1
-                        )
+                pathCard(
+                    title: "Log a Current Protocol",
+                    subtitle: "I'm already taking something and want to track it",
+                    icon: "clock.arrow.circlepath",
+                    color: PepTheme.blue
                 )
             }
             .sensoryFeedback(.impact(weight: .medium), trigger: protocolPath)
@@ -410,7 +421,47 @@ struct ProtocolSetupWizardView: View {
         .padding(.top, 12)
     }
 
-    // MARK: - Step 1: Goal
+    private func pathCard(title: String, subtitle: String, icon: String, color: Color) -> some View {
+        HStack(spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(
+                        LinearGradient(colors: [color.opacity(0.2), color.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                    .frame(width: 56, height: 56)
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundStyle(color)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(.headline, weight: .bold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .padding(16)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    LinearGradient(colors: [color.opacity(0.3), color.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 1
+                )
+        )
+    }
+
+    // MARK: - Goal Step (New Protocol only)
 
     private var goalStep: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -418,7 +469,7 @@ struct ProtocolSetupWizardView: View {
                 .font(.system(.title2, design: .rounded, weight: .bold))
                 .foregroundStyle(PepTheme.textPrimary)
 
-            Text("This helps us suggest compounds and protocol structures")
+            Text("Optional — helps suggest compounds")
                 .font(.subheadline)
                 .foregroundStyle(PepTheme.textSecondary)
 
@@ -459,7 +510,7 @@ struct ProtocolSetupWizardView: View {
                     let isSelected = selectedGoal == goal
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            selectedGoal = goal
+                            selectedGoal = isSelected ? nil : goal
                         }
                     } label: {
                         HStack(spacing: 14) {
@@ -499,15 +550,15 @@ struct ProtocolSetupWizardView: View {
         .padding(.top, 8)
     }
 
-    // MARK: - Step 2: Compound Selection
+    // MARK: - Compound Selection
 
     private var compoundStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Select Compounds")
+            Text(isExistingPath ? "What are you taking?" : "Select Compounds")
                 .font(.system(.title2, design: .rounded, weight: .bold))
                 .foregroundStyle(PepTheme.textPrimary)
 
-            Text("Choose the compounds for your protocol")
+            Text(isExistingPath ? "Choose the compounds in your current protocol" : "Choose the compounds for your protocol")
                 .font(.subheadline)
                 .foregroundStyle(PepTheme.textSecondary)
 
@@ -532,7 +583,7 @@ struct ProtocolSetupWizardView: View {
             let suggested = suggestedCompounds
             let allFiltered = filteredCompounds
 
-            if !suggested.isEmpty && searchText.isEmpty {
+            if !suggested.isEmpty && searchText.isEmpty && !isExistingPath {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Suggested for \(selectedGoal?.rawValue ?? "your goal")")
                         .font(.system(.caption, weight: .semibold))
@@ -550,7 +601,7 @@ struct ProtocolSetupWizardView: View {
                     .foregroundStyle(PepTheme.textSecondary)
 
                 ForEach(allFiltered) { compound in
-                    if searchText.isEmpty && suggested.contains(where: { $0.id == compound.id }) {
+                    if searchText.isEmpty && !isExistingPath && suggested.contains(where: { $0.id == compound.id }) {
                         EmptyView()
                     } else {
                         enhancedCompoundRow(compound)
@@ -607,36 +658,7 @@ struct ProtocolSetupWizardView: View {
             if isAdded {
                 selectedCompounds.removeAll { $0.name == compound.name }
             } else {
-                var wc = WizardCompound(name: compound.name)
-                let level = experienceLevel ?? .intermediate
-
-                if let pd = ProtocolDefaultsDatabase.defaults(for: compound.name) {
-                    let range = pd.doseRange(for: level)
-                    wc.doseText = range.defaultDoseText
-                    wc.doseUnit = range.unit
-                    let routeStr = pd.route.lowercased()
-                    if routeStr.contains("oral") {
-                        wc.injectionRoute = .oral
-                    } else if routeStr.contains("nasal") {
-                        wc.injectionRoute = .nasal
-                    } else if routeStr.contains("intramuscular") {
-                        wc.injectionRoute = .intramuscular
-                    } else {
-                        wc.injectionRoute = .subcutaneous
-                    }
-                } else if let tiered = compound.tieredDosing.first(where: { $0.tier == level.tierKey }) {
-                    wc.doseText = tiered.dose.replacingOccurrences(of: "[^0-9.]", with: "", options: .regularExpression)
-                    wc.frequency = tiered.frequency
-                    let route = InjectionRoute.allCases.first { compound.keyFacts.administrationRoute.localizedCaseInsensitiveContains($0.rawValue) } ?? .subcutaneous
-                    wc.injectionRoute = route
-                } else {
-                    let route = InjectionRoute.allCases.first { compound.keyFacts.administrationRoute.localizedCaseInsensitiveContains($0.rawValue) } ?? .subcutaneous
-                    wc.injectionRoute = route
-                }
-
-                if let tiered = compound.tieredDosing.first(where: { $0.tier == level.tierKey }) {
-                    wc.timeOfDay = tiered.timingNotes
-                }
+                let wc = WizardCompound(name: compound.name)
                 selectedCompounds.append(wc)
             }
         } label: {
@@ -726,57 +748,17 @@ struct ProtocolSetupWizardView: View {
         .sensoryFeedback(.impact(weight: .light), trigger: isAdded)
     }
 
-    // MARK: - Step 3: Dosing
+    // MARK: - Dosing
 
     private var dosingStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Configure Dosing")
+            Text(isExistingPath ? "Current Dosing" : "Configure Dosing")
                 .font(.system(.title2, design: .rounded, weight: .bold))
                 .foregroundStyle(PepTheme.textPrimary)
 
-            Text("Set dose, frequency, and route for each compound")
+            Text(isExistingPath ? "Enter your current dose for each compound" : "Set dose, frequency, and route for each compound")
                 .font(.subheadline)
                 .foregroundStyle(PepTheme.textSecondary)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("EXPERIENCE LEVEL")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary)
-
-                Picker("", selection: Binding(
-                    get: { experienceLevel ?? .intermediate },
-                    set: { newLevel in
-                        let oldLevel = experienceLevel
-                        experienceLevel = newLevel
-                        if oldLevel != newLevel {
-                            applyDefaultDoses(for: newLevel)
-                        }
-                    }
-                )) {
-                    ForEach(ExperienceLevel.allCases) { level in
-                        HStack(spacing: 4) {
-                            Image(systemName: level.icon)
-                            Text(level.rawValue)
-                        }
-                        .tag(level)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
-            .padding(12)
-            .background(PepTheme.cardSurface)
-            .clipShape(.rect(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-            )
-
-            if experienceLevel == .beginner {
-                beginnerTipBanner(
-                    icon: "info.circle.fill",
-                    text: "Doses are pre-filled based on beginner-safe recommendations. Adjust only if your prescriber advises differently."
-                )
-            }
 
             ForEach(Array(selectedCompounds.enumerated()), id: \.element.id) { index, wc in
                 dosingCard(for: wc, at: index)
@@ -787,8 +769,7 @@ struct ProtocolSetupWizardView: View {
 
     private func dosingCard(for wc: WizardCompound, at index: Int) -> some View {
         let profile = wc.profile
-        let pd = wc.protocolDefault
-        let currentLevel = experienceLevel ?? .intermediate
+        let unitLabel = CompoundUnitHelper.unit(for: wc.name).rawValue
 
         return GlassCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -800,146 +781,57 @@ struct ProtocolSetupWizardView: View {
                         .font(.system(.headline, weight: .bold))
                         .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
-                    if let pd {
-                        Text(pd.route)
-                            .font(.system(.caption2, design: .rounded, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(PepTheme.elevated)
-                            .clipShape(.capsule)
-                    } else if let kf = profile?.keyFacts {
-                        Text(kf.typicalDoseRange)
-                            .font(.system(.caption2, design: .rounded, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(PepTheme.elevated)
-                            .clipShape(.capsule)
-                    }
+                    Text(unitLabel)
+                        .font(.system(.caption, design: .rounded, weight: .bold))
+                        .foregroundStyle(PepTheme.teal)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(PepTheme.teal.opacity(0.1))
+                        .clipShape(.capsule)
                 }
 
-                if let pd {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("RECOMMENDED DOSES")
-                            .font(.system(size: 9, weight: .bold))
+                if !isExistingPath, let hint = CompoundUnitHelper.typicalRangeHint(for: wc.name) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(PepTheme.blue)
+                        Text(hint)
+                            .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(PepTheme.textSecondary)
-                        ForEach(ExperienceLevel.allCases) { level in
-                            let range = pd.doseRange(for: level)
-                            let isCurrentLevel = level == currentLevel
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(isCurrentLevel ? level.color : PepTheme.elevated)
-                                    .frame(width: 6, height: 6)
-                                Text(level.rawValue)
-                                    .font(.system(.caption2, weight: isCurrentLevel ? .bold : .regular))
-                                    .foregroundStyle(isCurrentLevel ? level.color : PepTheme.textSecondary)
-                                Text("— \(range.displayString)")
-                                    .font(.caption2)
-                                    .foregroundStyle(isCurrentLevel ? PepTheme.textPrimary : PepTheme.textSecondary)
-                                Spacer()
-                                if isCurrentLevel {
-                                    Image(systemName: "arrow.right.circle.fill")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(level.color)
-                                }
-                            }
-                        }
-
-                        if !pd.defaultFrequency.isEmpty {
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(PepTheme.textSecondary)
-                                Text(pd.defaultFrequency)
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(PepTheme.textSecondary)
-                            }
-                            .padding(.top, 2)
-                        }
-                        if !pd.defaultCycle.isEmpty {
-                            HStack(spacing: 4) {
-                                Image(systemName: "calendar")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(PepTheme.textSecondary)
-                                Text("Cycle: \(pd.defaultCycle)")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(PepTheme.textSecondary)
-                            }
-                        }
                     }
-                    .padding(10)
-                    .background(PepTheme.elevated.opacity(0.5))
-                    .clipShape(.rect(cornerRadius: 8))
-                } else if let profile, !profile.tieredDosing.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("TIERED DOSING")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(PepTheme.textSecondary)
-                        ForEach(profile.tieredDosing) { tier in
-                            let isCurrentTier = tier.tier == currentLevel.tierKey
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(isCurrentTier ? PepTheme.teal : PepTheme.elevated)
-                                    .frame(width: 6, height: 6)
-                                Text(tier.tier)
-                                    .font(.system(.caption2, weight: isCurrentTier ? .bold : .regular))
-                                    .foregroundStyle(isCurrentTier ? PepTheme.teal : PepTheme.textSecondary)
-                                Text("— \(tier.dose), \(tier.frequency)")
-                                    .font(.caption2)
-                                    .foregroundStyle(isCurrentTier ? PepTheme.textPrimary : PepTheme.textSecondary)
-                                Spacer()
-                            }
-                        }
-                    }
-                    .padding(10)
-                    .background(PepTheme.elevated.opacity(0.5))
+                    .padding(8)
+                    .background(PepTheme.blue.opacity(0.05))
                     .clipShape(.rect(cornerRadius: 8))
                 }
 
                 VStack(spacing: 12) {
-                    VStack(spacing: 4) {
-                        HStack {
-                            Text("Dose")
-                                .font(.system(.caption, weight: .semibold))
-                                .foregroundStyle(PepTheme.textSecondary)
-                            Spacer()
-                            HStack(spacing: 4) {
-                                TextField("Dose", text: Binding(
-                                    get: { selectedCompounds[safe: index]?.doseText ?? "" },
-                                    set: { newVal in
-                                        if index < selectedCompounds.count {
-                                            selectedCompounds[index].doseText = newVal
-                                        }
+                    HStack {
+                        Text("Dose")
+                            .font(.system(.caption, weight: .semibold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Spacer()
+                        HStack(spacing: 4) {
+                            TextField("Dose", text: Binding(
+                                get: { selectedCompounds[safe: index]?.doseText ?? "" },
+                                set: { newVal in
+                                    if index < selectedCompounds.count {
+                                        selectedCompounds[index].doseText = newVal
                                     }
-                                ))
-                                .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                                .multilineTextAlignment(.trailing)
-                                .keyboardType(.decimalPad)
-                                .frame(width: 70)
-                                Text(wc.doseUnit)
-                                    .font(.caption)
-                                    .foregroundStyle(PepTheme.textSecondary)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .background(PepTheme.elevated)
-                            .clipShape(.rect(cornerRadius: 8))
+                                }
+                            ))
+                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.decimalPad)
+                            .frame(width: 80)
+                            Text(unitLabel)
+                                .font(.caption)
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
-
-                        if wc.isDefaultDose(for: currentLevel) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.seal.fill")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(.green)
-                                Text("Recommended starting dose")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundStyle(.green.opacity(0.8))
-                            }
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(PepTheme.elevated)
+                        .clipShape(.rect(cornerRadius: 8))
                     }
 
                     HStack {
@@ -948,7 +840,7 @@ struct ProtocolSetupWizardView: View {
                             .foregroundStyle(PepTheme.textSecondary)
                         Spacer()
                         Picker("", selection: Binding(
-                            get: { selectedCompounds[safe: index]?.frequency ?? "Daily" },
+                            get: { selectedCompounds[safe: index]?.frequency ?? "1x daily" },
                             set: { newVal in
                                 if index < selectedCompounds.count {
                                     selectedCompounds[index].frequency = newVal
@@ -961,6 +853,7 @@ struct ProtocolSetupWizardView: View {
                             Text("1x weekly").tag("1x weekly")
                             Text("2x weekly").tag("2x weekly")
                             Text("3x weekly").tag("3x weekly")
+                            Text("EOD").tag("EOD")
                             Text("As needed").tag("As needed")
                         }
                         .pickerStyle(.menu)
@@ -1013,7 +906,7 @@ struct ProtocolSetupWizardView: View {
                     }
                 }
 
-                if let profile, let guide = Optional(profile.reconstitutionGuide), guide.reconstitutionMath != "N/A — taken orally" && guide.reconstitutionMath != "N/A" {
+                if !isExistingPath, let profile, let guide = Optional(profile.reconstitutionGuide), guide.reconstitutionMath != "N/A — taken orally" && guide.reconstitutionMath != "N/A" {
                     DisclosureGroup {
                         VStack(alignment: .leading, spacing: 6) {
                             reconRow("Vial Size", guide.typicalVialSize)
@@ -1052,11 +945,11 @@ struct ProtocolSetupWizardView: View {
         .padding(.vertical, 2)
     }
 
-    // MARK: - Step 4: Schedule
+    // MARK: - Schedule
 
     private var scheduleStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            if protocolPath == .existingProtocol {
+            if isExistingPath {
                 existingProtocolSchedule
             } else {
                 newProtocolSchedule
@@ -1102,43 +995,7 @@ struct ProtocolSetupWizardView: View {
                     .clipShape(.rect(cornerRadius: 12))
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                Toggle(isOn: $hasPlannedEndDate.animation(.spring(response: 0.35))) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Do you have a planned end date?")
-                            .font(.system(.subheadline, weight: .medium))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text("Leave off for open-ended protocols")
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                }
-                .tint(PepTheme.teal)
-
-                if hasPlannedEndDate {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Duration")
-                                .font(.system(.caption, weight: .semibold))
-                                .foregroundStyle(PepTheme.textSecondary)
-                            Stepper("\(durationWeeks) weeks", value: $durationWeeks, in: 1...52)
-                                .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                        }
-                    }
-                    .padding(12)
-                    .background(PepTheme.elevated)
-                    .clipShape(.rect(cornerRadius: 12))
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-            }
-            .padding(14)
-            .background(PepTheme.cardSurface)
-            .clipShape(.rect(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-            )
+            endDateToggle
 
             advancedCyclePlanningSection
         }
@@ -1233,46 +1090,50 @@ struct ProtocolSetupWizardView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                Toggle(isOn: $hasPlannedEndDate.animation(.spring(response: 0.35))) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Do you have a planned end date?")
-                            .font(.system(.subheadline, weight: .medium))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text("Leave off for open-ended protocols")
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                }
-                .tint(PepTheme.teal)
-
-                if hasPlannedEndDate {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Duration")
-                                .font(.system(.caption, weight: .semibold))
-                                .foregroundStyle(PepTheme.textSecondary)
-                            Stepper("\(durationWeeks) weeks", value: $durationWeeks, in: 1...52)
-                                .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                        }
-                    }
-                    .padding(12)
-                    .background(PepTheme.elevated)
-                    .clipShape(.rect(cornerRadius: 12))
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-            }
-            .padding(14)
-            .background(PepTheme.cardSurface)
-            .clipShape(.rect(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-            )
+            endDateToggle
 
             advancedCyclePlanningSection
         }
+    }
+
+    private var endDateToggle: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle(isOn: $hasPlannedEndDate.animation(.spring(response: 0.35))) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Do you have a planned end date?")
+                        .font(.system(.subheadline, weight: .medium))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("Leave off for open-ended protocols")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+            .tint(PepTheme.teal)
+
+            if hasPlannedEndDate {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Duration")
+                            .font(.system(.caption, weight: .semibold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Stepper("\(durationWeeks) weeks", value: $durationWeeks, in: 1...52)
+                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                    }
+                }
+                .padding(12)
+                .background(PepTheme.elevated)
+                .clipShape(.rect(cornerRadius: 12))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(14)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
     }
 
     private var advancedCyclePlanningSection: some View {
@@ -1443,7 +1304,7 @@ struct ProtocolSetupWizardView: View {
         }
     }
 
-    // MARK: - Step 5: Review
+    // MARK: - Review
 
     private var reviewStep: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1473,7 +1334,7 @@ struct ProtocolSetupWizardView: View {
                         }
                     }
 
-                    if protocolPath == .existingProtocol {
+                    if isExistingPath {
                         HStack(spacing: 6) {
                             Image(systemName: "clock.arrow.circlepath")
                                 .font(.system(size: 12))
@@ -1523,7 +1384,7 @@ struct ProtocolSetupWizardView: View {
                         reviewStat("Compounds", "\(selectedCompounds.count)")
                     }
 
-                    if protocolPath == .existingProtocol {
+                    if isExistingPath {
                         let currentWeek = max(1, (Calendar.current.dateComponents([.day], from: startDate, to: Date()).day ?? 0) / 7 + 1)
                         HStack(spacing: 6) {
                             Image(systemName: "calendar.badge.clock")
@@ -1623,7 +1484,7 @@ struct ProtocolSetupWizardView: View {
                                     .font(.system(size: 9, weight: .semibold))
                                     .foregroundStyle(phase.color)
                                 if phase != .offCycle {
-                                    Text(selectedCompounds.map { "\($0.name) \($0.doseText)\($0.doseUnit)" }.joined(separator: " + "))
+                                    Text(selectedCompounds.map { "\($0.name) \($0.doseText) \($0.doseUnit)" }.joined(separator: " + "))
                                         .font(.system(size: 8))
                                         .foregroundStyle(PepTheme.textSecondary)
                                         .lineLimit(1)
@@ -1695,13 +1556,6 @@ struct ProtocolSetupWizardView: View {
                                     Text(template.subtitle)
                                         .font(.caption)
                                         .foregroundStyle(PepTheme.textSecondary)
-                                    HStack(spacing: 4) {
-                                        Image(systemName: template.experienceLevel.icon)
-                                            .font(.system(size: 8))
-                                        Text(template.experienceLevel.rawValue)
-                                            .font(.system(size: 9, weight: .medium))
-                                    }
-                                    .foregroundStyle(template.experienceLevel.color)
                                 }
 
                                 Spacer()
@@ -1797,7 +1651,7 @@ struct ProtocolSetupWizardView: View {
 
     private var continueButtonTitle: String {
         if currentStep == stepCount - 1 {
-            return protocolPath == .existingProtocol ? "Save Protocol" : "Start Protocol"
+            return isExistingPath ? "Save Protocol" : "Start Protocol"
         }
         return "Continue"
     }
@@ -1805,17 +1659,23 @@ struct ProtocolSetupWizardView: View {
     // MARK: - Helpers
 
     private var canContinue: Bool {
-        switch currentStep {
-        case 0: return selectedGoal != nil
-        case 1: return !selectedCompounds.isEmpty
-        case 2: return selectedCompounds.allSatisfy { !$0.doseText.isEmpty }
-        case 3:
-            if protocolPath == .existingProtocol {
-                return selectedStartShortcut != nil
+        if isExistingPath {
+            switch currentStep {
+            case 0: return !selectedCompounds.isEmpty
+            case 1: return selectedCompounds.allSatisfy { !$0.doseText.isEmpty }
+            case 2: return selectedStartShortcut != nil
+            case 3: return true
+            default: return false
             }
-            return true
-        case 4: return true
-        default: return false
+        } else {
+            switch currentStep {
+            case 0: return true
+            case 1: return !selectedCompounds.isEmpty
+            case 2: return selectedCompounds.allSatisfy { !$0.doseText.isEmpty }
+            case 3: return true
+            case 4: return true
+            default: return false
+            }
         }
     }
 
@@ -1855,20 +1715,6 @@ struct ProtocolSetupWizardView: View {
         return .maintenance
     }
 
-    private func applyDefaultDoses(for level: ExperienceLevel) {
-        for i in selectedCompounds.indices {
-            if let pd = ProtocolDefaultsDatabase.defaults(for: selectedCompounds[i].name) {
-                let range = pd.doseRange(for: level)
-                selectedCompounds[i].doseText = range.defaultDoseText
-                selectedCompounds[i].doseUnit = range.unit
-            } else if let profile = selectedCompounds[i].profile,
-                      let tiered = profile.tieredDosing.first(where: { $0.tier == level.tierKey }) {
-                selectedCompounds[i].doseText = tiered.dose.replacingOccurrences(of: "[^0-9.]", with: "", options: .regularExpression)
-                selectedCompounds[i].frequency = tiered.frequency
-            }
-        }
-    }
-
     private func applyTemplate(_ template: ProtocolTemplate) {
         selectedGoal = template.goal
         protocolName = template.name
@@ -1884,7 +1730,10 @@ struct ProtocolSetupWizardView: View {
 
         selectedCompounds = template.compounds.map { tc in
             var wc = WizardCompound(name: tc.name)
-            wc.doseText = String(Int(tc.doseMcg))
+            let displayValue = CompoundUnitHelper.fromMcg(tc.doseMcg, for: tc.name)
+            wc.doseText = CompoundUnitHelper.unit(for: tc.name) == .mg ?
+                (displayValue == displayValue.rounded() && displayValue >= 1 ? String(Int(displayValue)) : String(format: "%.2g", displayValue)) :
+                String(Int(tc.doseMcg))
             wc.frequency = tc.frequency
             wc.injectionRoute = tc.route
             wc.timeOfDay = tc.timeOfDay
@@ -1893,22 +1742,8 @@ struct ProtocolSetupWizardView: View {
 
         showTemplates = false
         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-            currentStep = 4
+            currentStep = stepCount - 1
         }
-    }
-
-    private func beginnerTipBanner(icon: String, text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundStyle(.green)
-            Text(text)
-                .font(.caption)
-                .foregroundStyle(PepTheme.textSecondary)
-        }
-        .padding(12)
-        .background(.green.opacity(0.06))
-        .clipShape(.rect(cornerRadius: 12))
     }
 
     nonisolated struct ReviewWarning: Sendable {
@@ -1953,9 +1788,10 @@ struct ProtocolSetupWizardView: View {
 
     private func completeSetup() {
         let compounds = selectedCompounds.map { wc in
-            ProtocolCompound(
+            let mcgValue = CompoundUnitHelper.toMcg(Double(wc.doseText) ?? 0, for: wc.name)
+            return ProtocolCompound(
                 compoundName: wc.name,
-                doseMcg: Double(wc.doseText) ?? 250,
+                doseMcg: mcgValue,
                 frequency: wc.frequency,
                 injectionRoute: wc.injectionRoute
             )
@@ -1985,11 +1821,201 @@ struct ProtocolSetupWizardView: View {
             maintenanceWeeks: finalMaintenance,
             taperingWeeks: finalTapering,
             offCycleWeeks: finalOffCycle,
-            isExistingProtocol: protocolPath == .existingProtocol
+            isExistingProtocol: isExistingPath
         )
-        onComplete(proto)
+
+        if isExistingPath {
+            savedProtocol = proto
+            showPastDoseSheet = true
+        } else {
+            onComplete(proto)
+            dismiss()
+        }
+    }
+}
+
+// MARK: - Past Dose Logging Sheet
+
+struct PastDoseLoggingSheet: View {
+    let protocolData: PeptideProtocol
+    let onDone: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var pastDoses: [PastDoseEntry] = []
+    @State private var isSaving: Bool = false
+
+    private let protocolService = ProtocolService.shared
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Log Past Doses")
+                            .font(.system(.title3, design: .rounded, weight: .bold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("Add any previous doses you want to track. You can skip this and add them later.")
+                            .font(.subheadline)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    ForEach(Array(pastDoses.enumerated()), id: \.element.id) { index, entry in
+                        pastDoseRow(entry: entry, index: index)
+                    }
+
+                    Button {
+                        let firstCompound = protocolData.compounds.first
+                        pastDoses.append(PastDoseEntry(
+                            compoundName: firstCompound?.compoundName ?? "",
+                            doseText: "",
+                            date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+                        ))
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 16))
+                            Text("Add Past Dose")
+                                .font(.system(.subheadline, weight: .semibold))
+                        }
+                        .foregroundStyle(PepTheme.teal)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(PepTheme.teal.opacity(0.08))
+                        .clipShape(.rect(cornerRadius: 12))
+                    }
+
+                    VStack(spacing: 10) {
+                        Button {
+                            savePastDosesAndComplete()
+                        } label: {
+                            Text(pastDoses.isEmpty ? "Skip & Save Protocol" : "Save Protocol & Doses")
+                                .font(.system(.body, weight: .bold))
+                                .foregroundStyle(PepTheme.invertedText)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(PepTheme.teal, in: .rect(cornerRadius: 12))
+                        }
+                        .disabled(isSaving)
+
+                        if !pastDoses.isEmpty {
+                            Button {
+                                onDone()
+                                dismiss()
+                            } label: {
+                                Text("Skip Past Doses")
+                                    .font(.system(.subheadline, weight: .medium))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 32)
+            }
+            .scrollIndicators(.hidden)
+            .background(PepTheme.background.ignoresSafeArea())
+            .navigationTitle("Past Doses")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private func pastDoseRow(entry: PastDoseEntry, index: Int) -> some View {
+        let unit = CompoundUnitHelper.unit(for: entry.compoundName).rawValue
+
+        return VStack(spacing: 10) {
+            if protocolData.compounds.count > 1 {
+                HStack {
+                    Text("Compound")
+                        .font(.system(.caption, weight: .semibold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Spacer()
+                    Picker("", selection: Binding(
+                        get: { pastDoses[safe: index]?.compoundName ?? "" },
+                        set: { val in if index < pastDoses.count { pastDoses[index].compoundName = val } }
+                    )) {
+                        ForEach(protocolData.compounds) { c in
+                            Text(c.compoundName).tag(c.compoundName)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(PepTheme.teal)
+                }
+            }
+
+            HStack {
+                Text("Dose")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
+                HStack(spacing: 4) {
+                    TextField("Dose", text: Binding(
+                        get: { pastDoses[safe: index]?.doseText ?? "" },
+                        set: { val in if index < pastDoses.count { pastDoses[index].doseText = val } }
+                    ))
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .multilineTextAlignment(.trailing)
+                    .keyboardType(.decimalPad)
+                    .frame(width: 70)
+                    Text(unit)
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(PepTheme.elevated)
+                .clipShape(.rect(cornerRadius: 8))
+            }
+
+            HStack {
+                Text("Date")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
+                DatePicker("", selection: Binding(
+                    get: { pastDoses[safe: index]?.date ?? Date() },
+                    set: { val in if index < pastDoses.count { pastDoses[index].date = val } }
+                ), in: ...Date(), displayedComponents: [.date])
+                .labelsHidden()
+                .tint(PepTheme.teal)
+            }
+
+            HStack {
+                Spacer()
+                Button {
+                    pastDoses.remove(at: index)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 11))
+                        Text("Remove")
+                            .font(.caption)
+                    }
+                    .foregroundStyle(.red.opacity(0.8))
+                }
+            }
+        }
+        .padding(14)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    private func savePastDosesAndComplete() {
+        isSaving = true
+        onDone()
         dismiss()
     }
+}
+
+struct PastDoseEntry: Identifiable {
+    let id = UUID()
+    var compoundName: String
+    var doseText: String
+    var date: Date
 }
 
 private extension Array {

@@ -51,7 +51,8 @@ final class ProtocolDetailViewModel {
         self.protocolData = protocolData
         if let first = protocolData.compounds.first {
             self.newDoseCompound = first.compoundName
-            self.newDoseMcg = "\(Int(first.doseMcg))"
+            let displayVal = CompoundUnitHelper.fromMcg(first.doseMcg, for: first.compoundName)
+            self.newDoseMcg = displayVal == displayVal.rounded() && displayVal >= 1 ? String(Int(displayVal)) : String(format: "%.2g", displayVal)
         }
         setupTitrationSteps()
         setupRecoveryMilestones()
@@ -74,10 +75,13 @@ final class ProtocolDetailViewModel {
     // MARK: - Dose Logging
 
     func logDose() {
+        let displayValue = Double(newDoseMcg) ?? 0
+        let mcgValue = CompoundUnitHelper.toMcg(displayValue, for: newDoseCompound)
+
         guard let protocolId = protocolData.supabaseId else {
             let dose = DoseLogEntry(
                 compoundName: newDoseCompound,
-                doseMcg: Double(newDoseMcg) ?? 0,
+                doseMcg: mcgValue,
                 injectionSite: newDoseSite,
                 notes: newDoseNotes
             )
@@ -88,7 +92,6 @@ final class ProtocolDetailViewModel {
         }
 
         let compound = newDoseCompound
-        let mcg = Double(newDoseMcg) ?? 0
         let site = newDoseSite
         let doseNotes = newDoseNotes
         newDoseNotes = ""
@@ -99,7 +102,7 @@ final class ProtocolDetailViewModel {
                 let entry = try await protocolService.logDose(
                     protocolId: protocolId,
                     compoundName: compound,
-                    doseMcg: mcg,
+                    doseMcg: mcgValue,
                     injectionSite: site,
                     notes: doseNotes
                 )

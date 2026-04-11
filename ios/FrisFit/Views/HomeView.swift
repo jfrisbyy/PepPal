@@ -274,7 +274,7 @@ struct HomeView: View {
                                     Image(systemName: "pill.fill")
                                         .font(.system(size: 9))
                                         .foregroundStyle(PepTheme.teal)
-                                    Text("\(compound.compoundName) \(Int(compound.doseMcg))\(compound.doseMcg >= 1000 ? "mcg" : "mcg")")
+                                    Text("\(compound.compoundName) \(CompoundUnitHelper.displayDoseShort(compound.doseMcg, for: compound.compoundName))")
                                         .font(.system(size: 10, weight: .medium))
                                         .foregroundStyle(PepTheme.textSecondary)
                                 }
