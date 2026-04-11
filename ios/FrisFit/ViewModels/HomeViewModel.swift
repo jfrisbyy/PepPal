@@ -325,30 +325,9 @@ final class HomeViewModel {
     var isPlanExpanded: Bool = false
     var showEditSplit: Bool = false
 
-    var todaysPlan: WorkoutPlan = WorkoutPlan(
-        name: "Push Day — Chest, Shoulders, Triceps",
-        exercises: 6,
-        estimatedMinutes: 52,
-        isRestDay: false,
-        recoveryTip: nil,
-        planExercises: [
-            PlanExercise(name: "Barbell Bench Press", muscle: "Chest", sets: 4, repsMin: 6, repsMax: 10, equipment: "Barbell", equipmentIcon: "dumbbell.fill"),
-            PlanExercise(name: "Incline Dumbbell Press", muscle: "Upper Chest", sets: 3, repsMin: 8, repsMax: 12, equipment: "Dumbbell", equipmentIcon: "dumbbell"),
-            PlanExercise(name: "Overhead Press", muscle: "Shoulders", sets: 4, repsMin: 6, repsMax: 10, equipment: "Barbell", equipmentIcon: "dumbbell.fill"),
-            PlanExercise(name: "Cable Lateral Raise", muscle: "Side Delts", sets: 3, repsMin: 12, repsMax: 15, equipment: "Cable", equipmentIcon: "cable.connector"),
-            PlanExercise(name: "Tricep Pushdown", muscle: "Triceps", sets: 3, repsMin: 10, repsMax: 15, equipment: "Cable", equipmentIcon: "cable.connector"),
-            PlanExercise(name: "Overhead Tricep Extension", muscle: "Triceps", sets: 3, repsMin: 10, repsMax: 12, equipment: "Cable", equipmentIcon: "cable.connector"),
-        ],
-        splitDays: [
-            SplitDay(dayIndex: 0, name: "Push", isToday: true, isRest: false),
-            SplitDay(dayIndex: 1, name: "Pull", isToday: false, isRest: false),
-            SplitDay(dayIndex: 2, name: "Legs", isToday: false, isRest: false),
-            SplitDay(dayIndex: 3, name: "Rest", isToday: false, isRest: true),
-            SplitDay(dayIndex: 4, name: "Upper", isToday: false, isRest: false),
-            SplitDay(dayIndex: 5, name: "Lower", isToday: false, isRest: false),
-            SplitDay(dayIndex: 6, name: "Rest", isToday: false, isRest: true),
-        ]
-    )
+    var todaysPlan: WorkoutPlan {
+        buildWorkoutPlan(for: selectedDate)
+    }
 
     var nutrition: NutritionSnapshot = NutritionSnapshot(
         caloriesConsumed: 1420,
@@ -481,6 +460,79 @@ final class HomeViewModel {
             return
         }
         activeProgram = program
+    }
+
+    private func programDayForDate(_ date: Date) -> ProgramDay? {
+        guard let program = activeProgram else { return nil }
+        let startOffset = UserDefaults.standard.integer(forKey: Self.programStartDayKey)
+        let dayOfWeek = calendar.component(.weekday, from: date)
+        let mondayBased = (dayOfWeek + 5) % 7
+        let adjusted = (mondayBased - startOffset + 7) % 7
+        guard adjusted < program.days.count else { return nil }
+        return program.days[adjusted]
+    }
+
+    private func buildWorkoutPlan(for date: Date) -> WorkoutPlan {
+        guard let program = activeProgram else {
+            return WorkoutPlan(
+                name: "No Active Program",
+                exercises: 0,
+                estimatedMinutes: 0,
+                isRestDay: true,
+                recoveryTip: "Set up a training program to see your daily plan here.",
+                planExercises: [],
+                splitDays: []
+            )
+        }
+
+        let startOffset = UserDefaults.standard.integer(forKey: Self.programStartDayKey)
+        let dayOfWeek = calendar.component(.weekday, from: date)
+        let mondayBased = (dayOfWeek + 5) % 7
+        let adjusted = (mondayBased - startOffset + 7) % 7
+
+        let isRestDay = adjusted >= program.days.count
+        let currentDay = isRestDay ? nil : program.days[adjusted]
+
+        let planExercises: [PlanExercise] = (currentDay?.exercises ?? []).map { pe in
+            PlanExercise(
+                name: pe.exerciseName,
+                muscle: pe.primaryMuscle.rawValue,
+                sets: pe.targetSets,
+                repsMin: pe.targetRepsMin,
+                repsMax: pe.targetRepsMax,
+                equipment: pe.equipment.rawValue,
+                equipmentIcon: pe.equipment.icon
+            )
+        }
+
+        let estimatedMinutes: Int
+        if let day = currentDay {
+            let totalSets = day.exercises.reduce(0) { $0 + $1.targetSets }
+            estimatedMinutes = max(totalSets * 2 + day.exercises.count * 1, 15)
+        } else {
+            estimatedMinutes = 0
+        }
+
+        let splitDays: [SplitDay] = (0..<max(program.days.count + (7 - program.days.count), program.days.count)).prefix(7).enumerated().map { index, _ in
+            let isTrainingDay = index < program.days.count
+            let dayName = isTrainingDay ? program.days[index].name : "Rest"
+            return SplitDay(
+                dayIndex: index,
+                name: dayName,
+                isToday: index == adjusted,
+                isRest: !isTrainingDay
+            )
+        }
+
+        return WorkoutPlan(
+            name: currentDay?.name ?? "Rest Day",
+            exercises: currentDay?.exercises.count ?? 0,
+            estimatedMinutes: estimatedMinutes,
+            isRestDay: isRestDay,
+            recoveryTip: isRestDay ? "Recovery is when your muscles grow. Stay hydrated and get quality sleep tonight." : nil,
+            planExercises: planExercises,
+            splitDays: splitDays
+        )
     }
 
     func programDayForWeekday(_ weekdayIndex: Int) -> ProgramDay? {

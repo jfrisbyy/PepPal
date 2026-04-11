@@ -27,16 +27,7 @@ struct EditSplitSheet: View {
                         .foregroundStyle(PepTheme.textSecondary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        viewModel.todaysPlan = WorkoutPlan(
-                            name: viewModel.todaysPlan.name,
-                            exercises: viewModel.todaysPlan.exercises,
-                            estimatedMinutes: viewModel.todaysPlan.estimatedMinutes,
-                            isRestDay: viewModel.todaysPlan.isRestDay,
-                            recoveryTip: viewModel.todaysPlan.recoveryTip,
-                            planExercises: viewModel.todaysPlan.planExercises,
-                            splitDays: editedDays
-                        )
+                    Button("Done") {
                         dismiss()
                     }
                     .fontWeight(.semibold)
@@ -44,7 +35,8 @@ struct EditSplitSheet: View {
                 }
             }
             .onAppear {
-                editedDays = viewModel.todaysPlan.splitDays
+                let plan = viewModel.todaysPlan
+                editedDays = plan.splitDays
             }
         }
         .presentationDetents([.large])
