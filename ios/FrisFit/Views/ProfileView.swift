@@ -74,6 +74,9 @@ struct ProfileView: View {
             .navigationDestination(for: FeedPost.self) { post in
                 PostDetailView(post: post, viewModel: socialViewModel)
             }
+            .navigationDestination(for: FollowListDestination.self) { destination in
+                FollowListView(destination: destination, profileViewModel: viewModel)
+            }
         }
     }
 
@@ -169,8 +172,16 @@ struct ProfileView: View {
             .padding(.top, 4)
 
             HStack(spacing: 20) {
-                followStat(count: viewModel.profile.followingCount, label: "Following")
-                followStat(count: viewModel.profile.followerCount, label: "Followers")
+                NavigationLink(value: FollowListDestination.following(userId: viewModel.profile.id.uuidString, username: viewModel.profile.displayName)) {
+                    followStat(count: viewModel.profile.followingCount, label: "Following")
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink(value: FollowListDestination.followers(userId: viewModel.profile.id.uuidString, username: viewModel.profile.displayName)) {
+                    followStat(count: viewModel.profile.followerCount, label: "Followers")
+                }
+                .buttonStyle(.plain)
+
                 followStat(count: viewModel.profile.friendCount, label: "Friends")
             }
             .padding(.top, 8)
@@ -255,6 +266,8 @@ struct ProfileView: View {
                     NavigationLink(value: feedPostFromUserPost(post)) {
                         ProfilePostRow(post: post, profile: viewModel.profile) {
                             viewModel.togglePostLike(post.id)
+                        } onDelete: {
+                            deletePost(post)
                         }
                     }
                     .buttonStyle(.plain)
@@ -352,6 +365,16 @@ struct ProfileView: View {
         return "\(n)"
     }
 
+    private func deletePost(_ post: UserPost) {
+        let supabaseId = post.id.uuidString.lowercased()
+        Task {
+            do {
+                try await SocialService.shared.deletePost(postId: supabaseId)
+                await viewModel.loadUserPosts()
+            } catch {}
+        }
+    }
+
     private func formatCount(_ count: Int) -> String {
         if count >= 1_000_000 {
             return String(format: "%.1fM", Double(count) / 1_000_000)
@@ -407,12 +430,20 @@ struct ProfilePostRow: View {
     let post: UserPost
     let profile: UserProfile
     let onLike: () -> Void
+    var onDelete: (() -> Void)? = nil
 
     @State private var likeBounce: Int = 0
+    @State private var showDeleteConfirm: Bool = false
+    @State private var showReportConfirm: Bool = false
     private let likeManager = LikeManager.shared
 
     private var postSupabaseId: String {
         post.id.uuidString.lowercased()
+    }
+
+    private var isOwnPost: Bool {
+        guard let userId = try? AuthService.shared.currentUserId() else { return false }
+        return post.authorId.uuidString.lowercased() == userId.lowercased()
     }
 
     var body: some View {
@@ -449,6 +480,47 @@ struct ProfilePostRow: View {
                     Text(post.timestamp.formattedPostDate())
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
+
+                    Spacer()
+
+                    Menu {
+                        if isOwnPost {
+                            Button(role: .destructive) {
+                                showDeleteConfirm = true
+                            } label: {
+                                Label("Delete Post", systemImage: "trash")
+                            }
+                        }
+                        Button {
+                            showReportConfirm = true
+                        } label: {
+                            Label("Report", systemImage: "flag")
+                        }
+                        Button {
+                            UIPasteboard.general.string = post.content
+                        } label: {
+                            Label("Copy Text", systemImage: "doc.on.doc")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 14))
+                            .foregroundStyle(PepTheme.textSecondary)
+                            .frame(width: 32, height: 32)
+                    }
+                    .alert("Delete Post?", isPresented: $showDeleteConfirm) {
+                        Button("Cancel", role: .cancel) {}
+                        Button("Delete", role: .destructive) {
+                            onDelete?()
+                        }
+                    } message: {
+                        Text("This action cannot be undone.")
+                    }
+                    .alert("Report Post?", isPresented: $showReportConfirm) {
+                        Button("Cancel", role: .cancel) {}
+                        Button("Report", role: .destructive) {}
+                    } message: {
+                        Text("This post will be flagged for review.")
+                    }
                 }
 
                 if !post.content.isEmpty {

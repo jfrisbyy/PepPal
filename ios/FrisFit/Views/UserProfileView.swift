@@ -15,6 +15,9 @@ struct UserProfileView: View {
     @State private var isLoadingRelationship: Bool = true
     @State private var userPosts: [UserPost] = []
     @State private var isLoadingPosts: Bool = true
+    @State private var showDeleteConfirm: Bool = false
+    @State private var showReportConfirm: Bool = false
+    @State private var pendingDeletePost: UserPost?
     @Environment(\.dismiss) private var dismiss
 
     private let messagingService = MessagingService.shared
@@ -46,9 +49,44 @@ struct UserProfileView: View {
         .scrollIndicators(.hidden)
         .background(PepTheme.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: FollowListDestination.self) { destination in
+            FollowListView(destination: destination, profileViewModel: viewModel)
+        }
+        .alert("Delete Post?", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) { pendingDeletePost = nil }
+            Button("Delete", role: .destructive) {
+                if let post = pendingDeletePost {
+                    deletePost(post)
+                }
+                pendingDeletePost = nil
+            }
+        } message: {
+            Text("This action cannot be undone.")
+        }
+        .alert("Report Post?", isPresented: $showReportConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Report", role: .destructive) {}
+        } message: {
+            Text("This post will be flagged for review.")
+        }
         .task {
             await loadRelationshipData()
             await loadUserPosts()
+        }
+    }
+
+    private func isOwnPost(_ post: UserPost) -> Bool {
+        guard let userId = try? AuthService.shared.currentUserId() else { return false }
+        return post.authorId.uuidString.lowercased() == userId.lowercased()
+    }
+
+    private func deletePost(_ post: UserPost) {
+        let supabaseId = post.id.uuidString.lowercased()
+        Task {
+            do {
+                try await SocialService.shared.deletePost(postId: supabaseId)
+                await loadUserPosts()
+            } catch {}
         }
     }
 
@@ -254,23 +292,29 @@ struct UserProfileView: View {
             }
 
             HStack(spacing: 20) {
-                HStack(spacing: 4) {
-                    Text("\(followingCount)")
-                        .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("Following")
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.textSecondary)
+                NavigationLink(value: FollowListDestination.following(userId: user.id.uuidString, username: user.name)) {
+                    HStack(spacing: 4) {
+                        Text("\(followingCount)")
+                            .font(.system(.subheadline, weight: .bold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("Following")
+                            .font(.subheadline)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
                 }
+                .buttonStyle(.plain)
 
-                HStack(spacing: 4) {
-                    Text("\(followerCount)")
-                        .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("Followers")
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.textSecondary)
+                NavigationLink(value: FollowListDestination.followers(userId: user.id.uuidString, username: user.name)) {
+                    HStack(spacing: 4) {
+                        Text("\(followerCount)")
+                            .font(.system(.subheadline, weight: .bold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("Followers")
+                            .font(.subheadline)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
                 }
+                .buttonStyle(.plain)
             }
             .padding(.top, 8)
 
@@ -430,6 +474,34 @@ struct UserProfileView: View {
                     Text(post.timestamp.formattedPostDate())
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
+
+                    Spacer()
+
+                    Menu {
+                        if isOwnPost(post) {
+                            Button(role: .destructive) {
+                                pendingDeletePost = post
+                                showDeleteConfirm = true
+                            } label: {
+                                Label("Delete Post", systemImage: "trash")
+                            }
+                        }
+                        Button {
+                            showReportConfirm = true
+                        } label: {
+                            Label("Report", systemImage: "flag")
+                        }
+                        Button {
+                            UIPasteboard.general.string = post.content
+                        } label: {
+                            Label("Copy Text", systemImage: "doc.on.doc")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 14))
+                            .foregroundStyle(PepTheme.textSecondary)
+                            .frame(width: 32, height: 32)
+                    }
                 }
 
                 if !post.content.isEmpty {

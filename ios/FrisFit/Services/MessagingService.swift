@@ -497,6 +497,24 @@ final class MessagingService {
             .execute()
     }
 
+    func fetchProfilesByIds(_ ids: [String]) async throws -> [SupabasePostAuthor] {
+        guard !ids.isEmpty else { return [] }
+        var results: [SupabasePostAuthor] = []
+        for uid in ids {
+            do {
+                let profile: SupabasePostAuthor = try await supabase
+                    .from("profiles")
+                    .select("id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak")
+                    .eq("id", value: uid)
+                    .single()
+                    .execute()
+                    .value
+                results.append(profile)
+            } catch {}
+        }
+        return results
+    }
+
     // MARK: - User Search
 
     func searchUsers(query: String, excludeUserId: String) async throws -> [SupabasePostAuthor] {
