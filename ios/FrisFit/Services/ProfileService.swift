@@ -32,6 +32,19 @@ nonisolated struct ProfileUpdate: Codable, Sendable {
     let date_of_birth: String?
     let biological_sex: String?
     let height_cm: Double?
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if let v = display_name { try container.encode(v, forKey: .display_name) }
+        if let v = username { try container.encode(v, forKey: .username) }
+        if let v = bio { try container.encode(v, forKey: .bio) }
+        if let v = avatar_url { try container.encode(v, forKey: .avatar_url) }
+        if let v = avatar_color { try container.encode(v, forKey: .avatar_color) }
+        if let v = active_program { try container.encode(v, forKey: .active_program) }
+        if let v = date_of_birth { try container.encode(v, forKey: .date_of_birth) }
+        if let v = biological_sex { try container.encode(v, forKey: .biological_sex) }
+        if let v = height_cm { try container.encode(v, forKey: .height_cm) }
+    }
 }
 
 final class ProfileService {
