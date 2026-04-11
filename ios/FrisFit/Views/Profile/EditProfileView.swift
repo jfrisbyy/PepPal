@@ -14,11 +14,11 @@ struct EditProfileView: View {
     @State private var isUploading: Bool = false
 
     @State private var dateOfBirth: Date = Calendar.current.date(byAdding: .year, value: -25, to: Date()) ?? Date()
-    @State private var hasSetDOB: Bool = false
+    @State private var hasDOB: Bool = false
     @State private var biologicalSex: BiologicalSex? = nil
     @State private var heightFeet: Int = 5
     @State private var heightInches: Int = 10
-    @State private var hasSetHeight: Bool = false
+    @State private var hasHeight: Bool = false
     @State private var useMetricHeight: Bool = false
     @State private var heightCmText: String = ""
 
@@ -65,11 +65,11 @@ struct EditProfileView: View {
 
                 if let dob = viewModel.profile.dateOfBirth {
                     dateOfBirth = dob
-                    hasSetDOB = true
+                    hasDOB = true
                 }
                 biologicalSex = viewModel.profile.biologicalSex
                 if let h = viewModel.profile.heightCm {
-                    hasSetHeight = true
+                    hasHeight = true
                     let totalInches = h / 2.54
                     heightFeet = Int(totalInches) / 12
                     heightInches = Int(totalInches) % 12
@@ -216,7 +216,7 @@ struct EditProfileView: View {
                         .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                 )
                 .onChange(of: dateOfBirth) { _, _ in
-                    hasSetDOB = true
+                    hasDOB = true
                 }
             }
 
@@ -290,7 +290,7 @@ struct EditProfileView: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                             )
-                            .onChange(of: heightCmText) { _, _ in hasSetHeight = true }
+                            .onChange(of: heightCmText) { _, _ in hasHeight = true }
 
                         Text("cm")
                             .font(.subheadline)
@@ -333,8 +333,8 @@ struct EditProfileView: View {
                         RoundedRectangle(cornerRadius: 12)
                             .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                     )
-                    .onChange(of: heightFeet) { _, _ in hasSetHeight = true }
-                    .onChange(of: heightInches) { _, _ in hasSetHeight = true }
+                    .onChange(of: heightFeet) { _, _ in hasHeight = true }
+                    .onChange(of: heightInches) { _, _ in hasHeight = true }
                 }
             }
         }
@@ -368,7 +368,7 @@ struct EditProfileView: View {
     }
 
     private var computedHeightCm: Double? {
-        guard hasSetHeight else { return nil }
+        guard hasHeight else { return nil }
         if useMetricHeight {
             return Double(heightCmText)
         } else {
@@ -391,9 +391,9 @@ struct EditProfileView: View {
             bio: bio.trimmingCharacters(in: .whitespaces),
             activeProgram: program,
             avatarColor: nil,
-            dateOfBirth: hasSetDOB ? dateOfBirth : nil,
-            biologicalSex: biologicalSex,
-            heightCm: computedHeightCm
+            dateOfBirth: hasDOB ? dateOfBirth : viewModel.profile.dateOfBirth,
+            biologicalSex: biologicalSex ?? viewModel.profile.biologicalSex,
+            heightCm: computedHeightCm ?? viewModel.profile.heightCm
         )
         dismiss()
     }

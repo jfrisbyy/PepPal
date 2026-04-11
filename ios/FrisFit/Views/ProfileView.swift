@@ -56,7 +56,9 @@ struct ProfileView: View {
                     isLoading = false
                 }
             }
-            .sheet(isPresented: $showEditProfile) {
+            .sheet(isPresented: $showEditProfile, onDismiss: {
+                Task { await viewModel.loadProfile() }
+            }) {
                 EditProfileView(viewModel: viewModel)
             }
             .sheet(isPresented: $showReconCalculator) {
