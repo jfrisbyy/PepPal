@@ -1,4 +1,5 @@
 import SwiftUI
+import Auth
 
 @Observable
 final class HomeViewModel {
@@ -16,10 +17,10 @@ final class HomeViewModel {
 
     var userFirstName: String {
         if AuthService.shared.authState == .signedIn,
-           let profile = ProfileService.shared.cachedDisplayName {
-            return profile.components(separatedBy: " ").first ?? profile
+           let name = ProfileService.shared.cachedDisplayName, !name.isEmpty {
+            return name.components(separatedBy: " ").first ?? name
         }
-        return "Jane"
+        return "there"
     }
 
     let streakManager = StreakManager.shared
@@ -423,6 +424,7 @@ final class HomeViewModel {
 
     func onAppear() {
         loadActiveProgram()
+        refreshUserName()
         streakManager.checkAndHandleMissedDay()
         streakManager.loadFromSupabase()
         Task {
@@ -641,10 +643,21 @@ final class HomeViewModel {
         }
     }
 
+    func refreshUserName() {
+        guard AuthService.shared.authState == .signedIn,
+              let session = AuthService.shared.session else { return }
+        let userId = session.user.id.uuidString
+        Task {
+            let profile = try? await ProfileService.shared.fetchProfile(userId: userId)
+            _ = profile
+        }
+    }
+
     func refresh() async {
         if healthKit.isAuthorized {
             await healthKit.fetchAllData()
         }
+        refreshUserName()
         checkActionLinkedTasks()
         protocolsLoaded = false
         loadProtocolsFromSupabase()

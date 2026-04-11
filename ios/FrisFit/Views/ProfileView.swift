@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct ProfileView: View {
     @State private var viewModel = ProfileViewModel()
@@ -7,6 +8,8 @@ struct ProfileView: View {
     @State private var selectedTab: ProfileTab = .posts
     @State private var showEditProfile: Bool = false
     @State private var showReconCalculator: Bool = false
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var isUploadingAvatar: Bool = false
 
     enum ProfileTab: String, CaseIterable {
         case posts = "Posts"
@@ -103,18 +106,52 @@ struct ProfileView: View {
             )
             .frame(height: 120)
 
-            Circle()
-                .fill(PepTheme.background)
-                .frame(width: 88, height: 88)
-                .overlay {
-                    ProfileAvatarView(
-                        avatarUrl: viewModel.profile.avatarUrl,
-                        initials: viewModel.profile.initials,
-                        avatarColor: viewModel.profile.avatarColor,
-                        size: 80
-                    )
+            ZStack(alignment: .bottomTrailing) {
+                Circle()
+                    .fill(PepTheme.background)
+                    .frame(width: 88, height: 88)
+                    .overlay {
+                        if isUploadingAvatar {
+                            Circle()
+                                .fill(PepTheme.background)
+                                .frame(width: 80, height: 80)
+                                .overlay {
+                                    ProgressView()
+                                        .controlSize(.regular)
+                                        .tint(PepTheme.teal)
+                                }
+                        } else {
+                            ProfileAvatarView(
+                                avatarUrl: viewModel.profile.avatarUrl,
+                                initials: viewModel.profile.initials,
+                                avatarColor: viewModel.profile.avatarColor,
+                                size: 80
+                            )
+                        }
+                    }
+
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(PepTheme.teal)
+                        .clipShape(Circle())
+                        .overlay(Circle().strokeBorder(PepTheme.background, lineWidth: 2))
                 }
-                .offset(x: 16, y: 44)
+                .offset(x: -2, y: -2)
+            }
+            .offset(x: 16, y: 44)
+            .onChange(of: selectedPhoto) { _, newValue in
+                guard let newValue else { return }
+                Task {
+                    guard let data = try? await newValue.loadTransferable(type: Data.self) else { return }
+                    isUploadingAvatar = true
+                    _ = await viewModel.uploadAvatar(imageData: data)
+                    isUploadingAvatar = false
+                    selectedPhoto = nil
+                }
+            }
         }
         .padding(.bottom, 48)
     }

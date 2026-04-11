@@ -38,6 +38,7 @@ final class ProfileService {
     static let shared = ProfileService()
 
     var cachedDisplayName: String?
+    var cachedAvatarUrl: String?
 
     private var supabase: SupabaseClient {
         SupabaseService.shared.client
@@ -53,6 +54,8 @@ final class ProfileService {
             .single()
             .execute()
             .value
+        cachedDisplayName = response.display_name
+        cachedAvatarUrl = response.avatar_url
         return response
     }
 

@@ -235,6 +235,9 @@ final class ProfileViewModel {
             let dob = sp.date_of_birth.flatMap { dobFormatter.date(from: $0) }
             let sex = sp.biological_sex.flatMap { BiologicalSex(rawValue: $0) }
 
+            ProfileService.shared.cachedDisplayName = name
+            ProfileService.shared.cachedAvatarUrl = sp.avatar_url
+
             profile = UserProfile(
                 id: UUID(uuidString: sp.id) ?? UUID(),
                 displayName: name,
@@ -298,6 +301,7 @@ final class ProfileViewModel {
 
         do {
             try await ProfileService.shared.updateProfile(userId: userId, update: update)
+            ProfileService.shared.cachedDisplayName = displayName
             await loadProfile()
         } catch {
             profileError = error.localizedDescription
