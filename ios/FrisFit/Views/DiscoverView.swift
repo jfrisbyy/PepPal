@@ -3,6 +3,7 @@ import SwiftUI
 struct DiscoverView: View {
     @State private var viewModel = DiscoverViewModel()
     @State private var showBeginnersGuide: Bool = false
+    @State private var showAIChat: Bool = false
     @State private var heroAppeared: Bool = false
     @State private var cardsAppeared: Bool = false
 
@@ -35,6 +36,24 @@ struct DiscoverView: View {
             }
             .sheet(isPresented: $showBeginnersGuide) {
                 BeginnersGuideView()
+            }
+            .sheet(isPresented: $showAIChat) {
+                PeptideAIChatView(
+                    onNavigateToCompound: { compound in
+                        showAIChat = false
+                    },
+                    onNavigateToVendor: { vendor in
+                        showAIChat = false
+                    }
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                aiFloatingButton
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: 0)
             }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.7)) {
@@ -69,6 +88,34 @@ struct DiscoverView: View {
         .padding(2)
         .background(PepTheme.elevated)
         .clipShape(.capsule)
+    }
+
+    // MARK: - AI Floating Button
+
+    private var aiFloatingButton: some View {
+        Button {
+            showAIChat = true
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [PepTheme.teal, PepTheme.blue],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 56, height: 56)
+                    .shadow(color: PepTheme.teal.opacity(0.4), radius: 12, x: 0, y: 4)
+
+                Image(systemName: "sparkles")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .sensoryFeedback(.impact(weight: .medium), trigger: showAIChat)
+        .padding(.trailing, 16)
+        .padding(.bottom, 20)
     }
 
     // MARK: - Compounds Content
