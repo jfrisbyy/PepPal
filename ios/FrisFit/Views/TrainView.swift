@@ -9,9 +9,7 @@ struct TrainView: View {
     @State private var soccerVM = SoccerViewModel.shared
     @State private var tennisVM = TennisViewModel.shared
     @State private var showLibrary: Bool = false
-    @State private var showActiveWorkout: Bool = false
-    @State private var activeWorkoutExercises: [WorkoutExercise] = []
-    @State private var activeWorkoutName: String = ""
+    @State private var sessionManager = WorkoutSessionManager.shared
     @State private var showSportSelector: Bool = false
     @State private var showSportLog: Bool = false
     @State private var selectedSport: Sport = .basketball
@@ -159,9 +157,7 @@ struct TrainView: View {
                     viewModel.addSportSession(session)
                 }
             }
-            .navigationDestination(isPresented: $showActiveWorkout) {
-                ActiveWorkoutView(workoutName: activeWorkoutName, exercises: activeWorkoutExercises)
-            }
+
             .navigationDestination(isPresented: $showLiveRun) {
                 LiveRunView(runVM: runVM)
             }
@@ -1036,7 +1032,7 @@ struct TrainView: View {
                 .clipShape(.rect(cornerRadius: 14))
             }
             .buttonStyle(.scalePrimary)
-            .sensoryFeedback(.impact(weight: .medium), trigger: showActiveWorkout)
+            .sensoryFeedback(.impact(weight: .medium), trigger: sessionManager.showActiveWorkout)
 
             HStack(spacing: 10) {
                 Button {
@@ -1505,8 +1501,7 @@ struct TrainView: View {
 
     private func startWorkoutFromProgram(_ program: TrainingProgram) {
         guard let day = viewModel.todayWorkoutDay ?? program.days.first else { return }
-        activeWorkoutName = day.name
-        activeWorkoutExercises = day.exercises.map { pe in
+        let exercises = day.exercises.map { pe in
             let exercise = ExerciseLibrary.all.first { $0.id == pe.exerciseId } ?? ExerciseLibrary.all[0]
             return WorkoutExercise(
                 exercise: exercise,
@@ -1515,13 +1510,12 @@ struct TrainView: View {
                 previousReps: Int.random(in: 8...12)
             )
         }
-        showActiveWorkout = true
+        sessionManager.startSession(name: day.name, exercises: exercises)
     }
 
     private func startEmptyWorkout() {
         let sampleExercises = Array(ExerciseLibrary.all.prefix(4))
-        activeWorkoutName = "Quick Workout"
-        activeWorkoutExercises = sampleExercises.map {
+        let exercises = sampleExercises.map {
             WorkoutExercise(
                 exercise: $0,
                 targetSets: 3,
@@ -1529,7 +1523,7 @@ struct TrainView: View {
                 previousReps: Int.random(in: 8...12)
             )
         }
-        showActiveWorkout = true
+        sessionManager.startSession(name: "Quick Workout", exercises: exercises)
     }
 
     private func dayAbbreviation(_ date: Date) -> String {

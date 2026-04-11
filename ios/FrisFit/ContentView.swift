@@ -51,6 +51,7 @@ struct ContentView: View {
     @State private var fabExpanded: Bool = false
     @State private var previousTab: AppTab = .home
     @State private var workoutState = WorkoutState.shared
+    @State private var sessionManager = WorkoutSessionManager.shared
     @State private var authService = AuthService.shared
 
     var body: some View {
@@ -95,6 +96,15 @@ struct ContentView: View {
             }
             .tint(PepTheme.teal)
 
+            if sessionManager.isSessionActive && !sessionManager.showActiveWorkout {
+                VStack {
+                    Spacer()
+                    activeWorkoutBanner
+                        .padding(.bottom, 50)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
             if workoutState.isWorkoutActive {
                 workoutIndicatorBar
             }
@@ -122,12 +132,62 @@ struct ContentView: View {
                 NutritionView()
             }
         }
+        .fullScreenCover(isPresented: $sessionManager.showActiveWorkout) {
+            if let vm = sessionManager.activeViewModel {
+                ActiveWorkoutView(viewModel: vm)
+            }
+        }
         .task {
             try? await Task.sleep(for: .milliseconds(500))
             if HKHealthStore.isHealthDataAvailable() {
                 await HealthKitService.shared.requestAuthorization()
             }
         }
+    }
+
+    private var activeWorkoutBanner: some View {
+        Button {
+            sessionManager.resumeActiveWorkout()
+        } label: {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(PepTheme.teal)
+                    .frame(width: 10, height: 10)
+                    .shadow(color: PepTheme.teal.opacity(0.6), radius: 4)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(sessionManager.workoutName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text(sessionManager.formattedElapsedTime)
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(PepTheme.teal)
+                        .monospacedDigit()
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.up.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(PepTheme.teal)
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(
+                PepTheme.cardSurface
+                    .overlay(PepTheme.teal.opacity(0.06))
+            )
+            .clipShape(.rect(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(PepTheme.teal.opacity(0.3), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(0.4), radius: 12, y: 4)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 16)
+        .sensoryFeedback(.impact(weight: .light), trigger: sessionManager.showActiveWorkout)
     }
 
     private var workoutIndicatorBar: some View {

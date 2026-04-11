@@ -1008,6 +1008,7 @@ struct HomeView: View {
             if viewModel.isSelectedDateToday {
                 VStack(spacing: 10) {
                     Button {
+                        startWorkoutFromHome()
                     } label: {
                         Text("Start Workout")
                             .font(.system(.body, weight: .semibold))
@@ -1595,6 +1596,32 @@ struct HomeView: View {
         }
         return "\(steps)"
     }
+
+    private func startWorkoutFromHome() {
+        guard let program = viewModel.activeProgram else { return }
+        let startOffset = UserDefaults.standard.integer(forKey: "programStartDayOffset")
+        let dayOfWeek = Calendar.current.component(.weekday, from: Date())
+        let mondayBased = (dayOfWeek + 5) % 7
+        let adjusted = (mondayBased - startOffset + 7) % 7
+        let day: ProgramDay
+        if adjusted < program.days.count {
+            day = program.days[adjusted]
+        } else if let first = program.days.first {
+            day = first
+        } else {
+            return
+        }
+        let exercises = day.exercises.map { pe in
+            let exercise = ExerciseLibrary.all.first { $0.id == pe.exerciseId } ?? ExerciseLibrary.all[0]
+            return WorkoutExercise(
+                exercise: exercise,
+                targetSets: pe.targetSets,
+                previousWeight: Double.random(in: 95...185),
+                previousReps: Int.random(in: 8...12)
+            )
+        }
+        WorkoutSessionManager.shared.startSession(name: day.name, exercises: exercises)
+    }
 }
 
 struct NutritionProgressBar: View {
@@ -1689,6 +1716,7 @@ struct ActivityFeedRow: View {
         }
         .padding(.vertical, 8)
     }
+
 }
 
 struct QuickStatItem: View {

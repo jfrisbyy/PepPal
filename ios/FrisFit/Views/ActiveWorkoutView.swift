@@ -1,20 +1,20 @@
 import SwiftUI
 
 struct ActiveWorkoutView: View {
-    @State private var viewModel: ActiveWorkoutViewModel
+    @Bindable var viewModel: ActiveWorkoutViewModel
     @Environment(\.dismiss) private var dismiss
-
-    init(workoutName: String, exercises: [WorkoutExercise]) {
-        _viewModel = State(initialValue: ActiveWorkoutViewModel(name: workoutName, exercises: exercises))
-    }
+    @State private var sessionManager = WorkoutSessionManager.shared
 
     var body: some View {
-        if viewModel.isCompleted, let summary = viewModel.summary {
-            WorkoutSummaryView(summary: summary) {
-                dismiss()
+        NavigationStack {
+            if viewModel.isCompleted, let summary = viewModel.summary {
+                WorkoutSummaryView(summary: summary) {
+                    sessionManager.endSession()
+                    dismiss()
+                }
+            } else {
+                workoutContent
             }
-        } else {
-            workoutContent
         }
     }
 
@@ -83,21 +83,19 @@ struct ActiveWorkoutView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PepTheme.textPrimary)
             }
-        }
-        
-        .onAppear {
-            viewModel.startElapsedTimer()
-            WorkoutState.shared.isWorkoutActive = true
-            WorkoutState.shared.workoutName = viewModel.workoutName
-        }
-        .onDisappear {
-            viewModel.stopElapsedTimer()
-            WorkoutState.shared.isWorkoutActive = false
-            WorkoutState.shared.workoutProgress = 0
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    sessionManager.minimizeWorkout()
+                } label: {
+                    Image(systemName: "chevron.down.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(PepTheme.teal)
+                        .symbolRenderingMode(.hierarchical)
+                }
+            }
         }
         .onChange(of: viewModel.currentExerciseIndex) { _, newValue in
-            let total = max(1, viewModel.exercises.count)
-            WorkoutState.shared.workoutProgress = Double(newValue) / Double(total)
+            sessionManager.updateProgress(newValue, total: viewModel.exercises.count)
         }
         .sheet(isPresented: $viewModel.showExerciseInfo) {
             if let exercise = viewModel.currentExercise {

@@ -20,13 +20,14 @@ final class ActiveWorkoutViewModel {
     var showExerciseInfo: Bool = false
     var showExercisePicker: Bool = false
 
-    private var elapsedTimer: Timer?
     private var restTimer: Timer?
-    private let startDate = Date()
 
     init(name: String, exercises: [WorkoutExercise]) {
         self.workoutName = name
         self.exercises = exercises
+    }
+
+    func onSessionStart(startDate: Date) {
     }
 
     var currentExercise: WorkoutExercise? {
@@ -54,19 +55,7 @@ final class ActiveWorkoutViewModel {
         return String(format: "%d:%02d", minutes, seconds)
     }
 
-    func startElapsedTimer() {
-        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            let vm = self
-            Task { @MainActor in
-                vm?.elapsedSeconds += 1
-            }
-        }
-    }
 
-    func stopElapsedTimer() {
-        elapsedTimer?.invalidate()
-        elapsedTimer = nil
-    }
 
     func logSet(exerciseIndex: Int, setIndex: Int) {
         guard exerciseIndex < exercises.count,
@@ -184,7 +173,6 @@ final class ActiveWorkoutViewModel {
     }
 
     func finishWorkout() {
-        stopElapsedTimer()
         restTimer?.invalidate()
         restTimer = nil
         isWorkoutActive = false
