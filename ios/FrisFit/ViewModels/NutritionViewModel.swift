@@ -8,6 +8,9 @@ final class NutritionViewModel {
     var selectedCategory: FoodCategory? = nil
     var isLoading: Bool = false
     var supabaseMealIds: [UUID: String] = [:]
+    var savedMeals: [SavedMeal] = []
+
+    private let savedMealsKey = "com.frisfit.savedMeals"
 
     let dailyTarget = MacroTarget(calories: 2200, protein: 150, carbs: 250, fat: 73)
 
@@ -123,6 +126,27 @@ final class NutritionViewModel {
                 try? await NutritionService.shared.deleteMeal(mealId: supabaseId)
             }
         }
+    }
+
+    func saveMeal(_ meal: SavedMeal) {
+        savedMeals.insert(meal, at: 0)
+        persistSavedMeals()
+    }
+
+    func deleteSavedMeal(_ meal: SavedMeal) {
+        savedMeals.removeAll { $0.id == meal.id }
+        persistSavedMeals()
+    }
+
+    func loadSavedMeals() {
+        guard let data = UserDefaults.standard.data(forKey: savedMealsKey),
+              let decoded = try? JSONDecoder().decode([SavedMeal].self, from: data) else { return }
+        savedMeals = decoded
+    }
+
+    private func persistSavedMeals() {
+        guard let data = try? JSONEncoder().encode(savedMeals) else { return }
+        UserDefaults.standard.set(data, forKey: savedMealsKey)
     }
 
     func loadFromSupabase() {
