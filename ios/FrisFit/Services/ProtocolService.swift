@@ -57,7 +57,6 @@ nonisolated struct SupabaseDoseLog: Codable, Sendable {
     let compound_name: String
     let dose_mcg: Double
     let logged_at: String?
-    let injection_site: String?
     let notes: String?
 }
 
@@ -66,7 +65,6 @@ nonisolated struct SupabaseDoseLogInsert: Codable, Sendable {
     let protocol_id: String
     let compound_name: String
     let dose_mcg: Double
-    let injection_site: String?
     let notes: String?
     let logged_at: String?
 }
@@ -313,12 +311,11 @@ final class ProtocolService {
             .value
 
         return rows.map { row in
-            let site = InjectionSite.allCases.first { $0.rawValue == row.injection_site } ?? .leftAbdomen
             var entry = DoseLogEntry(
                 compoundName: row.compound_name,
                 doseMcg: row.dose_mcg,
                 timestamp: parseDate(row.logged_at),
-                injectionSite: site,
+                injectionSite: .leftAbdomen,
                 notes: row.notes ?? ""
             )
             entry.supabaseId = row.id
@@ -341,7 +338,6 @@ final class ProtocolService {
             protocol_id: protocolId,
             compound_name: compoundName,
             dose_mcg: doseMcg,
-            injection_site: injectionSite.rawValue,
             notes: notes.isEmpty ? nil : notes,
             logged_at: loggedAtString
         )
