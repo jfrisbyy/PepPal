@@ -334,8 +334,8 @@ struct ProtocolSetupWizardView: View {
             }
             .sheet(isPresented: $showPastDoseSheet) {
                 if let proto = savedProtocol {
-                    PastDoseLoggingSheet(protocolData: proto) {
-                        onComplete(proto)
+                    PastDoseLoggingSheet(protocolData: proto) { savedProto in
+                        onComplete(savedProto)
                         dismiss()
                     }
                 }
@@ -1838,10 +1838,11 @@ struct ProtocolSetupWizardView: View {
 
 struct PastDoseLoggingSheet: View {
     let protocolData: PeptideProtocol
-    let onDone: () -> Void
+    let onSave: (PeptideProtocol) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var pastDoses: [PastDoseEntry] = []
     @State private var isSaving: Bool = false
+    @State private var saveError: String?
 
     private let protocolService = ProtocolService.shared
 
@@ -1899,13 +1900,19 @@ struct PastDoseLoggingSheet: View {
 
                         if !pastDoses.isEmpty {
                             Button {
-                                onDone()
-                                dismiss()
+                                saveProtocolAndComplete(withDoses: false)
                             } label: {
                                 Text("Skip Past Doses")
                                     .font(.system(.subheadline, weight: .medium))
                                     .foregroundStyle(PepTheme.textSecondary)
                             }
+                            .disabled(isSaving)
+                        }
+
+                        if let saveError {
+                            Text(saveError)
+                                .font(.caption)
+                                .foregroundStyle(.red)
                         }
                     }
                 }
@@ -2005,9 +2012,43 @@ struct PastDoseLoggingSheet: View {
     }
 
     private func savePastDosesAndComplete() {
+        saveProtocolAndComplete(withDoses: true)
+    }
+
+    private func saveProtocolAndComplete(withDoses: Bool) {
         isSaving = true
-        onDone()
-        dismiss()
+        saveError = nil
+        Task {
+            do {
+                let saved = try await protocolService.createProtocol(protocolData)
+                guard let protocolId = saved.supabaseId else {
+                    onSave(saved)
+                    dismiss()
+                    return
+                }
+
+                if withDoses {
+                    let validDoses = pastDoses.filter { !$0.doseText.isEmpty && Double($0.doseText) != nil }
+                    for dose in validDoses {
+                        let mcgValue = CompoundUnitHelper.toMcg(Double(dose.doseText) ?? 0, for: dose.compoundName)
+                        _ = try await protocolService.logDose(
+                            protocolId: protocolId,
+                            compoundName: dose.compoundName,
+                            doseMcg: mcgValue,
+                            injectionSite: .leftAbdomen,
+                            notes: "",
+                            loggedAt: dose.date
+                        )
+                    }
+                }
+
+                onSave(saved)
+                dismiss()
+            } catch {
+                isSaving = false
+                saveError = error.localizedDescription
+            }
+        }
     }
 }
 

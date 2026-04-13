@@ -622,6 +622,11 @@ final class HomeViewModel {
     }
 
     func saveProtocolToSupabase(_ proto: PeptideProtocol) {
+        if proto.supabaseId != nil {
+            activeProtocol = proto
+            allProtocols.insert(proto, at: 0)
+            return
+        }
         guard AuthService.shared.authState == .signedIn else {
             activeProtocol = proto
             allProtocols.insert(proto, at: 0)

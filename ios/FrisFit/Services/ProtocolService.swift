@@ -68,6 +68,7 @@ nonisolated struct SupabaseDoseLogInsert: Codable, Sendable {
     let dose_mcg: Double
     let injection_site: String?
     let notes: String?
+    let logged_at: String?
 }
 
 nonisolated struct SupabaseSideEffectLog: Codable, Sendable {
@@ -325,8 +326,15 @@ final class ProtocolService {
         }
     }
 
-    func logDose(protocolId: String, compoundName: String, doseMcg: Double, injectionSite: InjectionSite, notes: String) async throws -> DoseLogEntry {
+    func logDose(protocolId: String, compoundName: String, doseMcg: Double, injectionSite: InjectionSite, notes: String, loggedAt: Date? = nil) async throws -> DoseLogEntry {
         let userId = try await currentUserId()
+
+        var loggedAtString: String? = nil
+        if let loggedAt {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            loggedAtString = formatter.string(from: loggedAt)
+        }
 
         let insert = SupabaseDoseLogInsert(
             user_id: userId,
@@ -334,7 +342,8 @@ final class ProtocolService {
             compound_name: compoundName,
             dose_mcg: doseMcg,
             injection_site: injectionSite.rawValue,
-            notes: notes.isEmpty ? nil : notes
+            notes: notes.isEmpty ? nil : notes,
+            logged_at: loggedAtString
         )
 
         let result: SupabaseDoseLog = try await supabase
