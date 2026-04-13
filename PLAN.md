@@ -1,52 +1,38 @@
-# Smarter Protocol Setup: Compound-Aware Dosing, Skip Goal for Existing Protocols, Log Past Doses
+# Native Camera-Style Meal Log with Live Preview & Swipeable Modes
 
-## What's Changing
+Redesign the meal logging screen to feel like the native iPhone Camera app — the camera feed is always live in the background, with swipeable mode labels at the bottom and a photo library thumbnail in the corner.
 
-The protocol setup flow is getting a major intelligence upgrade. The system will know what unit each compound uses (mg vs mcg), skip unnecessary steps when logging an existing protocol, remove the experience level picker, and let users log past doses with specific dates.
+**How It Works**
 
----
+- **Live camera preview fills the screen** as the default when you open "Log Meal" — no intermediate buttons or selection screens
+- **Swipeable mode strip at the bottom** (like iPhone Camera's "Photo / Video / Slo-Mo" selector):
+  - **Scan** — the default; live camera with a shutter button to snap a photo for AI analysis
+  - **Describe** — slides up a text input over the camera to type what you ate
+  - **Search** — slides up a food search interface over the camera
+  - **Manual** — slides up quick-add number fields over the camera
+- Swiping left/right on the mode strip (or tapping a label) switches modes with a smooth spring animation — the selected mode snaps to center and highlights, just like the native camera
+- **Gallery thumbnail** in the bottom-left corner (small rounded square showing your most recent photo) — tap it to pick a photo from your library for AI analysis
+- **Shutter button** (large circle, bottom center) visible in Scan mode — tap to capture and analyze
+- **Close button** (X) in the top-left to dismiss
+- **Meal time label** (e.g. "Lunch") shown subtly at the top
 
-### **Features**
+**After Capturing / Selecting a Photo**
 
-- **"Log Current Protocol" skips the goal step entirely** — goes straight from path selection to compound selection (3 steps instead of 5: Compounds → Dosing → Schedule/Review)
-- **"Start New Protocol" keeps the goal step** but it becomes optional (can skip it)
-- **Experience level picker is removed** from the dosing screen — doses default to sensible mid-range values based on compound data
-- **Compound-aware dose units** — each compound automatically shows the correct unit:
-  - Semaglutide → mg (0.25–2.4)
-  - Tirzepatide → mg (2.5–15)
-  - Retatrutide → mg (1–12)
-  - Tesamorelin → mg (1–2)
-  - MK-677 → mg (10–25)
-  - BPC-157 → mcg (250–500)
-  - Ipamorelin → mcg (100–300)
-  - Sermorelin → mcg (200–500)
-  - …and so on for all compounds in the database
-- **Dose input shows the compound's natural unit** — no more seeing "mcg" for compounds that are always dosed in mg
-- **Simplified dosing card for "Log Current Protocol"** — just shows a clean dose input, frequency, and route without the tiered dosing recommendation panel (you already know what you're taking)
-- **Log past doses when saving an existing protocol** — after saving, a sheet asks "Want to log any past doses?" with the ability to add multiple entries with custom dates and dosages
-- **Dose logging sheet updated** to show the correct unit per compound (mg or mcg) instead of always showing "mcg"
-- **All display surfaces updated** — home screen protocol cards, protocol detail view, and dose history will show the proper unit (e.g. "2.5 mg Semaglutide" not "2500 mcg")
+- The live preview freezes on the captured image
+- Scanning animation plays over the photo
+- Results slide up from the bottom showing detected items and nutrition — same as the current result cards
+- "Retake" button to go back to the live camera
 
----
+**Simulator Behavior**
 
-### **Design**
+- On simulator (where no camera hardware exists), a clean placeholder with the camera icon is shown in place of the live feed — the mode strip, gallery button, and other modes still work normally
 
-- The dosing card for existing protocols is cleaner and more streamlined — just the compound name, a dose field with the correct unit, frequency picker, and route
-- The recommended dose range still appears as a subtle hint below the dose field (e.g. "Typical: 0.25–2.4 mg weekly") but without the beginner/intermediate/advanced breakdown
-- Past dose logging uses a simple list-style sheet where each row has: date picker, dose amount, and an add button
-- The flow for logging an existing protocol feels noticeably faster — 3 taps to get through if you know what you're on
+**Design Details**
 
----
+- Dark background behind the camera feed for that native camera feel
+- Mode labels in a horizontal scrollable strip with the active mode in white/bold, inactive in gray — mimics the iPhone camera's text selector
+- Shutter button: white circle with a slightly smaller inner circle, matching Apple's camera button style
+- Gallery thumbnail: 44×44 rounded rectangle in the bottom-left with a subtle border
+- When switching to Describe/Search/Manual modes, a dark translucent panel slides up over the lower portion of the camera — the camera stays visible behind at the top as a peek
+- Haptic feedback on mode switches and shutter tap
 
-### **Flow Changes**
-
-**New Protocol path:** Choose Path → Goal (optional) → Compounds → Dosing → Schedule → Review
-**Log Current Protocol path:** Choose Path → Compounds → Dosing → Schedule → Review (no goal step)
-
----
-
-### **Data & Storage**
-
-- A new compound-to-unit mapping system determines the correct unit for each compound
-- The database field `dose_mcg` continues to store values in mcg internally for consistency — compounds dosed in mg are converted (e.g. 2.5 mg stored as 2500 mcg) and displayed back in mg
-- Past dose entries are saved to the existing `dose_logs` table with the user-specified dates
