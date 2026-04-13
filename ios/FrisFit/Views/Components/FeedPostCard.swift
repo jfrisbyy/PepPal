@@ -6,6 +6,7 @@ struct FeedPostCard: View {
     let onLike: () -> Void
     let onComment: () -> Void
     let onRepost: () -> Void
+    var onTap: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
     var onReport: (() -> Void)? = nil
 
@@ -28,28 +29,38 @@ struct FeedPostCard: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 12) {
-                userHeader
-                if !post.textContent.isEmpty {
-                    Text(post.textContent)
-                        .font(.system(.body))
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if !post.photoMedia.isEmpty {
-                    photoGridSection
-                }
-                if let voice = post.voiceMedia {
-                    voiceMessageSection(voice)
-                }
-                if let market = post.marketLink, let program = market.marketProgram {
-                    marketLinkSection(program)
-                }
-                if let workout = post.workoutAttachment, let log = workout.workoutLog {
-                    workoutLogSection(log)
-                }
+                contentArea
                 Divider().overlay(PepTheme.separatorColor)
                 actionBar
             }
+        }
+    }
+
+    private var contentArea: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            userHeader
+            if !post.textContent.isEmpty {
+                Text(post.textContent)
+                    .font(.system(.body))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if !post.photoMedia.isEmpty {
+                photoGridSection
+            }
+            if let voice = post.voiceMedia {
+                voiceMessageSection(voice)
+            }
+            if let market = post.marketLink, let program = market.marketProgram {
+                marketLinkSection(program)
+            }
+            if let workout = post.workoutAttachment, let log = workout.workoutLog {
+                workoutLogSection(log)
+            }
+        }
+        .contentShape(.rect)
+        .onTapGesture {
+            onTap?()
         }
     }
 

@@ -8,6 +8,7 @@ struct SocialView: View {
     @State private var notificationsViewModel = NotificationsViewModel()
     @State private var commentPost: WorkoutPost?
     @State private var commentFeedPost: FeedPost?
+    @State private var selectedPost: FeedPost?
     @State private var isLoading: Bool = true
     @State private var showComposer: Bool = false
 
@@ -84,11 +85,11 @@ struct SocialView: View {
             .sheet(item: $commentFeedPost) { post in
                 FeedCommentsSheet(post: post, viewModel: viewModel)
             }
+            .navigationDestination(item: $selectedPost) { post in
+                PostDetailView(post: post, viewModel: viewModel)
+            }
             .sheet(isPresented: $showComposer) {
                 PostComposerView(socialViewModel: viewModel)
-            }
-            .navigationDestination(for: FeedPost.self) { post in
-                PostDetailView(post: post, viewModel: viewModel)
             }
             .navigationDestination(for: SocialUser.self) { user in
                 UserProfileView(user: user, viewModel: profileViewModel)
@@ -157,24 +158,24 @@ struct SocialView: View {
                 } else {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.filteredFeedPosts) { post in
-                            NavigationLink(value: post) {
-                                FeedPostCard(
-                                    post: post,
-                                    onLike: {
-                                        viewModel.toggleFeedLike(for: post.id)
-                                    },
-                                    onComment: {
-                                        commentFeedPost = post
-                                    },
-                                    onRepost: {
-                                        viewModel.toggleRepost(for: post.id)
-                                    },
-                                    onDelete: {
-                                        viewModel.deletePost(post.id)
-                                    }
-                                )
-                            }
-                            .buttonStyle(.plain)
+                            FeedPostCard(
+                                post: post,
+                                onLike: {
+                                    viewModel.toggleFeedLike(for: post.id)
+                                },
+                                onComment: {
+                                    commentFeedPost = post
+                                },
+                                onRepost: {
+                                    viewModel.toggleRepost(for: post.id)
+                                },
+                                onTap: {
+                                    selectedPost = post
+                                },
+                                onDelete: {
+                                    viewModel.deletePost(post.id)
+                                }
+                            )
                         }
                     }
                     .padding(.horizontal)
