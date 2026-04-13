@@ -8,6 +8,7 @@ struct FeedCommentsSheet: View {
     @State private var commentText: String = ""
     @State private var isLoadingComments: Bool = true
     @State private var comments: [PostComment] = []
+    @State private var commentError: String?
     @FocusState private var isCommentFocused: Bool
 
     var body: some View {
@@ -32,6 +33,13 @@ struct FeedCommentsSheet: View {
                             .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                     }
                     Spacer()
+                    if let commentError {
+                        Text(commentError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .padding(.horizontal)
+                            .padding(.bottom, 4)
+                    }
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 16) {
@@ -41,6 +49,14 @@ struct FeedCommentsSheet: View {
                         }
                         .padding()
                     }
+                }
+
+                if let commentError, !comments.isEmpty {
+                    Text(commentError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .padding(.horizontal)
+                        .padding(.vertical, 4)
                 }
 
                 Divider()
@@ -97,10 +113,23 @@ struct FeedCommentsSheet: View {
         let trimmed = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         commentText = ""
+        commentError = nil
+
+        let optimistic = viewModel.makeOptimisticComment(text: trimmed)
+        withAnimation(.spring(response: 0.3)) {
+            comments.append(optimistic)
+        }
+
         Task {
-            await viewModel.addFeedComment(to: post.id, text: trimmed)
+            let success = await viewModel.addFeedComment(to: post.id, text: trimmed, optimisticComment: optimistic)
             if let updated = viewModel.feedPosts.first(where: { $0.id == post.id }) {
-                withAnimation { comments = updated.comments }
+                withAnimation(.spring(response: 0.3)) { comments = updated.comments }
+            }
+            if !success {
+                withAnimation {
+                    comments.removeAll { $0.id == optimistic.id }
+                    commentError = viewModel.feedError
+                }
             }
         }
     }

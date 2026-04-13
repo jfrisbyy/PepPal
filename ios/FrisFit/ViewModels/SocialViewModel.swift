@@ -144,18 +144,27 @@ final class SocialViewModel {
         }
     }
 
-    func addFeedComment(to postID: UUID, text: String) async {
-        guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
+    func makeOptimisticComment(text: String) -> PostComment {
+        let currentUser: SocialUser
+        if let userId = try? AuthService.shared.currentUserId(),
+           let me = feedPosts.first(where: { $0.user.id.uuidString.lowercased() == userId.lowercased() })?.user {
+            currentUser = me
+        } else {
+            currentUser = SocialUser(id: UUID(), name: "You", username: "me", avatarInitial: "Y", avatarColor: Color(red: 0, green: 0.9, blue: 1), activeProgramName: nil, streak: 0, totalFP: 0)
+        }
+        return PostComment(id: UUID(), user: currentUser, text: text, timestamp: Date())
+    }
+
+    func addFeedComment(to postID: UUID, text: String, optimisticComment: PostComment? = nil) async -> Bool {
+        guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return false }
         let supabaseId = feedPosts[index].supabaseId ?? postID.uuidString
 
-        let optimisticComment = PostComment(
-            id: UUID(),
-            user: SocialUser(id: UUID(), name: "You", username: "me", avatarInitial: "Y", avatarColor: Color(red: 0, green: 0.9, blue: 1), activeProgramName: nil, streak: 0, totalFP: 0),
-            text: text,
-            timestamp: Date()
-        )
-        feedPosts[index].comments.append(optimisticComment)
-        feedPosts[index].commentCount += 1
+        let placeholder = optimisticComment ?? makeOptimisticComment(text: text)
+
+        if !feedPosts[index].comments.contains(where: { $0.id == placeholder.id }) {
+            feedPosts[index].comments.append(placeholder)
+            feedPosts[index].commentCount += 1
+        }
 
         do {
             let userId = try AuthService.shared.currentUserId()
@@ -168,16 +177,18 @@ final class SocialViewModel {
                 timestamp: socialService.parseDate(comment.created_at)
             )
             if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {
-                if let optimisticIdx = feedPosts[idx].comments.firstIndex(where: { $0.id == optimisticComment.id }) {
+                if let optimisticIdx = feedPosts[idx].comments.firstIndex(where: { $0.id == placeholder.id }) {
                     feedPosts[idx].comments[optimisticIdx] = postComment
                 }
             }
+            return true
         } catch {
             if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {
-                feedPosts[idx].comments.removeAll { $0.id == optimisticComment.id }
+                feedPosts[idx].comments.removeAll { $0.id == placeholder.id }
                 feedPosts[idx].commentCount = max(0, feedPosts[idx].commentCount - 1)
             }
             feedError = "Failed to add comment: \(error.localizedDescription)"
+            return false
         }
     }
 

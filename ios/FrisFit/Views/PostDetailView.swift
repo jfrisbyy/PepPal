@@ -8,6 +8,7 @@ struct PostDetailView: View {
     @State private var commentText: String = ""
     @State private var isLoadingComments: Bool = true
     @State private var comments: [PostComment] = []
+    @State private var commentError: String?
     @State private var likeBounce: Int = 0
     @State private var repostBounce: Int = 0
     private let likeManager = LikeManager.shared
@@ -488,6 +489,14 @@ struct PostDetailView: View {
                         }
                     }
                 }
+
+                if let commentError {
+                    Text(commentError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .padding(.horizontal)
+                        .padding(.top, 4)
+                }
             }
         }
         .padding(.bottom, 80)
@@ -527,18 +536,24 @@ struct PostDetailView: View {
         guard !trimmed.isEmpty else { return }
         commentText = ""
         isCommentFocused = false
+        commentError = nil
 
-        if let current = viewModel.feedPosts.first(where: { $0.id == post.id }) {
-            withAnimation(.spring(response: 0.3)) {
-                comments = current.comments
-            }
+        let optimistic = viewModel.makeOptimisticComment(text: trimmed)
+        withAnimation(.spring(response: 0.3)) {
+            comments.append(optimistic)
         }
 
         Task {
-            await viewModel.addFeedComment(to: post.id, text: trimmed)
+            let success = await viewModel.addFeedComment(to: post.id, text: trimmed, optimisticComment: optimistic)
             if let updated = viewModel.feedPosts.first(where: { $0.id == post.id }) {
                 withAnimation(.spring(response: 0.3)) {
                     comments = updated.comments
+                }
+            }
+            if !success {
+                withAnimation {
+                    comments.removeAll { $0.id == optimistic.id }
+                    commentError = viewModel.feedError
                 }
             }
         }
