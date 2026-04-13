@@ -94,8 +94,8 @@ struct MealLogView: View {
                         analyzingOverlay
                     }
                 }
-                .gesture(
-                    !showsCapturedPhoto && isScanMode ? swipeGesture : nil
+                .simultaneousGesture(
+                    !showsCapturedPhoto ? swipeGesture : nil
                 )
             }
         }
@@ -152,17 +152,23 @@ struct MealLogView: View {
     }
 
     private var swipeGesture: some Gesture {
-        DragGesture(minimumDistance: 40, coordinateSpace: .local)
+        DragGesture(minimumDistance: 30, coordinateSpace: .local)
             .onChanged { value in
                 dragOffset = value.translation.width
             }
             .onEnded { value in
+                let horizontal = value.translation.width
+                let vertical = abs(value.translation.height)
+                guard abs(horizontal) > vertical else {
+                    dragOffset = 0
+                    return
+                }
                 let currentIndex = selectedMode.rawValue
-                if value.translation.width < -50, currentIndex < MealLogMode.allCases.count - 1 {
+                if horizontal < -40, currentIndex < MealLogMode.allCases.count - 1 {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                         selectedMode = MealLogMode(rawValue: currentIndex + 1) ?? selectedMode
                     }
-                } else if value.translation.width > 50, currentIndex > 0 {
+                } else if horizontal > 40, currentIndex > 0 {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                         selectedMode = MealLogMode(rawValue: currentIndex - 1) ?? selectedMode
                     }
@@ -400,15 +406,18 @@ struct MealLogView: View {
         .clipShape(.rect(cornerRadius: 24))
         .padding(.horizontal, 4)
         .padding(.bottom, 4)
-        .gesture(
-            DragGesture(minimumDistance: 40, coordinateSpace: .local)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 30, coordinateSpace: .local)
                 .onEnded { value in
+                    let horizontal = value.translation.width
+                    let vertical = abs(value.translation.height)
+                    guard abs(horizontal) > vertical else { return }
                     let currentIndex = selectedMode.rawValue
-                    if value.translation.width < -50, currentIndex < MealLogMode.allCases.count - 1 {
+                    if horizontal < -40, currentIndex < MealLogMode.allCases.count - 1 {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                             selectedMode = MealLogMode(rawValue: currentIndex + 1) ?? selectedMode
                         }
-                    } else if value.translation.width > 50, currentIndex > 0 {
+                    } else if horizontal > 40, currentIndex > 0 {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                             selectedMode = MealLogMode(rawValue: currentIndex - 1) ?? selectedMode
                         }
@@ -423,21 +432,28 @@ struct MealLogView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if let image = capturedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-                    .overlay {
-                        LinearGradient(
-                            colors: [.black.opacity(0.7), .clear, .black.opacity(0.85)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    }
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
+            if capturedImage != nil {
+                GeometryReader { geo in
+                    Color.clear
+                        .overlay {
+                            if let image = capturedImage {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .allowsHitTesting(false)
+                            }
+                        }
+                        .clipped()
+                        .overlay {
+                            LinearGradient(
+                                colors: [.black.opacity(0.75), .clear, .black.opacity(0.9)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        }
+                        .frame(width: geo.size.width, height: geo.size.height)
+                }
+                .ignoresSafeArea()
             }
 
             VStack(spacing: 0) {
