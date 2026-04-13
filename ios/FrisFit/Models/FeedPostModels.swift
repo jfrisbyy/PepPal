@@ -160,6 +160,7 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
     var likeCount: Int
     var isLiked: Bool
     var comments: [PostComment]
+    var commentCount: Int
     var repostCount: Int
     var isReposted: Bool
 
@@ -176,6 +177,7 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
         likeCount: Int = 0,
         isLiked: Bool = false,
         comments: [PostComment] = [],
+        commentCount: Int = 0,
         repostCount: Int = 0,
         isReposted: Bool = false,
         tags: [FeedTag] = [],
@@ -190,6 +192,7 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
         self.likeCount = likeCount
         self.isLiked = isLiked
         self.comments = comments
+        self.commentCount = commentCount
         self.repostCount = repostCount
         self.isReposted = isReposted
         self.tags = tags

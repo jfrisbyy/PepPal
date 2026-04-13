@@ -80,6 +80,8 @@ final class SocialViewModel {
             }
             likeManager.bulkSetState(likedIds: likedIds, counts: counts)
 
+            let commentCounts = try await socialService.fetchCommentCounts(postIds: postIds)
+
             var newFeedPosts: [FeedPost] = []
             for sp in supabasePosts {
                 let user = socialService.socialUserFromAuthor(sp.profiles)
@@ -105,6 +107,7 @@ final class SocialViewModel {
                     likeCount: sp.high_five_count ?? 0,
                     isLiked: isLiked,
                     comments: [],
+                    commentCount: commentCounts[sp.id] ?? 0,
                     repostCount: sp.repost_count ?? 0,
                     isReposted: isReposted,
                     tags: tags,
@@ -145,6 +148,15 @@ final class SocialViewModel {
         guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
         let supabaseId = feedPosts[index].supabaseId ?? postID.uuidString
 
+        let optimisticComment = PostComment(
+            id: UUID(),
+            user: SocialUser(id: UUID(), name: "You", username: "me", avatarInitial: "Y", avatarColor: Color(red: 0, green: 0.9, blue: 1), activeProgramName: nil, streak: 0, totalFP: 0),
+            text: text,
+            timestamp: Date()
+        )
+        feedPosts[index].comments.append(optimisticComment)
+        feedPosts[index].commentCount += 1
+
         do {
             let userId = try AuthService.shared.currentUserId()
             let comment = try await socialService.addComment(postId: supabaseId, userId: userId, text: text)
@@ -156,9 +168,15 @@ final class SocialViewModel {
                 timestamp: socialService.parseDate(comment.created_at)
             )
             if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {
-                feedPosts[idx].comments.append(postComment)
+                if let optimisticIdx = feedPosts[idx].comments.firstIndex(where: { $0.id == optimisticComment.id }) {
+                    feedPosts[idx].comments[optimisticIdx] = postComment
+                }
             }
         } catch {
+            if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {
+                feedPosts[idx].comments.removeAll { $0.id == optimisticComment.id }
+                feedPosts[idx].commentCount = max(0, feedPosts[idx].commentCount - 1)
+            }
             feedError = "Failed to add comment: \(error.localizedDescription)"
         }
     }
@@ -179,9 +197,10 @@ final class SocialViewModel {
             }
             if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {
                 feedPosts[idx].comments = postComments
+                feedPosts[idx].commentCount = postComments.count
             }
         } catch {
-            // Silently fail
+            feedError = "Failed to load comments"
         }
     }
 

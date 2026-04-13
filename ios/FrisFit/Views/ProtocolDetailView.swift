@@ -55,11 +55,25 @@ struct ProtocolDetailView: View {
                     Button { viewModel.showReconCalculator = true } label: {
                         Label("Reconstitution Calculator", systemImage: "function")
                     }
-                    Button {} label: {
-                        Label("Edit Protocol", systemImage: "pencil")
+
+                    if viewModel.protocolData.isActive {
+                        Button {
+                            viewModel.showArchiveConfirm = true
+                        } label: {
+                            Label("Archive Protocol", systemImage: "archivebox")
+                        }
+                    } else {
+                        Button {
+                            viewModel.reactivateProtocol()
+                        } label: {
+                            Label("Reactivate Protocol", systemImage: "play.circle")
+                        }
                     }
-                    Button(role: .destructive) {} label: {
-                        Label("End Protocol", systemImage: "stop.circle")
+
+                    Button(role: .destructive) {
+                        viewModel.showDeleteConfirm = true
+                    } label: {
+                        Label("Delete Protocol", systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -67,6 +81,26 @@ struct ProtocolDetailView: View {
                         .foregroundStyle(PepTheme.textSecondary)
                 }
             }
+        }
+        .alert("Archive Protocol?", isPresented: $viewModel.showArchiveConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Archive") {
+                viewModel.archiveProtocol()
+                dismiss()
+            }
+        } message: {
+            Text("This protocol will be marked as inactive. You can reactivate it anytime from Protocol History.")
+        }
+        .alert("Delete Protocol?", isPresented: $viewModel.showDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                viewModel.deleteProtocol()
+            }
+        } message: {
+            Text("This will permanently remove this protocol and all associated data. This action cannot be undone.")
+        }
+        .onChange(of: viewModel.didDelete) { _, deleted in
+            if deleted { dismiss() }
         }
         .sheet(isPresented: $viewModel.showLogDoseSheet) {
             LogDoseSheet(viewModel: viewModel)

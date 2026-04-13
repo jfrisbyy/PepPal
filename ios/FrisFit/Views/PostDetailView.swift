@@ -527,6 +527,13 @@ struct PostDetailView: View {
         guard !trimmed.isEmpty else { return }
         commentText = ""
         isCommentFocused = false
+
+        if let current = viewModel.feedPosts.first(where: { $0.id == post.id }) {
+            withAnimation(.spring(response: 0.3)) {
+                comments = current.comments
+            }
+        }
+
         Task {
             await viewModel.addFeedComment(to: post.id, text: trimmed)
             if let updated = viewModel.feedPosts.first(where: { $0.id == post.id }) {

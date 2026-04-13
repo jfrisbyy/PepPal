@@ -9,8 +9,11 @@ final class ProtocolDetailViewModel {
     var showAddSupplementSheet: Bool = false
     var showAddNoteSheet: Bool = false
     var showReconCalculator: Bool = false
+    var showArchiveConfirm: Bool = false
+    var showDeleteConfirm: Bool = false
     var isLoading: Bool = false
     var errorMessage: String?
+    var didDelete: Bool = false
 
     var newDoseCompound: String = ""
     var newDoseMcg: String = ""
@@ -362,6 +365,51 @@ final class ProtocolDetailViewModel {
                 isLoading = false
             } catch {
                 isLoading = false
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func archiveProtocol() {
+        guard let protocolId = protocolData.supabaseId else {
+            protocolData.isActive = false
+            return
+        }
+        Task {
+            do {
+                try await protocolService.updateProtocolStatus(id: protocolId, isActive: false)
+                protocolData.isActive = false
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func reactivateProtocol() {
+        guard let protocolId = protocolData.supabaseId else {
+            protocolData.isActive = true
+            return
+        }
+        Task {
+            do {
+                try await protocolService.updateProtocolStatus(id: protocolId, isActive: true)
+                protocolData.isActive = true
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func deleteProtocol() {
+        guard let protocolId = protocolData.supabaseId else {
+            didDelete = true
+            return
+        }
+        Task {
+            do {
+                try await protocolService.deleteProtocol(id: protocolId)
+                didDelete = true
+            } catch {
                 errorMessage = error.localizedDescription
             }
         }

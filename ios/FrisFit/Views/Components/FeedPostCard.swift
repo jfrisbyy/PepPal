@@ -344,7 +344,7 @@ struct FeedPostCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "bubble.left")
                         .font(.system(size: 15))
-                    Text("\(post.comments.count)")
+                    Text("\(post.commentCount)")
                         .font(.system(.subheadline, weight: .medium))
                 }
                 .foregroundStyle(PepTheme.textSecondary)

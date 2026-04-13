@@ -331,6 +331,21 @@ final class SocialService {
         return response.count
     }
 
+    func fetchCommentCounts(postIds: [String]) async throws -> [String: Int] {
+        guard !postIds.isEmpty else { return [:] }
+        let response: [SupabasePostComment] = try await supabase
+            .from("post_comments")
+            .select("id, post_id")
+            .in("post_id", values: postIds)
+            .execute()
+            .value
+        var counts: [String: Int] = [:]
+        for comment in response {
+            counts[comment.post_id, default: 0] += 1
+        }
+        return counts
+    }
+
     func parseDate(_ dateString: String?) -> Date {
         guard let dateString else { return Date() }
         return iso8601.date(from: dateString) ?? Date()
