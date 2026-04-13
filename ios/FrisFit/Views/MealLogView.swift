@@ -58,50 +58,78 @@ struct MealLogView: View {
     @State private var saveMealName: String = ""
     @State private var dragOffset: CGFloat = 0
 
+    @State private var showFullScreenResult: Bool = false
+
     private var isScanMode: Bool { selectedMode == .scan }
     private var showsCapturedPhoto: Bool { capturedImage != nil }
-    private var isShowingFullScreenResult: Bool { showsCapturedPhoto && photoHasResult && !isPhotoAnalyzing }
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if isShowingFullScreenResult {
-                fullScreenResultView
-                    .transition(.opacity)
-            } else {
-                cameraLayer
+            cameraLayer
+                .ignoresSafeArea()
+
+            if showsCapturedPhoto {
+                capturedPhotoLayer
                     .ignoresSafeArea()
-
-                if showsCapturedPhoto {
-                    capturedPhotoLayer
-                        .ignoresSafeArea()
-                }
-
-                VStack(spacing: 0) {
-                    topBar
-                    Spacer()
-
-                    if !showsCapturedPhoto {
-                        if !isScanMode {
-                            overlayPanel
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-
-                        bottomControls
-                            .padding(.bottom, 8)
-                    } else if isPhotoAnalyzing {
-                        analyzingOverlay
-                    }
-                }
-                .simultaneousGesture(
-                    !showsCapturedPhoto ? swipeGesture : nil
-                )
             }
+
+            VStack(spacing: 0) {
+                topBar
+                Spacer()
+
+                if !showsCapturedPhoto {
+                    if !isScanMode {
+                        overlayPanel
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+
+                    bottomControls
+                        .padding(.bottom, 8)
+                } else if isPhotoAnalyzing {
+                    analyzingOverlay
+                }
+            }
+            .simultaneousGesture(
+                !showsCapturedPhoto ? swipeGesture : nil
+            )
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: selectedMode)
         .animation(.spring(response: 0.3, dampingFraction: 0.9), value: showsCapturedPhoto)
         .animation(.spring(response: 0.3, dampingFraction: 0.9), value: photoHasResult)
+        .fullScreenCover(isPresented: $showFullScreenResult) {
+            if let image = capturedImage {
+                NutritionResultView(
+                    capturedImage: image,
+                    estimatedItems: $photoEstimatedItems,
+                    overlays: photoOverlays,
+                    mealTime: mealTime,
+                    onAddAll: {
+                        for item in photoEstimatedItems {
+                            viewModel.quickAddMeal(
+                                name: item.name,
+                                calories: item.calories,
+                                protein: item.protein,
+                                carbs: item.carbs,
+                                fat: item.fat,
+                                mealTime: mealTime
+                            )
+                        }
+                        showFullScreenResult = false
+                        dismiss()
+                    },
+                    onRetake: {
+                        showFullScreenResult = false
+                        resetPhotoState()
+                    },
+                    onDismiss: {
+                        showFullScreenResult = false
+                        dismiss()
+                    }
+                )
+            }
+        }
         .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhoto, matching: .images)
         .onChange(of: selectedPhoto) { _, newValue in
             guard let newValue else { return }
@@ -424,134 +452,6 @@ struct MealLogView: View {
                     }
                 }
         )
-    }
-
-    // MARK: - Full Screen Result View
-
-    private var fullScreenResultView: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-
-            if capturedImage != nil {
-                GeometryReader { geo in
-                    Color.clear
-                        .overlay {
-                            if let image = capturedImage {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .allowsHitTesting(false)
-                            }
-                        }
-                        .clipped()
-                        .overlay {
-                            LinearGradient(
-                                colors: [.black.opacity(0.75), .clear, .black.opacity(0.9)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        }
-                        .frame(width: geo.size.width, height: geo.size.height)
-                }
-                .ignoresSafeArea()
-            }
-
-            VStack(spacing: 0) {
-                resultTopBar
-
-                ScrollView {
-                    VStack(spacing: 16) {
-                        if let image = capturedImage {
-                            photoWithOverlays(image: image)
-                                .padding(.top, 8)
-                        }
-
-                        nutritionSummaryCard(items: photoEstimatedItems)
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("Detected Items")
-                                    .font(.system(.subheadline, weight: .semibold))
-                                    .foregroundStyle(.white)
-                                Spacer()
-                                Text("Tap to adjust")
-                                    .font(.caption2)
-                                    .foregroundStyle(.white.opacity(0.3))
-                            }
-                            .padding(.horizontal, 4)
-
-                            ForEach(Array(photoEstimatedItems.enumerated()), id: \.element.id) { index, item in
-                                Button {
-                                    selectedOverlayIndex = index
-                                    showClarifySheet = true
-                                } label: {
-                                    estimatedItemRow(item: item, index: index, accent: PepTheme.teal)
-                                }
-                                .buttonStyle(.scale)
-                            }
-                        }
-
-                        addAllButton(items: photoEstimatedItems)
-
-                        Button {
-                            resetPhotoState()
-                        } label: {
-                            Text("Retake Photo")
-                                .font(.system(.subheadline, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.6))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(.white.opacity(0.08), in: .rect(cornerRadius: 10))
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 40)
-                }
-                .scrollIndicators(.hidden)
-            }
-        }
-    }
-
-    private var resultTopBar: some View {
-        HStack {
-            Button {
-                resetPhotoState()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(.white.opacity(0.15))
-                    .clipShape(Circle())
-            }
-
-            Spacer()
-
-            VStack(spacing: 1) {
-                Text("Results")
-                    .font(.system(.caption, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.9))
-                Text(mealTime.rawValue)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-
-            Spacer()
-
-            Button {
-                resetPhotoState()
-            } label: {
-                Text("Retake")
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.8))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.white.opacity(0.15))
-                    .clipShape(.rect(cornerRadius: 8))
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
     }
 
     // MARK: - Describe Panel
@@ -1363,9 +1263,9 @@ struct MealLogView: View {
                 let (result, overlays) = try await NutritionAIService.shared.estimateFromPhoto(compressedData)
                 photoEstimatedItems = result.items
                 photoOverlays = overlays
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                    photoHasResult = true
-                }
+                photoHasResult = true
+                isPhotoAnalyzing = false
+                showFullScreenResult = true
             } catch {
                 photoEstimatedItems = [
                     EstimatedFoodItem(name: "Estimated Meal", amount: "1 serving", calories: 500, protein: 25, carbs: 50, fat: 18)
@@ -1373,11 +1273,10 @@ struct MealLogView: View {
                 photoOverlays = [
                     PhotoFoodOverlay(item: photoEstimatedItems[0], relativeX: 0.5, relativeY: 0.5)
                 ]
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                    photoHasResult = true
-                }
+                photoHasResult = true
+                isPhotoAnalyzing = false
+                showFullScreenResult = true
             }
-            isPhotoAnalyzing = false
         }
     }
 
