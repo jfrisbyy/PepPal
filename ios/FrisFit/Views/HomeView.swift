@@ -128,8 +128,8 @@ struct HomeView: View {
             if !profileNudgeState.isComplete && !profileNudgeState.isDismissed {
                 profileCompletionNudge
             }
-            DailyDeckBannerView(viewModel: viewModel)
             todaysPlanCard
+            DailyDeckBannerView(viewModel: viewModel)
             protocolCard
             BodyGoalSectionView(viewModel: bodyGoalViewModel, aiInsight: todaysPlanVM.moduleContent(for: "body"))
             DailyActivityCard(viewModel: energyBalanceViewModel, aiInsight: todaysPlanVM.moduleContent(for: "training"), onLogActivity: {
@@ -355,6 +355,17 @@ struct HomeView: View {
 
             if let protocolInsight = todaysPlanVM.moduleContent(for: "protocol") {
                 AIInsightStrip(content: protocolInsight, color: PepTheme.teal)
+            } else if todaysPlanVM.isLoading {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Generating insights...")
+                        .font(.system(size: 13))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .padding(.vertical, 4)
+            } else {
+                AIInsightStrip(content: protocolFallbackInsight(proto), color: PepTheme.teal)
             }
 
             if let sideEffectsInsight = todaysPlanVM.moduleContent(for: "side_effects") {
@@ -1420,6 +1431,23 @@ struct HomeView: View {
 
 
 
+
+    private func protocolFallbackInsight(_ proto: PeptideProtocol) -> String {
+        guard let compound = proto.compounds.first else {
+            return "Week \(proto.currentWeek) of your protocol. Expand to see details."
+        }
+        let dose = CompoundUnitHelper.displayDoseShort(compound.doseMcg, for: compound.compoundName)
+        let phase = proto.currentPhase.rawValue
+        let todayDoses = proto.doseLog.filter { Calendar.current.isDateInToday($0.timestamp) }
+        if todayDoses.isEmpty {
+            return "Week \(proto.currentWeek), \(phase) phase. \(compound.compoundName) \(dose) — dose not yet logged today."
+        } else {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "h:mm a"
+            let time = fmt.string(from: todayDoses.first!.timestamp)
+            return "Week \(proto.currentWeek), \(phase) phase. \(compound.compoundName) \(dose) logged at \(time)."
+        }
+    }
 
     private func triggerPlanFetch(forceRefresh: Bool = false) {
         todaysPlanVM.fetchPlanIfNeeded(
