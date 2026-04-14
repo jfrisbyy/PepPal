@@ -62,6 +62,7 @@ struct HomeView: View {
             .scrollIndicators(.hidden)
             .refreshable {
                 await viewModel.refresh()
+                await energyBalanceViewModel.refresh()
             }
             .background(PepTheme.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
@@ -81,6 +82,7 @@ struct HomeView: View {
             }
             .onAppear {
                 viewModel.onAppear()
+                energyBalanceViewModel.loadData()
                 todaysPlanVM.loadCachedPlan()
                 triggerPlanFetch()
                 Task { await profileNudgeState.checkProfile() }
@@ -135,6 +137,11 @@ struct HomeView: View {
             })
             .navigationDestination(isPresented: $showNutrition) {
                 NutritionView()
+            }
+            .onChange(of: showNutrition) { _, isShowing in
+                if !isShowing {
+                    Task { await energyBalanceViewModel.refresh() }
+                }
             }
             if viewModel.healthKit.isAuthorized {
                 stepsModuleCard
