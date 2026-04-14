@@ -1060,30 +1060,38 @@ struct HomeView: View {
 
 
 
+    @State private var isPlanMinimized: Bool = false
+
     // MARK: - Today's Plan
 
     private var todaysPlanCard: some View {
         VStack(spacing: 0) {
-            Button {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
-                    viewModel.isPlanExpanded.toggle()
-                }
-            } label: {
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack {
-                            Image(systemName: "calendar")
-                                .font(.subheadline)
-                                .foregroundStyle(PepTheme.teal)
-                            SubheadText(text: viewModel.isSelectedDateToday ? "Today's Plan" : "Plan")
-                            Spacer()
+            GlassCard {
+                VStack(alignment: .leading, spacing: isPlanMinimized ? 0 : 14) {
+                    HStack {
+                        Image(systemName: "calendar")
+                            .font(.subheadline)
+                            .foregroundStyle(PepTheme.teal)
+                        SubheadText(text: viewModel.isSelectedDateToday ? "Today's Plan" : "Plan")
 
-                            if todaysPlanVM.isBackgroundRefreshing {
-                                ProgressView()
-                                    .scaleEffect(0.5)
-                                    .tint(PepTheme.violet.opacity(0.6))
-                            }
+                        if isPlanMinimized, let workout = viewModel.todaysPlan.isRestDay ? nil : viewModel.todaysPlan.name {
+                            Text("·")
+                                .foregroundStyle(PepTheme.textSecondary)
+                            Text(workout)
+                                .font(.system(.caption, weight: .medium))
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .lineLimit(1)
+                        }
 
+                        Spacer()
+
+                        if todaysPlanVM.isBackgroundRefreshing {
+                            ProgressView()
+                                .scaleEffect(0.5)
+                                .tint(PepTheme.violet.opacity(0.6))
+                        }
+
+                        if !isPlanMinimized {
                             HStack(spacing: 8) {
                                 if todaysPlanVM.hasPlan {
                                     Button {
@@ -1109,40 +1117,60 @@ struct HomeView: View {
                                         .clipShape(Circle())
                                 }
                             }
-
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(PepTheme.textSecondary)
-                                .rotationEffect(.degrees(viewModel.isPlanExpanded ? 180 : 0))
                         }
 
-                        if todaysPlanVM.isLoading && !todaysPlanVM.hasPlan {
-                            planSummaryShimmer
-                        } else if todaysPlanVM.hasPlan && !todaysPlanVM.summary.isEmpty {
-                            Text(todaysPlanVM.summary)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                                .lineSpacing(3)
-                                .fixedSize(horizontal: false, vertical: true)
+                        Image(systemName: isPlanMinimized ? "chevron.right" : "chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                            .contentTransition(.symbolEffect(.replace))
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                            isPlanMinimized.toggle()
+                            if isPlanMinimized { viewModel.isPlanExpanded = false }
                         }
+                    }
 
-                        if viewModel.activeProgram == nil {
-                            noProgramPlanContent
-                        } else if viewModel.todaysPlan.isRestDay {
-                            restDayContent
-                        } else {
-                            workoutPlanSummary
+                    if !isPlanMinimized {
+                        VStack(alignment: .leading, spacing: 14) {
+                            if todaysPlanVM.isLoading && !todaysPlanVM.hasPlan {
+                                planSummaryShimmer
+                            } else if todaysPlanVM.hasPlan && !todaysPlanVM.summary.isEmpty {
+                                Text(todaysPlanVM.summary)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                                    .lineSpacing(3)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            Button {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+                                    viewModel.isPlanExpanded.toggle()
+                                }
+                            } label: {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    if viewModel.activeProgram == nil {
+                                        noProgramPlanContent
+                                    } else if viewModel.todaysPlan.isRestDay {
+                                        restDayContent
+                                    } else {
+                                        workoutPlanSummary
+                                    }
+                                }
+                            }
+                            .buttonStyle(.scale)
                         }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
             }
-            .buttonStyle(.scale)
-            .sensoryFeedback(.selection, trigger: viewModel.isPlanExpanded)
+            .sensoryFeedback(.selection, trigger: isPlanMinimized)
 
-            if viewModel.isPlanExpanded && viewModel.activeProgram == nil {
+            if !isPlanMinimized && viewModel.isPlanExpanded && viewModel.activeProgram == nil {
                 expandedNoProgramContent
                     .transition(.opacity.combined(with: .move(edge: .top)))
-            } else if viewModel.isPlanExpanded && !viewModel.todaysPlan.isRestDay {
+            } else if !isPlanMinimized && viewModel.isPlanExpanded && !viewModel.todaysPlan.isRestDay {
                 VStack(spacing: 8) {
                     if let trainingInsight = todaysPlanVM.moduleContent(for: "training") {
                         AIInsightStrip(content: trainingInsight, color: PepTheme.blue)
@@ -1152,7 +1180,7 @@ struct HomeView: View {
                     expandedPlanContent
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
-            } else if viewModel.isPlanExpanded && viewModel.todaysPlan.isRestDay {
+            } else if !isPlanMinimized && viewModel.isPlanExpanded && viewModel.todaysPlan.isRestDay {
                 if let trainingInsight = todaysPlanVM.moduleContent(for: "training") {
                     AIInsightStrip(content: trainingInsight, color: PepTheme.blue)
                         .padding(.horizontal, 2)
@@ -1438,15 +1466,55 @@ struct HomeView: View {
         }
         let dose = CompoundUnitHelper.displayDoseShort(compound.doseMcg, for: compound.compoundName)
         let phase = proto.currentPhase.rawValue
+        let week = proto.currentWeek
         let todayDoses = proto.doseLog.filter { Calendar.current.isDateInToday($0.timestamp) }
+        let totalDoses = proto.doseLog.count
+        let daysSinceStart = max(1, Calendar.current.dateComponents([.day], from: proto.startDate, to: Date()).day ?? 1)
+
+        var parts: [String] = []
+
         if todayDoses.isEmpty {
-            return "Week \(proto.currentWeek), \(phase) phase. \(compound.compoundName) \(dose) — dose not yet logged today."
+            parts.append("\(compound.compoundName) \(dose) not yet logged today.")
         } else {
             let fmt = DateFormatter()
             fmt.dateFormat = "h:mm a"
             let time = fmt.string(from: todayDoses.first!.timestamp)
-            return "Week \(proto.currentWeek), \(phase) phase. \(compound.compoundName) \(dose) logged at \(time)."
+            parts.append("\(compound.compoundName) \(dose) logged at \(time).")
         }
+
+        parts.append("Week \(week), \(phase) phase — \(daysSinceStart) days in.")
+
+        if totalDoses > 0 {
+            parts.append("\(totalDoses) total dose\(totalDoses == 1 ? "" : "s") logged since starting.")
+        }
+
+        if let profile = CompoundDatabase.all.first(where: { $0.name.lowercased() == compound.compoundName.lowercased() }) {
+            if let expectation = profile.whatToExpect.first(where: { entry in
+                let weekStr = entry.timeframe.lowercased()
+                if weekStr.contains("week \(week)") { return true }
+                if weekStr.contains("weeks") {
+                    let numbers = weekStr.components(separatedBy: CharacterSet.decimalDigits.inverted).compactMap { Int($0) }
+                    if numbers.count >= 2, week >= numbers[0], week <= numbers[1] { return true }
+                }
+                return false
+            }) {
+                parts.append(expectation.description)
+            } else if let firstExpectation = profile.whatToExpect.first {
+                parts.append(firstExpectation.description)
+            }
+        }
+
+        let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
+        let recentEffects = proto.sideEffectLog.filter { $0.timestamp >= twoWeeksAgo }
+        if !recentEffects.isEmpty {
+            var counts: [String: Int] = [:]
+            for e in recentEffects { counts[e.effect, default: 0] += 1 }
+            if let top = counts.max(by: { $0.value < $1.value }) {
+                parts.append("\(top.key) reported \(top.value)x in the last 2 weeks.")
+            }
+        }
+
+        return parts.joined(separator: " ")
     }
 
     private func triggerPlanFetch(forceRefresh: Bool = false) {
