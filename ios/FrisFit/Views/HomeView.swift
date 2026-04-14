@@ -27,6 +27,13 @@ struct HomeView: View {
     @State private var showProgramCreation: Bool = false
     @State private var todaysPlanVM = TodaysPlanViewModel()
     @State private var nutritionViewModel = NutritionViewModel()
+    @State private var isInsightCollapsed: Bool = false
+    @State private var isTrainingCollapsed: Bool = false
+    @State private var isDailyTasksCollapsed: Bool = false
+    @State private var collapsedTaskCategories: Set<String> = []
+    @State private var showAddTask: Bool = false
+    @State private var taskToggleTrigger: Int = 0
+    @State private var showProtocolReason: UUID? = nil
 
     var body: some View {
         NavigationStack {
@@ -131,7 +138,6 @@ struct HomeView: View {
                 profileCompletionNudge
             }
             todaysPlanCard
-            DailyDeckBannerView(viewModel: viewModel)
             protocolCard
             BodyGoalSectionView(viewModel: bodyGoalViewModel, aiInsight: todaysPlanVM.moduleContent(for: "body"))
             DailyActivityCard(viewModel: energyBalanceViewModel, aiInsight: todaysPlanVM.moduleContent(for: "training"), onLogActivity: {
@@ -1073,110 +1079,39 @@ struct HomeView: View {
 
     private var todaysPlanCard: some View {
         VStack(spacing: 0) {
-            GlassCard {
-                VStack(alignment: .leading, spacing: isPlanMinimized ? 0 : 14) {
-                    HStack {
-                        Image(systemName: "calendar")
-                            .font(.subheadline)
-                            .foregroundStyle(PepTheme.teal)
-                        SubheadText(text: viewModel.isSelectedDateToday ? "Today's Plan" : "Plan")
+            VStack(spacing: 0) {
+                planMainHeader
 
-                        if isPlanMinimized, let workout = viewModel.todaysPlan.isRestDay ? nil : viewModel.todaysPlan.name {
-                            Text("·")
-                                .foregroundStyle(PepTheme.textSecondary)
-                            Text(workout)
-                                .font(.system(.caption, weight: .medium))
-                                .foregroundStyle(PepTheme.textSecondary)
-                                .lineLimit(1)
-                        }
+                if !isPlanMinimized {
+                    VStack(spacing: 0) {
+                        insightSection
 
-                        Spacer()
+                        planDivider
 
-                        if todaysPlanVM.isBackgroundRefreshing {
-                            ProgressView()
-                                .scaleEffect(0.5)
-                                .tint(PepTheme.violet.opacity(0.6))
-                        }
+                        trainingSection
 
-                        if !isPlanMinimized {
-                            HStack(spacing: 8) {
-                                if todaysPlanVM.hasPlan {
-                                    Button {
-                                        triggerPlanFetch(forceRefresh: true)
-                                    } label: {
-                                        Image(systemName: "arrow.clockwise")
-                                            .font(.system(size: 10, weight: .semibold))
-                                            .foregroundStyle(PepTheme.violet.opacity(0.5))
-                                            .frame(width: 24, height: 24)
-                                            .background(PepTheme.violet.opacity(0.08))
-                                            .clipShape(Circle())
-                                    }
-                                }
+                        planDivider
 
-                                Button {
-                                    showPepChat = true
-                                } label: {
-                                    Image(systemName: "bubble.left.fill")
-                                        .font(.system(size: 10, weight: .semibold))
-                                        .foregroundStyle(PepTheme.violet.opacity(0.5))
-                                        .frame(width: 24, height: 24)
-                                        .background(PepTheme.violet.opacity(0.08))
-                                        .clipShape(Circle())
-                                }
-                            }
-                        }
-
-                        Image(systemName: isPlanMinimized ? "chevron.right" : "chevron.down")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
-                            .contentTransition(.symbolEffect(.replace))
+                        dailyTasksSection
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
-                            isPlanMinimized.toggle()
-                            if isPlanMinimized { viewModel.isPlanExpanded = false }
-                        }
-                    }
-
-                    if !isPlanMinimized {
-                        VStack(alignment: .leading, spacing: 14) {
-                            if todaysPlanVM.isLoading && !todaysPlanVM.hasPlan {
-                                planSummaryShimmer
-                            } else if todaysPlanVM.hasPlan && !todaysPlanVM.summary.isEmpty {
-                                Text(todaysPlanVM.summary)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                                    .lineSpacing(3)
-                                    .fixedSize(horizontal: false, vertical: true)
-
-                                pepChatAboutThisStrip
-                            }
-
-                            if viewModel.activeProgram != nil {
-                                Button {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
-                                        viewModel.isPlanExpanded.toggle()
-                                    }
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        if viewModel.todaysPlan.isRestDay {
-                                            restDayContent
-                                        } else {
-                                            workoutPlanSummary
-                                        }
-                                    }
-                                }
-                                .buttonStyle(.scale)
-                            } else if let rec = viewModel.trainingRecommendation {
-                                protocolTrainingSuggestion(rec)
-                            }
-                        }
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-            .sensoryFeedback(.selection, trigger: isPlanMinimized)
+            .padding(.bottom, isPlanMinimized ? 0 : 8)
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+            .clipShape(.rect(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.5
+                    )
+            )
+            .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
 
             if !isPlanMinimized && viewModel.isPlanExpanded && !viewModel.todaysPlan.isRestDay && viewModel.activeProgram != nil {
                 VStack(spacing: 8) {
@@ -1205,6 +1140,559 @@ struct HomeView: View {
                 pepChatPlanContext = nil
             }
         }
+        .sheet(isPresented: $showAddTask) {
+            AddEditTaskView(viewModel: viewModel)
+        }
+    }
+
+    private var planMainHeader: some View {
+        HStack(spacing: 10) {
+            PepAvatar(size: 32)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(viewModel.isSelectedDateToday ? "Today's Plan" : "Plan")
+                        .font(.system(.subheadline, design: .rounded, weight: .bold))
+                        .foregroundStyle(PepTheme.textPrimary)
+
+                    if viewModel.hasProtocolDeck {
+                        HStack(spacing: 3) {
+                            Image(systemName: "pill.fill")
+                                .font(.system(size: 7, weight: .bold))
+                            Text("RX")
+                                .font(.system(size: 8, weight: .heavy))
+                        }
+                        .foregroundStyle(PepTheme.teal)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(PepTheme.teal.opacity(0.12))
+                        .clipShape(.capsule)
+                    }
+                }
+
+                if isPlanMinimized {
+                    HStack(spacing: 4) {
+                        Text("\(viewModel.completedCount)/\(viewModel.todaysTasks.count) tasks")
+                            .font(.system(.caption2, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        if !viewModel.todaysPlan.isRestDay, viewModel.activeProgram != nil {
+                            Text("·")
+                                .foregroundStyle(PepTheme.textSecondary)
+                            Text(viewModel.todaysPlan.name)
+                                .font(.system(.caption2, weight: .medium))
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .lineLimit(1)
+                        }
+                    }
+                } else if let date = todaysPlanVM.lastFetchDate {
+                    Text(planTimeAgo(from: date))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                }
+            }
+
+            Spacer()
+
+            if todaysPlanVM.isBackgroundRefreshing {
+                ProgressView()
+                    .scaleEffect(0.5)
+                    .tint(PepTheme.violet.opacity(0.6))
+            }
+
+            if !isPlanMinimized {
+                HStack(spacing: 8) {
+                    if todaysPlanVM.hasPlan {
+                        Button {
+                            triggerPlanFetch(forceRefresh: true)
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(PepTheme.violet.opacity(0.5))
+                                .frame(width: 24, height: 24)
+                                .background(PepTheme.violet.opacity(0.08))
+                                .clipShape(Circle())
+                        }
+                    }
+
+                    Button {
+                        showPepChat = true
+                    } label: {
+                        Image(systemName: "bubble.left.fill")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(PepTheme.violet.opacity(0.5))
+                            .frame(width: 24, height: 24)
+                            .background(PepTheme.violet.opacity(0.08))
+                            .clipShape(Circle())
+                    }
+                }
+            }
+
+            if isPlanMinimized {
+                planTaskProgressRing
+            }
+
+            Image(systemName: isPlanMinimized ? "chevron.right" : "chevron.down")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .padding(14)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                isPlanMinimized.toggle()
+                if isPlanMinimized { viewModel.isPlanExpanded = false }
+            }
+        }
+        .sensoryFeedback(.selection, trigger: isPlanMinimized)
+    }
+
+    private var planTaskProgressRing: some View {
+        let total = viewModel.todaysTasks.count
+        let completed = viewModel.completedCount
+        let progress = total > 0 ? Double(completed) / Double(total) : 0
+
+        return ZStack {
+            Circle()
+                .stroke(PepTheme.elevated, lineWidth: 3)
+                .frame(width: 28, height: 28)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(
+                    LinearGradient(colors: progress >= 1.0 ? [PepTheme.teal, PepTheme.teal] : [PepTheme.amber, PepTheme.teal], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                )
+                .frame(width: 28, height: 28)
+                .rotationEffect(.degrees(-90))
+            Image(systemName: progress >= 1.0 ? "checkmark" : "sparkles")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(progress >= 1.0 ? PepTheme.teal : PepTheme.amber)
+                .contentTransition(.symbolEffect(.replace))
+        }
+    }
+
+    private var planDivider: some View {
+        Rectangle()
+            .fill(PepTheme.shimmerHighlight)
+            .frame(height: 0.5)
+            .padding(.horizontal, 14)
+    }
+
+    // MARK: - AI Insight Section
+
+    private var insightSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                    isInsightCollapsed.toggle()
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(PepTheme.violet)
+                    Text("AI INSIGHT")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                        .tracking(0.5)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                        .rotationEffect(.degrees(isInsightCollapsed ? 0 : 90))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+
+            if !isInsightCollapsed {
+                VStack(alignment: .leading, spacing: 10) {
+                    if todaysPlanVM.isLoading && !todaysPlanVM.hasPlan {
+                        planSummaryShimmer
+                            .padding(.horizontal, 14)
+                    } else if todaysPlanVM.hasPlan && !todaysPlanVM.summary.isEmpty {
+                        Text(todaysPlanVM.summary)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 14)
+
+                        pepChatAboutThisStrip
+                            .padding(.horizontal, 14)
+                    }
+                }
+                .padding(.bottom, 10)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    // MARK: - Training Section
+
+    private var trainingSection: some View {
+        let hasProgram = viewModel.activeProgram != nil
+        let hasRec = viewModel.trainingRecommendation != nil
+        let showSection = hasProgram || hasRec
+
+        return Group {
+            if showSection {
+                VStack(alignment: .leading, spacing: 0) {
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                            isTrainingCollapsed.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "figure.strengthtraining.traditional")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(PepTheme.blue)
+                            Text("TRAINING")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                                .tracking(0.5)
+
+                            if isTrainingCollapsed && hasProgram {
+                                Text("·")
+                                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                                Text(viewModel.todaysPlan.isRestDay ? "Rest Day" : viewModel.todaysPlan.name)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                    .lineLimit(1)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                                .rotationEffect(.degrees(isTrainingCollapsed ? 0 : 90))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+
+                    if !isTrainingCollapsed {
+                        VStack(alignment: .leading, spacing: 10) {
+                            if hasProgram {
+                                Button {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+                                        viewModel.isPlanExpanded.toggle()
+                                    }
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        if viewModel.todaysPlan.isRestDay {
+                                            restDayContent
+                                        } else {
+                                            workoutPlanSummary
+                                        }
+                                    }
+                                }
+                                .buttonStyle(.scale)
+                                .padding(.horizontal, 14)
+                            } else if let rec = viewModel.trainingRecommendation {
+                                protocolTrainingSuggestion(rec)
+                                    .padding(.horizontal, 14)
+                            }
+                        }
+                        .padding(.bottom, 10)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Daily Tasks Section
+
+    private var dailyTasksSection: some View {
+        let tasks = viewModel.todaysTasks
+        let completedCount = tasks.filter(\.isCompleted).count
+        let totalCount = tasks.count
+
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                    isDailyTasksCollapsed.toggle()
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "checklist")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(PepTheme.amber)
+                    Text("DAILY TASKS")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                        .tracking(0.5)
+
+                    Text("\(completedCount)/\(totalCount)")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundStyle(completedCount == totalCount && totalCount > 0 ? PepTheme.teal : PepTheme.textSecondary.opacity(0.5))
+
+                    if completedCount == totalCount && totalCount > 0 {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(PepTheme.teal)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                        .rotationEffect(.degrees(isDailyTasksCollapsed ? 0 : 90))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+
+            if !isDailyTasksCollapsed {
+                VStack(spacing: 0) {
+                    if viewModel.hasProtocolDeck && !viewModel.protocolDeckFocus.isEmpty {
+                        planProtocolFocusStrip
+                            .padding(.horizontal, 14)
+                            .padding(.bottom, 6)
+                    }
+
+                    ForEach(TaskCategory.builtInCases) { category in
+                        let catTasks = viewModel.todaysTasks(for: category)
+                        if !catTasks.isEmpty {
+                            planCategorySection(name: category.rawValue, icon: category.icon, color: category.color, tasks: catTasks, key: category.rawValue)
+                        }
+                    }
+
+                    ForEach(viewModel.customCategories) { custom in
+                        let catTasks = viewModel.todaysTasks(forCustom: custom.id)
+                        if !catTasks.isEmpty {
+                            planCategorySection(name: custom.name, icon: custom.icon, color: custom.color, tasks: catTasks, key: custom.id.uuidString)
+                        }
+                    }
+
+                    Button {
+                        showAddTask = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 14))
+                            Text("Add Task")
+                                .font(.system(.caption, weight: .semibold))
+                        }
+                        .foregroundStyle(PepTheme.teal)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                    }
+                    .sensoryFeedback(.impact(weight: .light), trigger: showAddTask)
+                }
+                .padding(.horizontal, 10)
+                .padding(.bottom, 6)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    private var planProtocolFocusStrip: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 5) {
+                Image(systemName: "wand.and.stars")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(PepTheme.teal)
+                Text("PROTOCOL-TUNED")
+                    .font(.system(size: 9, weight: .heavy))
+                    .foregroundStyle(PepTheme.teal)
+                    .tracking(0.5)
+            }
+
+            Text(viewModel.protocolDeckFocus)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(PepTheme.textPrimary.opacity(0.8))
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [PepTheme.teal.opacity(0.06), PepTheme.teal.opacity(0.02)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(.rect(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(PepTheme.teal.opacity(0.12), lineWidth: 0.5)
+        )
+    }
+
+    private func planCategorySection(name: String, icon: String, color: Color, tasks: [DailyTask], key: String) -> some View {
+        let isCollapsed = collapsedTaskCategories.contains(key)
+        let catCompleted = tasks.filter(\.isCompleted).count
+
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    if isCollapsed {
+                        collapsedTaskCategories.remove(key)
+                    } else {
+                        collapsedTaskCategories.insert(key)
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(color)
+                    Text(name.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                        .tracking(0.5)
+
+                    Text("\(catCompleted)/\(tasks.count)")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundStyle(catCompleted == tasks.count ? PepTheme.teal : PepTheme.textSecondary.opacity(0.5))
+
+                    if catCompleted == tasks.count && !tasks.isEmpty {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(PepTheme.teal)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                        .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                }
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+                .padding(.horizontal, 4)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+
+            if !isCollapsed {
+                ForEach(tasks) { task in
+                    planTaskRow(task)
+                }
+            }
+        }
+    }
+
+    private func planTaskRow(_ task: DailyTask) -> some View {
+        VStack(spacing: 0) {
+            Button {
+                if task.isProtocolRecommended && !task.protocolReason.isEmpty {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        showProtocolReason = showProtocolReason == task.id ? nil : task.id
+                    }
+                }
+                guard task.actionLink == .none else { return }
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                    viewModel.toggleTask(task)
+                    taskToggleTrigger += 1
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 5)
+                            .stroke(task.isCompleted ? PepTheme.teal : PepTheme.textSecondary.opacity(0.3), lineWidth: 1.5)
+                            .frame(width: 20, height: 20)
+                            .background(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .fill(task.isCompleted ? PepTheme.teal : Color.clear)
+                            )
+
+                        if task.isCompleted {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(PepTheme.invertedText)
+                                .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+
+                    Image(systemName: task.icon)
+                        .font(.system(size: 12))
+                        .foregroundStyle(task.isCompleted ? PepTheme.teal.opacity(0.5) : PepTheme.textSecondary)
+                        .frame(width: 18)
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(task.name)
+                            .font(.system(.subheadline, weight: task.isCompleted ? .medium : .semibold))
+                            .foregroundStyle(task.isCompleted ? PepTheme.textSecondary.opacity(0.5) : PepTheme.textPrimary)
+                            .strikethrough(task.isCompleted, color: PepTheme.textSecondary.opacity(0.3))
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    if task.isProtocolRecommended {
+                        Image(systemName: "pill.fill")
+                            .font(.system(size: 8))
+                            .foregroundStyle(PepTheme.teal.opacity(0.5))
+                    }
+
+                    if task.actionLink != .none {
+                        if !task.goalDescription.isEmpty {
+                            Text(task.goalDescription)
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(PepTheme.teal.opacity(0.6))
+                                .lineLimit(1)
+                        }
+                        Image(systemName: "link")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(PepTheme.teal.opacity(0.5))
+                    }
+                }
+                .padding(.vertical, 7)
+                .padding(.horizontal, 8)
+                .background(
+                    task.isCompleted
+                        ? PepTheme.teal.opacity(0.04)
+                        : (task.isProtocolRecommended ? PepTheme.teal.opacity(0.02) : Color.clear)
+                )
+                .clipShape(.rect(cornerRadius: 8))
+            }
+            .sensoryFeedback(.impact(weight: .light), trigger: taskToggleTrigger)
+            .allowsHitTesting(task.actionLink == .none || task.isProtocolRecommended)
+            .opacity(task.actionLink != .none && !task.isCompleted && !task.isProtocolRecommended ? 0.85 : 1)
+
+            if showProtocolReason == task.id && task.isProtocolRecommended && !task.protocolReason.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(PepTheme.teal.opacity(0.6))
+                    Text(task.protocolReason)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .lineSpacing(1)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .padding(.leading, 38)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(PepTheme.teal.opacity(0.03))
+                .clipShape(.rect(cornerRadius: 6))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    private func planTimeAgo(from date: Date) -> String {
+        let minutes = Int(Date().timeIntervalSince(date) / 60)
+        if minutes < 1 { return "Just now" }
+        if minutes < 60 { return "\(minutes)m ago" }
+        let hours = minutes / 60
+        if hours < 24 { return "\(hours)h ago" }
+        return "Yesterday"
     }
 
     private var pepChatAboutThisStrip: some View {
