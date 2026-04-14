@@ -12,6 +12,7 @@ struct HomeView: View {
     @State private var showDailyTasks: Bool = false
     @State private var showStepDetail: Bool = false
     @State private var showProtocolDetail: Bool = false
+    @State private var showProtocolJourney: Bool = false
     @State private var isProtocolExpanded: Bool = false
     @State private var bodyGoalViewModel = BodyGoalViewModel()
     @State private var energyBalanceViewModel = EnergyBalanceViewModel()
@@ -278,6 +279,9 @@ struct HomeView: View {
             .navigationDestination(isPresented: $showProtocolDetail) {
                 ProtocolDetailView(protocolData: proto)
             }
+            .navigationDestination(isPresented: $showProtocolJourney) {
+                ProtocolJourneyView(protocolData: proto)
+            }
         }
     }
 
@@ -400,12 +404,14 @@ struct HomeView: View {
             }
 
             Button {
-                showProtocolDetail = true
+                showProtocolJourney = true
             } label: {
                 HStack {
-                    Text("View Full Protocol")
+                    Text("View Journey")
                         .font(.system(size: 13, weight: .semibold))
                     Spacer()
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 10, weight: .semibold))
                     Image(systemName: "chevron.right")
                         .font(.system(size: 10, weight: .semibold))
                 }
