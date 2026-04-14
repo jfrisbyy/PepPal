@@ -100,7 +100,9 @@ final class NutritionViewModel {
             do {
                 let userId = try AuthService.shared.currentUserId()
                 _ = try await NutritionService.shared.logMeal(userId: userId, food: food, servings: servings, mealTime: mealTime)
-            } catch {}
+            } catch {
+                print("[NutritionVM] Failed to persist meal to Supabase: \(error)")
+            }
         }
     }
 
@@ -165,7 +167,9 @@ final class NutritionViewModel {
                 }
                 loggedMeals = converted
                 supabaseMealIds = idMap
-            } catch {}
+            } catch {
+                print("[NutritionVM] Failed to load meals from Supabase: \(error)")
+            }
             isLoading = false
         }
     }

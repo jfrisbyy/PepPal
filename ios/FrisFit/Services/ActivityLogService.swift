@@ -19,6 +19,7 @@ nonisolated struct CreateEnergyActivityPayload: Codable, Sendable {
     let activity_type: String
     let sport: String?
     let duration_minutes: Int?
+    let calories_burned: Int?
     let notes: String?
 }
 
@@ -53,6 +54,7 @@ final class ActivityLogService {
             activity_type: activityType,
             sport: sport,
             duration_minutes: durationMinutes,
+            calories_burned: caloriesBurned,
             notes: notes
         )
 

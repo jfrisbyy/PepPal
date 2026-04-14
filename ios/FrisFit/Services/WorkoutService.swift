@@ -31,6 +31,7 @@ nonisolated struct CreateWorkoutPayload: Codable, Sendable {
     let exercises: String?
     let notes: String?
     let fp_earned: Int?
+    let started_at: String?
     let completed_at: String
 }
 
@@ -128,6 +129,12 @@ final class WorkoutService {
         fpEarned: Int? = nil
     ) async throws -> SupabaseWorkout {
         let now = Date()
+        let startedAt: Date
+        if let mins = durationMinutes {
+            startedAt = now.addingTimeInterval(-Double(mins) * 60)
+        } else {
+            startedAt = now
+        }
         let payload = CreateWorkoutPayload(
             user_id: userId,
             date: dateOnlyFormatter.string(from: now),
@@ -140,6 +147,7 @@ final class WorkoutService {
             exercises: exercisesJSON,
             notes: notes,
             fp_earned: fpEarned,
+            started_at: iso8601.string(from: startedAt),
             completed_at: iso8601.string(from: now)
         )
 
