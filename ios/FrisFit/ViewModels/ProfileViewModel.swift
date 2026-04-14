@@ -334,6 +334,7 @@ final class ProfileViewModel {
             let supabasePosts = try await socialService.fetchUserPosts(userId: userId)
             let postIds = supabasePosts.map { $0.id }
             let likedIds = try await socialService.fetchLikedPostIds(userId: userId, postIds: postIds)
+            let commentCounts = try await socialService.fetchCommentCounts(postIds: postIds)
 
             var counts: [String: Int] = [:]
             for sp in supabasePosts {
@@ -349,7 +350,7 @@ final class ProfileViewModel {
                     timestamp: socialService.parseDate(sp.created_at),
                     likeCount: likeManager.likeCount(postId: sp.id, fallback: sp.high_five_count ?? 0),
                     isLiked: likeManager.isLiked(postId: sp.id),
-                    commentCount: 0,
+                    commentCount: commentCounts[sp.id] ?? 0,
                     mediaUrls: sp.media_urls ?? [],
                     audioUrl: sp.audio_url,
                     audioDuration: sp.audio_duration
