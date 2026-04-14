@@ -173,7 +173,7 @@ final class SocialViewModel {
             let postComment = PostComment(
                 id: UUID(uuidString: comment.id) ?? UUID(),
                 user: user,
-                text: comment.content ?? text,
+                text: comment.text_content ?? text,
                 timestamp: socialService.parseDate(comment.created_at)
             )
             if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {
@@ -202,7 +202,7 @@ final class SocialViewModel {
                 PostComment(
                     id: UUID(uuidString: c.id) ?? UUID(),
                     user: socialService.socialUserFromAuthor(c.profiles),
-                    text: c.content ?? "",
+                    text: c.text_content ?? "",
                     timestamp: socialService.parseDate(c.created_at)
                 )
             }
