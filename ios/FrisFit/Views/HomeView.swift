@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var viewModel = HomeViewModel()
     @State private var appeared: Bool = false
     @State private var showPepChat: Bool = false
+    @State private var pepChatPlanContext: String? = nil
     @State private var showProtocolWizard: Bool = false
     @State private var showReconCalculator: Bool = false
     @State private var showQuickActions: Bool = false
@@ -1148,6 +1149,8 @@ struct HomeView: View {
                                     .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
                                     .lineSpacing(3)
                                     .fixedSize(horizontal: false, vertical: true)
+
+                                pepChatAboutThisStrip
                             }
 
                             if viewModel.activeProgram != nil {
@@ -1195,8 +1198,48 @@ struct HomeView: View {
             }
         }
         .fullScreenCover(isPresented: $showPepChat) {
-            PepChatView()
+            PepChatView(planContext: pepChatPlanContext)
         }
+        .onChange(of: showPepChat) { _, isShowing in
+            if !isShowing {
+                pepChatPlanContext = nil
+            }
+        }
+    }
+
+    private var pepChatAboutThisStrip: some View {
+        Button {
+            pepChatPlanContext = buildPlanContextString()
+            showPepChat = true
+        } label: {
+            HStack(spacing: 8) {
+                PepNavAvatar(size: 22)
+
+                Text("Chat about this")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(PepTheme.violet)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(PepTheme.violet.opacity(0.5))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(PepTheme.violet.opacity(0.08))
+            .clipShape(.capsule)
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: showPepChat)
+    }
+
+    private func buildPlanContextString() -> String {
+        var parts: [String] = []
+        parts.append("Summary: \(todaysPlanVM.summary)")
+        for module in todaysPlanVM.modules {
+            parts.append("[\(module.title)] \(module.content)")
+        }
+        return parts.joined(separator: "\n\n")
     }
 
     private var planSummaryShimmer: some View {

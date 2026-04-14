@@ -158,20 +158,30 @@ final class PepChatViewModel {
     """
 
     var sourceScreen: String = "Home Screen"
+    private var planContext: String?
 
-    init() {
-        messages.append(PepMessage(
-            role: .pep,
-            content: "what's good — i'm pep, your coach inside peppal"
-        ))
-        messages.append(PepMessage(
-            role: .pep,
-            content: "i can help with training, nutrition, peptides, protocols, bloodwork, or anything in the app"
-        ))
-        messages.append(PepMessage(
-            role: .pep,
-            content: "what can i help you with?"
-        ))
+    init(planContext: String? = nil) {
+        self.planContext = planContext
+        if let planContext {
+            messages.append(PepMessage(
+                role: .pep,
+                content: "i just put together your plan — what do you want to dig into?"
+            ))
+            conversationHistory.append(["role": "system", "content": "The user tapped \"Chat about this\" on their Today's Plan card. Here is the plan you generated for them today:\n\n\(planContext)\n\nThe user wants to continue the conversation about this plan. Reference it naturally. Do NOT repeat the plan back to them — they just read it. Answer their follow-up directly."])
+        } else {
+            messages.append(PepMessage(
+                role: .pep,
+                content: "what's good — i'm pep, your coach inside peppal"
+            ))
+            messages.append(PepMessage(
+                role: .pep,
+                content: "i can help with training, nutrition, peptides, protocols, bloodwork, or anything in the app"
+            ))
+            messages.append(PepMessage(
+                role: .pep,
+                content: "what can i help you with?"
+            ))
+        }
         Task {
             await loadUserContext()
         }

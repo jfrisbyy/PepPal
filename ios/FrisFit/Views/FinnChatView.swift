@@ -1,11 +1,18 @@
 import SwiftUI
 
 struct PepChatView: View {
-    @State private var viewModel = PepChatViewModel()
+    let planContext: String?
+
+    @State private var viewModel: PepChatViewModel
     @FocusState private var isInputFocused: Bool
     @State private var showQuickActions: Bool = false
 
     @Environment(\.dismiss) private var dismiss
+
+    init(planContext: String? = nil) {
+        self.planContext = planContext
+        self._viewModel = State(initialValue: PepChatViewModel(planContext: planContext))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
