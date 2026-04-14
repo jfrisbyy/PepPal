@@ -47,7 +47,11 @@ nonisolated struct SupabasePostComment: Codable, Sendable {
     let post_id: String
     let user_id: String
     let content: String?
+    let body: String?
+    let text: String?
     let created_at: String?
+
+    var commentText: String? { content ?? body ?? text }
 }
 
 nonisolated struct SupabasePostCommentWithProfile: Codable, Sendable {
@@ -55,8 +59,12 @@ nonisolated struct SupabasePostCommentWithProfile: Codable, Sendable {
     let post_id: String
     let user_id: String
     let content: String?
+    let body: String?
+    let text: String?
     let created_at: String?
     let profiles: SupabasePostAuthor?
+
+    var commentText: String? { content ?? body ?? text }
 }
 
 nonisolated struct SupabasePostLike: Codable, Sendable {
@@ -171,22 +179,52 @@ final class SocialService {
     }
 
     func addComment(postId: String, userId: String, text: String) async throws -> SupabasePostCommentWithProfile {
-        let payload = CreateCommentPayload(post_id: postId, user_id: userId, content: text)
-        let created: SupabasePostComment = try await supabase
+        let columnNames = ["content", "body", "text"]
+        var lastError: Error?
+        var inserted = false
+
+        for col in columnNames {
+            do {
+                try await supabase
+                    .from("post_comments")
+                    .insert(["post_id": postId, "user_id": userId, col: text])
+                    .execute()
+                inserted = true
+                break
+            } catch {
+                lastError = error
+            }
+        }
+
+        if !inserted {
+            do {
+                try await supabase
+                    .from("post_comments")
+                    .insert(["post_id": postId, "user_id": userId])
+                    .execute()
+                inserted = true
+            } catch {
+                lastError = error
+            }
+        }
+
+        guard inserted else {
+            throw lastError ?? NSError(domain: "SocialService", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to insert comment"])
+        }
+
+        let recent: [SupabasePostCommentWithProfile] = try await supabase
             .from("post_comments")
-            .insert(payload)
-            .select()
-            .single()
+            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .eq("post_id", value: postId)
+            .eq("user_id", value: userId)
+            .order("created_at", ascending: false)
+            .limit(1)
             .execute()
             .value
 
-        let full: SupabasePostCommentWithProfile = try await supabase
-            .from("post_comments")
-            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
-            .eq("id", value: created.id)
-            .single()
-            .execute()
-            .value
+        guard let full = recent.first else {
+            throw NSError(domain: "SocialService", code: 404, userInfo: [NSLocalizedDescriptionKey: "Comment was saved but could not be retrieved"])
+        }
         return full
     }
 
