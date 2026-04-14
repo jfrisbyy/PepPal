@@ -10,6 +10,7 @@ struct ProfileView: View {
     @State private var showReconCalculator: Bool = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var isUploadingAvatar: Bool = false
+    @State private var navigateToPost: FeedPost?
 
     enum ProfileTab: String, CaseIterable {
         case posts = "Posts"
@@ -87,6 +88,9 @@ struct ProfileView: View {
                 }
             }
             .navigationDestination(for: FeedPost.self) { post in
+                PostDetailView(post: post, viewModel: socialViewModel)
+            }
+            .navigationDestination(item: $navigateToPost) { post in
                 PostDetailView(post: post, viewModel: socialViewModel)
             }
             .navigationDestination(for: FollowListDestination.self) { destination in
@@ -312,14 +316,13 @@ struct ProfileView: View {
                 profileEmptyState(icon: "text.bubble", title: "No Posts Yet", message: "Share your workouts and thoughts with the community.")
             } else {
                 ForEach(posts) { post in
-                    NavigationLink(value: feedPostFromUserPost(post)) {
-                        ProfilePostRow(post: post, profile: viewModel.profile) {
-                            viewModel.togglePostLike(post.id)
-                        } onDelete: {
-                            deletePost(post)
-                        }
-                    }
-                    .buttonStyle(.plain)
+                    ProfilePostRow(post: post, profile: viewModel.profile, onTap: {
+                        navigateToPost = feedPostFromUserPost(post)
+                    }, onLike: {
+                        viewModel.togglePostLike(post.id)
+                    }, onDelete: {
+                        deletePost(post)
+                    })
                     Divider().overlay(PepTheme.separatorColor)
                 }
             }
@@ -495,6 +498,7 @@ struct ProfileQuickStat: View {
 struct ProfilePostRow: View {
     let post: UserPost
     let profile: UserProfile
+    var onTap: (() -> Void)? = nil
     let onLike: () -> Void
     var onDelete: (() -> Void)? = nil
 
@@ -572,6 +576,7 @@ struct ProfilePostRow: View {
                             .font(.system(size: 14))
                             .foregroundStyle(PepTheme.textSecondary)
                             .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
                     }
                     .alert("Delete Post?", isPresented: $showDeleteConfirm) {
                         Button("Cancel", role: .cancel) {}
@@ -647,6 +652,10 @@ struct ProfilePostRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?()
+        }
     }
 
     private func workoutCard(_ attachment: WorkoutPostAttachment) -> some View {
