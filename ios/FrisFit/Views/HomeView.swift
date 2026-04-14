@@ -18,6 +18,8 @@ struct HomeView: View {
     @State private var profileNudgeState = ProfileNudgeState()
     @State private var showEditProfileFromNudge: Bool = false
     @State private var showLogActivity: Bool = false
+    @State private var showLogMeal: Bool = false
+    @State private var logMealTime: MealTime = .lunch
     @State private var trainViewModel = TrainViewModel()
     @State private var showProgramCreation: Bool = false
     @State private var todaysPlanVM = TodaysPlanViewModel()
@@ -132,7 +134,14 @@ struct HomeView: View {
             DailyActivityCard(viewModel: energyBalanceViewModel, onLogActivity: {
                 showLogActivity = true
             })
-            DailyNutritionCard(viewModel: energyBalanceViewModel, aiInsight: todaysPlanVM.moduleContent(for: "nutrition"), onTapNutrition: {
+            DailyNutritionCard(viewModel: energyBalanceViewModel, aiInsight: todaysPlanVM.moduleContent(for: "nutrition"), onLogMeal: {
+                let hour = Calendar.current.component(.hour, from: Date())
+                if hour < 10 { logMealTime = .breakfast }
+                else if hour < 14 { logMealTime = .lunch }
+                else if hour < 17 { logMealTime = .snacks }
+                else { logMealTime = .dinner }
+                showLogMeal = true
+            }, onTapNutrition: {
                 showNutrition = true
             })
             .navigationDestination(isPresented: $showNutrition) {
@@ -166,6 +175,12 @@ struct HomeView: View {
         .sheet(isPresented: $showLogActivity) {
             LogActivitySheet()
                 .presentationDetents([.large])
+        }
+        .fullScreenCover(isPresented: $showLogMeal) {
+            CameraMealLogView(mealTime: logMealTime, viewModel: nutritionViewModel)
+                .onDisappear {
+                    Task { await energyBalanceViewModel.refresh() }
+                }
         }
     }
 

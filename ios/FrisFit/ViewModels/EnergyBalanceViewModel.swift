@@ -14,6 +14,7 @@ final class EnergyBalanceViewModel {
     var fatTarget: Int = 73
     var isLoading: Bool = false
     var hasLoaded: Bool = false
+    var todaysMeals: [SupabaseLoggedMeal] = []
     var goalType: String = "weightLoss"
     private var mealChangeObserver: Any?
 
@@ -107,6 +108,7 @@ final class EnergyBalanceViewModel {
             proteinConsumed = totalPro
             carbsConsumed = totalCarb
             fatConsumed = totalFt
+            todaysMeals = meals
         } catch {
             print("[EnergyBalanceVM] Failed to refresh nutrition: \(error)")
         }
@@ -149,6 +151,7 @@ final class EnergyBalanceViewModel {
             proteinConsumed = totalPro
             carbsConsumed = totalCarb
             fatConsumed = totalFt
+            todaysMeals = meals
 
             if let goal {
                 goalType = goal.goal_type
