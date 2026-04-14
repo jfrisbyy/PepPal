@@ -63,7 +63,7 @@ struct PhotoMealView: View {
             .sheet(isPresented: $showClarifySheet) {
                 if let idx = selectedOverlayIndex, idx < estimatedItems.count {
                     ClarifyItemSheet(item: $estimatedItems[idx])
-                        .presentationDetents([.medium])
+                        .presentationDetents([.medium, .large])
                         .presentationDragIndicator(.visible)
                 }
             }
@@ -566,86 +566,348 @@ struct CameraCaptureView: UIViewControllerRepresentable {
 struct ClarifyItemSheet: View {
     @Binding var item: EstimatedFoodItem
     @Environment(\.dismiss) private var dismiss
-    @State private var nameText: String = ""
-    @State private var amountText: String = ""
-    @State private var caloriesText: String = ""
-    @State private var proteinText: String = ""
-    @State private var carbsText: String = ""
-    @State private var fatText: String = ""
+    @State private var correctionText: String = ""
+    @State private var isRecalculating: Bool = false
+    @State private var recalculated: Bool = false
+    @State private var errorText: String? = nil
+    @State private var previewItem: EstimatedFoodItem? = nil
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                VStack(spacing: 6) {
-                    Image(systemName: "pencil.and.outline")
-                        .font(.title2)
+            ScrollView {
+                VStack(spacing: 20) {
+                    currentDetectionCard
+                    correctionInput
+
+                    if isRecalculating {
+                        recalculatingView
+                    }
+
+                    if let preview = previewItem {
+                        recalculatedPreview(preview)
+                    }
+
+                    if let error = errorText {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .padding(20)
+            }
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+            .presentationContentInteraction(.scrolls)
+            .background(PepTheme.background.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                    }
+                }
+            }
+        }
+    }
+
+    private var currentDetectionCard: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(PepTheme.amber.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "fork.knife")
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(PepTheme.amber)
-                    Text("Adjust Estimate")
-                        .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
                 }
 
-                VStack(spacing: 14) {
-                    clarifyField(label: "Name", text: $nameText)
-                    clarifyField(label: "Amount", text: $amountText)
-                    clarifyField(label: "Calories", text: $caloriesText, isNumeric: true)
-                    HStack(spacing: 12) {
-                        clarifyField(label: "Protein (g)", text: $proteinText, isNumeric: true)
-                        clarifyField(label: "Carbs (g)", text: $carbsText, isNumeric: true)
-                        clarifyField(label: "Fat (g)", text: $fatText, isNumeric: true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("AI Detected")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .textCase(.uppercase)
+                        .tracking(0.5)
+                    Text(item.name)
+                        .font(.system(.body, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text(item.amount)
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text("\(item.calories)")
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .foregroundStyle(PepTheme.teal)
+                    Text("cal")
+                        .font(.caption2)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+
+            HStack(spacing: 0) {
+                clarifyMacroTag(label: "Protein", value: Int(item.protein), unit: "g", color: PepTheme.teal)
+                    .frame(maxWidth: .infinity)
+                clarifyMacroTag(label: "Carbs", value: Int(item.carbs), unit: "g", color: PepTheme.amber)
+                    .frame(maxWidth: .infinity)
+                clarifyMacroTag(label: "Fat", value: Int(item.fat), unit: "g", color: PepTheme.violet)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(14)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    private func clarifyMacroTag(label: String, value: Int, unit: String, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text("\(value)\(unit)")
+                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+    }
+
+    private var correctionInput: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("What is this actually?")
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+
+            Text("Describe the correction and AI will recalculate nutrition automatically.")
+                .font(.caption)
+                .foregroundStyle(PepTheme.textSecondary)
+
+            HStack(spacing: 10) {
+                TextField("e.g. \"It's 2 chicken thighs, not 1 leg\"...", text: $correctionText, axis: .vertical)
+                    .font(.system(.body, weight: .medium))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(1...4)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(PepTheme.elevated)
+                    .clipShape(.rect(cornerRadius: 12))
+
+                Button {
+                    Task { await recalculate() }
+                } label: {
+                    Group {
+                        if isRecalculating {
+                            ProgressView()
+                                .tint(PepTheme.invertedText)
+                        } else {
+                            Image(systemName: "arrow.trianglehead.2.clockwise")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                    }
+                    .frame(width: 48, height: 48)
+                    .foregroundStyle(PepTheme.invertedText)
+                    .background(
+                        correctionText.trimmingCharacters(in: .whitespaces).isEmpty
+                            ? PepTheme.textSecondary.opacity(0.3)
+                            : PepTheme.amber,
+                        in: .rect(cornerRadius: 12)
+                    )
+                }
+                .disabled(correctionText.trimmingCharacters(in: .whitespaces).isEmpty || isRecalculating)
+                .sensoryFeedback(.impact(weight: .medium), trigger: isRecalculating)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    suggestionChip("Wrong item")
+                    suggestionChip("Wrong quantity")
+                    suggestionChip("Missing sauce/oil")
+                    suggestionChip("Bigger portion")
+                }
+            }
+            .contentMargins(.horizontal, 0)
+        }
+    }
+
+    private func suggestionChip(_ text: String) -> some View {
+        Button {
+            correctionText = text
+        } label: {
+            Text(text)
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(PepTheme.amber)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(PepTheme.amber.opacity(0.1))
+                .clipShape(Capsule())
+        }
+    }
+
+    private var recalculatingView: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .tint(PepTheme.amber)
+            Text("Recalculating nutrition...")
+                .font(.system(.subheadline, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(PepTheme.amber.opacity(0.06))
+        .clipShape(.rect(cornerRadius: 12))
+    }
+
+    private func recalculatedPreview(_ preview: EstimatedFoodItem) -> some View {
+        VStack(spacing: 14) {
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("Recalculated")
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Spacer()
+            }
+
+            VStack(spacing: 8) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(preview.name)
+                            .font(.system(.body, weight: .semibold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text(preview.amount)
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("\(preview.calories)")
+                            .font(.system(.title2, design: .rounded, weight: .bold))
+                            .foregroundStyle(PepTheme.teal)
+                        Text("cal")
+                            .font(.caption2)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
 
+                HStack(spacing: 0) {
+                    clarifyMacroTag(label: "Protein", value: Int(preview.protein), unit: "g", color: PepTheme.teal)
+                        .frame(maxWidth: .infinity)
+                    clarifyMacroTag(label: "Carbs", value: Int(preview.carbs), unit: "g", color: PepTheme.amber)
+                        .frame(maxWidth: .infinity)
+                    clarifyMacroTag(label: "Fat", value: Int(preview.fat), unit: "g", color: PepTheme.violet)
+                        .frame(maxWidth: .infinity)
+                }
+
+                clarifyDiffRow(preview)
+            }
+
+            HStack(spacing: 12) {
                 Button {
-                    applyChanges()
+                    item = EstimatedFoodItem(
+                        id: item.id,
+                        name: preview.name,
+                        amount: preview.amount,
+                        calories: preview.calories,
+                        protein: preview.protein,
+                        carbs: preview.carbs,
+                        fat: preview.fat
+                    )
                     dismiss()
                 } label: {
-                    Text("Save Changes")
+                    Text("Accept")
                         .font(.system(.body, weight: .semibold))
                         .foregroundStyle(PepTheme.invertedText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(PepTheme.amber, in: .rect(cornerRadius: 12))
+                        .background(PepTheme.teal, in: .rect(cornerRadius: 12))
                 }
+                .sensoryFeedback(.success, trigger: recalculated)
 
-                Spacer()
-            }
-            .padding(20)
-            .background(PepTheme.background.ignoresSafeArea())
-            .onAppear {
-                nameText = item.name
-                amountText = item.amount
-                caloriesText = "\(item.calories)"
-                proteinText = String(format: "%.0f", item.protein)
-                carbsText = String(format: "%.0f", item.carbs)
-                fatText = String(format: "%.0f", item.fat)
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        previewItem = nil
+                        recalculated = false
+                    }
+                } label: {
+                    Text("Discard")
+                        .font(.system(.body, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(PepTheme.elevated, in: .rect(cornerRadius: 12))
+                }
             }
         }
+        .padding(14)
+        .background(PepTheme.teal.opacity(0.04))
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(PepTheme.teal.opacity(0.15), lineWidth: 0.5)
+        )
+        .transition(.asymmetric(
+            insertion: .move(edge: .bottom).combined(with: .opacity),
+            removal: .opacity
+        ))
     }
 
-    private func clarifyField(label: String, text: Binding<String>, isNumeric: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    private func clarifyDiffRow(_ preview: EstimatedFoodItem) -> some View {
+        let calDiff = preview.calories - item.calories
+        let pDiff = Int(preview.protein) - Int(item.protein)
+        let cDiff = Int(preview.carbs) - Int(item.carbs)
+        let fDiff = Int(preview.fat) - Int(item.fat)
+
+        return HStack(spacing: 12) {
+            clarifyDiffChip("Cal", diff: calDiff)
+            clarifyDiffChip("P", diff: pDiff, showG: true)
+            clarifyDiffChip("C", diff: cDiff, showG: true)
+            clarifyDiffChip("F", diff: fDiff, showG: true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func clarifyDiffChip(_ label: String, diff: Int, showG: Bool = false) -> some View {
+        let sign = diff >= 0 ? "+" : ""
+        let text = showG ? "\(sign)\(diff)g" : "\(sign)\(diff)"
+        let color: Color = diff > 0 ? .red.opacity(0.7) : diff < 0 ? .green.opacity(0.7) : PepTheme.textSecondary
+
+        return HStack(spacing: 2) {
             Text(label)
-                .font(.caption)
                 .foregroundStyle(PepTheme.textSecondary)
-
-            TextField(label, text: text)
-                .font(.system(.body, weight: .medium))
-                .foregroundStyle(PepTheme.textPrimary)
-                .keyboardType(isNumeric ? .decimalPad : .default)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(PepTheme.elevated)
-                .clipShape(.rect(cornerRadius: 10))
+            Text(text)
+                .foregroundStyle(color)
         }
+        .font(.system(.caption2, weight: .semibold))
     }
 
-    private func applyChanges() {
-        item.name = nameText
-        item.amount = amountText
-        item.calories = Int(caloriesText) ?? item.calories
-        item.protein = Double(proteinText) ?? item.protein
-        item.carbs = Double(carbsText) ?? item.carbs
-        item.fat = Double(fatText) ?? item.fat
+    private func recalculate() async {
+        let trimmed = correctionText.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+
+        isRecalculating = true
+        errorText = nil
+        withAnimation { previewItem = nil }
+
+        do {
+            let result = try await NutritionAIService.shared.clarifyItem(
+                originalItem: item,
+                userCorrection: trimmed
+            )
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                previewItem = result
+                recalculated = true
+            }
+        } catch {
+            errorText = "Could not recalculate. Please try again."
+        }
+
+        isRecalculating = false
     }
 }

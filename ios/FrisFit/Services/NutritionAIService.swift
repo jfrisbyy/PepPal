@@ -55,7 +55,7 @@ final class NutritionAIService {
     static let shared = NutritionAIService()
 
     private let openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
-    private let model = "openai/gpt-4o"
+    private let model = "openai/gpt-4o-2024-11-20"
 
     private var apiKey: String {
         Config.EXPO_PUBLIC_OPENROUTER_API_KEY
@@ -248,6 +248,81 @@ final class NutritionAIService {
             cleaned = String(cleaned[startIdx...endIdx])
         }
         return cleaned
+    }
+
+    func clarifyItem(originalItem: EstimatedFoodItem, userCorrection: String) async throws -> EstimatedFoodItem {
+        let clarifyPrompt = """
+        You are a precise nutrition estimation AI. The user scanned a food photo and one item was misidentified or needs correction.
+
+        ORIGINAL DETECTION:
+        - Name: \(originalItem.name)
+        - Amount: \(originalItem.amount)
+        - Calories: \(originalItem.calories)
+        - Protein: \(originalItem.protein)g
+        - Carbs: \(originalItem.carbs)g
+        - Fat: \(originalItem.fat)g
+
+        USER CORRECTION: "\(userCorrection)"
+
+        Based on the user's correction, re-estimate the food item with accurate nutrition values from USDA FoodData Central.
+        Keep the same portion size context unless the user specifies a different amount.
+        Round calories to the nearest 5. Round protein, carbs, and fat to the nearest 0.5g.
+
+        RESPOND WITH ONLY a valid JSON object (not an array), no markdown, no explanation:
+        {
+          "name": "corrected food name",
+          "amount": "serving size with unit",
+          "calories": number,
+          "protein": number,
+          "carbs": number,
+          "fat": number
+        }
+        """
+
+        let messages: [[String: Any]] = [
+            ["role": "system", "content": clarifyPrompt],
+            ["role": "user", "content": "Please recalculate nutrition based on my correction."]
+        ]
+
+        let responseText = try await callOpenRouter(messages: messages)
+        return try parseClarifyResponse(responseText, originalItem: originalItem)
+    }
+
+    private func parseClarifyResponse(_ text: String, originalItem: EstimatedFoodItem) throws -> EstimatedFoodItem {
+        var cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.hasPrefix("```json") { cleaned = String(cleaned.dropFirst(7)) }
+        else if cleaned.hasPrefix("```") { cleaned = String(cleaned.dropFirst(3)) }
+        if cleaned.hasSuffix("```") { cleaned = String(cleaned.dropLast(3)) }
+        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let startIdx = cleaned.firstIndex(of: "{"),
+           let endIdx = cleaned.lastIndex(of: "}") {
+            cleaned = String(cleaned[startIdx...endIdx])
+        }
+
+        nonisolated struct ClarifyItem: Codable {
+            let name: String
+            let amount: String
+            let calories: Int
+            let protein: Double
+            let carbs: Double
+            let fat: Double
+        }
+
+        if let jsonData = cleaned.data(using: .utf8),
+           let item = try? JSONDecoder().decode(ClarifyItem.self, from: jsonData) {
+            return EstimatedFoodItem(
+                id: originalItem.id,
+                name: item.name,
+                amount: item.amount,
+                calories: item.calories,
+                protein: item.protein,
+                carbs: item.carbs,
+                fat: item.fat
+            )
+        }
+
+        return originalItem
     }
 
     private func generateFallbackItems() -> [EstimatedFoodItem] {

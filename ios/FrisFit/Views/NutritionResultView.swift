@@ -34,7 +34,7 @@ struct NutritionResultView: View {
         .sheet(isPresented: $showClarifySheet) {
             if let idx = selectedItemIndex, idx < estimatedItems.count {
                 ClarifyItemSheet(item: $estimatedItems[idx])
-                    .presentationDetents([.medium])
+                    .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
         }
