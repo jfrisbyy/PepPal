@@ -1116,7 +1116,13 @@ struct HomeView: View {
             if !isPlanMinimized && viewModel.isPlanExpanded && !viewModel.todaysPlan.isRestDay && viewModel.activeProgram != nil {
                 VStack(spacing: 8) {
                     if let trainingInsight = todaysPlanVM.moduleContent(for: "training") {
-                        AIInsightStrip(content: trainingInsight, color: PepTheme.blue)
+                        AIInsightStrip(
+                            content: trainingInsight,
+                            color: PepTheme.blue,
+                            actionLabel: "Start Workout",
+                            actionIcon: "figure.strengthtraining.traditional",
+                            onAction: { startWorkoutFromHome() }
+                        )
                             .padding(.horizontal, 16)
                             .padding(.top, 8)
                     }
@@ -2053,6 +2059,10 @@ struct HomeView: View {
             bloodworkEntries: [],
             streakDays: viewModel.quickStats.streakDays,
             workoutsThisWeek: viewModel.quickStats.workoutsThisWeek,
+            workoutHistory: trainViewModel.workoutHistory,
+            muscleRecoveryItems: trainViewModel.muscleRecoveryItems,
+            weeklyMuscleVolumes: trainViewModel.weeklyMuscleVolumes,
+            personalRecords: trainViewModel.personalRecords,
             forceRefresh: forceRefresh
         )
     }

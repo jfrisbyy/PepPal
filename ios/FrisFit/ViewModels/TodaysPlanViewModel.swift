@@ -104,6 +104,10 @@ final class TodaysPlanViewModel {
         bloodworkEntries: [BloodworkEntry],
         streakDays: Int,
         workoutsThisWeek: Int,
+        workoutHistory: [WorkoutHistoryDetail] = [],
+        muscleRecoveryItems: [MuscleRecoveryItem] = [],
+        weeklyMuscleVolumes: [WeeklyMuscleVolume] = [],
+        personalRecords: [TrainPersonalRecord] = [],
         forceRefresh: Bool = false
     ) {
         guard !isLoading else { return }
@@ -120,7 +124,11 @@ final class TodaysPlanViewModel {
             activeProgram: activeProgram,
             bloodworkEntries: bloodworkEntries,
             streakDays: streakDays,
-            workoutsThisWeek: workoutsThisWeek
+            workoutsThisWeek: workoutsThisWeek,
+            workoutHistory: workoutHistory,
+            muscleRecoveryItems: muscleRecoveryItems,
+            weeklyMuscleVolumes: weeklyMuscleVolumes,
+            personalRecords: personalRecords
         )
 
         let currentHash = context.contentHash
@@ -176,7 +184,11 @@ final class TodaysPlanViewModel {
         activeProgram: TrainingProgram?,
         bloodworkEntries: [BloodworkEntry],
         streakDays: Int,
-        workoutsThisWeek: Int
+        workoutsThisWeek: Int,
+        workoutHistory: [WorkoutHistoryDetail] = [],
+        muscleRecoveryItems: [MuscleRecoveryItem] = [],
+        weeklyMuscleVolumes: [WeeklyMuscleVolume] = [],
+        personalRecords: [TrainPersonalRecord] = []
     ) {
         fetchPlanIfNeeded(
             firstName: firstName,
@@ -191,6 +203,10 @@ final class TodaysPlanViewModel {
             bloodworkEntries: bloodworkEntries,
             streakDays: streakDays,
             workoutsThisWeek: workoutsThisWeek,
+            workoutHistory: workoutHistory,
+            muscleRecoveryItems: muscleRecoveryItems,
+            weeklyMuscleVolumes: weeklyMuscleVolumes,
+            personalRecords: personalRecords,
             forceRefresh: true
         )
     }

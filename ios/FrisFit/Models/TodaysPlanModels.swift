@@ -74,7 +74,7 @@ nonisolated struct ContextBundle: Sendable {
             parts.append("body:\(String(format: "%.1f", b.currentWeight)):\(b.plateauDetected):\(b.latestMeasurements ?? "none")")
         }
         if let t = trainingContext {
-            parts.append("train:\(t.todayWorkout ?? "rest"):\(t.completedToday):\(t.workoutsThisWeek)")
+            parts.append("train:\(t.todayWorkout ?? "rest"):\(t.completedToday):\(t.workoutsThisWeek):\(t.todayExercises.count):\(t.adherenceRate ?? 0)")
         }
         if let se = sideEffectsContext {
             let effectStr = se.effects.map { "\($0.name):\($0.count):\($0.trend)" }.joined(separator: ",")
@@ -179,11 +179,53 @@ nonisolated struct ContextBundle: Sendable {
             Completed today: \(t.completedToday ? "Yes" : "No")
             Workouts this week: \(t.workoutsThisWeek)/\(t.weeklyTarget)
             """
+            if let name = t.programName {
+                trainStr += "\nProgram: \(name)"
+            }
+            if let week = t.programWeek {
+                trainStr += "\nProgram week: \(week)"
+            }
             if let y = t.yesterdayWorkout {
-                trainStr += "\nYesterday: \(y)"
+                trainStr += "\nYesterday's workout: \(y)"
             }
             if let next = t.nextTrainingDay {
                 trainStr += "\nNext training day: \(next)"
+            }
+            if let adherence = t.adherenceRate {
+                trainStr += "\nAdherence rate (last 4 weeks): \(Int(adherence * 100))%"
+            }
+            if !t.todayExercises.isEmpty {
+                trainStr += "\n\nToday's exercises:"
+                for ex in t.todayExercises {
+                    var line = "- \(ex.name) (\(ex.muscle)): \(ex.targetSets) sets x \(ex.repRange)"
+                    if let w = ex.lastWeight, let r = ex.lastReps {
+                        line += " [last: \(Int(w)) lbs x \(r)]"
+                    }
+                    if let trend = ex.trend {
+                        line += " trend: \(trend)"
+                    }
+                    trainStr += "\n\(line)"
+                }
+            }
+            let fatiguedMuscles = t.muscleRecovery.filter { $0.status == "Fatigued" || $0.status == "Recovering" }
+            if !fatiguedMuscles.isEmpty {
+                trainStr += "\n\nMuscle recovery:"
+                for m in fatiguedMuscles {
+                    trainStr += "\n- \(m.muscle): \(m.status) (\(m.hoursRemaining)h remaining)"
+                }
+            }
+            let underVolume = t.weeklyVolume.filter { $0.setsCompleted < $0.targetSets }
+            if !underVolume.isEmpty {
+                trainStr += "\n\nWeekly volume gaps:"
+                for v in underVolume {
+                    trainStr += "\n- \(v.muscle): \(v.setsCompleted)/\(v.targetSets) sets"
+                }
+            }
+            if !t.recentPRs.isEmpty {
+                trainStr += "\n\nRecent PRs:"
+                for pr in t.recentPRs.prefix(3) {
+                    trainStr += "\n- \(pr.exercise): \(Int(pr.weight)) lbs x \(pr.reps)\(pr.isRecent ? " (this week!)" : "")"
+                }
             }
             sections.append(trainStr)
         }
@@ -275,6 +317,35 @@ nonisolated struct BodyContext: Sendable {
     let latestMeasurements: String?
 }
 
+nonisolated struct TrainingExerciseContext: Sendable {
+    let name: String
+    let muscle: String
+    let targetSets: Int
+    let repRange: String
+    let lastWeight: Double?
+    let lastReps: Int?
+    let trend: String?
+}
+
+nonisolated struct MuscleRecoveryContext: Sendable {
+    let muscle: String
+    let status: String
+    let hoursRemaining: Int
+}
+
+nonisolated struct VolumeContext: Sendable {
+    let muscle: String
+    let setsCompleted: Int
+    let targetSets: Int
+}
+
+nonisolated struct PRContext: Sendable {
+    let exercise: String
+    let weight: Double
+    let reps: Int
+    let isRecent: Bool
+}
+
 nonisolated struct TrainingContext: Sendable {
     let todayWorkout: String?
     let completedToday: Bool
@@ -282,6 +353,13 @@ nonisolated struct TrainingContext: Sendable {
     let weeklyTarget: Int
     let yesterdayWorkout: String?
     let nextTrainingDay: String?
+    let todayExercises: [TrainingExerciseContext]
+    let muscleRecovery: [MuscleRecoveryContext]
+    let weeklyVolume: [VolumeContext]
+    let adherenceRate: Double?
+    let recentPRs: [PRContext]
+    let programName: String?
+    let programWeek: Int?
 }
 
 nonisolated struct SideEffectContext: Sendable {

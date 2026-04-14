@@ -33,6 +33,18 @@ final class TodaysPlanService {
     TRAINING PROGRAM AWARENESS:
     If the user has an active protocol but NO active training program, this is a high-priority insight. Include a "training" module that specifically recommends starting a resistance training program tailored to their protocol and goal. For weight loss protocols (GLP-1s like Semaglutide, Tirzepatide, Retatrutide), emphasize that resistance training is critical to prevent muscle loss — reference the specific compound. For muscle growth protocols, emphasize that training is the primary driver and the compound amplifies it. Weave this recommendation naturally into the summary as well — don't just mention it in the module. This should feel like a smart friend noticing an obvious gap, not a generic nudge.
 
+    TRAINING INSIGHT DEPTH:
+    When the user has an active training program with exercise data, write training insights that reference SPECIFIC exercises, weights, and progression. Examples of good training insights:
+    - "Push day is up. Last time you benched 215 for 6 — if that moved clean, 220 is yours today."
+    - "Your chest volume is at 10 of 16 target sets this week and today's your last push day. Consider adding an extra set of flyes."
+    - "Shoulders are still recovering from Monday's session. If overhead press feels off, drop 10% and focus on control."
+    - "You've hit 3 of 4 scheduled sessions this week — solid consistency. Don't let today's leg day slip."
+    - "You hit a bench PR at 225 this week. Ride the momentum but don't chase another max today — volume builds the base."
+    When adherence is dropping below 75%, call it out directly: "You've only made it to 2 of 4 sessions the last few weeks. Even 3 would keep the gains moving."
+    When muscles in today's split are still fatigued, suggest adjustments: lighter loads, exercise swaps, or shifting to a different split.
+    When progressive overload is stalling on key lifts, mention it and suggest strategies: more reps before adding weight, pause reps, or a deload.
+    Always reference the actual numbers — weights, sets, reps, completion rates. Never give generic training advice when you have specifics.
+
     CROSS-DOMAIN REASONING:
     When writing the summary and module content, actively look for connections between data points. Examples: If the user logged nausea and their calorie intake is low, connect those to the compound's appetite suppression effect at their current phase. If the user's weight has plateaued but their waist measurement is down, explain recomposition. If the user is training back-to-back days and reported fatigue, connect that to recovery needs on reduced calories. If protein has been consistently low and they're on a GLP-1 compound, flag the muscle preservation concern. If their side effects are spiking and they recently increased dose, explain the titration connection.
 
@@ -57,7 +69,7 @@ final class TodaysPlanService {
         let body: [String: Any] = [
             "model": model,
             "messages": messages,
-            "max_tokens": 1200,
+            "max_tokens": 1600,
             "temperature": 0.7
         ]
 
@@ -122,7 +134,11 @@ final class TodaysPlanService {
         activeProgram: TrainingProgram?,
         bloodworkEntries: [BloodworkEntry],
         streakDays: Int,
-        workoutsThisWeek: Int
+        workoutsThisWeek: Int,
+        workoutHistory: [WorkoutHistoryDetail] = [],
+        muscleRecoveryItems: [MuscleRecoveryItem] = [],
+        weeklyMuscleVolumes: [WeeklyMuscleVolume] = [],
+        personalRecords: [TrainPersonalRecord] = []
     ) -> ContextBundle {
         let now = Date()
         let dateFormatter = DateFormatter()
@@ -254,13 +270,106 @@ final class TodaysPlanService {
             )
         }
 
+        let completedToday = workoutHistory.contains { Calendar.current.isDateInToday($0.date) }
+
+        let yesterdayWorkout: String? = {
+            let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now) ?? now
+            let yesterdayEntries = workoutHistory.filter { Calendar.current.isDate($0.date, inSameDayAs: yesterday) }
+            return yesterdayEntries.first?.name
+        }()
+
+        var todayExercises: [TrainingExerciseContext] = []
+        if let program = activeProgram, !todaysPlan.isRestDay {
+            let startOffset = UserDefaults.standard.integer(forKey: "programStartDayOffset")
+            let dayOfWeek = Calendar.current.component(.weekday, from: now)
+            let mondayBased = (dayOfWeek + 5) % 7
+            let adjusted = (mondayBased - startOffset + 7) % 7
+            let dayIndex = adjusted < program.days.count ? adjusted : 0
+            if dayIndex < program.days.count {
+                let programDay = program.days[dayIndex]
+                for pe in programDay.exercises {
+                    let lastPerformance = workoutHistory.lazy
+                        .flatMap { $0.exercises }
+                        .first { $0.exerciseName == pe.exerciseName }
+                    let lastWeight = lastPerformance?.sets.compactMap({ $0.weight }).max()
+                    let lastReps = lastPerformance?.sets.last?.reps
+
+                    let trend: String? = {
+                        let matching = workoutHistory.flatMap { $0.exercises.filter { $0.exerciseName == pe.exerciseName } }
+                        guard matching.count >= 2 else { return nil }
+                        let recent = matching.first?.sets.compactMap({ $0.weight }).max() ?? 0
+                        let previous = matching.dropFirst().first?.sets.compactMap({ $0.weight }).max() ?? 0
+                        if recent > previous { return "progressing" }
+                        if recent < previous { return "regressing" }
+                        return "plateaued"
+                    }()
+
+                    todayExercises.append(TrainingExerciseContext(
+                        name: pe.exerciseName,
+                        muscle: pe.primaryMuscle.rawValue,
+                        targetSets: pe.targetSets,
+                        repRange: "\(pe.targetRepsMin)-\(pe.targetRepsMax)",
+                        lastWeight: lastWeight,
+                        lastReps: lastReps,
+                        trend: trend
+                    ))
+                }
+            }
+        }
+
+        let recoveryContextItems = muscleRecoveryItems
+            .filter { $0.status != .recovered }
+            .map { MuscleRecoveryContext(muscle: $0.muscle.rawValue, status: $0.status.rawValue, hoursRemaining: $0.hoursRemaining) }
+
+        let volumeContextItems = weeklyMuscleVolumes.map {
+            VolumeContext(muscle: $0.muscle.rawValue, setsCompleted: $0.setsCompleted, targetSets: $0.targetSets)
+        }
+
+        let recentPRContextItems = personalRecords.prefix(5).map {
+            PRContext(exercise: $0.exerciseName, weight: $0.weight, reps: $0.reps, isRecent: $0.isNew)
+        }
+
+        let adherenceRate: Double? = {
+            guard let program = activeProgram, program.daysPerWeek > 0 else { return nil }
+            let fourWeeksAgo = Calendar.current.date(byAdding: .day, value: -28, to: now) ?? now
+            let recentWorkouts = workoutHistory.filter { $0.date >= fourWeeksAgo }.count
+            let expectedWorkouts = program.daysPerWeek * 4
+            return min(Double(recentWorkouts) / Double(expectedWorkouts), 1.0)
+        }()
+
+        let nextTrainingDay: String? = {
+            guard todaysPlan.isRestDay, let program = activeProgram else { return nil }
+            let startOffset = UserDefaults.standard.integer(forKey: "programStartDayOffset")
+            for dayOffset in 1...6 {
+                guard let futureDate = Calendar.current.date(byAdding: .day, value: dayOffset, to: now) else { continue }
+                let dow = Calendar.current.component(.weekday, from: futureDate)
+                let mb = (dow + 5) % 7
+                let adj = (mb - startOffset + 7) % 7
+                if adj < program.days.count {
+                    let dayName = program.days[adj].name
+                    if dayOffset == 1 { return "Tomorrow (\(dayName))" }
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "EEEE"
+                    return "\(formatter.string(from: futureDate)) (\(dayName))"
+                }
+            }
+            return "Tomorrow"
+        }()
+
         let trainingContext = TrainingContext(
             todayWorkout: todaysPlan.isRestDay ? nil : todaysPlan.name,
-            completedToday: false,
+            completedToday: completedToday,
             workoutsThisWeek: workoutsThisWeek,
             weeklyTarget: activeProgram?.daysPerWeek ?? 0,
-            yesterdayWorkout: nil,
-            nextTrainingDay: todaysPlan.isRestDay ? "Tomorrow" : nil
+            yesterdayWorkout: yesterdayWorkout,
+            nextTrainingDay: nextTrainingDay,
+            todayExercises: todayExercises,
+            muscleRecovery: recoveryContextItems,
+            weeklyVolume: volumeContextItems,
+            adherenceRate: adherenceRate,
+            recentPRs: recentPRContextItems,
+            programName: activeProgram?.name,
+            programWeek: activeProgram?.currentWeek
         )
 
         var sideEffectsContext: SideEffectsContext?
