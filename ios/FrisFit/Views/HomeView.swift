@@ -258,7 +258,7 @@ struct HomeView: View {
 
     private func activeProtocolCard(_ proto: PeptideProtocol) -> some View {
         VStack(spacing: 0) {
-            GlassCard {
+            GlassCard(accent: PepTheme.teal) {
                 VStack(alignment: .leading, spacing: 0) {
                     protocolCollapsedContent(proto)
 
@@ -1669,6 +1669,7 @@ struct HomeView: View {
         } label: {
             VStack(spacing: 0) {
                 HStack(alignment: .top) {
+
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
                             Image(systemName: "figure.walk")
@@ -1704,20 +1705,24 @@ struct HomeView: View {
                     .padding(.top, 12)
             }
             .padding(16)
-            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+            .background(
+                PepTheme.teal.opacity(0.06)
+                    .overlay(PepTheme.cardSurface.opacity(0.88))
+                    .overlay(PepTheme.cardOverlay)
+            )
             .clipShape(.rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(
                         LinearGradient(
-                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
+                            colors: [PepTheme.teal.opacity(0.2), PepTheme.teal.opacity(0.06)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
                         lineWidth: 0.5
                     )
             )
-            .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 4)
+            .shadow(color: PepTheme.teal.opacity(0.1), radius: 12, x: 0, y: 4)
         }
         .buttonStyle(.scale)
         .navigationDestination(isPresented: $showStepDetail) {
@@ -1880,20 +1885,24 @@ struct HomeView: View {
             }
         }
         .padding(16)
-        .background(PepTheme.cardSurface)
+        .background(
+            Color.red.opacity(0.05)
+                .overlay(PepTheme.cardSurface.opacity(0.9))
+                .overlay(PepTheme.cardOverlay)
+        )
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
+                        colors: [Color.red.opacity(0.18), Color.red.opacity(0.05)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
                     lineWidth: 0.5
                 )
         )
-        .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 4)
+        .shadow(color: Color.red.opacity(0.08), radius: 12, x: 0, y: 4)
     }
 
     private func healthStatCell(icon: String, value: String, label: String, color: Color) -> some View {

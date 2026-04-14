@@ -8,7 +8,7 @@ struct DailyNutritionCard: View {
     @State private var isExpanded: Bool = false
 
     var body: some View {
-        GlassCard {
+        GlassCard(accent: PepTheme.amber) {
             VStack(alignment: .leading, spacing: 0) {
                 collapsedContent
 

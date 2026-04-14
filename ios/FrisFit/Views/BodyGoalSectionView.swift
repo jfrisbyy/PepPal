@@ -11,7 +11,7 @@ struct BodyGoalSectionView: View {
                     viewModel.isExpanded.toggle()
                 }
             } label: {
-                GlassCard {
+                GlassCard(accent: viewModel.currentGoal.color) {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(spacing: 10) {
                             ZStack {

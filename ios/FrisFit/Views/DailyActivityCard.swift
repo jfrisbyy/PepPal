@@ -7,7 +7,7 @@ struct DailyActivityCard: View {
     @State private var isExpanded: Bool = false
 
     var body: some View {
-        GlassCard {
+        GlassCard(accent: .orange) {
             VStack(alignment: .leading, spacing: 0) {
                 collapsedContent
 
