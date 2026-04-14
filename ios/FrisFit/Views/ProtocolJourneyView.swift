@@ -184,6 +184,14 @@ struct ProtocolJourneyView: View {
                     color: change <= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255)
                 )
             }
+            if viewModel.totalWorkouts > 0 {
+                statPill(
+                    icon: "dumbbell.fill",
+                    value: "\(viewModel.totalWorkouts)",
+                    label: "Workouts",
+                    color: Color(red: 255/255, green: 149/255, blue: 0)
+                )
+            }
             if viewModel.totalBloodworkPanels > 0 {
                 statPill(
                     icon: "drop.fill",
@@ -416,7 +424,11 @@ struct ProtocolJourneyView: View {
     private func weekSection(_ week: JourneyWeek) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             weekHeader(week)
+                .padding(.bottom, 8)
+
+            weeklySummaryCard(week.summary, goalColor: viewModel.protocolData.goal.color)
                 .padding(.bottom, 12)
+                .padding(.leading, 14)
 
             if week.events.isEmpty {
                 emptyWeekRow
@@ -428,6 +440,148 @@ struct ProtocolJourneyView: View {
         }
         .padding(.bottom, 20)
     }
+
+    // MARK: - Weekly Summary Card
+
+    private func weeklySummaryCard(_ summary: WeeklySummary, goalColor: Color) -> some View {
+        let hasWorkoutData = summary.workoutCount > 0
+        let hasNutritionData = summary.nutritionDaysLogged > 0
+        let hasTaskData = summary.totalTasks > 0
+        let hasAnyData = hasWorkoutData || hasNutritionData || hasTaskData
+
+        return Group {
+            if hasAnyData {
+                VStack(spacing: 0) {
+                    if hasWorkoutData {
+                        summarySection(
+                            icon: "dumbbell.fill",
+                            iconColor: Color(red: 255/255, green: 149/255, blue: 0),
+                            title: "Training",
+                            items: workoutSummaryItems(summary)
+                        )
+                    }
+
+                    if hasNutritionData {
+                        if hasWorkoutData {
+                            Divider()
+                                .overlay(PepTheme.separatorColor)
+                                .padding(.horizontal, 12)
+                        }
+                        summarySection(
+                            icon: "fork.knife",
+                            iconColor: Color(red: 52/255, green: 199/255, blue: 89/255),
+                            title: "Nutrition",
+                            items: nutritionSummaryItems(summary)
+                        )
+                    }
+
+                    if hasTaskData {
+                        if hasWorkoutData || hasNutritionData {
+                            Divider()
+                                .overlay(PepTheme.separatorColor)
+                                .padding(.horizontal, 12)
+                        }
+                        summarySection(
+                            icon: "checklist",
+                            iconColor: PepTheme.violet,
+                            title: "Daily Tasks",
+                            items: taskSummaryItems(summary)
+                        )
+                    }
+                }
+                .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+                .clipShape(.rect(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 0.5
+                        )
+                )
+            }
+        }
+    }
+
+    private func summarySection(icon: String, iconColor: Color, title: String, items: [(label: String, value: String, color: Color?)]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(iconColor)
+                Text(title)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+
+            HStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                    VStack(spacing: 3) {
+                        Text(item.value)
+                            .font(.system(size: 14, weight: .heavy, design: .rounded))
+                            .foregroundStyle(item.color ?? PepTheme.textPrimary)
+                        Text(item.label)
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+
+    private func workoutSummaryItems(_ summary: WeeklySummary) -> [(label: String, value: String, color: Color?)] {
+        var items: [(label: String, value: String, color: Color?)] = [
+            (label: "Sessions", value: "\(summary.workoutCount)", color: Color(red: 255/255, green: 149/255, blue: 0))
+        ]
+        if summary.totalWorkoutMinutes > 0 {
+            let hours = summary.totalWorkoutMinutes / 60
+            let mins = summary.totalWorkoutMinutes % 60
+            let timeStr = hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m"
+            items.append((label: "Duration", value: timeStr, color: nil))
+        }
+        if summary.totalCaloriesBurned > 0 {
+            items.append((label: "Burned", value: "\(summary.totalCaloriesBurned)", color: nil))
+        }
+        return items
+    }
+
+    private func nutritionSummaryItems(_ summary: WeeklySummary) -> [(label: String, value: String, color: Color?)] {
+        var items: [(label: String, value: String, color: Color?)] = []
+        if summary.avgDailyCalories > 0 {
+            items.append((label: "Avg Cal", value: "\(summary.avgDailyCalories)", color: Color(red: 52/255, green: 199/255, blue: 89/255)))
+        }
+        if summary.avgDailyProtein > 0 {
+            items.append((label: "Avg Protein", value: "\(summary.avgDailyProtein)g", color: nil))
+        }
+        if summary.avgDailyCarbs > 0 {
+            items.append((label: "Avg Carbs", value: "\(summary.avgDailyCarbs)g", color: nil))
+        }
+        if summary.avgDailyFat > 0 {
+            items.append((label: "Avg Fat", value: "\(summary.avgDailyFat)g", color: nil))
+        }
+        if items.isEmpty {
+            items.append((label: "Days Logged", value: "\(summary.nutritionDaysLogged)", color: nil))
+        }
+        return items
+    }
+
+    private func taskSummaryItems(_ summary: WeeklySummary) -> [(label: String, value: String, color: Color?)] {
+        let rate = summary.totalTasks > 0 ? Int(Double(summary.tasksCompleted) / Double(summary.totalTasks) * 100) : 0
+        let rateColor: Color = rate >= 80 ? Color(red: 52/255, green: 199/255, blue: 89/255) :
+            rate >= 50 ? PepTheme.amber : Color(red: 255/255, green: 107/255, blue: 107/255)
+        return [
+            (label: "Completed", value: "\(summary.tasksCompleted)/\(summary.totalTasks)", color: PepTheme.violet),
+            (label: "Completion", value: "\(rate)%", color: rateColor)
+        ]
+    }
+
+    // MARK: - Week Header & Events
 
     private func weekHeader(_ week: JourneyWeek) -> some View {
         HStack(spacing: 10) {

@@ -74,6 +74,22 @@ final class NutritionService {
         return f
     }()
 
+    func fetchLoggedMealsInRange(userId: String, from startDate: Date, to endDate: Date) async throws -> [SupabaseLoggedMeal] {
+        let startStr = iso8601.string(from: startDate)
+        let endStr = iso8601.string(from: endDate)
+
+        let response: [SupabaseLoggedMeal] = try await supabase
+            .from("logged_meals")
+            .select()
+            .eq("user_id", value: userId)
+            .gte("logged_at", value: startStr)
+            .lt("logged_at", value: endStr)
+            .order("logged_at", ascending: true)
+            .execute()
+            .value
+        return response
+    }
+
     func fetchLoggedMeals(userId: String, date: Date) async throws -> [SupabaseLoggedMeal] {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
