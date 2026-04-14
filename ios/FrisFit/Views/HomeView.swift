@@ -108,7 +108,14 @@ struct HomeView: View {
                 EditProfileView(viewModel: profileNudgeState.profileViewModel)
             }
             .sheet(isPresented: $showProgramCreation) {
-                ProgramCreationView(viewModel: trainViewModel)
+                ProgramCreationView(
+                    viewModel: trainViewModel,
+                    activeProtocol: viewModel.activeProtocol,
+                    bodyGoal: bodyGoalViewModel.currentGoal,
+                    currentWeight: bodyGoalViewModel.currentWeight > 0 ? bodyGoalViewModel.currentWeight : nil,
+                    targetWeight: bodyGoalViewModel.targetWeight > 0 ? bodyGoalViewModel.targetWeight : nil,
+                    totalWorkouts: trainViewModel.workoutHistory.count
+                )
             }
             .fullScreenCover(isPresented: $trainViewModel.showProgramBuilder) {
                 ProgramBuilderView(viewModel: trainViewModel)

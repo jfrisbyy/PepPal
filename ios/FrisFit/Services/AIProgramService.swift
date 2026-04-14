@@ -9,6 +9,29 @@ nonisolated struct AIProgramRequest: Sendable {
     let peptideProtocol: String
     let sessionLength: Int
     let preferences: String
+    let userContext: String
+
+    init(
+        goal: String,
+        daysPerWeek: Int,
+        equipment: [String],
+        experience: String,
+        injuries: String,
+        peptideProtocol: String,
+        sessionLength: Int,
+        preferences: String,
+        userContext: String = ""
+    ) {
+        self.goal = goal
+        self.daysPerWeek = daysPerWeek
+        self.equipment = equipment
+        self.experience = experience
+        self.injuries = injuries
+        self.peptideProtocol = peptideProtocol
+        self.sessionLength = sessionLength
+        self.preferences = preferences
+        self.userContext = userContext
+    }
 }
 
 nonisolated struct AIProgramExerciseJSON: Codable, Sendable {
@@ -43,7 +66,9 @@ final class AIProgramService {
         let exerciseNames = ExerciseLibrary.all.map(\.name).joined(separator: ", ")
 
         let systemPrompt = """
-        You are an expert strength & conditioning coach building a personalized training program. You MUST only use exercises from this list: [\(exerciseNames)]. Do not invent exercises.
+        You are an expert strength & conditioning coach and peptide-informed programming specialist. You build personalized training programs that account for the user's full biometric, pharmacological, and training context.
+
+        You MUST only use exercises from this list: [\(exerciseNames)]. Do not invent exercises.
 
         RULES:
         - Design a program with exactly \(request.daysPerWeek) training days
@@ -52,9 +77,24 @@ final class AIProgramService {
         - Balance push/pull volume across the week
         - Match exercise selection to available equipment
         - If there are injuries/limitations, avoid exercises that aggravate them
-        - If a peptide protocol is mentioned, factor it into exercise selection (e.g., BPC-157 for shoulder = avoid heavy overhead pressing early on; GH secretagogues = favor higher volume hypertrophy)
         - Session should fit within ~\(request.sessionLength) minutes
         - Sets range: 2-5, Reps range: 3-20 depending on goal
+
+        PEPTIDE/COMPOUND-AWARE PROGRAMMING:
+        - GLP-1 agonists (semaglutide, tirzepatide, retatrutide): User is likely in a deficit with suppressed appetite. Prioritize muscle preservation — heavier loads, moderate volume, compound-focused. Avoid excessive metabolic conditioning.
+        - GH secretagogues (CJC-1295, ipamorelin, tesamorelin, sermorelin): Enhanced recovery allows higher volume and frequency. Favor hypertrophy-style programming with each muscle hit 2x/week.
+        - Healing peptides (BPC-157, TB-500, GHK-Cu): User may be rehabbing an injury. Include progressive loading for healing areas, compensatory volume for unaffected muscles, and prehab/mobility work.
+        - Anabolic peptides (IGF-1, follistatin): Enhanced protein synthesis — program can handle higher volume and progressive overload.
+        - Off-cycle phase: Reduce volume 30-40%, keep intensity moderate, focus on maintenance.
+        - Loading phase: Start conservative, plan to ramp volume over 2-3 weeks.
+
+        BODY GOAL AWARENESS:
+        - Cutting/Weight Loss: Preserve muscle with heavy compounds, moderate volume, 3-4 days
+        - Bulking/Weight Gain: High volume, progressive overload, 4-6 days, each muscle 2x/week
+        - Recomp: Balance strength work with hypertrophy, include some metabolic conditioning
+        - Maintenance: Minimal effective dose — 3 days, compound-focused, 2-3 sets per exercise
+
+        Give the program a creative, specific name that reflects the strategy (not generic like "4-Day Split").
 
         RESPOND WITH ONLY valid JSON matching this structure, no markdown:
         {
@@ -82,8 +122,11 @@ final class AIProgramService {
         if !request.peptideProtocol.isEmpty {
             userParts.append("Current peptide protocol: \(request.peptideProtocol)")
         }
+        if !request.userContext.isEmpty {
+            userParts.append("User profile data:\n\(request.userContext)")
+        }
         if !request.preferences.isEmpty {
-            userParts.append("Additional preferences: \(request.preferences)")
+            userParts.append("Strategy & preferences:\n\(request.preferences)")
         }
 
         let messages: [[String: Any]] = [

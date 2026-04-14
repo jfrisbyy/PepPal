@@ -2,6 +2,13 @@ import SwiftUI
 
 struct AIBuildProgramView: View {
     @Bindable var viewModel: TrainViewModel
+    var activeProtocol: PeptideProtocol? = nil
+    var bodyGoal: FitnessGoalType? = nil
+    var currentWeight: Double? = nil
+    var targetWeight: Double? = nil
+    var totalWorkouts: Int = 0
+    var preSelectedSuggestion: SmartProgramSuggestion? = nil
+
     @Environment(\.dismiss) private var dismiss
     @State private var currentStep: Int = 0
     @State private var selectedGoal: String = ""
@@ -16,11 +23,27 @@ struct AIBuildProgramView: View {
     @State private var generatedProgram: TrainingProgram? = nil
     @State private var errorMessage: String? = nil
     @State private var expandedDayId: UUID? = nil
+    @State private var hasAutoFilled: Bool = false
 
-    private let goals = ["Hypertrophy (Muscle Growth)", "Strength", "Recomp (Lose Fat + Build Muscle)", "General Fitness", "Athletic Performance", "Powerlifting"]
+    private let goals = ["Hypertrophy (Muscle Growth)", "Strength", "Recomp (Lose Fat + Build Muscle)", "General Fitness", "Athletic Performance", "Powerlifting", "Muscle Preservation (Deficit)", "Maintenance (Minimal Volume)"]
     private let equipmentOptions = ["Barbell", "Dumbbell", "Cable", "Machine", "Bodyweight", "Kettlebell", "Band"]
     private let experienceLevels = ["Beginner", "Intermediate", "Advanced"]
     private let sessionLengths = [30, 45, 60, 75, 90]
+
+    private var hasUserContext: Bool {
+        activeProtocol != nil || bodyGoal != nil
+    }
+
+    private var userContextSummary: String {
+        SmartProgramEngine.buildUserContextSummary(
+            activeProtocol: activeProtocol,
+            bodyGoal: bodyGoal,
+            currentWeight: currentWeight,
+            targetWeight: targetWeight,
+            workoutsThisWeek: viewModel.workoutsCompletedThisWeek,
+            totalWorkouts: totalWorkouts
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -47,7 +70,7 @@ struct AIBuildProgramView: View {
                 }
             }
             .background(PepTheme.background.ignoresSafeArea())
-            .navigationTitle("AI Program Builder")
+            .navigationTitle(preSelectedSuggestion != nil ? "Smart Program Builder" : "AI Program Builder")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -55,6 +78,71 @@ struct AIBuildProgramView: View {
                         .foregroundStyle(PepTheme.textSecondary)
                 }
             }
+            .onAppear {
+                if !hasAutoFilled {
+                    autoFillFromContext()
+                    hasAutoFilled = true
+                }
+            }
+        }
+    }
+
+    private func autoFillFromContext() {
+        if let suggestion = preSelectedSuggestion {
+            switch suggestion.strategy {
+            case .cutPreservation:
+                selectedGoal = "Muscle Preservation (Deficit)"
+                daysPerWeek = 4
+                sessionLength = 60
+            case .aggressiveGain, .highFrequencyHypertrophy:
+                selectedGoal = "Hypertrophy (Muscle Growth)"
+                daysPerWeek = 5
+                sessionLength = 75
+            case .recompFocus:
+                selectedGoal = "Recomp (Lose Fat + Build Muscle)"
+                daysPerWeek = 4
+                sessionLength = 60
+            case .maintenanceLift, .minimalistEfficient:
+                selectedGoal = "Maintenance (Minimal Volume)"
+                daysPerWeek = 3
+                sessionLength = 45
+            case .healingAdapted:
+                selectedGoal = "General Fitness"
+                daysPerWeek = 3
+                sessionLength = 45
+            case .strengthFoundation:
+                selectedGoal = "Strength"
+                daysPerWeek = 4
+                sessionLength = 60
+            case .peptideOptimized:
+                selectedGoal = "Hypertrophy (Muscle Growth)"
+                daysPerWeek = 4
+                sessionLength = 60
+            }
+            return
+        }
+
+        if let goal = bodyGoal {
+            switch goal {
+            case .weightLoss, .cutting:
+                selectedGoal = "Muscle Preservation (Deficit)"
+                daysPerWeek = 4
+            case .weightGain, .bulking:
+                selectedGoal = "Hypertrophy (Muscle Growth)"
+                daysPerWeek = 5
+            case .recomp:
+                selectedGoal = "Recomp (Lose Fat + Build Muscle)"
+                daysPerWeek = 4
+            case .maintain:
+                selectedGoal = "Maintenance (Minimal Volume)"
+                daysPerWeek = 3
+            }
+        }
+
+        if totalWorkouts == 0 {
+            experience = "Beginner"
+        } else if totalWorkouts > 100 {
+            experience = "Advanced"
         }
     }
 
@@ -77,10 +165,18 @@ struct AIBuildProgramView: View {
     private var goalStep: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                if let suggestion = preSelectedSuggestion {
+                    suggestionBanner(suggestion)
+                } else if hasUserContext {
+                    autoFilledBanner
+                }
+
                 stepHeader(
                     icon: "target",
                     title: "What's your goal?",
-                    subtitle: "This shapes your entire program — exercise selection, rep ranges, and volume."
+                    subtitle: hasUserContext
+                        ? "Pre-selected based on your data — change it if you want."
+                        : "This shapes your entire program — exercise selection, rep ranges, and volume."
                 )
 
                 VStack(spacing: 10) {
@@ -119,6 +215,65 @@ struct AIBuildProgramView: View {
             .padding(.horizontal)
             .padding(.top, 16)
         }
+    }
+
+    private func suggestionBanner(_ suggestion: SmartProgramSuggestion) -> some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(
+                        LinearGradient(colors: suggestion.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                    .frame(width: 32, height: 32)
+
+                Image(systemName: suggestion.icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(suggestion.title)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("Settings pre-configured for this strategy")
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            Spacer()
+
+            if let badge = suggestion.badge {
+                Text(badge)
+                    .font(.system(size: 7, weight: .black))
+                    .foregroundStyle(suggestion.badgeColor)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(suggestion.badgeColor.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(12)
+        .background(PepTheme.violet.opacity(0.05))
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(PepTheme.violet.opacity(0.15), lineWidth: 0.5)
+        )
+    }
+
+    private var autoFilledBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "brain.head.profile")
+                .font(.system(size: 12))
+                .foregroundStyle(PepTheme.violet)
+            Text("Auto-filled from your profile & protocol data")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+            Spacer()
+        }
+        .padding(10)
+        .background(PepTheme.violet.opacity(0.05))
+        .clipShape(.rect(cornerRadius: 10))
     }
 
     // MARK: - Step 2: Schedule
@@ -257,9 +412,15 @@ struct AIBuildProgramView: View {
             VStack(alignment: .leading, spacing: 20) {
                 stepHeader(
                     icon: "person.text.rectangle",
-                    title: "A few more details",
-                    subtitle: "Optional — but the more the AI knows, the better your program."
+                    title: "Review & Fine-Tune",
+                    subtitle: hasUserContext
+                        ? "Your data is already loaded. Add anything else the AI should know."
+                        : "Optional — but the more the AI knows, the better your program."
                 )
+
+                if hasUserContext {
+                    userDataCard
+                }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Experience Level")
@@ -305,29 +466,31 @@ struct AIBuildProgramView: View {
                         )
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Include Peptide Protocol Context")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(PepTheme.textSecondary)
-                        Spacer()
-                        Toggle("", isOn: $includePeptideContext)
-                            .labelsHidden()
-                            .tint(PepTheme.violet)
-                    }
-
-                    if includePeptideContext {
-                        HStack(spacing: 8) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 11))
-                                .foregroundStyle(PepTheme.violet)
-                            Text("The AI will factor in your active peptide protocol to customize exercise selection and volume.")
-                                .font(.system(size: 11))
+                if activeProtocol != nil {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Include Protocol Context")
+                                .font(.caption.weight(.semibold))
                                 .foregroundStyle(PepTheme.textSecondary)
+                            Spacer()
+                            Toggle("", isOn: $includePeptideContext)
+                                .labelsHidden()
+                                .tint(PepTheme.violet)
                         }
-                        .padding(10)
-                        .background(PepTheme.violet.opacity(0.06))
-                        .clipShape(.rect(cornerRadius: 8))
+
+                        if includePeptideContext {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(PepTheme.violet)
+                                Text("The AI will factor in your active protocol, phase, and compounds to customize the program.")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                            .padding(10)
+                            .background(PepTheme.violet.opacity(0.06))
+                            .clipShape(.rect(cornerRadius: 8))
+                        }
                     }
                 }
 
@@ -353,6 +516,71 @@ struct AIBuildProgramView: View {
         }
     }
 
+    private var userDataCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "person.crop.circle.badge.checkmark")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.green)
+                Text("Your Data — Sending to AI")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                if let proto = activeProtocol {
+                    dataRow(icon: "syringe.fill", color: proto.goal.color,
+                            text: "\(proto.name) · \(proto.currentPhase.rawValue) · Week \(proto.currentWeek)")
+                    let compoundNames = proto.compounds.map { $0.compoundName }.joined(separator: ", ")
+                    if !compoundNames.isEmpty {
+                        dataRow(icon: "pill.fill", color: PepTheme.textSecondary, text: compoundNames)
+                    }
+                }
+
+                if let goal = bodyGoal {
+                    dataRow(icon: goal.icon, color: goal.color, text: "Goal: \(goal.rawValue)")
+                }
+
+                if let cw = currentWeight, cw > 0 {
+                    let weightText = targetWeight != nil && targetWeight! > 0
+                        ? "\(String(format: "%.0f", cw)) → \(String(format: "%.0f", targetWeight!)) lbs"
+                        : "\(String(format: "%.0f", cw)) lbs"
+                    dataRow(icon: "scalemass", color: PepTheme.teal, text: weightText)
+                }
+
+                dataRow(icon: "figure.run", color: PepTheme.blue,
+                        text: "\(totalWorkouts) total sessions · \(viewModel.workoutsCompletedThisWeek)/wk avg")
+            }
+        }
+        .padding(12)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    private func dataRow(icon: String, color: Color, text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 9))
+                .foregroundStyle(color)
+                .frame(width: 14)
+            Text(text)
+                .font(.system(size: 11))
+                .foregroundStyle(PepTheme.textSecondary)
+                .lineLimit(1)
+        }
+    }
+
     // MARK: - Generating
 
     private var generatingView: some View {
@@ -375,7 +603,9 @@ struct AIBuildProgramView: View {
                     .font(.title3.weight(.bold))
                     .foregroundStyle(PepTheme.textPrimary)
 
-                Text("The AI is designing a personalized program\nbased on your inputs...")
+                Text(hasUserContext
+                    ? "Analyzing your protocol, goals, and history\nto build the perfect program..."
+                    : "The AI is designing a personalized program\nbased on your inputs...")
                     .font(.subheadline)
                     .foregroundStyle(PepTheme.textSecondary)
                     .multilineTextAlignment(.center)
@@ -624,17 +854,31 @@ struct AIBuildProgramView: View {
         }
     }
 
-    private func getPeptideContext() -> String {
-        guard includePeptideContext else { return "" }
-        let protocolKey = "savedActiveProtocol"
-        guard let data = UserDefaults.standard.data(forKey: protocolKey) else { return "" }
-        guard let protocolInfo = try? JSONDecoder().decode(SavedProtocolInfo.self, from: data) else { return "" }
-        return protocolInfo.summary
+    private func buildProtocolContext() -> String {
+        guard includePeptideContext, let proto = activeProtocol else {
+            guard includePeptideContext else { return "" }
+            let protocolKey = "savedActiveProtocol"
+            guard let data = UserDefaults.standard.data(forKey: protocolKey) else { return "" }
+            guard let protocolInfo = try? JSONDecoder().decode(SavedProtocolInfo.self, from: data) else { return "" }
+            return protocolInfo.summary
+        }
+        let compoundDetails = proto.compounds.map { "\($0.compoundName) \($0.doseMcg)mcg \($0.frequency) (\($0.injectionRoute.rawValue))" }.joined(separator: "; ")
+        var parts = ["\(proto.name) — Goal: \(proto.goal.rawValue), Phase: \(proto.currentPhase.rawValue), Week \(proto.currentWeek)"]
+        if let tw = proto.totalWeeks {
+            parts.append("of \(tw)")
+        }
+        parts.append("Compounds: \(compoundDetails)")
+        return parts.joined(separator: " | ")
     }
 
     private func generateProgram() {
         isGenerating = true
         errorMessage = nil
+
+        var enrichedPreferences = preferences
+        if let suggestion = preSelectedSuggestion {
+            enrichedPreferences = [suggestion.aiPromptContext, preferences].filter { !$0.isEmpty }.joined(separator: "\n\n")
+        }
 
         let request = AIProgramRequest(
             goal: selectedGoal,
@@ -642,9 +886,10 @@ struct AIBuildProgramView: View {
             equipment: Array(selectedEquipment),
             experience: experience,
             injuries: injuries,
-            peptideProtocol: getPeptideContext(),
+            peptideProtocol: buildProtocolContext(),
             sessionLength: sessionLength,
-            preferences: preferences
+            preferences: enrichedPreferences,
+            userContext: userContextSummary
         )
 
         Task {
