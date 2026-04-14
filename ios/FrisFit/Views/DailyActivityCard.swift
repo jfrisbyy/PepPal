@@ -2,80 +2,180 @@ import SwiftUI
 
 struct DailyActivityCard: View {
     @Bindable var viewModel: EnergyBalanceViewModel
+    var aiInsight: String? = nil
     var onLogActivity: () -> Void
+    @State private var isExpanded: Bool = false
 
     var body: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    HStack(spacing: 6) {
-                        Image(systemName: "flame.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.orange)
-                        Text("Activity")
-                            .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-                    Spacer()
-                    Button {
-                        onLogActivity()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 10, weight: .bold))
-                            Text("Log")
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                        .foregroundStyle(PepTheme.teal)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(PepTheme.teal.opacity(0.12))
-                        .clipShape(.capsule)
-                    }
-                }
+            VStack(alignment: .leading, spacing: 0) {
+                collapsedContent
 
-                if viewModel.isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                            .tint(PepTheme.teal)
-                        Spacer()
-                    }
-                    .padding(.vertical, 8)
-                } else {
-                    caloriesBurnedHeader
-
-                    HStack(spacing: 0) {
-                        activityStat(
-                            icon: "bolt.heart.fill",
-                            label: "BMR",
-                            value: "\(viewModel.bmr)",
-                            color: PepTheme.violet
-                        )
-                        activityStatDivider
-                        activityStat(
-                            icon: "figure.run",
-                            label: "Exercise",
-                            value: "\(viewModel.activityCalories)",
-                            color: .orange
-                        )
-                        activityStatDivider
-                        activityStat(
-                            icon: "flame.fill",
-                            label: "Total Burn",
-                            value: "\(viewModel.totalBurn)",
-                            color: Color(red: 1, green: 0.35, blue: 0.35)
-                        )
-                    }
-
-                    energyBalanceBar
-
-                    balanceStatusRow
+                if isExpanded {
+                    expandedContent
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                isExpanded.toggle()
+            }
+        }
+        .sensoryFeedback(.selection, trigger: isExpanded)
         .onAppear {
             viewModel.loadData()
+        }
+    }
+
+    private var collapsedContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "flame.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                    Text("Activity")
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                }
+                Spacer()
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                    .contentTransition(.symbolEffect(.replace))
+            }
+
+            if viewModel.isLoading {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                        .tint(PepTheme.teal)
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+            } else {
+                caloriesBurnedHeader
+                energyBalanceBar
+                balanceStatusRow
+            }
+        }
+    }
+
+    private var expandedContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Divider().overlay(PepTheme.shimmerHighlight)
+                .padding(.top, 12)
+
+            if let insight = aiInsight {
+                AIInsightStrip(content: insight, color: .orange)
+            }
+
+            HStack(spacing: 0) {
+                activityStat(
+                    icon: "bolt.heart.fill",
+                    label: "BMR",
+                    value: "\(viewModel.bmr)",
+                    color: PepTheme.violet
+                )
+                activityStatDivider
+                activityStat(
+                    icon: "figure.run",
+                    label: "Exercise",
+                    value: "\(viewModel.activityCalories)",
+                    color: .orange
+                )
+                activityStatDivider
+                activityStat(
+                    icon: "flame.fill",
+                    label: "Total Burn",
+                    value: "\(viewModel.totalBurn)",
+                    color: Color(red: 1, green: 0.35, blue: 0.35)
+                )
+            }
+
+            logActivityButton
+
+            if !viewModel.todaysActivities.isEmpty {
+                recentActivitiesSection
+            }
+        }
+    }
+
+    private var logActivityButton: some View {
+        Button {
+            onLogActivity()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("Log Activity")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .background(.orange.gradient)
+            .clipShape(.rect(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var recentActivitiesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Today's Activities")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(PepTheme.textSecondary)
+
+            ForEach(Array(viewModel.todaysActivities.prefix(5).enumerated()), id: \.element.id) { _, activity in
+                recentActivityRow(activity)
+            }
+        }
+    }
+
+    private func recentActivityRow(_ activity: EnergyActivityLog) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: activityIcon(for: activity.activity_type))
+                .font(.system(size: 12))
+                .foregroundStyle(.orange)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(activity.sport ?? activity.activity_type.capitalized)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(1)
+
+                if let dur = activity.duration_minutes {
+                    Text("\(dur) min")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                }
+            }
+
+            Spacer()
+
+            if let cal = activity.calories_burned {
+                Text("\(cal) cal")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(PepTheme.elevated.opacity(0.5))
+        .clipShape(.rect(cornerRadius: 8))
+    }
+
+    private func activityIcon(for type: String) -> String {
+        switch type.lowercased() {
+        case "workout", "strength": return "figure.strengthtraining.traditional"
+        case "cardio", "running": return "figure.run"
+        case "walking": return "figure.walk"
+        case "cycling": return "figure.outdoor.cycle"
+        case "swimming": return "figure.pool.swim"
+        default: return "flame.fill"
         }
     }
 

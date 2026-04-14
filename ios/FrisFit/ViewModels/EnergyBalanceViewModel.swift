@@ -15,6 +15,7 @@ final class EnergyBalanceViewModel {
     var isLoading: Bool = false
     var hasLoaded: Bool = false
     var todaysMeals: [SupabaseLoggedMeal] = []
+    var todaysActivities: [EnergyActivityLog] = []
     var goalType: String = "weightLoss"
     private var mealChangeObserver: Any?
 
@@ -134,6 +135,9 @@ final class EnergyBalanceViewModel {
 
             activityCalories = calData.calories
             activityCount = calData.count
+
+            let activities = try? await ActivityLogService.shared.fetchTodayActivities(userId: userId)
+            todaysActivities = activities ?? []
 
             var totalCal = 0
             var totalPro = 0.0
