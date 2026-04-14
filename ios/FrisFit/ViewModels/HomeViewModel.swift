@@ -4,6 +4,9 @@ import Auth
 @Observable
 final class HomeViewModel {
     var dailyTasks: [DailyTask] = DailyTaskLibrary.defaultTasks()
+    var protocolDeckFocus: String = ""
+    var hasProtocolDeck: Bool = false
+    private var lastProtocolDeckId: UUID?
     var customCategories: [CustomTaskCategory] = []
     var isLoading: Bool = true
     var taskSupabaseIds: [UUID: String] = [:]
@@ -599,6 +602,33 @@ final class HomeViewModel {
         }
     }
 
+    func applyProtocolDeck() {
+        guard let proto = activeProtocol else {
+            if hasProtocolDeck {
+                dailyTasks.removeAll { $0.isProtocolRecommended }
+                hasProtocolDeck = false
+                protocolDeckFocus = ""
+                lastProtocolDeckId = nil
+            }
+            return
+        }
+
+        if lastProtocolDeckId == proto.id { return }
+        lastProtocolDeckId = proto.id
+
+        dailyTasks.removeAll { $0.isProtocolRecommended }
+
+        let ctx = ProtocolDeckEngine.context(from: proto)
+        let protocolTasks = ProtocolDeckEngine.generateTasks(for: ctx)
+        protocolDeckFocus = ProtocolDeckEngine.deckFocusNote(for: ctx)
+        hasProtocolDeck = true
+
+        let existingNames = Set(dailyTasks.map { $0.name.lowercased() })
+        let uniqueTasks = protocolTasks.filter { !existingNames.contains($0.name.lowercased()) }
+
+        dailyTasks.insert(contentsOf: uniqueTasks, at: 0)
+    }
+
     func loadProtocolsFromSupabase() {
         guard AuthService.shared.authState == .signedIn else {
             Task {
@@ -615,6 +645,7 @@ final class HomeViewModel {
                 let protocols = try await ProtocolService.shared.fetchProtocols()
                 allProtocols = protocols
                 activeProtocol = protocols.first { $0.isActive }
+                applyProtocolDeck()
             } catch {
                 print("[HomeVM] Failed to load protocols: \(error)")
             }
@@ -625,11 +656,13 @@ final class HomeViewModel {
         if proto.supabaseId != nil {
             activeProtocol = proto
             allProtocols.insert(proto, at: 0)
+            applyProtocolDeck()
             return
         }
         guard AuthService.shared.authState == .signedIn else {
             activeProtocol = proto
             allProtocols.insert(proto, at: 0)
+            applyProtocolDeck()
             return
         }
         Task {

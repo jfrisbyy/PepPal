@@ -297,6 +297,8 @@ struct DailyTask: Identifiable, Sendable {
     var actionTarget: Int
     var goalDescription: String
     var isUserCreated: Bool
+    var isProtocolRecommended: Bool
+    var protocolReason: String
 
     init(
         id: UUID = UUID(),
@@ -311,7 +313,9 @@ struct DailyTask: Identifiable, Sendable {
         actionLink: TaskActionLink = .none,
         actionTarget: Int = 0,
         goalDescription: String = "",
-        isUserCreated: Bool = false
+        isUserCreated: Bool = false,
+        isProtocolRecommended: Bool = false,
+        protocolReason: String = ""
     ) {
         self.id = id
         self.name = name
@@ -326,6 +330,8 @@ struct DailyTask: Identifiable, Sendable {
         self.actionTarget = actionTarget
         self.goalDescription = goalDescription
         self.isUserCreated = isUserCreated
+        self.isProtocolRecommended = isProtocolRecommended
+        self.protocolReason = protocolReason
     }
 
     func isScheduledForToday() -> Bool {
