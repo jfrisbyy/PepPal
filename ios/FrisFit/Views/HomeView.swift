@@ -20,6 +20,8 @@ struct HomeView: View {
     @State private var showLogActivity: Bool = false
     @State private var trainViewModel = TrainViewModel()
     @State private var showProgramCreation: Bool = false
+    @State private var todaysPlanVM = TodaysPlanViewModel()
+    @State private var nutritionViewModel = NutritionViewModel()
 
     var body: some View {
         NavigationStack {
@@ -139,7 +141,7 @@ struct HomeView: View {
             if let encouragement = viewModel.streakEncouragement {
                 streakEncouragementCard(message: encouragement)
             }
-            pepInsightCard
+            aiDailyBriefingCard
             quickStatsBar
         }
         .padding(.horizontal)
@@ -1261,59 +1263,42 @@ struct HomeView: View {
 
 
 
-    // MARK: - Finn Insight
+    // MARK: - AI Daily Briefing
 
-    private var pepInsightCard: some View {
-        Button {
+    private var aiDailyBriefingCard: some View {
+        TodaysPlanCardView(viewModel: todaysPlanVM) {
             showPepChat = true
-        } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 12) {
-                    PepAvatar(size: 44)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Pep's Daily Insight")
-                                .font(.system(.subheadline, weight: .semibold))
-                                .foregroundStyle(PepTheme.violet)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                                .foregroundStyle(PepTheme.violet.opacity(0.5))
-                        }
-
-                        Text(viewModel.pepInsight)
-                            .font(.subheadline)
-                            .italic()
-                            .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                            .lineSpacing(3)
-                            .multilineTextAlignment(.leading)
-                    }
-                }
-            }
-            .padding(16)
-            .background(
-                PepTheme.violet.opacity(0.08)
-                    .overlay(PepTheme.cardSurface.opacity(0.7))
-            )
-            .clipShape(.rect(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [PepTheme.violet.opacity(0.25), PepTheme.violet.opacity(0.05)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
-                    )
-            )
-            .shadow(color: PepTheme.violet.opacity(0.15), radius: 12, x: 0, y: 4)
         }
-        .buttonStyle(.scale)
+        .onAppear {
+            todaysPlanVM.loadCachedPlan()
+            if todaysPlanVM.needsRefresh {
+                triggerPlanFetch()
+            }
+        }
+        .onChange(of: todaysPlanVM.planResponse == nil) { _, isNil in
+            if isNil && !todaysPlanVM.isLoading {
+                triggerPlanFetch()
+            }
+        }
         .fullScreenCover(isPresented: $showPepChat) {
             PepChatView()
         }
+    }
+
+    private func triggerPlanFetch() {
+        todaysPlanVM.fetchPlan(
+            firstName: viewModel.userFirstName,
+            activeProtocol: viewModel.activeProtocol,
+            nutrition: viewModel.nutrition,
+            nutritionTarget: nutritionViewModel.dailyTarget,
+            loggedMeals: nutritionViewModel.loggedMeals,
+            bodyGoalVM: bodyGoalViewModel,
+            todaysPlan: viewModel.todaysPlan,
+            activeProgram: viewModel.activeProgram,
+            bloodworkEntries: [],
+            streakDays: viewModel.quickStats.streakDays,
+            workoutsThisWeek: viewModel.quickStats.workoutsThisWeek
+        )
     }
 
     // MARK: - Activity Feed
