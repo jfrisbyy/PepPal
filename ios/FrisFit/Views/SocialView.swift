@@ -102,6 +102,12 @@ struct SocialView: View {
                 }
             }
             .task {
+                await viewModel.initialLoad()
+                if !viewModel.isLoadingFeed && isLoading {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        isLoading = false
+                    }
+                }
                 await notificationsViewModel.refreshUnreadCount()
             }
         }

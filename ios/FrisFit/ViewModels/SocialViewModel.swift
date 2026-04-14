@@ -37,12 +37,12 @@ final class SocialViewModel {
         }
     }
 
-    init() {
-        Task {
-            await loadFollowingIds()
-            await loadSentRequests()
-            await loadFeed()
-        }
+    init() {}
+
+    func initialLoad() async {
+        await loadFollowingIds()
+        await loadSentRequests()
+        await loadFeed()
     }
 
     private func loadFollowingIds() async {
