@@ -123,15 +123,14 @@ struct HomeView: View {
             if !profileNudgeState.isComplete && !profileNudgeState.isDismissed {
                 profileCompletionNudge
             }
-            aiDailyBriefingCard
             DailyDeckBannerView(viewModel: viewModel)
             todaysPlanCard
             protocolCard
-            BodyGoalSectionView(viewModel: bodyGoalViewModel)
+            BodyGoalSectionView(viewModel: bodyGoalViewModel, aiInsight: todaysPlanVM.moduleContent(for: "body"))
             DailyActivityCard(viewModel: energyBalanceViewModel, onLogActivity: {
                 showLogActivity = true
             })
-            DailyNutritionCard(viewModel: energyBalanceViewModel, onTapNutrition: {
+            DailyNutritionCard(viewModel: energyBalanceViewModel, aiInsight: todaysPlanVM.moduleContent(for: "nutrition"), onTapNutrition: {
                 showNutrition = true
             })
             .navigationDestination(isPresented: $showNutrition) {
@@ -235,123 +234,141 @@ struct HomeView: View {
     }
 
     private func activeProtocolCard(_ proto: PeptideProtocol) -> some View {
-        Button {
-            showProtocolDetail = true
-        } label: {
-            GlassCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "pill.fill")
-                                    .font(.subheadline)
-                                    .foregroundStyle(PepTheme.teal)
-                                Text("Active Protocol")
-                                    .font(.system(.caption, weight: .semibold))
-                                    .foregroundStyle(PepTheme.textSecondary)
-                            }
-                            Text(proto.name)
-                                .font(.system(.headline, design: .rounded, weight: .bold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                        }
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(proto.weekLabel)
-                                .font(.system(.caption, design: .rounded, weight: .bold))
-                                .foregroundStyle(PepTheme.teal)
-                            if proto.hasPhases {
-                                Text(proto.currentPhase.rawValue)
-                                    .font(.system(.caption2, weight: .semibold))
-                                    .foregroundStyle(proto.currentPhase.color)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(proto.currentPhase.color.opacity(0.12))
-                                    .clipShape(.capsule)
-                            }
-                        }
-                    }
-
-                    if !proto.compounds.isEmpty {
-                        HStack(spacing: 6) {
-                            ForEach(proto.compounds.prefix(3)) { compound in
-                                HStack(spacing: 4) {
+        VStack(spacing: 0) {
+            Button {
+                showProtocolDetail = true
+            } label: {
+                GlassCard {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 6) {
                                     Image(systemName: "pill.fill")
-                                        .font(.system(size: 9))
+                                        .font(.subheadline)
                                         .foregroundStyle(PepTheme.teal)
-                                    Text("\(compound.compoundName) \(CompoundUnitHelper.displayDoseShort(compound.doseMcg, for: compound.compoundName))")
-                                        .font(.system(size: 10, weight: .medium))
+                                    Text("Active Protocol")
+                                        .font(.system(.caption, weight: .semibold))
                                         .foregroundStyle(PepTheme.textSecondary)
                                 }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(PepTheme.elevated.opacity(0.5))
+                                Text(proto.name)
+                                    .font(.system(.headline, design: .rounded, weight: .bold))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                            }
+                            Spacer()
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(proto.weekLabel)
+                                    .font(.system(.caption, design: .rounded, weight: .bold))
+                                    .foregroundStyle(PepTheme.teal)
+                                if proto.hasPhases {
+                                    Text(proto.currentPhase.rawValue)
+                                        .font(.system(.caption2, weight: .semibold))
+                                        .foregroundStyle(proto.currentPhase.color)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(proto.currentPhase.color.opacity(0.12))
+                                        .clipShape(.capsule)
+                                }
+                            }
+                        }
+
+                        if let protocolInsight = todaysPlanVM.moduleContent(for: "protocol") {
+                            AIInsightStrip(content: protocolInsight, color: PepTheme.teal)
+                        }
+
+                        if !proto.compounds.isEmpty {
+                            HStack(spacing: 6) {
+                                ForEach(proto.compounds.prefix(3)) { compound in
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "pill.fill")
+                                            .font(.system(size: 9))
+                                            .foregroundStyle(PepTheme.teal)
+                                        Text("\(compound.compoundName) \(CompoundUnitHelper.displayDoseShort(compound.doseMcg, for: compound.compoundName))")
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundStyle(PepTheme.textSecondary)
+                                    }
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(PepTheme.elevated.opacity(0.5))
+                                    .clipShape(.capsule)
+                                }
+                            }
+                        }
+
+                        HStack(spacing: 12) {
+                            Button {
+                                showProtocolDetail = true
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "syringe.fill")
+                                        .font(.system(size: 12))
+                                    Text("Log Dose")
+                                        .font(.system(.caption, weight: .bold))
+                                }
+                                .foregroundStyle(PepTheme.invertedText)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(PepTheme.teal)
                                 .clipShape(.capsule)
                             }
-                        }
-                    }
 
-                    HStack(spacing: 12) {
-                        Button {
-                            showProtocolDetail = true
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "syringe.fill")
-                                    .font(.system(size: 12))
-                                Text("Log Dose")
-                                    .font(.system(.caption, weight: .bold))
-                            }
-                            .foregroundStyle(PepTheme.invertedText)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(PepTheme.teal)
-                            .clipShape(.capsule)
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                         }
 
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                    }
-
-                    if proto.hasPhases {
-                        let lw = proto.loadingWeeks ?? 0
-                        let mw = proto.maintenanceWeeks ?? 0
-                        let tw = proto.taperingWeeks ?? 0
-                        let ow = proto.offCycleWeeks ?? 0
-                        let total = max(1, lw + mw + tw + ow)
-                        GeometryReader { geo in
-                            HStack(spacing: 2) {
-                                if lw > 0 {
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .fill(CyclePhase.loading.color)
-                                        .frame(width: geo.size.width * CGFloat(lw) / CGFloat(total))
-                                }
-                                if mw > 0 {
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .fill(CyclePhase.maintenance.color)
-                                        .frame(width: geo.size.width * CGFloat(mw) / CGFloat(total))
-                                }
-                                if tw > 0 {
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .fill(CyclePhase.tapering.color)
-                                        .frame(width: geo.size.width * CGFloat(tw) / CGFloat(total))
-                                }
-                                if ow > 0 {
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .fill(CyclePhase.offCycle.color)
-                                        .frame(width: geo.size.width * CGFloat(ow) / CGFloat(total))
+                        if proto.hasPhases {
+                            let lw = proto.loadingWeeks ?? 0
+                            let mw = proto.maintenanceWeeks ?? 0
+                            let tw = proto.taperingWeeks ?? 0
+                            let ow = proto.offCycleWeeks ?? 0
+                            let total = max(1, lw + mw + tw + ow)
+                            GeometryReader { geo in
+                                HStack(spacing: 2) {
+                                    if lw > 0 {
+                                        RoundedRectangle(cornerRadius: 3)
+                                            .fill(CyclePhase.loading.color)
+                                            .frame(width: geo.size.width * CGFloat(lw) / CGFloat(total))
+                                    }
+                                    if mw > 0 {
+                                        RoundedRectangle(cornerRadius: 3)
+                                            .fill(CyclePhase.maintenance.color)
+                                            .frame(width: geo.size.width * CGFloat(mw) / CGFloat(total))
+                                    }
+                                    if tw > 0 {
+                                        RoundedRectangle(cornerRadius: 3)
+                                            .fill(CyclePhase.tapering.color)
+                                            .frame(width: geo.size.width * CGFloat(tw) / CGFloat(total))
+                                    }
+                                    if ow > 0 {
+                                        RoundedRectangle(cornerRadius: 3)
+                                            .fill(CyclePhase.offCycle.color)
+                                            .frame(width: geo.size.width * CGFloat(ow) / CGFloat(total))
+                                    }
                                 }
                             }
+                            .frame(height: 6)
                         }
-                        .frame(height: 6)
+
+                        if let sideEffectsInsight = todaysPlanVM.moduleContent(for: "side_effects") {
+                            AIInsightStrip(content: sideEffectsInsight, color: .orange)
+                        }
+
+                        if let bloodworkInsight = todaysPlanVM.moduleContent(for: "bloodwork") {
+                            AIInsightStrip(content: bloodworkInsight, color: .red)
+                        }
+
+                        if let supplementsInsight = todaysPlanVM.moduleContent(for: "supplements") {
+                            AIInsightStrip(content: supplementsInsight, color: PepTheme.violet)
+                        }
                     }
                 }
             }
-        }
-        .buttonStyle(.scale)
-        .navigationDestination(isPresented: $showProtocolDetail) {
-            ProtocolDetailView(protocolData: proto)
+            .buttonStyle(.scale)
+            .navigationDestination(isPresented: $showProtocolDetail) {
+                ProtocolDetailView(protocolData: proto)
+            }
         }
     }
 
@@ -983,10 +1000,53 @@ struct HomeView: View {
                                 .foregroundStyle(PepTheme.teal)
                             SubheadText(text: viewModel.isSelectedDateToday ? "Today's Plan" : "Plan")
                             Spacer()
+
+                            if todaysPlanVM.isBackgroundRefreshing {
+                                ProgressView()
+                                    .scaleEffect(0.5)
+                                    .tint(PepTheme.violet.opacity(0.6))
+                            }
+
+                            HStack(spacing: 8) {
+                                if todaysPlanVM.hasPlan {
+                                    Button {
+                                        triggerPlanFetch(forceRefresh: true)
+                                    } label: {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundStyle(PepTheme.violet.opacity(0.5))
+                                            .frame(width: 24, height: 24)
+                                            .background(PepTheme.violet.opacity(0.08))
+                                            .clipShape(Circle())
+                                    }
+                                }
+
+                                Button {
+                                    showPepChat = true
+                                } label: {
+                                    Image(systemName: "bubble.left.fill")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundStyle(PepTheme.violet.opacity(0.5))
+                                        .frame(width: 24, height: 24)
+                                        .background(PepTheme.violet.opacity(0.08))
+                                        .clipShape(Circle())
+                                }
+                            }
+
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(PepTheme.textSecondary)
                                 .rotationEffect(.degrees(viewModel.isPlanExpanded ? 180 : 0))
+                        }
+
+                        if todaysPlanVM.isLoading && !todaysPlanVM.hasPlan {
+                            planSummaryShimmer
+                        } else if todaysPlanVM.hasPlan && !todaysPlanVM.summary.isEmpty {
+                            Text(todaysPlanVM.summary)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                                .lineSpacing(3)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
 
                         if viewModel.activeProgram == nil {
@@ -1006,8 +1066,36 @@ struct HomeView: View {
                 expandedNoProgramContent
                     .transition(.opacity.combined(with: .move(edge: .top)))
             } else if viewModel.isPlanExpanded && !viewModel.todaysPlan.isRestDay {
-                expandedPlanContent
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                VStack(spacing: 8) {
+                    if let trainingInsight = todaysPlanVM.moduleContent(for: "training") {
+                        AIInsightStrip(content: trainingInsight, color: PepTheme.blue)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
+                    }
+                    expandedPlanContent
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            } else if viewModel.isPlanExpanded && viewModel.todaysPlan.isRestDay {
+                if let trainingInsight = todaysPlanVM.moduleContent(for: "training") {
+                    AIInsightStrip(content: trainingInsight, color: PepTheme.blue)
+                        .padding(.horizontal, 2)
+                        .padding(.top, 4)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showPepChat) {
+            PepChatView()
+        }
+    }
+
+    private var planSummaryShimmer: some View {
+        VStack(spacing: 8) {
+            ForEach(0..<2, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(PepTheme.shimmerHighlight)
+                    .frame(height: 10)
+                    .frame(maxWidth: i == 1 ? 180 : .infinity, alignment: .leading)
             }
         }
     }
@@ -1265,18 +1353,7 @@ struct HomeView: View {
 
 
 
-    // MARK: - AI Daily Briefing
 
-    private var aiDailyBriefingCard: some View {
-        TodaysPlanCardView(viewModel: todaysPlanVM, onRefresh: {
-            triggerPlanFetch(forceRefresh: true)
-        }) {
-            showPepChat = true
-        }
-        .fullScreenCover(isPresented: $showPepChat) {
-            PepChatView()
-        }
-    }
 
     private func triggerPlanFetch(forceRefresh: Bool = false) {
         todaysPlanVM.fetchPlanIfNeeded(

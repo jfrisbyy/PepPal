@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BodyGoalSectionView: View {
     @Bindable var viewModel: BodyGoalViewModel
+    var aiInsight: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -123,8 +124,14 @@ struct BodyGoalSectionView: View {
             .sensoryFeedback(.selection, trigger: viewModel.isExpanded)
 
             if viewModel.isExpanded {
-                expandedContent
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                VStack(spacing: 8) {
+                    if let insight = aiInsight {
+                        AIInsightStrip(content: insight, color: .green)
+                            .padding(.horizontal, 2)
+                    }
+                    expandedContent
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .onAppear {

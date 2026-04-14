@@ -22,6 +22,10 @@ final class TodaysPlanViewModel {
         planResponse?.modules ?? []
     }
 
+    func moduleContent(for type: String) -> String? {
+        planResponse?.modules.first(where: { $0.type == type })?.content
+    }
+
     func loadCachedPlan() {
         guard let data = UserDefaults.standard.data(forKey: cacheKey),
               let timestamp = UserDefaults.standard.object(forKey: cacheDateKey) as? Date,

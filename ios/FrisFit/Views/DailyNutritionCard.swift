@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DailyNutritionCard: View {
     @Bindable var viewModel: EnergyBalanceViewModel
+    var aiInsight: String? = nil
     var onTapNutrition: () -> Void
 
     var body: some View {
@@ -23,6 +24,10 @@ struct DailyNutritionCard: View {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                    }
+
+                    if let insight = aiInsight {
+                        AIInsightStrip(content: insight, color: PepTheme.amber)
                     }
 
                     if viewModel.isLoading {
