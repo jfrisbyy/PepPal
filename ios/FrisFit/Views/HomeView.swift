@@ -1150,22 +1150,24 @@ struct HomeView: View {
                                     .fixedSize(horizontal: false, vertical: true)
                             }
 
-                            Button {
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
-                                    viewModel.isPlanExpanded.toggle()
-                                }
-                            } label: {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    if viewModel.activeProgram == nil {
-                                        noProgramPlanContent
-                                    } else if viewModel.todaysPlan.isRestDay {
-                                        restDayContent
-                                    } else {
-                                        workoutPlanSummary
+                            if viewModel.activeProgram != nil {
+                                Button {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+                                        viewModel.isPlanExpanded.toggle()
+                                    }
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        if viewModel.todaysPlan.isRestDay {
+                                            restDayContent
+                                        } else {
+                                            workoutPlanSummary
+                                        }
                                     }
                                 }
+                                .buttonStyle(.scale)
+                            } else if let rec = viewModel.trainingRecommendation {
+                                protocolTrainingSuggestion(rec)
                             }
-                            .buttonStyle(.scale)
                         }
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
@@ -1173,10 +1175,7 @@ struct HomeView: View {
             }
             .sensoryFeedback(.selection, trigger: isPlanMinimized)
 
-            if !isPlanMinimized && viewModel.isPlanExpanded && viewModel.activeProgram == nil {
-                expandedNoProgramContent
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            } else if !isPlanMinimized && viewModel.isPlanExpanded && !viewModel.todaysPlan.isRestDay {
+            if !isPlanMinimized && viewModel.isPlanExpanded && !viewModel.todaysPlan.isRestDay && viewModel.activeProgram != nil {
                 VStack(spacing: 8) {
                     if let trainingInsight = todaysPlanVM.moduleContent(for: "training") {
                         AIInsightStrip(content: trainingInsight, color: PepTheme.blue)
@@ -1388,58 +1387,44 @@ struct HomeView: View {
         .clipShape(.rect(cornerRadius: 10))
     }
 
-    private var noProgramPlanContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
+    private func protocolTrainingSuggestion(_ rec: (title: String, message: String, icon: String)) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                Image(systemName: "figure.strengthtraining.traditional")
-                    .font(.title2)
-                    .foregroundStyle(PepTheme.teal.opacity(0.6))
-                Text("No Active Program")
-                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                Image(systemName: rec.icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(PepTheme.blue)
+                    .frame(width: 32, height: 32)
+                    .background(PepTheme.blue.opacity(0.12))
+                    .clipShape(Circle())
+                Text(rec.title)
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundStyle(PepTheme.textPrimary)
             }
 
-            Text("Set up a program to see your daily plan")
-                .font(.subheadline)
+            Text(rec.message)
+                .font(.system(size: 13))
                 .foregroundStyle(PepTheme.textSecondary)
-        }
-    }
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
 
-    private var expandedNoProgramContent: some View {
-        VStack(spacing: 14) {
             Button {
                 showProgramCreation = true
             } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Build Program")
-                        .font(.system(size: 14, weight: .semibold))
+                HStack(spacing: 6) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .bold))
+                    Text("Build a Program")
+                        .font(.system(size: 13, weight: .semibold))
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 11)
-                .background(PepTheme.teal)
-                .clipShape(.rect(cornerRadius: 10))
+                .foregroundStyle(PepTheme.blue)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(PepTheme.blue.opacity(0.1))
+                .clipShape(.capsule)
             }
             .buttonStyle(.plain)
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.5
-                )
-        )
-        .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 4)
-        .padding(.top, -8)
+        .padding(.top, 4)
     }
 
     private var restDayContent: some View {

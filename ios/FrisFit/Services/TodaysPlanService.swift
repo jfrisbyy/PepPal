@@ -28,7 +28,10 @@ final class TodaysPlanService {
       ]
     }
 
-    Only include modules where there is meaningful data to discuss. Do not include empty or placeholder modules. If the user has no active protocol, no training program, no meals logged, no weight data, etc., skip those modules entirely.
+    Only include modules where there is meaningful data to discuss. Do not include empty or placeholder modules. If the user has no active protocol, no meals logged, no weight data, etc., skip those modules entirely.
+
+    TRAINING PROGRAM AWARENESS:
+    If the user has an active protocol but NO active training program, this is a high-priority insight. Include a "training" module that specifically recommends starting a resistance training program tailored to their protocol and goal. For weight loss protocols (GLP-1s like Semaglutide, Tirzepatide, Retatrutide), emphasize that resistance training is critical to prevent muscle loss — reference the specific compound. For muscle growth protocols, emphasize that training is the primary driver and the compound amplifies it. Weave this recommendation naturally into the summary as well — don't just mention it in the module. This should feel like a smart friend noticing an obvious gap, not a generic nudge.
 
     CROSS-DOMAIN REASONING:
     When writing the summary and module content, actively look for connections between data points. Examples: If the user logged nausea and their calorie intake is low, connect those to the compound's appetite suppression effect at their current phase. If the user's weight has plateaued but their waist measurement is down, explain recomposition. If the user is training back-to-back days and reported fatigue, connect that to recovery needs on reduced calories. If protein has been consistently low and they're on a GLP-1 compound, flag the muscle preservation concern. If their side effects are spiking and they recently increased dose, explain the titration connection.

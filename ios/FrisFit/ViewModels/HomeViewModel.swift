@@ -333,6 +333,41 @@ final class HomeViewModel {
         buildWorkoutPlan(for: selectedDate)
     }
 
+    var hasProtocolButNoProgram: Bool {
+        activeProtocol != nil && activeProgram == nil
+    }
+
+    var trainingRecommendation: (title: String, message: String, icon: String)? {
+        guard let proto = activeProtocol, activeProgram == nil else { return nil }
+        let compoundName = proto.compounds.first?.compoundName ?? proto.name
+        switch proto.goal {
+        case .weightLoss:
+            return (
+                title: "Resistance Training Recommended",
+                message: "On \(compoundName), resistance training is critical to preserve muscle while losing fat. Even 3 days a week makes a significant difference.",
+                icon: "figure.strengthtraining.traditional"
+            )
+        case .muscleGrowth:
+            return (
+                title: "Training Program Needed",
+                message: "\(compoundName) works best paired with a structured hypertrophy program. You're leaving gains on the table without one.",
+                icon: "dumbbell.fill"
+            )
+        case .healing:
+            return (
+                title: "Light Movement Helps Recovery",
+                message: "Gentle mobility work and light resistance training can complement your \(compoundName) protocol and accelerate healing.",
+                icon: "figure.walk"
+            )
+        default:
+            return (
+                title: "Add a Training Program",
+                message: "Pairing \(compoundName) with a structured training program will help you get the most out of your protocol.",
+                icon: "figure.strengthtraining.traditional"
+            )
+        }
+    }
+
     var nutrition: NutritionSnapshot = NutritionSnapshot(
         caloriesConsumed: 1420,
         caloriesTarget: 2200,
