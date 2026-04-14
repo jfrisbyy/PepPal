@@ -926,7 +926,12 @@ struct CirclePostCommentsSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var commentText: String = ""
+    @State private var showReportAlert: Bool = false
     @FocusState private var isCommentFocused: Bool
+
+    private var currentUserId: String? {
+        try? AuthService.shared.currentUserId()
+    }
 
     var body: some View {
         NavigationStack {
@@ -967,6 +972,21 @@ struct CirclePostCommentsSheet: View {
                                         Text(comment.content)
                                             .font(.subheadline)
                                             .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                                    }
+                                }
+                                .contextMenu {
+                                    Button {
+                                        UIPasteboard.general.string = comment.content
+                                    } label: {
+                                        Label("Copy", systemImage: "doc.on.doc")
+                                    }
+
+                                    if comment.author.id.uuidString.lowercased() != currentUserId?.lowercased() {
+                                        Button {
+                                            showReportAlert = true
+                                        } label: {
+                                            Label("Report", systemImage: "exclamationmark.triangle")
+                                        }
                                     }
                                 }
                             }
@@ -1013,6 +1033,11 @@ struct CirclePostCommentsSheet: View {
         .presentationDragIndicator(.visible)
         .presentationBackground(PepTheme.background)
         .presentationContentInteraction(.scrolls)
+        .alert("Comment Reported", isPresented: $showReportAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Thanks for letting us know. We'll review this comment.")
+        }
     }
 
     private func sendComment() {

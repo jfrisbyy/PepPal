@@ -192,6 +192,29 @@ final class SocialViewModel {
         }
     }
 
+    func deleteFeedComment(_ comment: PostComment, from postID: UUID) async -> Bool {
+        let commentIdString = comment.id.uuidString.lowercased()
+
+        if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {
+            withAnimation(.spring(response: 0.3)) {
+                feedPosts[idx].comments.removeAll { $0.id == comment.id }
+                feedPosts[idx].commentCount = max(0, feedPosts[idx].commentCount - 1)
+            }
+        }
+
+        do {
+            try await socialService.deleteComment(commentId: commentIdString)
+            return true
+        } catch {
+            if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {
+                feedPosts[idx].comments.append(comment)
+                feedPosts[idx].commentCount += 1
+            }
+            feedError = "Failed to delete comment"
+            return false
+        }
+    }
+
     func loadComments(for postID: UUID) async {
         guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return }
         let supabaseId = feedPosts[index].supabaseId ?? postID.uuidString

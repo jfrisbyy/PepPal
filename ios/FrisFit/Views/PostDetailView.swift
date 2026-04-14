@@ -19,7 +19,13 @@ struct PostDetailView: View {
     @State private var selectedPhotoURL: String?
     @State private var showDeleteConfirm: Bool = false
     @State private var showReportConfirm: Bool = false
+    @State private var commentToDelete: PostComment?
+    @State private var showCommentReportAlert: Bool = false
     @FocusState private var isCommentFocused: Bool
+
+    private var currentUserId: String? {
+        try? AuthService.shared.currentUserId()
+    }
     @Environment(\.dismiss) private var dismiss
     private var audioPlayer: AudioPlayerService { AudioPlayerService.shared }
 
@@ -47,6 +53,32 @@ struct PostDetailView: View {
             PhotoViewerOverlay(urlString: urlString) {
                 selectedPhotoURL = nil
             }
+        }
+        .alert("Delete Comment?", isPresented: Binding(
+            get: { commentToDelete != nil },
+            set: { if !$0 { commentToDelete = nil } }
+        )) {
+            Button("Delete", role: .destructive) {
+                if let comment = commentToDelete {
+                    Task {
+                        let success = await viewModel.deleteFeedComment(comment, from: post.id)
+                        if success {
+                            withAnimation(.spring(response: 0.3)) {
+                                comments.removeAll { $0.id == comment.id }
+                            }
+                        }
+                    }
+                    commentToDelete = nil
+                }
+            }
+            Button("Cancel", role: .cancel) { commentToDelete = nil }
+        } message: {
+            Text("This comment will be permanently removed.")
+        }
+        .alert("Comment Reported", isPresented: $showCommentReportAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Thanks for letting us know. We'll review this comment.")
         }
         .task {
             viewModel.ensurePostInFeed(post)
@@ -478,7 +510,16 @@ struct PostDetailView: View {
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(comments) { comment in
-                        DetailCommentRow(comment: comment)
+                        DetailCommentRow(
+                            comment: comment,
+                            isOwnComment: comment.user.id.uuidString.lowercased() == currentUserId?.lowercased(),
+                            onDelete: {
+                                commentToDelete = comment
+                            },
+                            onReport: {
+                                showCommentReportAlert = true
+                            }
+                        )
                             .padding(.horizontal)
                             .padding(.vertical, 10)
 
@@ -562,6 +603,9 @@ struct PostDetailView: View {
 
 private struct DetailCommentRow: View {
     let comment: PostComment
+    let isOwnComment: Bool
+    let onDelete: () -> Void
+    let onReport: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -589,6 +633,27 @@ private struct DetailCommentRow: View {
                     .font(.subheadline)
                     .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .contextMenu {
+            Button {
+                UIPasteboard.general.string = comment.text
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
+            }
+
+            if isOwnComment {
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            } else {
+                Button {
+                    onReport()
+                } label: {
+                    Label("Report", systemImage: "exclamationmark.triangle")
+                }
             }
         }
     }

@@ -9,7 +9,13 @@ struct FeedCommentsSheet: View {
     @State private var isLoadingComments: Bool = true
     @State private var comments: [PostComment] = []
     @State private var commentError: String?
+    @State private var commentToDelete: PostComment?
+    @State private var showReportAlert: Bool = false
     @FocusState private var isCommentFocused: Bool
+
+    private var currentUserId: String? {
+        try? AuthService.shared.currentUserId()
+    }
 
     var body: some View {
         NavigationStack {
@@ -44,7 +50,16 @@ struct FeedCommentsSheet: View {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 16) {
                             ForEach(comments) { comment in
-                                FeedCommentRow(comment: comment)
+                                FeedCommentRow(
+                                    comment: comment,
+                                    isOwnComment: comment.user.id.uuidString.lowercased() == currentUserId?.lowercased(),
+                                    onDelete: {
+                                        commentToDelete = comment
+                                    },
+                                    onReport: {
+                                        showReportAlert = true
+                                    }
+                                )
                             }
                         }
                         .padding()
@@ -100,6 +115,32 @@ struct FeedCommentsSheet: View {
         .presentationDragIndicator(.visible)
         .presentationBackground(PepTheme.background)
         .presentationContentInteraction(.scrolls)
+        .alert("Delete Comment?", isPresented: Binding(
+            get: { commentToDelete != nil },
+            set: { if !$0 { commentToDelete = nil } }
+        )) {
+            Button("Delete", role: .destructive) {
+                if let comment = commentToDelete {
+                    Task {
+                        let success = await viewModel.deleteFeedComment(comment, from: post.id)
+                        if success {
+                            withAnimation(.spring(response: 0.3)) {
+                                comments.removeAll { $0.id == comment.id }
+                            }
+                        }
+                    }
+                    commentToDelete = nil
+                }
+            }
+            Button("Cancel", role: .cancel) { commentToDelete = nil }
+        } message: {
+            Text("This comment will be permanently removed.")
+        }
+        .alert("Comment Reported", isPresented: $showReportAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Thanks for letting us know. We'll review this comment.")
+        }
         .task {
             await viewModel.loadComments(for: post.id)
             if let updated = viewModel.feedPosts.first(where: { $0.id == post.id }) {
@@ -137,6 +178,9 @@ struct FeedCommentsSheet: View {
 
 private struct FeedCommentRow: View {
     let comment: PostComment
+    let isOwnComment: Bool
+    let onDelete: () -> Void
+    let onReport: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -163,6 +207,27 @@ private struct FeedCommentRow: View {
                 Text(comment.text)
                     .font(.subheadline)
                     .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+            }
+        }
+        .contextMenu {
+            Button {
+                UIPasteboard.general.string = comment.text
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
+            }
+
+            if isOwnComment {
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            } else {
+                Button {
+                    onReport()
+                } label: {
+                    Label("Report", systemImage: "exclamationmark.triangle")
+                }
             }
         }
     }

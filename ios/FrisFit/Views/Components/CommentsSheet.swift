@@ -6,7 +6,12 @@ struct CommentsSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var commentText: String = ""
+    @State private var showReportAlert: Bool = false
     @FocusState private var isCommentFocused: Bool
+
+    private var currentUserId: String? {
+        try? AuthService.shared.currentUserId()
+    }
 
     var body: some View {
         NavigationStack {
@@ -29,7 +34,11 @@ struct CommentsSheet: View {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 16) {
                             ForEach(post.comments) { comment in
-                                CommentRow(comment: comment)
+                                CommentRow(
+                                    comment: comment,
+                                    isOwnComment: comment.user.id.uuidString.lowercased() == currentUserId?.lowercased(),
+                                    onReport: { showReportAlert = true }
+                                )
                             }
                         }
                         .padding()
@@ -78,6 +87,11 @@ struct CommentsSheet: View {
         .presentationDragIndicator(.visible)
         .presentationBackground(PepTheme.background)
         .presentationContentInteraction(.scrolls)
+        .alert("Comment Reported", isPresented: $showReportAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Thanks for letting us know. We'll review this comment.")
+        }
     }
 
     private func sendComment() {
@@ -90,6 +104,8 @@ struct CommentsSheet: View {
 
 private struct CommentRow: View {
     let comment: PostComment
+    let isOwnComment: Bool
+    let onReport: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -116,6 +132,21 @@ private struct CommentRow: View {
                 Text(comment.text)
                     .font(.subheadline)
                     .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+            }
+        }
+        .contextMenu {
+            Button {
+                UIPasteboard.general.string = comment.text
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
+            }
+
+            if !isOwnComment {
+                Button {
+                    onReport()
+                } label: {
+                    Label("Report", systemImage: "exclamationmark.triangle")
+                }
             }
         }
     }

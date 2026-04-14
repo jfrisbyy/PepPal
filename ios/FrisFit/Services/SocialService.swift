@@ -359,6 +359,14 @@ final class SocialService {
         return response
     }
 
+    func deleteComment(commentId: String) async throws {
+        try await supabase
+            .from("post_comments")
+            .delete()
+            .eq("id", value: commentId)
+            .execute()
+    }
+
     func fetchCommentCount(postId: String) async throws -> Int {
         let response: [SupabasePostComment] = try await supabase
             .from("post_comments")
