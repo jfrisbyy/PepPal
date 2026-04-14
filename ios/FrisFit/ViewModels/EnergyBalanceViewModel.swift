@@ -4,6 +4,7 @@ import SwiftUI
 final class EnergyBalanceViewModel {
     var bmr: Int = 0
     var activityCalories: Int = 0
+    var healthKitCalories: Int = 0
     var caloriesConsumed: Int = 0
     var activityCount: Int = 0
     var proteinConsumed: Double = 0
@@ -17,9 +18,20 @@ final class EnergyBalanceViewModel {
     var todaysMeals: [SupabaseLoggedMeal] = []
     var todaysActivities: [EnergyActivityLog] = []
     var goalType: String = "weightLoss"
+    var weeklyTrend: [DailyDataPoint] = []
     private var mealChangeObserver: Any?
 
-    var totalBurn: Int { bmr + activityCalories }
+    static let neatMultiplier: Double = 1.2
+
+    var restingBurn: Int {
+        Int(Double(bmr) * Self.neatMultiplier)
+    }
+
+    var effectiveActivityCalories: Int {
+        max(healthKitCalories, activityCalories)
+    }
+
+    var totalBurn: Int { restingBurn + effectiveActivityCalories }
     var balance: Int { caloriesConsumed - totalBurn }
     var isDeficit: Bool { balance < 0 }
 
@@ -57,13 +69,19 @@ final class EnergyBalanceViewModel {
     }
 
     var dailyCalorieTarget: Int {
-        let base = bmr > 0 ? bmr : 1800
-        let tdee = base + activityCalories
+        let base = restingBurn > 0 ? restingBurn : 2160
+        let tdee = base + effectiveActivityCalories
         switch goalType {
         case "weightLoss", "cutting": return max(tdee - 500, 1200)
         case "bulking", "muscleGain": return tdee + 300
         default: return tdee
         }
+    }
+
+    var weeklyAvgBurn: Int {
+        guard !weeklyTrend.isEmpty else { return 0 }
+        let total = weeklyTrend.reduce(0.0) { $0 + $1.value }
+        return Int(total / Double(weeklyTrend.count))
     }
 
     func loadData() {
@@ -139,6 +157,12 @@ final class EnergyBalanceViewModel {
             let activities = try? await ActivityLogService.shared.fetchTodayActivities(userId: userId)
             todaysActivities = activities ?? []
 
+            let hk = HealthKitService.shared
+            if hk.isHealthKitEnabled, hk.isAuthorized {
+                let hkCals = await hk.fetchActiveCalories(for: Date())
+                healthKitCalories = Int(hkCals)
+            }
+
             var totalCal = 0
             var totalPro = 0.0
             var totalCarb = 0.0
@@ -191,8 +215,53 @@ final class EnergyBalanceViewModel {
             if bmr == 0 {
                 bmr = 1800
             }
+
+            await fetchWeeklyTrend(userId: userId)
         } catch {
             if bmr == 0 { bmr = 1800 }
+        }
+    }
+
+    private func fetchWeeklyTrend(userId: String) async {
+        let df = DateFormatter()
+        df.dateFormat = "EEE"
+        df.locale = Locale(identifier: "en_US_POSIX")
+
+        let dateParse = DateFormatter()
+        dateParse.dateFormat = "yyyy-MM-dd"
+        dateParse.locale = Locale(identifier: "en_US_POSIX")
+
+        do {
+            let dailyData = try await ActivityLogService.shared.fetchDailyCalories(userId: userId, days: 7)
+
+            var hkDaily: [String: Int] = [:]
+            let hk = HealthKitService.shared
+            if hk.isHealthKitEnabled, hk.isAuthorized {
+                let calendar = Calendar.current
+                for i in 0..<7 {
+                    if let date = calendar.date(byAdding: .day, value: i - 6, to: Date()) {
+                        let dateStr = dateParse.string(from: date)
+                        let hkCals = await hk.fetchActiveCalories(for: date)
+                        hkDaily[dateStr] = Int(hkCals)
+                    }
+                }
+            }
+
+            var points: [DailyDataPoint] = []
+            for entry in dailyData {
+                let hkVal = hkDaily[entry.date] ?? 0
+                let bestCals = max(entry.calories, hkVal)
+                let dayLabel: String
+                if let d = dateParse.date(from: entry.date) {
+                    dayLabel = df.string(from: d)
+                } else {
+                    dayLabel = String(entry.date.suffix(2))
+                }
+                points.append(DailyDataPoint(label: dayLabel, value: Double(bestCals)))
+            }
+            weeklyTrend = points
+        } catch {
+            weeklyTrend = []
         }
     }
 }

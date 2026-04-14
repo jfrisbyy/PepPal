@@ -108,9 +108,44 @@ final class ActivityLogService {
         let todayStr = dateOnly.string(from: Date())
         let todayWorkouts = workouts.filter { $0.date == todayStr }
         let workoutCals = todayWorkouts.reduce(0) { $0 + ($1.calories_burned ?? 0) }
-        let activityCals = today.reduce(0) { $0 + ($1.calories_burned ?? 0) }
-        let totalCals = max(workoutCals, activityCals)
+        let manualCals = today.filter { $0.activity_type == "manual" }.reduce(0) { $0 + ($1.calories_burned ?? 0) }
+        let totalCals = workoutCals + manualCals
         let count = todayWorkouts.count + today.filter { $0.activity_type == "manual" }.count
         return (totalCals, count)
+    }
+
+    func fetchDailyCalories(userId: String, days: Int = 7) async throws -> [(date: String, calories: Int)] {
+        let calendar = Calendar.current
+        let start = calendar.date(byAdding: .day, value: -(days - 1), to: Date()) ?? Date()
+        let startStr = dateOnly.string(from: start)
+
+        let rows: [EnergyActivityLog] = try await supabase
+            .from("activity_logs")
+            .select()
+            .eq("user_id", value: userId)
+            .gte("activity_date", value: startStr)
+            .order("activity_date", ascending: true)
+            .execute()
+            .value
+
+        var dailyMap: [String: Int] = [:]
+        for i in 0..<days {
+            if let d = calendar.date(byAdding: .day, value: i - (days - 1), to: Date()) {
+                dailyMap[dateOnly.string(from: d)] = 0
+            }
+        }
+
+        for row in rows where row.activity_type == "manual" {
+            dailyMap[row.activity_date, default: 0] += row.calories_burned ?? 0
+        }
+
+        let workouts = try await WorkoutService.shared.fetchWorkouts(userId: userId, limit: 50)
+        for w in workouts {
+            if let d = w.date, dailyMap.keys.contains(d) {
+                dailyMap[d, default: 0] += w.calories_burned ?? 0
+            }
+        }
+
+        return dailyMap.sorted { $0.key < $1.key }.map { (date: $0.key, calories: $0.value) }
     }
 }

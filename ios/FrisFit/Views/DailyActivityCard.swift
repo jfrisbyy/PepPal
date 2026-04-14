@@ -75,15 +75,15 @@ struct DailyActivityCard: View {
             HStack(spacing: 0) {
                 activityStat(
                     icon: "bolt.heart.fill",
-                    label: "BMR",
-                    value: "\(viewModel.bmr)",
+                    label: "Resting",
+                    value: "\(viewModel.restingBurn)",
                     color: PepTheme.violet
                 )
                 activityStatDivider
                 activityStat(
                     icon: "figure.run",
                     label: "Exercise",
-                    value: "\(viewModel.activityCalories)",
+                    value: "\(viewModel.effectiveActivityCalories)",
                     color: .orange
                 )
                 activityStatDivider
@@ -95,12 +95,58 @@ struct DailyActivityCard: View {
                 )
             }
 
+            if viewModel.healthKitCalories > 0 {
+                healthKitBadge
+            }
+
             logActivityButton
+
+            if !viewModel.weeklyTrend.isEmpty {
+                weeklyTrendSection
+            }
 
             if !viewModel.todaysActivities.isEmpty {
                 recentActivitiesSection
             }
         }
+    }
+
+    private var healthKitBadge: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "applewatch")
+                .font(.system(size: 11))
+                .foregroundStyle(.green)
+            Text("Apple Watch active calories: \(viewModel.healthKitCalories) cal")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.green.opacity(0.08))
+        .clipShape(.rect(cornerRadius: 8))
+    }
+
+    private var weeklyTrendSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("7-Day Activity Trend")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
+                if viewModel.weeklyAvgBurn > 0 {
+                    Text("avg \(viewModel.weeklyAvgBurn) cal")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.orange.opacity(0.8))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(.orange.opacity(0.1))
+                        .clipShape(.capsule)
+                }
+            }
+
+            MiniBarChart(data: viewModel.weeklyTrend, barColor: .orange, height: 60)
+        }
+        .padding(.top, 4)
     }
 
     private var logActivityButton: some View {

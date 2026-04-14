@@ -8,6 +8,8 @@ struct LogActivitySheet: View {
     @State private var notes: String = ""
     @State private var isSaving: Bool = false
     @State private var estimatedCalories: Int = 0
+    @State private var manualCalorieOverride: String = ""
+    @State private var isOverrideActive: Bool = false
 
     private let activities = [
         "Walking", "Hiking", "Running", "Cycling", "Swimming",
@@ -17,6 +19,13 @@ struct LogActivitySheet: View {
         "Basketball", "Soccer", "Tennis", "Football", "Baseball"
     ]
 
+    private var finalCalories: Int {
+        if isOverrideActive, let override = Int(manualCalorieOverride), override > 0 {
+            return override
+        }
+        return estimatedCalories
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -25,6 +34,7 @@ struct LogActivitySheet: View {
                     durationSection
                     intensitySection
                     calorieEstimate
+                    calorieOverrideSection
                     notesSection
                 }
                 .padding()
@@ -179,10 +189,10 @@ struct LogActivitySheet: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("Estimated Calories")
+                Text(isOverrideActive ? "Manual Calories" : "Estimated Calories")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(PepTheme.textSecondary)
-                Text("\(estimatedCalories) cal")
+                Text("\(finalCalories) cal")
                     .font(.system(.title3, design: .rounded, weight: .bold))
                     .foregroundStyle(PepTheme.textPrimary)
             }
@@ -190,12 +200,12 @@ struct LogActivitySheet: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 3) {
-                Text("MET-based")
+                Text(isOverrideActive ? "Override" : "MET-based")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(PepTheme.textSecondary)
-                Text("estimate")
+                    .foregroundStyle(isOverrideActive ? .orange : PepTheme.textSecondary)
+                Text(isOverrideActive ? "active" : "estimate")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(PepTheme.textSecondary)
+                    .foregroundStyle(isOverrideActive ? .orange : PepTheme.textSecondary)
             }
         }
         .padding(14)
@@ -203,8 +213,47 @@ struct LogActivitySheet: View {
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(.orange.opacity(0.2), lineWidth: 0.5)
+                .strokeBorder((isOverrideActive ? Color.orange : .orange).opacity(0.2), lineWidth: 0.5)
         )
+    }
+
+    private var calorieOverrideSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Override Calories")
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Spacer()
+                Toggle("", isOn: $isOverrideActive)
+                    .labelsHidden()
+                    .tint(.orange)
+            }
+
+            if isOverrideActive {
+                HStack(spacing: 8) {
+                    TextField("e.g. 350", text: $manualCalorieOverride)
+                        .keyboardType(.numberPad)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 16)
+                        .background(PepTheme.elevated)
+                        .clipShape(.rect(cornerRadius: 10))
+
+                    Text("cal")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+
+                Text("Use this if you have a more accurate reading from your watch or gym equipment.")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                    .transition(.opacity)
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isOverrideActive)
     }
 
     private var notesSection: some View {
@@ -302,7 +351,7 @@ struct LogActivitySheet: View {
                     activityType: "manual",
                     sport: selectedActivity,
                     durationMinutes: mins,
-                    caloriesBurned: estimatedCalories,
+                    caloriesBurned: finalCalories,
                     metValue: nil as Double?,
                     notes: noteStr
                 )

@@ -89,15 +89,15 @@ struct DailyEnergyCard: View {
                 HStack(spacing: 0) {
                     energyStat(
                         icon: "bolt.heart.fill",
-                        label: "BMR",
-                        value: "\(viewModel.bmr)",
+                        label: "Resting",
+                        value: "\(viewModel.restingBurn)",
                         color: PepTheme.violet
                     )
                     Spacer()
                     energyStat(
                         icon: "figure.run",
                         label: "Activity",
-                        value: "\(viewModel.activityCalories)",
+                        value: "\(viewModel.effectiveActivityCalories)",
                         color: .orange
                     )
                     Spacer()
