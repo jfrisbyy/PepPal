@@ -91,15 +91,23 @@ final class NutritionViewModel {
     func logMeal(food: FoodItem, servings: Double, mealTime: MealTime) {
         let meal = LoggedMeal(food: food, servings: servings, mealTime: mealTime)
         loggedMeals.append(meal)
-        persistMealToSupabase(food: food, servings: servings, mealTime: mealTime)
+        persistMealToSupabase(meal: meal, food: food, servings: servings, mealTime: mealTime)
     }
 
-    private func persistMealToSupabase(food: FoodItem, servings: Double, mealTime: MealTime) {
-        guard AuthService.shared.authState == .signedIn else { return }
+    private func persistMealToSupabase(meal: LoggedMeal, food: FoodItem, servings: Double, mealTime: MealTime) {
+        guard AuthService.shared.authState == .signedIn else {
+            print("[NutritionVM] Not signed in — meal not persisted to Supabase")
+            return
+        }
         Task {
             do {
                 let userId = try AuthService.shared.currentUserId()
-                _ = try await NutritionService.shared.logMeal(userId: userId, food: food, servings: servings, mealTime: mealTime)
+                let created = try await NutritionService.shared.logMeal(userId: userId, food: food, servings: servings, mealTime: mealTime)
+                if let sid = created.id {
+                    supabaseMealIds[meal.id] = sid
+                }
+                NotificationCenter.default.post(name: .mealDataChanged, object: nil)
+                print("[NutritionVM] Meal persisted to Supabase: \(food.name)")
             } catch {
                 print("[NutritionVM] Failed to persist meal to Supabase: \(error)")
             }
@@ -124,8 +132,10 @@ final class NutritionViewModel {
     func removeMeal(_ meal: LoggedMeal) {
         loggedMeals.removeAll { $0.id == meal.id }
         if let supabaseId = supabaseMealIds[meal.id] {
+            supabaseMealIds.removeValue(forKey: meal.id)
             Task {
                 try? await NutritionService.shared.deleteMeal(mealId: supabaseId)
+                NotificationCenter.default.post(name: .mealDataChanged, object: nil)
             }
         }
     }
@@ -175,11 +185,11 @@ final class NutritionViewModel {
     }
 
     func loadSampleData() {
-        guard loggedMeals.isEmpty else { return }
         if AuthService.shared.authState == .signedIn {
             loadFromSupabase()
             return
         }
+        guard loggedMeals.isEmpty else { return }
         let sampleMeals: [(String, MealTime)] = [
             ("Greek Yogurt (plain, nonfat)", .breakfast),
             ("Banana", .breakfast),

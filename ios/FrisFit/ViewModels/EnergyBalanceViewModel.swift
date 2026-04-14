@@ -15,6 +15,7 @@ final class EnergyBalanceViewModel {
     var isLoading: Bool = false
     var hasLoaded: Bool = false
     var goalType: String = "weightLoss"
+    private var mealChangeObserver: Any?
 
     var totalBurn: Int { bmr + activityCalories }
     var balance: Int { caloriesConsumed - totalBurn }
@@ -70,6 +71,44 @@ final class EnergyBalanceViewModel {
         Task {
             await fetchEnergyData()
             isLoading = false
+        }
+        if mealChangeObserver == nil {
+            mealChangeObserver = NotificationCenter.default.addObserver(
+                forName: .mealDataChanged,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                guard let self else { return }
+                Task { @MainActor in
+                    await self.fetchNutritionOnly()
+                }
+            }
+        }
+    }
+
+    private func fetchNutritionOnly() async {
+        guard AuthService.shared.authState == .signedIn else { return }
+        do {
+            let userId = try AuthService.shared.currentUserId()
+            let meals = try await NutritionService.shared.fetchLoggedMeals(userId: userId, date: Date())
+            var totalCal = 0
+            var totalPro = 0.0
+            var totalCarb = 0.0
+            var totalFt = 0.0
+            for meal in meals {
+                let cal = meal.calories ?? 0
+                let servings = meal.servings
+                totalCal += Int(Double(cal) * servings)
+                totalPro += (meal.protein_g ?? 0) * servings
+                totalCarb += (meal.carbs_g ?? 0) * servings
+                totalFt += (meal.fat_g ?? 0) * servings
+            }
+            caloriesConsumed = totalCal
+            proteinConsumed = totalPro
+            carbsConsumed = totalCarb
+            fatConsumed = totalFt
+        } catch {
+            print("[EnergyBalanceVM] Failed to refresh nutrition: \(error)")
         }
     }
 

@@ -36,9 +36,7 @@ struct NutritionView: View {
             MealLogView(viewModel: viewModel, mealTime: selectedMealTimeForLog)
         }
         .onAppear {
-            if viewModel.loggedMeals.isEmpty {
-                viewModel.loadSampleData()
-            }
+            viewModel.loadSampleData()
             withAnimation(.spring(response: 1.0, dampingFraction: 0.8)) {
                 animatedCalorieProgress = viewModel.calorieProgress
             }
