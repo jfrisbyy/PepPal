@@ -1266,27 +1266,22 @@ struct HomeView: View {
     // MARK: - AI Daily Briefing
 
     private var aiDailyBriefingCard: some View {
-        TodaysPlanCardView(viewModel: todaysPlanVM) {
+        TodaysPlanCardView(viewModel: todaysPlanVM, onRefresh: {
+            triggerPlanFetch(forceRefresh: true)
+        }) {
             showPepChat = true
         }
         .onAppear {
             todaysPlanVM.loadCachedPlan()
-            if todaysPlanVM.needsRefresh {
-                triggerPlanFetch()
-            }
-        }
-        .onChange(of: todaysPlanVM.planResponse == nil) { _, isNil in
-            if isNil && !todaysPlanVM.isLoading {
-                triggerPlanFetch()
-            }
+            triggerPlanFetch()
         }
         .fullScreenCover(isPresented: $showPepChat) {
             PepChatView()
         }
     }
 
-    private func triggerPlanFetch() {
-        todaysPlanVM.fetchPlan(
+    private func triggerPlanFetch(forceRefresh: Bool = false) {
+        todaysPlanVM.fetchPlanIfNeeded(
             firstName: viewModel.userFirstName,
             activeProtocol: viewModel.activeProtocol,
             nutrition: viewModel.nutrition,
@@ -1297,7 +1292,8 @@ struct HomeView: View {
             activeProgram: viewModel.activeProgram,
             bloodworkEntries: [],
             streakDays: viewModel.quickStats.streakDays,
-            workoutsThisWeek: viewModel.quickStats.workoutsThisWeek
+            workoutsThisWeek: viewModel.quickStats.workoutsThisWeek,
+            forceRefresh: forceRefresh
         )
     }
 

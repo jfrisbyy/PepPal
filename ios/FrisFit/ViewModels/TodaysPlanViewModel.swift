@@ -7,9 +7,11 @@ final class TodaysPlanViewModel {
     var isExpanded: Bool = false
     var errorMessage: String?
     var lastFetchDate: Date?
+    var isBackgroundRefreshing: Bool = false
 
     private let cacheKey = "todaysPlanCache"
-    private let cacheDateKey = "todaysPlanCacheDate"
+    private let cacheHashKey = "todaysPlanHash"
+    private let cacheDateKey = "todaysPlanCacheTimestamp"
 
     var hasPlan: Bool { planResponse != nil }
 
@@ -23,37 +25,27 @@ final class TodaysPlanViewModel {
 
     func loadCachedPlan() {
         guard let data = UserDefaults.standard.data(forKey: cacheKey),
-              let dateStr = UserDefaults.standard.string(forKey: cacheDateKey),
+              let timestamp = UserDefaults.standard.object(forKey: cacheDateKey) as? Date,
+              Calendar.current.isDateInToday(timestamp),
               let cached = try? JSONDecoder().decode(TodaysPlanResponse.self, from: data) else {
             return
         }
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        guard let cacheDate = formatter.date(from: dateStr),
-              Calendar.current.isDateInToday(cacheDate) else {
-            return
-        }
-
         planResponse = cached
-        lastFetchDate = cacheDate
+        lastFetchDate = timestamp
     }
 
-    func cachePlan(_ plan: TodaysPlanResponse) {
+    private func cachePlan(_ plan: TodaysPlanResponse, hash: String) {
         guard let data = try? JSONEncoder().encode(plan) else { return }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
         UserDefaults.standard.set(data, forKey: cacheKey)
-        UserDefaults.standard.set(formatter.string(from: Date()), forKey: cacheDateKey)
+        UserDefaults.standard.set(hash, forKey: cacheHashKey)
+        UserDefaults.standard.set(Date(), forKey: cacheDateKey)
     }
 
-    var needsRefresh: Bool {
-        guard let lastDate = lastFetchDate else { return true }
-        let hoursSince = Date().timeIntervalSince(lastDate) / 3600
-        return hoursSince > 4
+    private var cachedHash: String? {
+        UserDefaults.standard.string(forKey: cacheHashKey)
     }
 
-    func fetchPlan(
+    func fetchPlanIfNeeded(
         firstName: String,
         activeProtocol: PeptideProtocol?,
         nutrition: NutritionSnapshot,
@@ -64,11 +56,10 @@ final class TodaysPlanViewModel {
         activeProgram: TrainingProgram?,
         bloodworkEntries: [BloodworkEntry],
         streakDays: Int,
-        workoutsThisWeek: Int
+        workoutsThisWeek: Int,
+        forceRefresh: Bool = false
     ) {
         guard !isLoading else { return }
-        isLoading = true
-        errorMessage = nil
 
         let context = TodaysPlanService.shared.assembleContext(
             firstName: firstName,
@@ -84,17 +75,65 @@ final class TodaysPlanViewModel {
             workoutsThisWeek: workoutsThisWeek
         )
 
+        let currentHash = context.contentHash
+
+        if !forceRefresh, let cached = cachedHash, cached == currentHash, hasPlan {
+            return
+        }
+
+        let hadCachedPlan = hasPlan
+        if hadCachedPlan {
+            isBackgroundRefreshing = true
+        } else {
+            isLoading = true
+        }
+        errorMessage = nil
+
         Task {
             do {
                 let response = try await TodaysPlanService.shared.generatePlan(context: context)
-                planResponse = response
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    planResponse = response
+                }
                 lastFetchDate = Date()
-                cachePlan(response)
+                cachePlan(response, hash: currentHash)
             } catch {
                 print("[TodaysPlan] Error: \(error)")
-                errorMessage = "Could not generate today's plan"
+                if !hadCachedPlan {
+                    errorMessage = "Could not generate today's plan"
+                }
             }
             isLoading = false
+            isBackgroundRefreshing = false
         }
+    }
+
+    func forceRefresh(
+        firstName: String,
+        activeProtocol: PeptideProtocol?,
+        nutrition: NutritionSnapshot,
+        nutritionTarget: MacroTarget,
+        loggedMeals: [LoggedMeal],
+        bodyGoalVM: BodyGoalViewModel,
+        todaysPlan: WorkoutPlan,
+        activeProgram: TrainingProgram?,
+        bloodworkEntries: [BloodworkEntry],
+        streakDays: Int,
+        workoutsThisWeek: Int
+    ) {
+        fetchPlanIfNeeded(
+            firstName: firstName,
+            activeProtocol: activeProtocol,
+            nutrition: nutrition,
+            nutritionTarget: nutritionTarget,
+            loggedMeals: loggedMeals,
+            bodyGoalVM: bodyGoalVM,
+            todaysPlan: todaysPlan,
+            activeProgram: activeProgram,
+            bloodworkEntries: bloodworkEntries,
+            streakDays: streakDays,
+            workoutsThisWeek: workoutsThisWeek,
+            forceRefresh: true
+        )
     }
 }

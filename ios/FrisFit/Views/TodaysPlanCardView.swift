@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TodaysPlanCardView: View {
     @Bindable var viewModel: TodaysPlanViewModel
+    var onRefresh: (() -> Void)?
     let onTapChat: () -> Void
 
     @State private var appearedModules: Set<String> = []
@@ -240,7 +241,7 @@ struct TodaysPlanCardView: View {
     private var refreshButton: some View {
         Button {
             viewModel.isExpanded = false
-            viewModel.planResponse = nil
+            onRefresh?()
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.clockwise")

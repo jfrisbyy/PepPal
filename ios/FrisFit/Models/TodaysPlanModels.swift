@@ -58,6 +58,40 @@ nonisolated struct ContextBundle: Sendable {
     let bloodworkContext: BloodworkContext?
     let supplementsContext: SupplementsContext?
 
+    var contentHash: String {
+        var parts: [String] = []
+        parts.append(userProfile.timeOfDay)
+        if let p = protocolContext {
+            parts.append("proto:\(p.compoundName):\(p.currentDose):\(p.currentWeek):\(p.currentPhase):\(p.doseLoggedToday):\(p.doseLoggedTime ?? "none")")
+        }
+        if let n = nutritionToday {
+            parts.append("nutr:\(n.caloriesConsumed):\(n.proteinConsumed):\(n.carbsConsumed):\(n.fatConsumed):\(n.mealsLogged)")
+        }
+        if let nt = nutritionTrends {
+            parts.append("ntrend:\(nt.avgCalories):\(nt.avgProtein):\(nt.daysProteinHit):\(nt.daysCalorieHit)")
+        }
+        if let b = bodyContext {
+            parts.append("body:\(String(format: "%.1f", b.currentWeight)):\(b.plateauDetected):\(b.latestMeasurements ?? "none")")
+        }
+        if let t = trainingContext {
+            parts.append("train:\(t.todayWorkout ?? "rest"):\(t.completedToday):\(t.workoutsThisWeek)")
+        }
+        if let se = sideEffectsContext {
+            let effectStr = se.effects.map { "\($0.name):\($0.count):\($0.trend)" }.joined(separator: ",")
+            parts.append("se:\(effectStr)")
+        }
+        if let bw = bloodworkContext {
+            parts.append("bw:\(bw.daysSinceLastPanel ?? -1):\(bw.recheckDue):\(bw.flaggedBiomarkers.count)")
+        }
+        if let s = supplementsContext {
+            parts.append("sup:\(s.totalActive):\(s.loggedToday)")
+        }
+        let combined = parts.joined(separator: "|")
+        var hasher = Hasher()
+        hasher.combine(combined)
+        return String(hasher.finalize())
+    }
+
     func toPromptString() -> String {
         var sections: [String] = []
 
