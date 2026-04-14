@@ -8,10 +8,14 @@ struct NutritionResultView: View {
     let onAddAll: () -> Void
     let onRetake: () -> Void
     let onDismiss: () -> Void
+    var onSaveMeal: ((_ name: String, _ calories: Int, _ protein: Double, _ carbs: Double, _ fat: Double) -> Void)? = nil
 
     @State private var showClarifySheet: Bool = false
     @State private var selectedItemIndex: Int? = nil
     @State private var appeared: Bool = false
+    @State private var showSaveMealSheet: Bool = false
+    @State private var saveMealName: String = ""
+    @State private var mealSaved: Bool = false
 
     var body: some View {
         ZStack {
@@ -37,6 +41,11 @@ struct NutritionResultView: View {
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
+        }
+        .sheet(isPresented: $showSaveMealSheet) {
+            saveMealSheetContent
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
         }
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
@@ -185,8 +194,11 @@ struct NutritionResultView: View {
                 )
             }
 
-            addButton
-                .padding(.top, 8)
+            HStack(spacing: 10) {
+                addButton
+                saveMealButton
+            }
+            .padding(.top, 8)
 
             retakeButton
 
@@ -343,6 +355,129 @@ struct NutritionResultView: View {
         }
         .buttonStyle(.scale)
         .sensoryFeedback(.success, trigger: estimatedItems.count)
+    }
+
+    private var saveMealButton: some View {
+        Button {
+            let names = estimatedItems.map { $0.name }
+            saveMealName = names.count <= 2 ? names.joined(separator: " & ") : "\(names[0]) + \(names.count - 1) more"
+            showSaveMealSheet = true
+        } label: {
+            Image(systemName: mealSaved ? "bookmark.fill" : "bookmark")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(PepTheme.amber)
+                .frame(width: 54, height: 52)
+                .background(PepTheme.amber.opacity(0.15), in: .rect(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(PepTheme.amber.opacity(0.3), lineWidth: 0.5)
+                )
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: showSaveMealSheet)
+    }
+
+    private var saveMealSheetContent: some View {
+        let totalCal = estimatedItems.reduce(0) { $0 + $1.calories }
+        let totalP = estimatedItems.reduce(0) { $0 + $1.protein }
+        let totalC = estimatedItems.reduce(0) { $0 + $1.carbs }
+        let totalF = estimatedItems.reduce(0) { $0 + $1.fat }
+
+        return NavigationStack {
+            VStack(spacing: 24) {
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(PepTheme.amber.opacity(0.15))
+                            .frame(width: 56, height: 56)
+                        Image(systemName: "bookmark.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(PepTheme.amber)
+                    }
+
+                    Text("Save This Meal")
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .foregroundStyle(PepTheme.textPrimary)
+
+                    Text("Quick-log it anytime from Saved Meals")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Meal Name")
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+
+                    TextField("e.g. Chicken & Rice Bowl", text: $saveMealName)
+                        .font(.system(.body, weight: .medium))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(PepTheme.elevated)
+                        .clipShape(.rect(cornerRadius: 12))
+                }
+
+                HStack(spacing: 16) {
+                    saveMealMacroPreview("Calories", value: "\(totalCal)", color: PepTheme.teal)
+                    saveMealMacroPreview("Protein", value: "\(Int(totalP))g", color: PepTheme.teal)
+                    saveMealMacroPreview("Carbs", value: "\(Int(totalC))g", color: PepTheme.amber)
+                    saveMealMacroPreview("Fat", value: "\(Int(totalF))g", color: PepTheme.violet)
+                }
+                .padding(14)
+                .background(PepTheme.cardSurface)
+                .clipShape(.rect(cornerRadius: 14))
+
+                Button {
+                    onSaveMeal?(
+                        saveMealName.isEmpty ? "My Meal" : saveMealName,
+                        totalCal,
+                        totalP,
+                        totalC,
+                        totalF
+                    )
+                    mealSaved = true
+                    showSaveMealSheet = false
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "bookmark.fill")
+                        Text("Save Meal")
+                            .font(.system(.body, weight: .semibold))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(PepTheme.amber, in: .rect(cornerRadius: 12))
+                }
+                .sensoryFeedback(.success, trigger: mealSaved)
+
+                Spacer()
+            }
+            .padding(20)
+            .background(PepTheme.background.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showSaveMealSheet = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                    }
+                }
+            }
+        }
+    }
+
+    private func saveMealMacroPreview(_ label: String, value: String, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var retakeButton: some View {

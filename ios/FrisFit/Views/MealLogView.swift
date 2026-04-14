@@ -91,9 +91,7 @@ struct MealLogView: View {
                     analyzingOverlay
                 }
             }
-            .simultaneousGesture(
-                !showsCapturedPhoto ? swipeGesture : nil
-            )
+
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: selectedMode)
         .animation(.spring(response: 0.3, dampingFraction: 0.9), value: showsCapturedPhoto)
@@ -126,6 +124,16 @@ struct MealLogView: View {
                     onDismiss: {
                         showFullScreenResult = false
                         dismiss()
+                    },
+                    onSaveMeal: { name, calories, protein, carbs, fat in
+                        let meal = SavedMeal(
+                            name: name,
+                            calories: calories,
+                            protein: protein,
+                            carbs: carbs,
+                            fat: fat
+                        )
+                        viewModel.saveMeal(meal)
                     }
                 )
             }
@@ -157,6 +165,11 @@ struct MealLogView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showDescribeSaveMealSheet) {
+            describeSaveMealSheet
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
         .onAppear {
             loadGalleryThumbnail()
             viewModel.loadSavedMeals()
@@ -179,30 +192,17 @@ struct MealLogView: View {
         .statusBarHidden(true)
     }
 
-    private var swipeGesture: some Gesture {
-        DragGesture(minimumDistance: 30, coordinateSpace: .local)
-            .onChanged { value in
-                dragOffset = value.translation.width
+    private func handleModeSwipe(_ translation: CGFloat) {
+        let currentIndex = selectedMode.rawValue
+        if translation < -40, currentIndex < MealLogMode.allCases.count - 1 {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                selectedMode = MealLogMode(rawValue: currentIndex + 1) ?? selectedMode
             }
-            .onEnded { value in
-                let horizontal = value.translation.width
-                let vertical = abs(value.translation.height)
-                guard abs(horizontal) > vertical else {
-                    dragOffset = 0
-                    return
-                }
-                let currentIndex = selectedMode.rawValue
-                if horizontal < -40, currentIndex < MealLogMode.allCases.count - 1 {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                        selectedMode = MealLogMode(rawValue: currentIndex + 1) ?? selectedMode
-                    }
-                } else if horizontal > 40, currentIndex > 0 {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                        selectedMode = MealLogMode(rawValue: currentIndex - 1) ?? selectedMode
-                    }
-                }
-                dragOffset = 0
+        } else if translation > 40, currentIndex > 0 {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                selectedMode = MealLogMode(rawValue: currentIndex - 1) ?? selectedMode
             }
+        }
     }
 
     // MARK: - Camera Layer
@@ -361,44 +361,53 @@ struct MealLogView: View {
     // MARK: - Mode Strip
 
     private var modeStrip: some View {
-        HStack(spacing: 24) {
-            ForEach(MealLogMode.allCases, id: \.rawValue) { mode in
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                        selectedMode = mode
+        VStack(spacing: 0) {
+            Color.clear
+                .frame(height: 44)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 20, coordinateSpace: .local)
+                        .onEnded { value in
+                            let horizontal = value.translation.width
+                            let vertical = abs(value.translation.height)
+                            guard abs(horizontal) > vertical else { return }
+                            handleModeSwipe(horizontal)
+                        }
+                )
+
+            HStack(spacing: 24) {
+                ForEach(MealLogMode.allCases, id: \.rawValue) { mode in
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                            selectedMode = mode
+                        }
+                    } label: {
+                        Text(mode.label)
+                            .font(.system(size: 13, weight: selectedMode == mode ? .bold : .medium))
+                            .foregroundStyle(selectedMode == mode ? .white : .white.opacity(0.45))
+                            .scaleEffect(selectedMode == mode ? 1.0 : 0.92)
                     }
-                } label: {
-                    Text(mode.label)
-                        .font(.system(size: 13, weight: selectedMode == mode ? .bold : .medium))
-                        .foregroundStyle(selectedMode == mode ? .white : .white.opacity(0.45))
-                        .scaleEffect(selectedMode == mode ? 1.0 : 0.92)
+                    .sensoryFeedback(.selection, trigger: selectedMode)
                 }
-                .sensoryFeedback(.selection, trigger: selectedMode)
             }
-        }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 20)
-        .background(
-            Capsule()
-                .fill(.black.opacity(0.35))
-                .background(.ultraThinMaterial.opacity(0.3))
-                .clipShape(Capsule())
-        )
-        .gesture(
-            DragGesture(minimumDistance: 30, coordinateSpace: .local)
-                .onEnded { value in
-                    let currentIndex = selectedMode.rawValue
-                    if value.translation.width < -30, currentIndex < MealLogMode.allCases.count - 1 {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                            selectedMode = MealLogMode(rawValue: currentIndex + 1) ?? selectedMode
-                        }
-                    } else if value.translation.width > 30, currentIndex > 0 {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                            selectedMode = MealLogMode(rawValue: currentIndex - 1) ?? selectedMode
-                        }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 20)
+            .background(
+                Capsule()
+                    .fill(.black.opacity(0.35))
+                    .background(.ultraThinMaterial.opacity(0.3))
+                    .clipShape(Capsule())
+            )
+            .gesture(
+                DragGesture(minimumDistance: 20, coordinateSpace: .local)
+                    .onEnded { value in
+                        let horizontal = value.translation.width
+                        let vertical = abs(value.translation.height)
+                        guard abs(horizontal) > vertical else { return }
+                        handleModeSwipe(horizontal)
                     }
-                }
-        )
+            )
+        }
     }
 
     // MARK: - Overlay Panels
@@ -410,6 +419,17 @@ struct MealLogView: View {
                 .frame(width: 36, height: 4)
                 .padding(.top, 10)
                 .padding(.bottom, 8)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 20, coordinateSpace: .local)
+                        .onEnded { value in
+                            let horizontal = value.translation.width
+                            let vertical = abs(value.translation.height)
+                            guard abs(horizontal) > vertical else { return }
+                            handleModeSwipe(horizontal)
+                        }
+                )
 
             Group {
                 switch selectedMode {
@@ -434,24 +454,6 @@ struct MealLogView: View {
         .clipShape(.rect(cornerRadius: 24))
         .padding(.horizontal, 4)
         .padding(.bottom, 4)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 30, coordinateSpace: .local)
-                .onEnded { value in
-                    let horizontal = value.translation.width
-                    let vertical = abs(value.translation.height)
-                    guard abs(horizontal) > vertical else { return }
-                    let currentIndex = selectedMode.rawValue
-                    if horizontal < -40, currentIndex < MealLogMode.allCases.count - 1 {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                            selectedMode = MealLogMode(rawValue: currentIndex + 1) ?? selectedMode
-                        }
-                    } else if horizontal > 40, currentIndex > 0 {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                            selectedMode = MealLogMode(rawValue: currentIndex - 1) ?? selectedMode
-                        }
-                    }
-                }
-        )
     }
 
     // MARK: - Describe Panel
@@ -557,6 +559,10 @@ struct MealLogView: View {
         }
     }
 
+    @State private var describeMealSaved: Bool = false
+    @State private var showDescribeSaveMealSheet: Bool = false
+    @State private var describeSaveMealName: String = ""
+
     private var describeResultContent: some View {
         VStack(spacing: 12) {
             nutritionSummaryCard(items: describeEstimatedItems)
@@ -565,11 +571,32 @@ struct MealLogView: View {
                 estimatedItemRow(item: item, index: index, accent: PepTheme.violet)
             }
 
-            addAllButton(items: describeEstimatedItems)
+            HStack(spacing: 10) {
+                addAllButton(items: describeEstimatedItems)
+
+                Button {
+                    let names = describeEstimatedItems.map { $0.name }
+                    describeSaveMealName = names.count <= 2 ? names.joined(separator: " & ") : "\(names[0]) + \(names.count - 1) more"
+                    showDescribeSaveMealSheet = true
+                } label: {
+                    Image(systemName: describeMealSaved ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(PepTheme.amber)
+                        .frame(width: 50, height: 46)
+                        .background(PepTheme.amber.opacity(0.15))
+                        .clipShape(.rect(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(PepTheme.amber.opacity(0.3), lineWidth: 0.5)
+                        )
+                }
+                .sensoryFeedback(.impact(weight: .light), trigger: showDescribeSaveMealSheet)
+            }
 
             Button {
                 describeHasResult = false
                 describeEstimatedItems = []
+                describeMealSaved = false
             } label: {
                 Text("Re-describe")
                     .font(.system(.subheadline, weight: .medium))
@@ -956,6 +983,99 @@ struct MealLogView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showSaveMealSheet = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                    }
+                }
+            }
+        }
+    }
+
+    private var describeSaveMealSheet: some View {
+        let totalCal = describeEstimatedItems.reduce(0) { $0 + $1.calories }
+        let totalP = describeEstimatedItems.reduce(0) { $0 + $1.protein }
+        let totalC = describeEstimatedItems.reduce(0) { $0 + $1.carbs }
+        let totalF = describeEstimatedItems.reduce(0) { $0 + $1.fat }
+
+        return NavigationStack {
+            VStack(spacing: 24) {
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(PepTheme.amber.opacity(0.15))
+                            .frame(width: 56, height: 56)
+                        Image(systemName: "bookmark.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(PepTheme.amber)
+                    }
+
+                    Text("Save This Meal")
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .foregroundStyle(PepTheme.textPrimary)
+
+                    Text("Quick-log it anytime from Saved Meals")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Meal Name")
+                        .font(.system(.caption, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+
+                    TextField("e.g. Chicken & Rice Bowl", text: $describeSaveMealName)
+                        .font(.system(.body, weight: .medium))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(PepTheme.elevated)
+                        .clipShape(.rect(cornerRadius: 12))
+                }
+
+                HStack(spacing: 16) {
+                    saveMealMacroPreview("Calories", value: "\(totalCal)", color: PepTheme.teal)
+                    saveMealMacroPreview("Protein", value: "\(Int(totalP))g", color: PepTheme.teal)
+                    saveMealMacroPreview("Carbs", value: "\(Int(totalC))g", color: PepTheme.amber)
+                    saveMealMacroPreview("Fat", value: "\(Int(totalF))g", color: PepTheme.violet)
+                }
+                .padding(14)
+                .background(PepTheme.cardSurface)
+                .clipShape(.rect(cornerRadius: 14))
+
+                Button {
+                    let meal = SavedMeal(
+                        name: describeSaveMealName.isEmpty ? "My Meal" : describeSaveMealName,
+                        calories: totalCal,
+                        protein: totalP,
+                        carbs: totalC,
+                        fat: totalF
+                    )
+                    viewModel.saveMeal(meal)
+                    describeMealSaved = true
+                    showDescribeSaveMealSheet = false
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "bookmark.fill")
+                        Text("Save Meal")
+                            .font(.system(.body, weight: .semibold))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(PepTheme.amber, in: .rect(cornerRadius: 12))
+                }
+                .sensoryFeedback(.success, trigger: describeMealSaved)
+
+                Spacer()
+            }
+            .padding(20)
+            .background(PepTheme.background.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showDescribeSaveMealSheet = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title3)
