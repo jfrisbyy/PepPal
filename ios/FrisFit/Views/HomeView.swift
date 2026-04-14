@@ -81,6 +81,8 @@ struct HomeView: View {
             }
             .onAppear {
                 viewModel.onAppear()
+                todaysPlanVM.loadCachedPlan()
+                triggerPlanFetch()
                 Task { await profileNudgeState.checkProfile() }
             }
             .sheet(isPresented: $viewModel.showEditSplit) {
@@ -121,6 +123,7 @@ struct HomeView: View {
             if !profileNudgeState.isComplete && !profileNudgeState.isDismissed {
                 profileCompletionNudge
             }
+            aiDailyBriefingCard
             DailyDeckBannerView(viewModel: viewModel)
             todaysPlanCard
             protocolCard
@@ -141,7 +144,6 @@ struct HomeView: View {
             if let encouragement = viewModel.streakEncouragement {
                 streakEncouragementCard(message: encouragement)
             }
-            aiDailyBriefingCard
             quickStatsBar
         }
         .padding(.horizontal)
@@ -1271,10 +1273,6 @@ struct HomeView: View {
         }) {
             showPepChat = true
         }
-        .onAppear {
-            todaysPlanVM.loadCachedPlan()
-            triggerPlanFetch()
-        }
         .fullScreenCover(isPresented: $showPepChat) {
             PepChatView()
         }
@@ -1287,6 +1285,7 @@ struct HomeView: View {
             nutrition: viewModel.nutrition,
             nutritionTarget: nutritionViewModel.dailyTarget,
             loggedMeals: nutritionViewModel.loggedMeals,
+            recentDailyMeals: [],
             bodyGoalVM: bodyGoalViewModel,
             todaysPlan: viewModel.todaysPlan,
             activeProgram: viewModel.activeProgram,

@@ -4,7 +4,6 @@ import SwiftUI
 final class TodaysPlanViewModel {
     var planResponse: TodaysPlanResponse?
     var isLoading: Bool = false
-    var isExpanded: Bool = false
     var errorMessage: String?
     var lastFetchDate: Date?
     var isBackgroundRefreshing: Bool = false
@@ -45,12 +44,56 @@ final class TodaysPlanViewModel {
         UserDefaults.standard.string(forKey: cacheHashKey)
     }
 
+    func templateFallback(
+        firstName: String,
+        activeProtocol: PeptideProtocol?,
+        nutritionTarget: MacroTarget
+    ) -> TodaysPlanResponse {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let greeting: String
+        switch hour {
+        case 0..<12: greeting = "Morning"
+        case 12..<17: greeting = "Afternoon"
+        default: greeting = "Evening"
+        }
+
+        var summaryParts = ["\(greeting), \(firstName)."]
+
+        if let proto = activeProtocol, let compound = proto.compounds.first {
+            summaryParts.append("Week \(proto.currentWeek) of \(compound.compoundName).")
+        }
+
+        summaryParts.append("Log your first data of the day to get personalized insights.")
+
+        var templateModules: [TodaysPlanModule] = []
+
+        if let proto = activeProtocol, let compound = proto.compounds.first {
+            templateModules.append(TodaysPlanModule(
+                type: "protocol",
+                title: compound.compoundName,
+                content: "Week \(proto.currentWeek), \(proto.currentPhase.rawValue) phase. Log your dose to track progress."
+            ))
+        }
+
+        templateModules.append(TodaysPlanModule(
+            type: "nutrition",
+            title: "Nutrition",
+            content: "You have \(nutritionTarget.calories) cal and \(nutritionTarget.protein)g protein to work with today. Log a meal to start tracking."
+        ))
+
+        return TodaysPlanResponse(
+            summary: summaryParts.joined(separator: " "),
+            modules: templateModules
+        )
+    }
+
     func fetchPlanIfNeeded(
         firstName: String,
         activeProtocol: PeptideProtocol?,
         nutrition: NutritionSnapshot,
         nutritionTarget: MacroTarget,
         loggedMeals: [LoggedMeal],
+        recentDailyMeals: [[LoggedMeal]] = [],
         bodyGoalVM: BodyGoalViewModel,
         todaysPlan: WorkoutPlan,
         activeProgram: TrainingProgram?,
@@ -67,6 +110,7 @@ final class TodaysPlanViewModel {
             nutrition: nutrition,
             nutritionTarget: nutritionTarget,
             loggedMeals: loggedMeals,
+            recentDailyMeals: recentDailyMeals,
             bodyGoalVM: bodyGoalVM,
             todaysPlan: todaysPlan,
             activeProgram: activeProgram,
@@ -86,6 +130,14 @@ final class TodaysPlanViewModel {
             isBackgroundRefreshing = true
         } else {
             isLoading = true
+            let fallback = templateFallback(
+                firstName: firstName,
+                activeProtocol: activeProtocol,
+                nutritionTarget: nutritionTarget
+            )
+            if planResponse == nil {
+                planResponse = fallback
+            }
         }
         errorMessage = nil
 
@@ -99,7 +151,7 @@ final class TodaysPlanViewModel {
                 cachePlan(response, hash: currentHash)
             } catch {
                 print("[TodaysPlan] Error: \(error)")
-                if !hadCachedPlan {
+                if !hadCachedPlan && planResponse?.summary.contains("Log your first data") == true {
                     errorMessage = "Could not generate today's plan"
                 }
             }
@@ -114,6 +166,7 @@ final class TodaysPlanViewModel {
         nutrition: NutritionSnapshot,
         nutritionTarget: MacroTarget,
         loggedMeals: [LoggedMeal],
+        recentDailyMeals: [[LoggedMeal]] = [],
         bodyGoalVM: BodyGoalViewModel,
         todaysPlan: WorkoutPlan,
         activeProgram: TrainingProgram?,
@@ -127,6 +180,7 @@ final class TodaysPlanViewModel {
             nutrition: nutrition,
             nutritionTarget: nutritionTarget,
             loggedMeals: loggedMeals,
+            recentDailyMeals: recentDailyMeals,
             bodyGoalVM: bodyGoalVM,
             todaysPlan: todaysPlan,
             activeProgram: activeProgram,

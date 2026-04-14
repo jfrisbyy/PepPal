@@ -113,6 +113,7 @@ final class TodaysPlanService {
         nutrition: NutritionSnapshot,
         nutritionTarget: MacroTarget,
         loggedMeals: [LoggedMeal],
+        recentDailyMeals: [[LoggedMeal]] = [],
         bodyGoalVM: BodyGoalViewModel,
         todaysPlan: WorkoutPlan,
         activeProgram: TrainingProgram?,
@@ -325,12 +326,43 @@ final class TodaysPlanService {
             )
         }
 
+        var nutritionTrends: NutritionTrendsContext?
+        if !recentDailyMeals.isEmpty {
+            let dayCount = recentDailyMeals.count
+            let dailyCalories = recentDailyMeals.map { day in day.reduce(0) { $0 + $1.totalCalories } }
+            let dailyProtein = recentDailyMeals.map { day in Int(day.reduce(0) { $0 + $1.totalProtein }) }
+            let avgCal = dailyCalories.reduce(0, +) / max(dayCount, 1)
+            let avgProt = dailyProtein.reduce(0, +) / max(dayCount, 1)
+            let daysProteinHit = dailyProtein.filter { $0 >= nutritionTarget.protein }.count
+            let daysCalorieHit = dailyCalories.filter { abs($0 - nutritionTarget.calories) <= Int(Double(nutritionTarget.calories) * 0.1) }.count
+
+            var pattern: String?
+            if avgProt < Int(Double(nutritionTarget.protein) * 0.8) {
+                pattern = "Consistently low protein"
+            } else if dailyCalories.count >= 3 {
+                let firstHalf = Array(dailyCalories.prefix(dailyCalories.count / 2))
+                let secondHalf = Array(dailyCalories.suffix(dailyCalories.count / 2))
+                let avgFirst = firstHalf.isEmpty ? 0 : firstHalf.reduce(0, +) / firstHalf.count
+                let avgSecond = secondHalf.isEmpty ? 0 : secondHalf.reduce(0, +) / secondHalf.count
+                if avgFirst > avgSecond + 200 { pattern = "Front-loading calories earlier in the week" }
+                else if avgSecond > avgFirst + 200 { pattern = "Calorie intake increasing through the week" }
+            }
+
+            nutritionTrends = NutritionTrendsContext(
+                avgCalories: avgCal,
+                avgProtein: avgProt,
+                daysProteinHit: daysProteinHit,
+                daysCalorieHit: daysCalorieHit,
+                notablePattern: pattern
+            )
+        }
+
         return ContextBundle(
             userProfile: userProfile,
             protocolContext: protocolContext,
             compoundKnowledge: compoundKnowledge,
             nutritionToday: nutritionToday,
-            nutritionTrends: nil,
+            nutritionTrends: nutritionTrends,
             bodyContext: bodyContext,
             trainingContext: trainingContext,
             sideEffectsContext: sideEffectsContext,
