@@ -7,11 +7,12 @@ struct TodaysPlanCardView: View {
 
     @State private var appearedModules: Set<String> = []
     @State private var showAllModules: Bool = false
+    @State private var isMinimized: Bool = false
 
     var body: some View {
         VStack(spacing: 12) {
             summaryCard
-            if viewModel.hasPlan && !viewModel.modules.isEmpty {
+            if !isMinimized && viewModel.hasPlan && !viewModel.modules.isEmpty {
                 modulesList
             }
         }
@@ -23,21 +24,31 @@ struct TodaysPlanCardView: View {
     private var summaryCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             headerRow
-                .padding(.bottom, 12)
+                .padding(.bottom, isMinimized ? 0 : 12)
 
-            if viewModel.isLoading && !viewModel.hasPlan {
-                loadingShimmer
-            } else if viewModel.hasPlan {
-                Text(viewModel.summary)
-                    .font(.subheadline)
-                    .foregroundStyle(PepTheme.textPrimary.opacity(0.88))
-                    .lineSpacing(4)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.leading, 50)
+            if !isMinimized {
+                if viewModel.isLoading && !viewModel.hasPlan {
+                    loadingShimmer
+                } else if viewModel.hasPlan {
+                    Text(viewModel.summary)
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.textPrimary.opacity(0.88))
+                        .lineSpacing(4)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, 50)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
         }
         .padding(16)
+        .contentShape(.rect)
+        .onTapGesture {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                isMinimized.toggle()
+            }
+        }
+        .sensoryFeedback(.selection, trigger: isMinimized)
         .background(
             LinearGradient(
                 colors: [
@@ -89,6 +100,11 @@ struct TodaysPlanCardView: View {
             }
 
             Spacer()
+
+            Image(systemName: "chevron.down")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(PepTheme.violet.opacity(0.4))
+                .rotationEffect(.degrees(isMinimized ? -90 : 0))
 
             HStack(spacing: 8) {
                 if viewModel.hasPlan {
