@@ -1,31 +1,31 @@
 import SwiftUI
+import PhotosUI
 
 struct BodyGoalDetailView: View {
     @Bindable var viewModel: BodyGoalViewModel
-    @State private var selectedTab: DetailTab = .weight
+    @State private var expanded: ExpandedSection? = .trends
+    @State private var photosVM = ProgressPhotosViewModel()
+    @State private var photosLoaded: Bool = false
+    @State private var photoFilter: String = "All"
+    @State private var pickerItem: PhotosPickerItem?
+    @State private var showCamera: Bool = false
+    @State private var showSourceDialog: Bool = false
+    @State private var pendingImage: UIImage?
+    @State private var pendingOrientation: String = "Front"
+    @State private var pendingNote: String = ""
+    @State private var selectedGoalDraft: FitnessGoalType = .weightLoss
 
-    enum DetailTab: String, CaseIterable {
-        case weight = "Weight"
-        case measurements = "Measurements"
-        case photos = "Photos"
+    enum ExpandedSection: String {
+        case logWeight, changeGoal, measurements, trends, photos
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 22) {
                 editorialMasthead
                 goalHeader
-                quickActionsRow
                 statTriptych
-                tabPicker
-                switch selectedTab {
-                case .weight:
-                    weightSection
-                case .measurements:
-                    measurementsSection
-                case .photos:
-                    photosSection
-                }
+                actionStack
             }
             .padding(.horizontal)
             .padding(.top, 8)
@@ -35,34 +35,43 @@ struct BodyGoalDetailView: View {
         .appBackground()
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    viewModel.showGoalPicker = true
-                } label: {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
-            }
-        }
         .refreshable {
             await viewModel.refresh()
+            await photosVM.loadPhotos()
         }
-        .sheet(isPresented: $viewModel.showWeighInSheet) {
-            WeighInSheet(viewModel: viewModel)
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
+        .task {
+            if !photosLoaded {
+                photosLoaded = true
+                await photosVM.loadPhotos()
+            }
         }
-        .sheet(isPresented: $viewModel.showMeasurementSheet) {
-            MeasurementSheet(viewModel: viewModel)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+        .onAppear {
+            selectedGoalDraft = viewModel.currentGoal
         }
-        .sheet(isPresented: $viewModel.showGoalPicker) {
-            GoalPickerSheet(viewModel: viewModel)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+        .confirmationDialog("Add Progress Photo", isPresented: $showSourceDialog, titleVisibility: .visible) {
+            Button {
+                showCamera = true
+            } label: {
+                Label("Take Photo", systemImage: "camera")
+            }
+            PhotosPicker(selection: $pickerItem, matching: .images) {
+                Label("Choose from Library", systemImage: "photo.on.rectangle")
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            BodyGoalCameraPicker { image in
+                if let image { pendingImage = image }
+            }
+        }
+        .onChange(of: pickerItem) { _, newValue in
+            guard let item = newValue else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    pendingImage = image
+                }
+            }
         }
     }
 
@@ -95,60 +104,708 @@ struct BodyGoalDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Quick Actions
+    // MARK: - Action Stack (inline expandable editorial sections)
 
-    private var quickActionsRow: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                actionButton(icon: "scalemass.fill", label: "Log Weight", color: PepTheme.teal) {
-                    viewModel.showWeighInSheet = true
+    private var actionStack: some View {
+        VStack(spacing: 12) {
+            expandableCard(
+                section: .logWeight,
+                icon: "scalemass.fill",
+                eyebrow: "ENTRY \u{00B7} 01",
+                title: "Log Weight",
+                accent: PepTheme.teal
+            ) { logWeightInline }
+
+            expandableCard(
+                section: .measurements,
+                icon: "ruler.fill",
+                eyebrow: "ENTRY \u{00B7} 02",
+                title: "Measurements",
+                accent: PepTheme.amber
+            ) { measurementsInline }
+
+            expandableCard(
+                section: .changeGoal,
+                icon: "target",
+                eyebrow: "ENTRY \u{00B7} 03",
+                title: "Change Goal",
+                accent: viewModel.currentGoal.color
+            ) { changeGoalInline }
+
+            expandableCard(
+                section: .trends,
+                icon: "chart.line.uptrend.xyaxis",
+                eyebrow: "ENTRY \u{00B7} 04",
+                title: "Trends & History",
+                accent: PepTheme.violet
+            ) { trendsInline }
+
+            expandableCard(
+                section: .photos,
+                icon: "camera.aperture",
+                eyebrow: "ENTRY \u{00B7} 05",
+                title: "Progress Photos",
+                accent: Color(red: 245/255, green: 158/255, blue: 11/255)
+            ) { photosInline }
+        }
+    }
+
+    private func expandableCard<Content: View>(
+        section: ExpandedSection,
+        icon: String,
+        eyebrow: String,
+        title: String,
+        accent: Color,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        let isExpanded = expanded == section
+        return VStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                    expanded = isExpanded ? nil : section
                 }
-                actionButton(icon: "ruler.fill", label: "Measurements", color: PepTheme.amber) {
-                    viewModel.showMeasurementSheet = true
+            } label: {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(accent.opacity(0.14))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: icon)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(accent)
+                    }
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(eyebrow)
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.8)
+                            .foregroundStyle(accent.opacity(0.75))
+                        Text(title)
+                            .font(.system(size: 17, weight: .bold, design: .serif))
+                            .foregroundStyle(PepTheme.textPrimary)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isExpanded)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+            }
+            .buttonStyle(.scale)
+            .sensoryFeedback(.selection, trigger: isExpanded)
+
+            if isExpanded {
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(PepTheme.shimmerHighlight)
+                        .frame(height: 0.6)
+                        .padding(.horizontal, 16)
+
+                    content()
+                        .padding(16)
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    isExpanded ? accent.opacity(0.25) : PepTheme.glassBorderTop,
+                    lineWidth: isExpanded ? 0.8 : 0.5
+                )
+        )
+        .shadow(color: .black.opacity(isExpanded ? 0.18 : 0.08), radius: isExpanded ? 14 : 6, x: 0, y: isExpanded ? 6 : 3)
+    }
+
+    // MARK: - Log Weight (inline)
+
+    private var logWeightInline: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                editorialFieldLabel("WEIGHT", unit: "lbs")
+                TextField("0.0", text: $viewModel.newWeighInValue)
+                    .keyboardType(.decimalPad)
+                    .font(.system(size: 36, weight: .black, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .padding(.vertical, 4)
+                Rectangle()
+                    .fill(PepTheme.shimmerHighlight)
+                    .frame(height: 0.8)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                editorialFieldLabel("NOTE", unit: nil)
+                TextField("Morning, post-workout...", text: $viewModel.newWeighInNote)
+                    .font(.system(.subheadline, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .padding(.vertical, 4)
+                Rectangle()
+                    .fill(PepTheme.shimmerHighlight)
+                    .frame(height: 0.8)
+            }
+
+            if let last = viewModel.weightEntries.last {
+                Text("Last entry: \(String(format: "%.1f lbs", last.weight)) on \(last.date.formatted(.dateTime.month(.abbreviated).day()))")
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .tracking(0.6)
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            Button {
+                viewModel.logWeighIn()
+            } label: {
+                HStack(spacing: 8) {
+                    if viewModel.isSaving { ProgressView().tint(PepTheme.invertedText) }
+                    Text("Save Weigh-In")
+                        .font(.system(.subheadline, weight: .semibold))
+                }
+                .foregroundStyle(PepTheme.invertedText)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(PepTheme.teal, in: .rect(cornerRadius: 12))
+            }
+            .buttonStyle(.scale)
+            .disabled(viewModel.newWeighInValue.isEmpty || viewModel.isSaving)
+            .opacity(viewModel.newWeighInValue.isEmpty ? 0.5 : 1)
+        }
+    }
+
+    // MARK: - Measurements (inline)
+
+    private var measurementsInline: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("ALL VALUES IN INCHES")
+                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                .tracking(1.8)
+                .foregroundStyle(PepTheme.textSecondary)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                inlineMeasurementField("Chest", value: $viewModel.newChest, icon: "figure.arms.open")
+                inlineMeasurementField("Waist", value: $viewModel.newWaist, icon: "figure.stand")
+                inlineMeasurementField("Hips", value: $viewModel.newHips, icon: "figure.walk")
+                inlineMeasurementField("Neck", value: $viewModel.newNeck, icon: "person.bust")
+                inlineMeasurementField("L Bicep", value: $viewModel.newBicepLeft, icon: "figure.strengthtraining.traditional")
+                inlineMeasurementField("R Bicep", value: $viewModel.newBicepRight, icon: "figure.strengthtraining.traditional")
+                inlineMeasurementField("L Thigh", value: $viewModel.newThighLeft, icon: "figure.run")
+                inlineMeasurementField("R Thigh", value: $viewModel.newThighRight, icon: "figure.run")
+            }
+
+            Button {
+                viewModel.logMeasurement()
+            } label: {
+                HStack(spacing: 8) {
+                    if viewModel.isSaving { ProgressView().tint(PepTheme.invertedText) }
+                    Text("Save Measurements")
+                        .font(.system(.subheadline, weight: .semibold))
+                }
+                .foregroundStyle(PepTheme.invertedText)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(PepTheme.amber, in: .rect(cornerRadius: 12))
+            }
+            .buttonStyle(.scale)
+            .disabled(viewModel.isSaving)
+
+            if !viewModel.measurements.isEmpty {
+                Divider().background(PepTheme.shimmerHighlight)
+
+                Text("HISTORY  \u{00B7}  \(viewModel.measurements.count)")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.8)
+                    .foregroundStyle(PepTheme.textSecondary)
+
+                if viewModel.measurements.count >= 2 {
+                    measurementComparisonCard
+                }
+
+                ForEach(viewModel.measurements.reversed()) { m in
+                    measurementCard(m)
+                        .contextMenu {
+                            if m.supabaseId != nil {
+                                Button(role: .destructive) {
+                                    viewModel.deleteMeasurement(m)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
                 }
             }
-            HStack(spacing: 10) {
-                actionButton(icon: "target", label: "Change Goal", color: viewModel.currentGoal.color) {
-                    viewModel.showGoalPicker = true
+        }
+    }
+
+    private func inlineMeasurementField(_ label: String, value: Binding<String>, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary)
+                Text(label.uppercased())
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            TextField("\u{2014}", text: value)
+                .keyboardType(.decimalPad)
+                .font(.system(size: 18, weight: .bold, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .padding(10)
+                .background(PepTheme.elevated.opacity(0.6))
+                .clipShape(.rect(cornerRadius: 10))
+        }
+    }
+
+    // MARK: - Change Goal (inline)
+
+    private var changeGoalInline: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("GOAL TYPE")
+                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                .tracking(1.8)
+                .foregroundStyle(PepTheme.textSecondary)
+
+            VStack(spacing: 6) {
+                ForEach(FitnessGoalType.allCases) { goal in
+                    goalOptionRow(goal)
                 }
-                actionButton(icon: "chart.line.uptrend.xyaxis", label: "Trends", color: PepTheme.violet) {
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                editorialFieldLabel("TARGET WEIGHT", unit: "lbs")
+                TextField("175.0", text: $viewModel.goalTargetWeightText)
+                    .keyboardType(.decimalPad)
+                    .font(.system(size: 28, weight: .black, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Rectangle()
+                    .fill(PepTheme.shimmerHighlight)
+                    .frame(height: 0.8)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                editorialFieldLabel("WEEKLY RATE", unit: "lbs/wk")
+                TextField("1.0", text: $viewModel.goalWeeklyRateText)
+                    .keyboardType(.decimalPad)
+                    .font(.system(size: 22, weight: .bold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Rectangle()
+                    .fill(PepTheme.shimmerHighlight)
+                    .frame(height: 0.8)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                editorialFieldLabel("TARGET DATE", unit: nil)
+                DatePicker("", selection: $viewModel.targetDate, in: Date()..., displayedComponents: .date)
+                    .datePickerStyle(.compact)
+                    .labelsHidden()
+                    .tint(selectedGoalDraft.color)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    editorialFieldLabel("HEIGHT", unit: "cm")
+                    Spacer()
+                    Text(heightInFeetInches)
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Text(String(format: "%.0f", viewModel.heightCm))
+                        .font(.system(size: 18, weight: .bold, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary)
+                }
+                Slider(value: $viewModel.heightCm, in: 120...220, step: 1)
+                    .tint(selectedGoalDraft.color)
+            }
+
+            Button {
+                viewModel.currentGoal = selectedGoalDraft
+                viewModel.saveGoal()
+            } label: {
+                HStack(spacing: 8) {
+                    if viewModel.isSaving { ProgressView().tint(PepTheme.invertedText) }
+                    Text("Save Goal")
+                        .font(.system(.subheadline, weight: .semibold))
+                }
+                .foregroundStyle(PepTheme.invertedText)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(selectedGoalDraft.color, in: .rect(cornerRadius: 12))
+            }
+            .buttonStyle(.scale)
+            .disabled(viewModel.isSaving)
+        }
+    }
+
+    private func goalOptionRow(_ goal: FitnessGoalType) -> some View {
+        let isSelected = selectedGoalDraft == goal
+        return Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                selectedGoalDraft = goal
+            }
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(goal.color.opacity(0.15))
+                        .frame(width: 32, height: 32)
+                    Image(systemName: goal.icon)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(goal.color)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(goal.rawValue)
+                        .font(.system(.subheadline, design: .serif, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text(goal.subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(goal.color)
+                }
+            }
+            .padding(10)
+            .background(isSelected ? goal.color.opacity(0.08) : PepTheme.elevated.opacity(0.5))
+            .clipShape(.rect(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(isSelected ? goal.color.opacity(0.3) : Color.clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var heightInFeetInches: String {
+        let totalInches = viewModel.heightCm / 2.54
+        let feet = Int(totalInches / 12)
+        let inches = Int(totalInches.truncatingRemainder(dividingBy: 12))
+        return "\(feet)'\(inches)\""
+    }
+
+    // MARK: - Trends (inline)
+
+    private var trendsInline: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("WEIGHT TREND")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.8)
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
+                if !viewModel.weightEntries.isEmpty {
+                    Text(String(format: "%.1f lbs total", abs(viewModel.totalChange)))
+                        .font(.system(.caption, design: .rounded, weight: .bold))
+                        .foregroundStyle(
+                            viewModel.currentGoal.isLosing
+                            ? (viewModel.totalChange <= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
+                            : (viewModel.totalChange >= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
+                        )
+                }
+            }
+
+            if viewModel.weightChartData.count > 1 {
+                WeightChartView(data: viewModel.weightChartData, goalColor: viewModel.currentGoal.color)
+                    .frame(height: 160)
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.title)
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                    Text("Log more weigh-ins to see your trend")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 120)
+            }
+
+            Divider().background(PepTheme.shimmerHighlight)
+
+            HStack {
+                Text("HISTORY")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.8)
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
+                Text("\(viewModel.weightEntries.count) ENTRIES")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.8)
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            if viewModel.weightEntries.isEmpty {
+                EmptyStateView(
+                    icon: "scalemass",
+                    title: "No Weight Entries",
+                    message: "Log your first weigh-in to start tracking your progress."
+                )
+            } else {
+                ForEach(viewModel.weightEntries.reversed()) { entry in
+                    weightEntryRow(entry)
+                }
+            }
+        }
+    }
+
+    // MARK: - Photos (inline)
+
+    private var photosInline: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if let pendingImage {
+                pendingPhotoEditor(image: pendingImage)
+            } else {
+                photoFiltersBar
+                photoGrid
+                addPhotoButton
+            }
+        }
+    }
+
+    private var photoFiltersBar: some View {
+        let cats = ["All", "Front", "Side", "Back"]
+        return HStack(spacing: 6) {
+            ForEach(cats, id: \.self) { c in
+                Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                        selectedTab = .weight
+                        photoFilter = c
+                    }
+                } label: {
+                    Text(c.uppercased())
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(photoFilter == c ? PepTheme.invertedText : PepTheme.textSecondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(photoFilter == c ? Color(red: 245/255, green: 158/255, blue: 11/255) : PepTheme.elevated.opacity(0.6))
+                        .clipShape(.capsule)
+                }
+                .sensoryFeedback(.selection, trigger: photoFilter)
+            }
+            Spacer()
+            if photosVM.photos.count >= 2 {
+                NavigationLink {
+                    ProgressPhotoComparisonView(photos: photosVM.photos)
+                } label: {
+                    Image(systemName: "rectangle.split.2x1")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(PepTheme.violet)
+                        .padding(8)
+                        .background(PepTheme.elevated.opacity(0.6))
+                        .clipShape(.circle)
+                }
+            }
+        }
+    }
+
+    private var photoGrid: some View {
+        let filtered: [ProgressPhoto] = photoFilter == "All"
+            ? photosVM.photos
+            : photosVM.photos.filter { ($0.orientation ?? $0.category ?? "").lowercased() == photoFilter.lowercased() }
+
+        return VStack(spacing: 0) {
+            if photosVM.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, minHeight: 120)
+            } else if filtered.isEmpty {
+                VStack(spacing: 10) {
+                    Image(systemName: "camera.aperture")
+                        .font(.system(size: 36))
+                        .foregroundStyle(Color(red: 245/255, green: 158/255, blue: 11/255).opacity(0.6))
+                    Text("No Progress Photos Yet")
+                        .font(.system(.subheadline, design: .serif, weight: .bold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("Document your transformation week by week.")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            } else {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                    ForEach(filtered) { photo in
+                        photoTile(photo)
                     }
                 }
             }
         }
     }
 
-    private func actionButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(color.opacity(0.15))
-                        .frame(width: 30, height: 30)
-                    Image(systemName: icon)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(color)
+    private func photoTile(_ photo: ProgressPhoto) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Color(PepTheme.elevated)
+                .frame(height: 160)
+                .overlay {
+                    if let urlStr = photo.photoUrl, let url = URL(string: urlStr) {
+                        AsyncImage(url: url) { phase in
+                            if let image = phase.image {
+                                image.resizable().aspectRatio(contentMode: .fill).allowsHitTesting(false)
+                            } else if phase.error != nil {
+                                Image(systemName: "photo")
+                                    .font(.system(size: 24))
+                                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                            } else {
+                                ProgressView()
+                            }
+                        }
+                    } else {
+                        Image(systemName: "photo")
+                            .font(.system(size: 24))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                    }
                 }
-                Text(label)
-                    .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
+                .clipShape(.rect(cornerRadius: 12))
+
+            HStack(spacing: 6) {
+                if let o = photo.orientationEnum {
+                    Text(o.displayName.uppercased())
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(Color(red: 245/255, green: 158/255, blue: 11/255))
+                }
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                Text(photo.date.formatted(.dateTime.month(.abbreviated).day()))
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(PepTheme.textSecondary)
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 4)
+        }
+        .contextMenu {
+            Button(role: .destructive) {
+                Task { await photosVM.deletePhoto(photo) }
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+
+    private var addPhotoButton: some View {
+        Button {
+            showSourceDialog = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 16))
+                Text("Add Progress Photo")
+                    .font(.system(.subheadline, weight: .semibold))
+            }
+            .foregroundStyle(PepTheme.invertedText)
+            .frame(maxWidth: .infinity)
             .padding(.vertical, 13)
-            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-            .clipShape(.rect(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-            )
+            .background(Color(red: 245/255, green: 158/255, blue: 11/255), in: .rect(cornerRadius: 12))
         }
         .buttonStyle(.scale)
+    }
+
+    private func pendingPhotoEditor(image: UIImage) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Color(PepTheme.elevated)
+                .frame(height: 260)
+                .overlay {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .allowsHitTesting(false)
+                }
+                .clipShape(.rect(cornerRadius: 14))
+
+            VStack(alignment: .leading, spacing: 8) {
+                editorialFieldLabel("POSE", unit: nil)
+                HStack(spacing: 8) {
+                    ForEach(["Front", "Side", "Back"], id: \.self) { c in
+                        Button {
+                            pendingOrientation = c
+                        } label: {
+                            Text(c.uppercased())
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                .tracking(1.2)
+                                .foregroundStyle(pendingOrientation == c ? PepTheme.invertedText : PepTheme.textSecondary)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(pendingOrientation == c ? Color(red: 245/255, green: 158/255, blue: 11/255) : PepTheme.elevated.opacity(0.6))
+                                .clipShape(.capsule)
+                        }
+                    }
+                    Spacer()
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                editorialFieldLabel("NOTE", unit: nil)
+                TextField("Week 4, feeling stronger", text: $pendingNote)
+                    .font(.system(.subheadline, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .padding(.vertical, 4)
+                Rectangle()
+                    .fill(PepTheme.shimmerHighlight)
+                    .frame(height: 0.8)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    pendingImage = nil
+                    pendingNote = ""
+                    pickerItem = nil
+                } label: {
+                    Text("Cancel")
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(PepTheme.elevated.opacity(0.7), in: .rect(cornerRadius: 12))
+                }
+                .buttonStyle(.scale)
+
+                Button {
+                    photosVM.addCategory = pendingOrientation
+                    photosVM.addNote = pendingNote
+                    let img = image
+                    Task {
+                        await photosVM.uploadPhoto(img)
+                        pendingImage = nil
+                        pendingNote = ""
+                        pickerItem = nil
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if photosVM.isUploading { ProgressView().tint(PepTheme.invertedText) }
+                        Text("Save Photo")
+                            .font(.system(.subheadline, weight: .semibold))
+                    }
+                    .foregroundStyle(PepTheme.invertedText)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Color(red: 245/255, green: 158/255, blue: 11/255), in: .rect(cornerRadius: 12))
+                }
+                .buttonStyle(.scale)
+                .disabled(photosVM.isUploading)
+            }
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func editorialFieldLabel(_ label: String, unit: String?) -> some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                .tracking(1.8)
+                .foregroundStyle(PepTheme.textSecondary)
+            if let unit {
+                Text(unit)
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+            }
+            Spacer()
+        }
     }
 
     // MARK: - Stat Triptych
@@ -322,17 +979,6 @@ struct BodyGoalDetailView: View {
         .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 4)
     }
 
-    private func statPill(label: String, value: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(.caption, design: .rounded, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
-            Text(label)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
-        }
-    }
-
     private var bmiMiniCard: some View {
         HStack(spacing: 10) {
             ZStack {
@@ -388,121 +1034,7 @@ struct BodyGoalDetailView: View {
         .clipShape(.rect(cornerRadius: 12))
     }
 
-    // MARK: - Tab Picker
-
-    private var tabPicker: some View {
-        HStack(spacing: 4) {
-            ForEach(DetailTab.allCases, id: \.rawValue) { tab in
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        selectedTab = tab
-                    }
-                } label: {
-                    Text(tab.rawValue)
-                        .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(selectedTab == tab ? PepTheme.invertedText : PepTheme.textSecondary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(selectedTab == tab ? PepTheme.teal : PepTheme.elevated.opacity(0.5))
-                        .clipShape(.capsule)
-                }
-                .sensoryFeedback(.selection, trigger: selectedTab)
-            }
-        }
-        .padding(4)
-        .background(PepTheme.cardSurface)
-        .clipShape(.capsule)
-    }
-
-    // MARK: - Weight Section
-
-    private var weightSection: some View {
-        VStack(spacing: 16) {
-            weightChart
-
-            Button {
-                viewModel.showWeighInSheet = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 16))
-                    Text("Log Weigh-In")
-                        .font(.system(.subheadline, weight: .semibold))
-                }
-                .foregroundStyle(PepTheme.invertedText)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(PepTheme.teal, in: .rect(cornerRadius: 12))
-            }
-            .buttonStyle(.scale)
-
-            weightHistory
-        }
-    }
-
-    private var weightChart: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Weight Trend")
-                        .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Spacer()
-                    if viewModel.weightEntries.count > 0 {
-                        Text(String(format: "%.1f lbs total", abs(viewModel.totalChange)))
-                            .font(.system(.caption, design: .rounded, weight: .bold))
-                            .foregroundStyle(
-                                viewModel.currentGoal.isLosing
-                                ? (viewModel.totalChange <= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
-                                : (viewModel.totalChange >= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
-                            )
-                    }
-                }
-
-                if viewModel.weightChartData.count > 1 {
-                    WeightChartView(data: viewModel.weightChartData, goalColor: viewModel.currentGoal.color)
-                        .frame(height: 160)
-                } else {
-                    VStack(spacing: 8) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.title)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
-                        Text("Log more weigh-ins to see your trend")
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 120)
-                }
-            }
-        }
-    }
-
-    private var weightHistory: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("History")
-                    .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Spacer()
-                Text("\(viewModel.weightEntries.count) entries")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-
-            if viewModel.weightEntries.isEmpty {
-                EmptyStateView(
-                    icon: "scalemass",
-                    title: "No Weight Entries",
-                    message: "Log your first weigh-in to start tracking your progress."
-                )
-            } else {
-                ForEach(viewModel.weightEntries.reversed()) { entry in
-                    weightEntryRow(entry)
-                }
-            }
-        }
-    }
+    // MARK: - Reusable rows
 
     private func weightEntryRow(_ entry: WeightEntry) -> some View {
         let previousIndex = viewModel.weightEntries.firstIndex(where: { $0.id == entry.id }).map { $0 - 1 }
@@ -550,12 +1082,8 @@ struct BodyGoalDetailView: View {
             }
         }
         .padding(12)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .background(PepTheme.elevated.opacity(0.5))
         .clipShape(.rect(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-        )
         .contextMenu {
             if entry.supabaseId != nil {
                 Button(role: .destructive) {
@@ -567,72 +1095,26 @@ struct BodyGoalDetailView: View {
         }
     }
 
-    // MARK: - Measurements Section
-
-    private var measurementsSection: some View {
-        VStack(spacing: 16) {
-            Button {
-                viewModel.showMeasurementSheet = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 16))
-                    Text("Log Measurements")
-                        .font(.system(.subheadline, weight: .semibold))
-                }
-                .foregroundStyle(PepTheme.invertedText)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(PepTheme.teal, in: .rect(cornerRadius: 12))
-            }
-            .buttonStyle(.scale)
-
-            if viewModel.measurements.isEmpty {
-                EmptyStateView(
-                    icon: "ruler",
-                    title: "No Measurements",
-                    message: "Track your body measurements to see changes over time."
-                )
-            } else {
-                if viewModel.measurements.count >= 2 {
-                    measurementComparisonCard
-                }
-
-                ForEach(viewModel.measurements.reversed()) { measurement in
-                    measurementCard(measurement)
-                        .contextMenu {
-                            if measurement.supabaseId != nil {
-                                Button(role: .destructive) {
-                                    viewModel.deleteMeasurement(measurement)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        }
-                }
-            }
-        }
-    }
-
     private func measurementCard(_ measurement: BodyMeasurement) -> some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(measurement.date.formatted(.dateTime.month(.wide).day().year()))
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(PepTheme.teal)
+        VStack(alignment: .leading, spacing: 12) {
+            Text(measurement.date.formatted(.dateTime.month(.wide).day().year()))
+                .font(.system(.caption, weight: .semibold))
+                .foregroundStyle(PepTheme.amber)
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    if let v = measurement.chest { measurementStat(label: "Chest", value: v) }
-                    if let v = measurement.waist { measurementStat(label: "Waist", value: v) }
-                    if let v = measurement.hips { measurementStat(label: "Hips", value: v) }
-                    if let v = measurement.neck { measurementStat(label: "Neck", value: v) }
-                    if let v = measurement.bicepLeft { measurementStat(label: "L Bicep", value: v) }
-                    if let v = measurement.bicepRight { measurementStat(label: "R Bicep", value: v) }
-                    if let v = measurement.thighLeft { measurementStat(label: "L Thigh", value: v) }
-                    if let v = measurement.thighRight { measurementStat(label: "R Thigh", value: v) }
-                }
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                if let v = measurement.chest { measurementStat(label: "Chest", value: v) }
+                if let v = measurement.waist { measurementStat(label: "Waist", value: v) }
+                if let v = measurement.hips { measurementStat(label: "Hips", value: v) }
+                if let v = measurement.neck { measurementStat(label: "Neck", value: v) }
+                if let v = measurement.bicepLeft { measurementStat(label: "L Bicep", value: v) }
+                if let v = measurement.bicepRight { measurementStat(label: "R Bicep", value: v) }
+                if let v = measurement.thighLeft { measurementStat(label: "L Thigh", value: v) }
+                if let v = measurement.thighRight { measurementStat(label: "R Thigh", value: v) }
             }
         }
+        .padding(12)
+        .background(PepTheme.elevated.opacity(0.5))
+        .clipShape(.rect(cornerRadius: 12))
     }
 
     private func measurementStat(label: String, value: Double) -> some View {
@@ -653,29 +1135,30 @@ struct BodyGoalDetailView: View {
         let latest = viewModel.measurements.last!
         let previous = viewModel.measurements[viewModel.measurements.count - 2]
 
-        return GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "arrow.left.arrow.right")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.violet)
-                    Text("Changes Since Last")
-                        .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "arrow.left.arrow.right")
+                    .font(.caption)
+                    .foregroundStyle(PepTheme.violet)
+                Text("Changes Since Last")
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    if let lc = latest.chest, let pc = previous.chest { measurementChange(label: "Chest", change: lc - pc) }
-                    if let lw = latest.waist, let pw = previous.waist { measurementChange(label: "Waist", change: lw - pw) }
-                    if let lh = latest.hips, let ph = previous.hips { measurementChange(label: "Hips", change: lh - ph) }
-                    if let ln = latest.neck, let pn = previous.neck { measurementChange(label: "Neck", change: ln - pn) }
-                    if let lb = latest.bicepLeft, let pb = previous.bicepLeft { measurementChange(label: "L Bicep", change: lb - pb) }
-                    if let rb = latest.bicepRight, let prb = previous.bicepRight { measurementChange(label: "R Bicep", change: rb - prb) }
-                    if let lt = latest.thighLeft, let pt = previous.thighLeft { measurementChange(label: "L Thigh", change: lt - pt) }
-                    if let rt = latest.thighRight, let prt = previous.thighRight { measurementChange(label: "R Thigh", change: rt - prt) }
-                }
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                if let lc = latest.chest, let pc = previous.chest { measurementChange(label: "Chest", change: lc - pc) }
+                if let lw = latest.waist, let pw = previous.waist { measurementChange(label: "Waist", change: lw - pw) }
+                if let lh = latest.hips, let ph = previous.hips { measurementChange(label: "Hips", change: lh - ph) }
+                if let ln = latest.neck, let pn = previous.neck { measurementChange(label: "Neck", change: ln - pn) }
+                if let lb = latest.bicepLeft, let pb = previous.bicepLeft { measurementChange(label: "L Bicep", change: lb - pb) }
+                if let rb = latest.bicepRight, let prb = previous.bicepRight { measurementChange(label: "R Bicep", change: rb - prb) }
+                if let lt = latest.thighLeft, let pt = previous.thighLeft { measurementChange(label: "L Thigh", change: lt - pt) }
+                if let rt = latest.thighRight, let prt = previous.thighRight { measurementChange(label: "R Thigh", change: rt - prt) }
             }
         }
+        .padding(12)
+        .background(PepTheme.violet.opacity(0.06))
+        .clipShape(.rect(cornerRadius: 12))
     }
 
     private func measurementChange(label: String, change: Double) -> some View {
@@ -695,16 +1178,55 @@ struct BodyGoalDetailView: View {
             Spacer()
         }
     }
+}
 
-    // MARK: - Photos Section
+// MARK: - Camera Picker
 
-    private var photosSection: some View {
-        VStack(spacing: 16) {
-            EmptyStateView(
-                icon: "camera.fill",
-                title: "Progress Photos Coming Soon",
-                message: "Photo tracking with side-by-side comparisons will be available in a future update."
-            )
+struct BodyGoalCameraPicker: UIViewControllerRepresentable {
+    let onComplete: (UIImage?) -> Void
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        #if targetEnvironment(simulator)
+        picker.sourceType = .photoLibrary
+        #else
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            picker.sourceType = .camera
+            picker.cameraDevice = .rear
+        } else {
+            picker.sourceType = .photoLibrary
+        }
+        #endif
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onComplete: onComplete)
+    }
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onComplete: (UIImage?) -> Void
+
+        init(onComplete: @escaping (UIImage?) -> Void) {
+            self.onComplete = onComplete
+        }
+
+        nonisolated func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            let image = info[.originalImage] as? UIImage
+            Task { @MainActor in
+                picker.dismiss(animated: true)
+                onComplete(image)
+            }
+        }
+
+        nonisolated func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            Task { @MainActor in
+                picker.dismiss(animated: true)
+                onComplete(nil)
+            }
         }
     }
 }
@@ -777,6 +1299,7 @@ struct WeightChartView: View {
                         path.addLine(to: CGPoint(x: lastX, y: geo.size.height))
                         path.addLine(to: CGPoint(x: 0, y: geo.size.height))
                         path.closeSubpath()
+                        _ = lastY
                     }
                 }
                 .fill(
