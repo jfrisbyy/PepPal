@@ -420,6 +420,7 @@ final class TrainViewModel {
                 } else {
                     UserDefaults.standard.removeObject(forKey: Self.programKey)
                 }
+                stampCacheUserId()
                 NotificationCenter.default.post(name: .activeProgramsChanged, object: nil)
             } catch {
                 print("[TrainVM] Failed to load programs from Supabase: \(error)")
@@ -931,12 +932,19 @@ final class TrainViewModel {
             return
         }
         let currentUid = (try? AuthService.shared.currentUserId()) ?? ""
+        // If we've already hydrated state for this user this session (either from cache or Supabase),
+        // don't re-run — otherwise we may wipe a freshly-loaded activeProgram on subsequent onAppear calls.
+        if loadedForUserId == currentUid && (activeProgram != nil || !savedPrograms.isEmpty) {
+            return
+        }
         let cachedUid = UserDefaults.standard.string(forKey: "trainVM.cacheUserId")
         guard cachedUid == currentUid else {
-            savedPrograms = []
-            activeProgram = nil
-            UserDefaults.standard.removeObject(forKey: Self.programKey)
-            UserDefaults.standard.removeObject(forKey: Self.allProgramsKey)
+            // Cache belongs to a different user (or was never stamped). Don't wipe in-memory state
+            // that may have already been populated from Supabase — just skip the cache read.
+            if activeProgram == nil && savedPrograms.isEmpty {
+                UserDefaults.standard.removeObject(forKey: Self.programKey)
+                UserDefaults.standard.removeObject(forKey: Self.allProgramsKey)
+            }
             return
         }
         if let data = UserDefaults.standard.data(forKey: Self.allProgramsKey),
