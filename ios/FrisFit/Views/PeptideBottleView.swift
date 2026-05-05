@@ -9,10 +9,14 @@ struct PeptideBottleView: View {
     let liquidColor: Color
     var compactHeight: CGFloat = 96
     var showHighlights: Bool = true
+    /// Multiplier for the idle wave amplitude. Increase for more pronounced motion at small sizes.
+    var waveStrength: CGFloat = 1.0
 
     @Environment(\.colorScheme) private var colorScheme
     @State private var wavePhase: CGFloat = 0
+    @State private var secondaryWavePhase: CGFloat = 0
     @State private var shimmerPhase: CGFloat = -1
+    @State private var bobPhase: CGFloat = 0
 
     private var clampedFill: CGFloat {
         CGFloat(max(0, min(1, fillFraction)))
@@ -89,8 +93,8 @@ struct PeptideBottleView: View {
                     .frame(width: w, height: bodyHeight)
                     .position(x: w / 2, y: bodyTop + bodyHeight / 2)
 
-                // Liquid (clipped to body)
-                LiquidFillShape(fillFraction: clampedFill, wavePhase: wavePhase)
+                // Liquid (clipped to body) — primary wave
+                LiquidFillShape(fillFraction: clampedFill, wavePhase: wavePhase, amplitudeScale: waveStrength, bobOffset: sin(bobPhase) * 0.6)
                     .fill(
                         LinearGradient(
                             colors: [
@@ -109,6 +113,21 @@ struct PeptideBottleView: View {
                             .position(x: w / 2, y: bodyTop + bodyHeight / 2)
                     )
                     .animation(.spring(response: 0.7, dampingFraction: 0.85), value: clampedFill)
+
+                // Secondary wave for added motion
+                if clampedFill > 0.02 {
+                    LiquidFillShape(fillFraction: clampedFill, wavePhase: secondaryWavePhase, amplitudeScale: waveStrength * 0.7, bobOffset: cos(bobPhase) * 0.5)
+                        .fill(Color.white.opacity(0.18))
+                        .frame(width: bodyRect.width, height: bodyRect.height)
+                        .position(x: bodyRect.midX, y: bodyRect.midY)
+                        .mask(
+                            bodyShape
+                                .frame(width: w, height: bodyHeight)
+                                .position(x: w / 2, y: bodyTop + bodyHeight / 2)
+                        )
+                        .blendMode(.plusLighter)
+                        .allowsHitTesting(false)
+                }
 
                 // Liquid surface shimmer (slow moving highlight)
                 if showHighlights && clampedFill > 0.02 {
@@ -184,12 +203,25 @@ struct PeptideBottleView: View {
         .onAppear {
             startWaveAnimation()
             startShimmer()
+            startBob()
         }
     }
 
     private func startWaveAnimation() {
-        withAnimation(.linear(duration: 3.2).repeatForever(autoreverses: false)) {
+        wavePhase = 0
+        secondaryWavePhase = .pi
+        withAnimation(.linear(duration: 2.6).repeatForever(autoreverses: false)) {
             wavePhase = .pi * 2
+        }
+        withAnimation(.linear(duration: 3.4).repeatForever(autoreverses: false)) {
+            secondaryWavePhase = .pi * 2 + .pi
+        }
+    }
+
+    private func startBob() {
+        bobPhase = 0
+        withAnimation(.easeInOut(duration: 2.8).repeatForever(autoreverses: false)) {
+            bobPhase = .pi * 2
         }
     }
 
@@ -205,29 +237,35 @@ struct PeptideBottleView: View {
 private struct LiquidFillShape: Shape, @unchecked Sendable {
     var fillFraction: CGFloat
     var wavePhase: CGFloat
+    var amplitudeScale: CGFloat = 1.0
+    var bobOffset: CGFloat = 0
 
-    var animatableData: AnimatablePair<CGFloat, CGFloat> {
-        get { AnimatablePair(fillFraction, wavePhase) }
+    var animatableData: AnimatablePair<CGFloat, AnimatablePair<CGFloat, CGFloat>> {
+        get { AnimatablePair(fillFraction, AnimatablePair(wavePhase, bobOffset)) }
         set {
             fillFraction = newValue.first
-            wavePhase = newValue.second
+            wavePhase = newValue.second.first
+            bobOffset = newValue.second.second
         }
     }
 
     func path(in rect: CGRect) -> Path {
         var p = Path()
-        let level = rect.height * (1 - fillFraction)
-        let waveAmp: CGFloat = max(1.5, min(4, rect.height * 0.02))
+        let level = rect.height * (1 - fillFraction) + bobOffset
+        // Stronger amplitude floor so wave reads clearly even on small bottles.
+        let baseAmp: CGFloat = max(2.5, min(6, rect.height * 0.035))
+        let waveAmp: CGFloat = baseAmp * amplitudeScale
         let waveLen = rect.width
 
         p.move(to: CGPoint(x: 0, y: rect.height))
         p.addLine(to: CGPoint(x: 0, y: level))
 
-        let steps = 32
+        let steps = 36
         for i in 0...steps {
             let x = rect.width * CGFloat(i) / CGFloat(steps)
             let phase = (x / waveLen) * .pi * 2 + wavePhase
-            let y = level + sin(phase) * waveAmp
+            // Two harmonics for a richer water surface.
+            let y = level + sin(phase) * waveAmp + sin(phase * 2 + .pi / 3) * waveAmp * 0.35
             p.addLine(to: CGPoint(x: x, y: y))
         }
 
