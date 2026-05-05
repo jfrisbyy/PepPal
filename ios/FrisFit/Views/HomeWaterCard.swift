@@ -4,6 +4,8 @@ struct HomeWaterCard: View {
     @State private var waterVM = WaterViewModel.shared
     @State private var showWaterDetail: Bool = false
     @State private var animatedProgress: Double = 0
+    @State private var wavePhase: Double = 0
+    @State private var goalCelebrate: Bool = false
 
     var body: some View {
         let today = Date()
@@ -39,32 +41,24 @@ struct HomeWaterCard: View {
                     .buttonStyle(.plain)
                 }
 
-                HStack(alignment: .center, spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .stroke(PepTheme.elevated, lineWidth: 8)
-                            .frame(width: 68, height: 68)
-                        Circle()
-                            .trim(from: 0, to: animatedProgress)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [PepTheme.blue.opacity(0.6), PepTheme.blue],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ),
-                                style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                            )
-                            .rotationEffect(.degrees(-90))
-                            .frame(width: 68, height: 68)
-
+                HStack(alignment: .center, spacing: 16) {
+                    WaterBottleFillView(
+                        progress: animatedProgress,
+                        wavePhase: wavePhase,
+                        celebrate: goalCelebrate
+                    )
+                    .frame(width: 56, height: 92)
+                    .overlay(alignment: .center) {
                         VStack(spacing: 0) {
                             Text("\(primary)")
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
-                                .foregroundStyle(PepTheme.textPrimary)
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundStyle(animatedProgress > 0.45 ? .white : PepTheme.textPrimary)
+                                .shadow(color: .black.opacity(animatedProgress > 0.45 ? 0.25 : 0), radius: 1, y: 0.5)
                             Text(unitLabel)
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(PepTheme.textSecondary)
+                                .font(.system(size: 8, weight: .semibold))
+                                .foregroundStyle((animatedProgress > 0.45 ? Color.white : PepTheme.textSecondary).opacity(0.85))
                         }
+                        .offset(y: 6)
                     }
 
                     VStack(alignment: .leading, spacing: 3) {
@@ -108,8 +102,19 @@ struct HomeWaterCard: View {
         .onLongPressGesture(minimumDuration: 0.4) {
             showWaterDetail = true
         }
-        .onAppear { animate(to: progress) }
-        .onChange(of: progress) { _, new in animate(to: new) }
+        .onAppear {
+            animate(to: progress)
+            startWave()
+        }
+        .onChange(of: progress) { _, new in
+            animate(to: new)
+            if new >= 1.0 {
+                withAnimation(.easeInOut(duration: 0.6)) { goalCelebrate = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                    withAnimation(.easeOut(duration: 0.6)) { goalCelebrate = false }
+                }
+            }
+        }
         .task {
             if AuthService.shared.authState == .signedIn {
                 await waterVM.load(date: today)
@@ -123,8 +128,178 @@ struct HomeWaterCard: View {
     }
 
     private func animate(to value: Double) {
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.85)) {
+        withAnimation(.spring(response: 0.7, dampingFraction: 0.78)) {
             animatedProgress = value
         }
+    }
+
+    private func startWave() {
+        withAnimation(.linear(duration: 2.4).repeatForever(autoreverses: false)) {
+            wavePhase = .pi * 2
+        }
+    }
+}
+
+// MARK: - Bottle
+
+private struct WaterBottleFillView: View {
+    let progress: Double
+    let wavePhase: Double
+    let celebrate: Bool
+
+    var body: some View {
+        GeometryReader { geo in
+            let size = geo.size
+            let bottle = bottlePath(in: CGRect(origin: .zero, size: size))
+
+            ZStack {
+                // Glass background
+                bottle
+                    .fill(
+                        LinearGradient(
+                            colors: [PepTheme.blue.opacity(0.10), PepTheme.blue.opacity(0.04)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+
+                // Water fill, clipped to bottle shape
+                WaterFillShape(progress: progress, wavePhase: wavePhase)
+                    .fill(
+                        LinearGradient(
+                            colors: [PepTheme.blue.opacity(0.95), PepTheme.blue.opacity(0.65)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .overlay(
+                        WaterFillShape(progress: progress, wavePhase: wavePhase + .pi)
+                            .fill(Color.white.opacity(celebrate ? 0.25 : 0.12))
+                    )
+                    .clipShape(bottle)
+
+                // Glass highlight
+                bottle
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.45), Color.white.opacity(0.05), PepTheme.blue.opacity(0.35)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.2
+                    )
+
+                // Inner highlight stripe
+                Capsule()
+                    .fill(Color.white.opacity(0.18))
+                    .frame(width: max(2, size.width * 0.05), height: size.height * 0.42)
+                    .offset(x: -size.width * 0.28, y: size.height * 0.05)
+                    .blendMode(.plusLighter)
+                    .mask(bottle)
+
+                // Cap
+                bottleCap(in: size)
+            }
+        }
+    }
+
+    private func bottlePath(in rect: CGRect) -> Path {
+        var p = Path()
+        let w = rect.width
+        let h = rect.height
+        // Bottle proportions: cap 14% from top, neck taper 14-26%, body to 100%
+        let neckTopY = h * 0.14
+        let shoulderY = h * 0.28
+        let bodyTopY = h * 0.32
+        let bottomY = h * 0.985
+        let neckHalf = w * 0.18
+        let bodyHalf = w * 0.46
+        let cornerR = w * 0.18
+        let cx = w / 2
+
+        // Start top-left of neck
+        p.move(to: CGPoint(x: cx - neckHalf, y: neckTopY))
+        // Down the neck
+        p.addLine(to: CGPoint(x: cx - neckHalf, y: shoulderY))
+        // Shoulder curve out to body
+        p.addQuadCurve(
+            to: CGPoint(x: cx - bodyHalf, y: bodyTopY),
+            control: CGPoint(x: cx - neckHalf, y: bodyTopY)
+        )
+        // Body left side down
+        p.addLine(to: CGPoint(x: cx - bodyHalf, y: bottomY - cornerR))
+        // Bottom-left corner
+        p.addQuadCurve(
+            to: CGPoint(x: cx - bodyHalf + cornerR, y: bottomY),
+            control: CGPoint(x: cx - bodyHalf, y: bottomY)
+        )
+        // Bottom
+        p.addLine(to: CGPoint(x: cx + bodyHalf - cornerR, y: bottomY))
+        // Bottom-right corner
+        p.addQuadCurve(
+            to: CGPoint(x: cx + bodyHalf, y: bottomY - cornerR),
+            control: CGPoint(x: cx + bodyHalf, y: bottomY)
+        )
+        // Body right side up
+        p.addLine(to: CGPoint(x: cx + bodyHalf, y: bodyTopY))
+        // Right shoulder curve in
+        p.addQuadCurve(
+            to: CGPoint(x: cx + neckHalf, y: shoulderY),
+            control: CGPoint(x: cx + neckHalf, y: bodyTopY)
+        )
+        // Up the right neck
+        p.addLine(to: CGPoint(x: cx + neckHalf, y: neckTopY))
+        // Close top of neck
+        p.closeSubpath()
+        return p
+    }
+
+    @ViewBuilder
+    private func bottleCap(in size: CGSize) -> some View {
+        let capWidth = size.width * 0.42
+        let capHeight = size.height * 0.12
+        VStack(spacing: 1) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(PepTheme.blue.opacity(0.85))
+                .frame(width: capWidth, height: capHeight * 0.7)
+            RoundedRectangle(cornerRadius: 1, style: .continuous)
+                .fill(PepTheme.blue.opacity(0.55))
+                .frame(width: capWidth * 0.95, height: capHeight * 0.25)
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+}
+
+private struct WaterFillShape: Shape {
+    var progress: Double
+    var wavePhase: Double
+
+    var animatableData: AnimatablePair<Double, Double> {
+        get { AnimatablePair(progress, wavePhase) }
+        set { progress = newValue.first; wavePhase = newValue.second }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let clamped = max(0, min(progress, 1))
+        // Fill rises in the body region (below ~14% top to bottom).
+        let topAvailable = rect.height * 0.16
+        let bottom = rect.height
+        let waterTop = bottom - (bottom - topAvailable) * clamped
+        let amplitude: CGFloat = clamped <= 0.001 ? 0 : 2.5
+        let wavelength = rect.width * 1.1
+
+        p.move(to: CGPoint(x: 0, y: waterTop))
+        let steps = 36
+        for i in 0...steps {
+            let x = rect.width * CGFloat(i) / CGFloat(steps)
+            let relative = (x / wavelength) * 2 * .pi
+            let y = waterTop + sin(relative + wavePhase) * amplitude
+            p.addLine(to: CGPoint(x: x, y: y))
+        }
+        p.addLine(to: CGPoint(x: rect.width, y: bottom))
+        p.addLine(to: CGPoint(x: 0, y: bottom))
+        p.closeSubpath()
+        return p
     }
 }
