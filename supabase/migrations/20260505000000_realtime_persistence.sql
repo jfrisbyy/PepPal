@@ -138,6 +138,21 @@ create index if not exists groups_privacy_idx on public.groups(privacy, created_
 
 alter table public.groups enable row level security;
 
+-- Group members (created BEFORE policies that reference it)
+create table if not exists public.group_members (
+    group_id uuid not null references public.groups(id) on delete cascade,
+    user_id uuid not null references auth.users(id) on delete cascade,
+    role text not null default 'Member', -- 'Owner' | 'Admin' | 'Member'
+    joined_at timestamptz not null default now(),
+    is_sharing_stats boolean not null default true,
+    primary key (group_id, user_id)
+);
+
+create index if not exists group_members_user_idx on public.group_members(user_id);
+
+alter table public.group_members enable row level security;
+
+-- Groups policies (now that group_members exists)
 drop policy if exists "groups_read_public_or_member" on public.groups;
 create policy "groups_read_public_or_member"
 on public.groups for select to authenticated
@@ -170,20 +185,6 @@ drop policy if exists "groups_owner_delete" on public.groups;
 create policy "groups_owner_delete"
 on public.groups for delete to authenticated
 using (auth.uid() = creator_id);
-
--- Group members
-create table if not exists public.group_members (
-    group_id uuid not null references public.groups(id) on delete cascade,
-    user_id uuid not null references auth.users(id) on delete cascade,
-    role text not null default 'Member', -- 'Owner' | 'Admin' | 'Member'
-    joined_at timestamptz not null default now(),
-    is_sharing_stats boolean not null default true,
-    primary key (group_id, user_id)
-);
-
-create index if not exists group_members_user_idx on public.group_members(user_id);
-
-alter table public.group_members enable row level security;
 
 drop policy if exists "group_members_read_visible" on public.group_members;
 create policy "group_members_read_visible"
