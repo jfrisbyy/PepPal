@@ -1051,32 +1051,18 @@ struct ExpandedPlanContentView: View {
                     Rectangle()
                         .fill(PepTheme.teal.opacity(0.4))
                         .frame(width: 14, height: 0.6)
-                    Text(sessionMetaLine)
-                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                        .tracking(1.0)
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                    Text(viewModel.todaysPlan.name.uppercased())
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .tracking(1.4)
+                        .foregroundStyle(PepTheme.textPrimary.opacity(0.9))
+                        .lineLimit(1)
                 }
-                Text(viewModel.todaysPlan.name)
-                    .font(.system(size: 19, weight: .bold, design: .serif))
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .lineLimit(1)
             }
             Spacer(minLength: 8)
             if viewModel.isSelectedDateToday {
                 inlineActionStrip
             }
         }
-    }
-
-    private var sessionMetaLine: String {
-        let exercises = viewModel.todaysPlan.exercises
-        let minutes = viewModel.todaysPlan.estimatedMinutes
-        let sets = viewModel.todaysPlan.planExercises.reduce(0) { $0 + $1.sets }
-        var parts: [String] = []
-        parts.append("\(exercises) MOVEMENTS")
-        if sets > 0 { parts.append("\(sets) SETS") }
-        parts.append("\(minutes) MIN")
-        return parts.joined(separator: " \u{00B7} ")
     }
 
     private var inlineActionStrip: some View {
@@ -1126,24 +1112,33 @@ struct ExpandedPlanContentView: View {
     private var splitDayStripExpanded: some View {
         HStack(spacing: 6) {
             ForEach(viewModel.todaysPlan.splitDays) { day in
-                VStack(spacing: 4) {
-                    Text("D\(day.dayIndex + 1)")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(day.isToday ? PepTheme.teal : PepTheme.textSecondary.opacity(0.5))
-                    Text(day.name)
-                        .font(.system(size: 11, weight: day.isToday ? .bold : .medium))
-                        .foregroundStyle(day.isToday ? PepTheme.invertedText : (day.isRest ? PepTheme.textSecondary.opacity(0.5) : PepTheme.textPrimary.opacity(0.7)))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            day.isToday ? PepTheme.teal : PepTheme.elevated.opacity(day.isRest ? 0.3 : 0.7)
-                        )
-                        .clipShape(.rect(cornerRadius: 8))
-                }
-                .frame(maxWidth: .infinity)
+                Text(weekdayShortLabel(for: day))
+                    .font(.system(size: 10, weight: day.isToday ? .heavy : .semibold, design: .monospaced))
+                    .tracking(1.0)
+                    .foregroundStyle(
+                        day.isToday
+                            ? PepTheme.invertedText
+                            : (day.isRest ? PepTheme.textSecondary.opacity(0.35) : PepTheme.textSecondary.opacity(0.75))
+                    )
+                    .padding(.vertical, 9)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        day.isToday
+                            ? AnyShapeStyle(PepTheme.teal)
+                            : AnyShapeStyle(PepTheme.elevated.opacity(day.isRest ? 0.25 : 0.55))
+                    )
+                    .clipShape(.rect(cornerRadius: 8))
+                    .frame(maxWidth: .infinity)
             }
         }
+    }
+
+    private func weekdayShortLabel(for day: SplitDay) -> String {
+        let labels = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+        if day.dayIndex >= 0 && day.dayIndex < labels.count {
+            return labels[day.dayIndex]
+        }
+        return "D\(day.dayIndex + 1)"
     }
 
     private func planExerciseRow(_ exercise: PlanExercise, index: Int) -> some View {
