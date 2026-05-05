@@ -4,8 +4,9 @@ struct HomeWaterCard: View {
     @State private var waterVM = WaterViewModel.shared
     @State private var showWaterDetail: Bool = false
     @State private var animatedProgress: Double = 0
-    @State private var wavePhase: Double = 0
     @State private var goalCelebrate: Bool = false
+
+    private let sideButtons: [WaterPreset] = [.glass, .cup, .bottle]
 
     var body: some View {
         let today = Date()
@@ -22,7 +23,7 @@ struct HomeWaterCard: View {
         let unitLabel = useOz ? "oz" : "ml"
 
         GlassCard(accent: PepTheme.blue) {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 8) {
                     Image(systemName: "drop.fill")
                         .font(.subheadline)
@@ -41,60 +42,72 @@ struct HomeWaterCard: View {
                     .buttonStyle(.plain)
                 }
 
-                HStack(alignment: .center, spacing: 16) {
-                    WaterBottleFillView(
-                        progress: animatedProgress,
-                        wavePhase: wavePhase,
-                        celebrate: goalCelebrate
+                HStack(alignment: .center, spacing: 14) {
+                    PeptideBottleView(
+                        fillFraction: animatedProgress,
+                        liquidColor: PepTheme.blue,
+                        compactHeight: 116
                     )
-                    .frame(width: 56, height: 92)
+                    .frame(width: 64, height: 116)
                     .overlay(alignment: .center) {
                         VStack(spacing: 0) {
                             Text("\(primary)")
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
                                 .foregroundStyle(animatedProgress > 0.45 ? .white : PepTheme.textPrimary)
-                                .shadow(color: .black.opacity(animatedProgress > 0.45 ? 0.25 : 0), radius: 1, y: 0.5)
+                                .shadow(color: .black.opacity(animatedProgress > 0.45 ? 0.28 : 0), radius: 1, y: 0.5)
                             Text(unitLabel)
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundStyle((animatedProgress > 0.45 ? Color.white : PepTheme.textSecondary).opacity(0.85))
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle((animatedProgress > 0.45 ? Color.white : PepTheme.textSecondary).opacity(0.9))
                         }
-                        .offset(y: 6)
+                        .offset(y: 8)
+                    }
+                    .overlay(alignment: .top) {
+                        if goalCelebrate {
+                            Circle()
+                                .fill(PepTheme.teal.opacity(0.35))
+                                .frame(width: 80, height: 80)
+                                .blur(radius: 18)
+                                .offset(y: 10)
+                                .transition(.opacity)
+                        }
                     }
 
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("\(primary) / \(primaryGoal) \(unitLabel)")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text(remaining > 0 ? "\(remaining) \(unitLabel) to goal" : "Goal met")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(remaining > 0 ? PepTheme.textSecondary : PepTheme.teal)
-                        Text(useOz ? "\(totalMl) ml" : "\(oz) oz")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-                    }
-                    Spacer()
-                }
+                    VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(primary) / \(primaryGoal) \(unitLabel)")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(PepTheme.textPrimary)
+                            Text(remaining > 0 ? "\(remaining) \(unitLabel) to goal" : "Goal met")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(remaining > 0 ? PepTheme.textSecondary : PepTheme.teal)
+                        }
 
-                HStack(spacing: 6) {
-                    ForEach(WaterPreset.allCases) { preset in
-                        Button {
-                            waterVM.add(amountMl: preset.rawValue)
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: preset.icon)
-                                    .font(.system(size: 11, weight: .semibold))
-                                Text("+\(preset.oz)")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                        VStack(spacing: 6) {
+                            ForEach(sideButtons) { preset in
+                                Button {
+                                    waterVM.add(amountMl: preset.rawValue)
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: preset.icon)
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .frame(width: 14)
+                                        Text(useOz ? "+\(preset.oz) oz" : "+\(preset.rawValue) ml")
+                                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                                        Spacer(minLength: 0)
+                                    }
+                                    .foregroundStyle(PepTheme.blue)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 7)
+                                    .background(PepTheme.blue.opacity(0.12))
+                                    .clipShape(.rect(cornerRadius: 8))
+                                }
+                                .buttonStyle(.plain)
+                                .sensoryFeedback(.impact(weight: .light), trigger: totalMl)
                             }
-                            .foregroundStyle(PepTheme.blue)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(PepTheme.blue.opacity(0.12))
-                            .clipShape(.rect(cornerRadius: 8))
                         }
-                        .buttonStyle(.plain)
-                        .sensoryFeedback(.impact(weight: .light), trigger: totalMl)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
@@ -104,7 +117,6 @@ struct HomeWaterCard: View {
         }
         .onAppear {
             animate(to: progress)
-            startWave()
         }
         .onChange(of: progress) { _, new in
             animate(to: new)
@@ -132,15 +144,9 @@ struct HomeWaterCard: View {
             animatedProgress = value
         }
     }
-
-    private func startWave() {
-        withAnimation(.linear(duration: 2.4).repeatForever(autoreverses: false)) {
-            wavePhase = .pi * 2
-        }
-    }
 }
 
-// MARK: - Bottle
+// MARK: - Legacy bottle (unused, kept for reference)
 
 private struct WaterBottleFillView: View {
     let progress: Double

@@ -154,6 +154,7 @@ struct WaterDetailSheet: View {
 
             Button {
                 viewModel.setGoal(Int(goalMl))
+                dismiss()
             } label: {
                 Text("Save Goal")
                     .font(.system(.body, weight: .semibold))
