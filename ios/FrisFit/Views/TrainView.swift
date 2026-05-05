@@ -256,16 +256,31 @@ struct TrainView: View {
             Button {
                 viewModel.showModeSelectorSheet = true
             } label: {
-                Image(systemName: viewModel.currentMode.type.icon)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(viewModel.currentMode.type.color)
-                    .frame(width: 34, height: 34)
-                    .background(viewModel.currentMode.type.color.opacity(0.12))
-                    .clipShape(Circle())
+                HStack(spacing: 8) {
+                    Image(systemName: viewModel.currentMode.type.icon)
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("Training Modes")
+                        .font(.system(size: 13, weight: .semibold))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                        .opacity(0.7)
+                }
+                .foregroundStyle(viewModel.currentMode.type.color)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    Capsule()
+                        .fill(viewModel.currentMode.type.color.opacity(0.14))
+                )
+                .overlay(
+                    Capsule()
+                        .strokeBorder(viewModel.currentMode.type.color.opacity(0.32), lineWidth: 0.6)
+                )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.scale)
+            .sensoryFeedback(.selection, trigger: viewModel.showModeSelectorSheet)
         }
-        .frame(height: 38)
+        .frame(height: 44)
     }
 
     // MARK: - Mode Tab Bar
@@ -1264,12 +1279,6 @@ struct TrainView: View {
                     .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
                 Spacer()
             }
-
-            Text(mode.name)
-                .font(.system(size: 28, weight: .semibold, design: .serif))
-                .kerning(-0.5)
-                .foregroundStyle(PepTheme.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
 
             LinearGradient(
                 colors: [accent.opacity(0.5), accent.opacity(0)],

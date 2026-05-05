@@ -40,15 +40,9 @@ struct BasketballDashboardView: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("On the Court")
-                        .font(.system(size: 22, weight: .semibold, design: .serif))
-                        .kerning(-0.4)
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("\(bbVM.thisWeekSessions) session\(bbVM.thisWeekSessions == 1 ? "" : "s") this week  ·  \(bbVM.totalWins)W–\(bbVM.totalLosses)L")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
+                Text("\(bbVM.thisWeekSessions) session\(bbVM.thisWeekSessions == 1 ? "" : "s") this week  ·  \(bbVM.totalWins)W–\(bbVM.totalLosses)L")
+                    .font(.system(size: 12, design: .serif))
+                    .foregroundStyle(PepTheme.textSecondary)
 
                 LinearGradient(
                     colors: [PepTheme.textPrimary.opacity(0.16), PepTheme.textPrimary.opacity(0)],

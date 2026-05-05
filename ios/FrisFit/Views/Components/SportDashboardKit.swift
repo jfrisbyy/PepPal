@@ -151,11 +151,7 @@ struct EditorialSportHeader<Trailing: View>: View {
                     trailing()
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 24, weight: .semibold, design: .serif))
-                        .kerning(-0.4)
-                        .foregroundStyle(PepTheme.textPrimary)
+                if !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.system(size: 12, design: .serif))
                         .foregroundStyle(PepTheme.textSecondary)
