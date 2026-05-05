@@ -20,74 +20,25 @@ struct TennisDashboardView: View {
     }
 
     private var quickStatsHeader: some View {
-        GlassCard {
-            VStack(spacing: 14) {
-                HStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                RadialGradient(
-                                    colors: [accentColor.opacity(0.3), accentColor.opacity(0.05)],
-                                    center: .center, startRadius: 0, endRadius: 32
-                                )
-                            )
-                            .frame(width: 56, height: 56)
-                        Image(systemName: "tennis.racket")
-                            .font(.system(size: 24))
-                            .foregroundStyle(accentColor)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Tennis")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text("\(tennisVM.thisWeekSessions) session\(tennisVM.thisWeekSessions == 1 ? "" : "s") this week · \(tennisVM.totalWins)W-\(tennisVM.totalLosses)L")
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    if tennisVM.totalMatchesPlayed > 0 {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(String(format: "%.0f%%", tennisVM.winPercentage))
-                                .font(.system(.title2, design: .rounded, weight: .bold))
-                                .foregroundStyle(tennisVM.winPercentage >= 50 ? .green : .orange)
-                            Text("Win %")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(PepTheme.textSecondary)
-                        }
-                    }
-                }
-
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
-                    quickStat(value: String(format: "%.1f", tennisVM.averageAcesPerMatch), label: "Aces/M", icon: "bolt.fill")
-                    quickStat(value: String(format: "%.0f%%", tennisVM.averageFirstServePercentage), label: "1st Srv%", icon: "target")
-                    quickStat(value: String(format: "%.1f", tennisVM.averageWinners), label: "Win/M", icon: "star.fill")
-                    quickStat(value: "\(tennisVM.totalMatchesPlayed)", label: "Matches", icon: "sportscourt.fill")
-                }
+        EditorialSportHeader(
+            kicker: "Tennis",
+            title: "On the Court",
+            subtitle: "\(tennisVM.thisWeekSessions) session\(tennisVM.thisWeekSessions == 1 ? "" : "s") this week  ·  \(tennisVM.totalWins)W–\(tennisVM.totalLosses)L",
+            accent: accentColor,
+            stats: [
+                EditorialStat(String(format: "%.1f", tennisVM.averageAcesPerMatch), "Aces"),
+                EditorialStat(String(format: "%.0f%%", tennisVM.averageFirstServePercentage), "1st Srv"),
+                EditorialStat(String(format: "%.1f", tennisVM.averageWinners), "Win/M"),
+                EditorialStat("\(tennisVM.totalMatchesPlayed)", "Mtch")
+            ]
+        ) {
+            if tennisVM.totalMatchesPlayed > 0 {
+                Text("WIN \(String(format: "%.0f%%", tennisVM.winPercentage))")
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(1.4)
+                    .foregroundStyle(PepTheme.textTertiary)
             }
         }
-    }
-
-    private func quickStat(value: String, label: String, icon: String) -> some View {
-        VStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 10))
-                .foregroundStyle(accentColor.opacity(0.7))
-            Text(value)
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(label)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(PepTheme.elevated.opacity(0.5))
-        .clipShape(.rect(cornerRadius: 10))
     }
 
     private var sessionTypeSelector: some View {

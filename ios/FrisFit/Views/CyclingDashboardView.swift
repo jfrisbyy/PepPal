@@ -23,74 +23,28 @@ struct CyclingDashboardView: View {
     // MARK: - Quick Stats Header
 
     private var quickStatsHeader: some View {
-        GlassCard {
-            VStack(spacing: 14) {
-                HStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                RadialGradient(
-                                    colors: [accentColor.opacity(0.3), accentColor.opacity(0.05)],
-                                    center: .center, startRadius: 0, endRadius: 32
-                                )
-                            )
-                            .frame(width: 56, height: 56)
-                        Image(systemName: "figure.outdoor.cycle")
-                            .font(.system(size: 24))
-                            .foregroundStyle(accentColor)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Cycling")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text("\(cyclingVM.thisWeekRides.count) ride\(cyclingVM.thisWeekRides.count == 1 ? "" : "s") this week · \(String(format: "%.1f", cyclingVM.thisWeekMiles)) mi")
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    Button {
-                        cyclingVM.showCyclingSettings = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(PepTheme.textSecondary)
-                            .frame(width: 32, height: 32)
-                            .background(PepTheme.elevated.opacity(0.6))
-                            .clipShape(Circle())
-                    }
-                }
-
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
-                    quickStat(value: String(format: "%.0f", cyclingVM.totalMilesAllTime), label: "Total Mi", icon: "road.lanes")
-                    quickStat(value: "\(cyclingVM.totalRidesAllTime)", label: "Rides", icon: "list.bullet")
-                    quickStat(value: String(format: "%.1f", cyclingVM.averageSpeedAllTime), label: "Avg MPH", icon: "speedometer")
-                    quickStat(value: String(format: "%.0f", cyclingVM.totalElevationAllTime), label: "Elev ft", icon: "mountain.2.fill")
-                }
+        EditorialSportHeader(
+            kicker: "Cycling",
+            title: "In the Saddle",
+            subtitle: "\(cyclingVM.thisWeekRides.count) ride\(cyclingVM.thisWeekRides.count == 1 ? "" : "s") this week  ·  \(String(format: "%.1f", cyclingVM.thisWeekMiles)) mi",
+            accent: accentColor,
+            stats: [
+                EditorialStat(String(format: "%.0f", cyclingVM.totalMilesAllTime), "Miles"),
+                EditorialStat("\(cyclingVM.totalRidesAllTime)", "Rides"),
+                EditorialStat(String(format: "%.1f", cyclingVM.averageSpeedAllTime), "MPH"),
+                EditorialStat(String(format: "%.0f", cyclingVM.totalElevationAllTime), "Climb")
+            ]
+        ) {
+            Button {
+                cyclingVM.showCyclingSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .frame(width: 28, height: 28)
+                    .background(PepTheme.elevated.opacity(0.5), in: Circle())
             }
         }
-    }
-
-    private func quickStat(value: String, label: String, icon: String) -> some View {
-        VStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 10))
-                .foregroundStyle(accentColor.opacity(0.7))
-            Text(value)
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(label)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(PepTheme.elevated.opacity(0.5))
-        .clipShape(.rect(cornerRadius: 10))
     }
 
     // MARK: - Start Ride Card
@@ -159,27 +113,9 @@ struct CyclingDashboardView: View {
                 }
             }
 
-            Button {
+            EditorialPrimaryButton("Begin Ride", accent: accentColor) {
                 onStartRide()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                        .font(.title3)
-                    Text("Start Ride")
-                        .font(.headline.weight(.bold))
-                }
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        colors: [accentColor, accentColor.opacity(0.8)],
-                        startPoint: .leading, endPoint: .trailing
-                    )
-                )
-                .clipShape(.rect(cornerRadius: 14))
             }
-            .buttonStyle(.scalePrimary)
         }
         .padding(16)
         .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))

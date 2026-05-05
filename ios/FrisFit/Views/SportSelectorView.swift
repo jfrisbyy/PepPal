@@ -15,10 +15,17 @@ struct SportSelectorView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    Text("What did you play?")
-                        .font(.system(.title2, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .padding(.horizontal)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("LOG SESSION")
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(2.0)
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Text("What did you play?")
+                            .font(.system(size: 28, weight: .semibold, design: .serif))
+                            .kerning(-0.4)
+                            .foregroundStyle(PepTheme.textPrimary)
+                    }
+                    .padding(.horizontal)
 
                     LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(Sport.allCases) { sport in
@@ -64,7 +71,7 @@ private struct SportCard: View {
                 }
 
                 Text(sport.rawValue)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold, design: .serif))
                     .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
             }

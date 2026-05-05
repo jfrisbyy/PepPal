@@ -31,47 +31,21 @@ struct SportModeContentView: View {
     // MARK: - Header
 
     private var modeHeader: some View {
-        GlassCard {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [accentColor.opacity(0.3), accentColor.opacity(0.05)],
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 32
-                            )
-                        )
-                        .frame(width: 56, height: 56)
-                    Image(systemName: mode.type.icon)
-                        .font(.system(size: 24))
-                        .foregroundStyle(accentColor)
-                }
+        let weekSessions = sport.map { viewModel.sportThisWeek($0).count } ?? 0
+        let totalTime = sport.map { viewModel.sportTotalTime($0) } ?? viewModel.sportSessions.reduce(0) { $0 + $1.durationMinutes }
+        let avgIntensity = sport.map { viewModel.sportAvgIntensity($0) } ?? 0
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(mode.name)
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-
-                    let weekSessions = sport.map { viewModel.sportThisWeek($0).count } ?? 0
-                    Text("\(weekSessions) session\(weekSessions == 1 ? "" : "s") this week")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(sessions.count)")
-                        .font(.system(.title2, design: .rounded, weight: .bold))
-                        .foregroundStyle(accentColor)
-                    Text("total")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-            }
-        }
+        return EditorialSportHeader(
+            kicker: mode.name,
+            title: "In Practice",
+            subtitle: "\(weekSessions) session\(weekSessions == 1 ? "" : "s") this week  ·  \(sessions.count) logged",
+            accent: accentColor,
+            stats: [
+                EditorialStat("\(sessions.count)", "Total"),
+                EditorialStat(totalTime >= 60 ? "\(totalTime / 60)h" : "\(totalTime)m", "Time"),
+                EditorialStat(String(format: "%.1f", avgIntensity), "RPE")
+            ]
+        )
     }
 
     // MARK: - Card Router
@@ -769,22 +743,9 @@ struct SportModeContentView: View {
     // MARK: - Log Button
 
     private var logSessionButton: some View {
-        Button {
+        EditorialPrimaryButton("Log \(mode.name) Session", icon: "plus", accent: accentColor) {
             onLogSession()
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title3)
-                Text("Log \(mode.name) Session")
-                    .font(.subheadline.weight(.bold))
-            }
-            .foregroundStyle(.black)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(accentColor)
-            .clipShape(.rect(cornerRadius: 14))
         }
-        .buttonStyle(.scalePrimary)
     }
 
     // MARK: - Helpers

@@ -20,74 +20,28 @@ struct SwimmingDashboardView: View {
     }
 
     private var quickStatsHeader: some View {
-        GlassCard {
-            VStack(spacing: 14) {
-                HStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                RadialGradient(
-                                    colors: [accentColor.opacity(0.3), accentColor.opacity(0.05)],
-                                    center: .center, startRadius: 0, endRadius: 32
-                                )
-                            )
-                            .frame(width: 56, height: 56)
-                        Image(systemName: "figure.pool.swim")
-                            .font(.system(size: 24))
-                            .foregroundStyle(accentColor)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Swimming")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text("\(swimVM.thisWeekSwims.count) swim\(swimVM.thisWeekSwims.count == 1 ? "" : "s") this week · \(SwimFormatters.formatDistance(swimVM.thisWeekMeters))")
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    Button {
-                        swimVM.showSwimSettings = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(PepTheme.textSecondary)
-                            .frame(width: 32, height: 32)
-                            .background(PepTheme.elevated.opacity(0.6))
-                            .clipShape(Circle())
-                    }
-                }
-
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
-                    quickStat(value: SwimFormatters.formatDistance(swimVM.totalMetersAllTime), label: "Total Dist", icon: "water.waves")
-                    quickStat(value: "\(swimVM.totalLapsAllTime)", label: "Total Laps", icon: "repeat")
-                    quickStat(value: SwimFormatters.formatPace(swimVM.averagePaceAllTime), label: "Avg Pace", icon: "speedometer")
-                    quickStat(value: String(format: "%.0f", swimVM.averageSwolfAllTime), label: "Avg SWOLF", icon: "gauge.with.needle")
-                }
+        EditorialSportHeader(
+            kicker: "Swimming",
+            title: "In the Lane",
+            subtitle: "\(swimVM.thisWeekSwims.count) swim\(swimVM.thisWeekSwims.count == 1 ? "" : "s") this week  ·  \(SwimFormatters.formatDistance(swimVM.thisWeekMeters))",
+            accent: accentColor,
+            stats: [
+                EditorialStat(SwimFormatters.formatDistance(swimVM.totalMetersAllTime), "Dist"),
+                EditorialStat("\(swimVM.totalLapsAllTime)", "Laps"),
+                EditorialStat(SwimFormatters.formatPace(swimVM.averagePaceAllTime), "Pace"),
+                EditorialStat(String(format: "%.0f", swimVM.averageSwolfAllTime), "Swolf")
+            ]
+        ) {
+            Button {
+                swimVM.showSwimSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .frame(width: 28, height: 28)
+                    .background(PepTheme.elevated.opacity(0.5), in: Circle())
             }
         }
-    }
-
-    private func quickStat(value: String, label: String, icon: String) -> some View {
-        VStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 10))
-                .foregroundStyle(accentColor.opacity(0.7))
-            Text(value)
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(label)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(PepTheme.elevated.opacity(0.5))
-        .clipShape(.rect(cornerRadius: 10))
     }
 
     private var sessionTypeSelector: some View {
