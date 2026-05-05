@@ -7,110 +7,446 @@ struct StreakInfoSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    headerCard
+                VStack(alignment: .leading, spacing: 36) {
+                    heroHeader
 
-                    section(title: "What keeps it alive") {
-                        rule(icon: "syringe.fill", color: PepTheme.violet, text: "Logging a peptide pin or dose")
-                        rule(icon: "scalemass.fill", color: PepTheme.teal, text: "Logging a weight")
-                        rule(icon: "figure.run", color: PepTheme.amber, text: "A workout or sport session")
-                        rule(icon: "fork.knife", color: .green, text: "A food or meal entry")
-                        rule(icon: "face.smiling", color: .pink, text: "A mood or daily check-in")
-                        Text("Any **one** of these per day keeps the flame going.")
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.textSecondary)
-                            .padding(.top, 4)
+                    chapter(
+                        number: "I",
+                        kicker: "Chapter One · Status",
+                        title: stateHeadline
+                    ) {
+                        statusCard
                     }
 
-                    section(title: "If you miss a day") {
-                        bullet("Auto-freeze. You get 1 free Streak Freeze per rolling 7 days. It applies automatically the next morning — no streak lost.")
-                        bullet("Paused (last chance). If your freeze is spent, the streak pauses for 24 hours. Log anything in that window to save it.")
-                        bullet("Backdate. You can log yesterday from any entry screen within 24h to repair the streak.")
-                        bullet("Reset. If the paused day passes empty, the streak rolls to 0 — and we celebrate your longest before starting a new one.")
+                    chapter(
+                        number: "II",
+                        kicker: "Chapter Two · Milestones",
+                        title: "The road ahead"
+                    ) {
+                        milestonesStrip
                     }
 
-                    section(title: "Day boundary") {
-                        Text("A day ends at midnight in your phone's local timezone. Night-owl note: log anything before midnight and you're good.")
-                            .font(.callout)
+                    chapter(
+                        number: "III",
+                        kicker: "Chapter Three · Ritual",
+                        title: "What keeps it alive"
+                    ) {
+                        ritualList
+                    }
+
+                    chapter(
+                        number: "IV",
+                        kicker: "Chapter Four · Safeguards",
+                        title: "If you miss a day"
+                    ) {
+                        safeguardsList
+                    }
+
+                    chapter(
+                        number: "V",
+                        kicker: "Chapter Five · The day",
+                        title: "When a day begins"
+                    ) {
+                        Text("A day closes at midnight in your local timezone. Log anything before then and the flame holds.")
+                            .font(.system(size: 15, design: .serif))
+                            .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                            .lineSpacing(3)
+                    }
+
+                    colophon
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 48)
+            }
+            .appBackground(accent: PepTheme.amber, intensity: 0.6)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Text("THE STREAK")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(2.4)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Text("Close")
+                            .font(.system(size: 14, weight: .regular, design: .serif))
+                            .italic()
                             .foregroundStyle(PepTheme.textPrimary)
                     }
                 }
-                .padding(20)
-            }
-            .appBackground()
-            .navigationTitle("How streaks work")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
             }
         }
     }
 
-    private var headerCard: some View {
+    // MARK: - Hero
+
+    private var heroHeader: some View {
         let s = streakManager.streakData
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(LinearGradient(colors: [.orange, PepTheme.amber], startPoint: .top, endPoint: .bottom))
+        return VStack(alignment: .leading, spacing: 18) {
+            Text("AN ONGOING PRACTICE")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(2.4)
+                .foregroundStyle(PepTheme.textSecondary)
+
+            HStack(alignment: .lastTextBaseline, spacing: 14) {
                 Text("\(s.currentStreak)")
-                    .font(.system(.largeTitle, design: .rounded, weight: .heavy))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Text("day streak")
-                    .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                Spacer()
-            }
-            HStack(spacing: 14) {
-                Label("Longest \(s.longestStreak)", systemImage: "trophy.fill")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
-                if let days = streakManager.freezeAvailableInDays {
-                    Label("Freeze in \(days)d", systemImage: "snowflake")
-                        .font(.caption)
+                    .font(.system(size: 96, weight: .light, design: .serif))
+                    .kerning(-3)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [PepTheme.textPrimary, PepTheme.textPrimary.opacity(0.78)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .contentTransition(.numericText(value: Double(s.currentStreak)))
+                    .animation(.snappy, value: s.currentStreak)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("days")
+                        .font(.system(size: 18, weight: .regular, design: .serif))
+                        .italic()
                         .foregroundStyle(PepTheme.textSecondary)
-                } else {
-                    Label("Freeze ready", systemImage: "snowflake")
-                        .font(.caption)
+                    Text("unbroken")
+                        .font(.system(size: 18, weight: .regular, design: .serif))
+                        .italic()
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .padding(.bottom, 14)
+
+                Spacer()
+
+                flameMark
+                    .padding(.bottom, 18)
+            }
+
+            // Hairline rule
+            Rectangle()
+                .fill(PepTheme.textPrimary.opacity(0.18))
+                .frame(height: 0.5)
+
+            HStack(spacing: 0) {
+                metaItem(label: "Longest", value: "\(s.longestStreak)")
+                divider
+                metaItem(label: "Freeze", value: freezeLabel)
+                divider
+                metaItem(label: "Status", value: stateLabel)
+            }
+            .frame(height: 44)
+        }
+    }
+
+    private var flameMark: some View {
+        let active = streakManager.streakState == .active || streakManager.streakState == .grace
+        return Image(systemName: "flame.fill")
+            .font(.system(size: 28, weight: .regular))
+            .foregroundStyle(
+                LinearGradient(
+                    colors: active ? [PepTheme.amber, .orange] : [PepTheme.textTertiary, PepTheme.textTertiary.opacity(0.6)],
+                    startPoint: .top, endPoint: .bottom
+                )
+            )
+            .symbolEffect(.pulse, options: .repeating, isActive: active)
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(PepTheme.textPrimary.opacity(0.10))
+            .frame(width: 0.5)
+            .padding(.vertical, 6)
+    }
+
+    private func metaItem(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.6)
+                .foregroundStyle(PepTheme.textTertiary)
+            Text(value)
+                .font(.system(size: 16, weight: .regular, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var freezeLabel: String {
+        if let days = streakManager.freezeAvailableInDays {
+            return "in \(days)d"
+        }
+        return "ready"
+    }
+
+    private var stateLabel: String {
+        switch streakManager.streakState {
+        case .active: "Lit"
+        case .grace: "Holding"
+        case .paused: "Paused"
+        case .broken: "At rest"
+        case .dormant: "Dormant"
+        }
+    }
+
+    private var stateHeadline: String {
+        switch streakManager.streakState {
+        case .active: return "The flame is lit today."
+        case .grace: return "Your streak is intact — log anything by midnight."
+        case .paused:
+            if let h = streakManager.pausedHoursRemaining {
+                return "Paused. \(h) hours to save it."
+            }
+            return "Paused. A small log will revive it."
+        case .broken: return "A new chapter begins with one log."
+        case .dormant: return "Your first log starts the streak."
+        }
+    }
+
+    // MARK: - Chapter
+
+    private func chapter<Content: View>(
+        number: String,
+        kicker: String,
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline, spacing: 14) {
+                Text(number)
+                    .font(.system(size: 13, weight: .regular, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.amber)
+                    .frame(width: 18, alignment: .leading)
+                Text(kicker.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(2.0)
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            Text(title)
+                .font(.system(size: 26, weight: .regular, design: .serif))
+                .kerning(-0.4)
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineSpacing(2)
+                .padding(.leading, 32)
+
+            LinearGradient(
+                colors: [PepTheme.textPrimary.opacity(0.16), PepTheme.textPrimary.opacity(0.0)],
+                startPoint: .leading, endPoint: .trailing
+            )
+            .frame(height: 0.5)
+            .padding(.leading, 32)
+
+            VStack(alignment: .leading, spacing: 14) {
+                content()
+            }
+            .padding(.leading, 32)
+            .padding(.top, 4)
+        }
+    }
+
+    // MARK: - Status card
+
+    private var statusCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if streakManager.streakState == .paused, let hours = streakManager.pausedHoursRemaining {
+                Label {
+                    Text("\(hours) hours remaining in the grace window.")
+                        .font(.system(size: 14, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary)
+                } icon: {
+                    Image(systemName: "hourglass")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(PepTheme.amber)
+                }
+            } else if streakManager.freezeRecentlyUsed {
+                Label {
+                    Text("A streak freeze covered yesterday — quietly applied.")
+                        .font(.system(size: 14, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary)
+                } icon: {
+                    Image(systemName: "snowflake")
+                        .font(.system(size: 13, weight: .regular))
                         .foregroundStyle(PepTheme.teal)
                 }
+            } else if streakManager.streakState == .active {
+                Label {
+                    Text("Today's log is in. Return tomorrow.")
+                        .font(.system(size: 14, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary)
+                } icon: {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(PepTheme.success)
+                }
+            } else {
+                Label {
+                    Text("One small log keeps the flame alive.")
+                        .font(.system(size: 14, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary)
+                } icon: {
+                    Image(systemName: "circle.dotted")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(PepTheme.cardSurface)
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5))
     }
 
-    private func section<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title.uppercased())
-                .font(.system(size: 12, weight: .semibold))
-                .tracking(0.8)
+    // MARK: - Milestones
+
+    private var milestonesStrip: some View {
+        let current = streakManager.streakData.currentStreak
+        let longest = streakManager.streakData.longestStreak
+        return VStack(alignment: .leading, spacing: 14) {
+            ForEach(Array(StreakMilestone.allCases.enumerated()), id: \.element.rawValue) { idx, m in
+                let reached = current >= m.rawValue || longest >= m.rawValue
+                let isCurrentTarget = !reached && (idx == 0 || (StreakMilestone.allCases[max(idx-1,0)].rawValue <= current))
+                HStack(alignment: .center, spacing: 14) {
+                    Text(romanNumeral(idx + 1))
+                        .font(.system(size: 11, weight: .regular, design: .serif))
+                        .italic()
+                        .foregroundStyle(reached ? PepTheme.amber : PepTheme.textTertiary)
+                        .frame(width: 22, alignment: .leading)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(m.badgeName)
+                            .font(.system(size: 16, weight: .regular, design: .serif))
+                            .foregroundStyle(reached ? PepTheme.textPrimary : PepTheme.textPrimary.opacity(0.6))
+                        Text("\(m.rawValue) days")
+                            .font(.system(size: 11, weight: .medium))
+                            .tracking(1.2)
+                            .textCase(.uppercase)
+                            .foregroundStyle(PepTheme.textTertiary)
+                    }
+
+                    Spacer()
+
+                    if reached {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(PepTheme.amber)
+                    } else if isCurrentTarget {
+                        Text("\(max(0, m.rawValue - current))d to go")
+                            .font(.system(size: 12, design: .serif))
+                            .italic()
+                            .foregroundStyle(PepTheme.textSecondary)
+                    } else {
+                        Text("—")
+                            .font(.system(size: 12))
+                            .foregroundStyle(PepTheme.textTertiary)
+                    }
+                }
+                if idx != StreakMilestone.allCases.count - 1 {
+                    Rectangle()
+                        .fill(PepTheme.textPrimary.opacity(0.06))
+                        .frame(height: 0.5)
+                }
+            }
+        }
+    }
+
+    private func romanNumeral(_ n: Int) -> String {
+        switch n {
+        case 1: "I"; case 2: "II"; case 3: "III"; case 4: "IV"; case 5: "V"
+        default: "\(n)"
+        }
+    }
+
+    // MARK: - Ritual
+
+    private var ritualList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ritualRow(icon: "syringe", text: "A peptide pin or dose")
+            ritualRow(icon: "scalemass", text: "A weigh-in")
+            ritualRow(icon: "figure.run", text: "A workout or sport session")
+            ritualRow(icon: "fork.knife", text: "A meal or food entry")
+            ritualRow(icon: "face.smiling", text: "A mood or daily check-in", last: true)
+
+            Text("Any one of these per day is enough.")
+                .font(.system(size: 13, design: .serif))
+                .italic()
                 .foregroundStyle(PepTheme.textSecondary)
-            content()
+                .padding(.top, 14)
         }
     }
 
-    private func rule(icon: String, color: Color, text: String) -> some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(color.opacity(0.15)).frame(width: 32, height: 32)
-                Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(color)
+    private func ritualRow(icon: String, text: String, last: Bool = false) -> some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .frame(width: 22, alignment: .leading)
+                Text(text)
+                    .font(.system(size: 15, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Spacer()
             }
-            Text(text).font(.callout).foregroundStyle(PepTheme.textPrimary)
-            Spacer(minLength: 0)
+            .padding(.vertical, 12)
+
+            if !last {
+                Rectangle()
+                    .fill(PepTheme.textPrimary.opacity(0.06))
+                    .frame(height: 0.5)
+            }
         }
     }
 
-    private func bullet(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Circle().fill(PepTheme.amber).frame(width: 5, height: 5).padding(.top, 8)
-            Text(.init(text)).font(.callout).foregroundStyle(PepTheme.textPrimary)
-            Spacer(minLength: 0)
+    // MARK: - Safeguards
+
+    private var safeguardsList: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            safeguardEntry(
+                term: "Auto-freeze.",
+                definition: "One free Streak Freeze every rolling seven days. It applies the next morning — no streak lost."
+            )
+            safeguardEntry(
+                term: "Paused.",
+                definition: "If your freeze is spent, the streak pauses for twenty-four hours. Log anything in that window to save it."
+            )
+            safeguardEntry(
+                term: "Backdate.",
+                definition: "You can log yesterday from any entry screen within twenty-four hours to repair the streak."
+            )
+            safeguardEntry(
+                term: "Reset.",
+                definition: "If the paused day passes empty, the streak rolls to zero — and we celebrate your longest before starting a new one."
+            )
         }
     }
+
+    private func safeguardEntry(term: String, definition: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(term)
+                .font(.system(size: 15, weight: .semibold, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text(definition)
+                .font(.system(size: 14, design: .serif))
+                .foregroundStyle(PepTheme.textSecondary)
+                .lineSpacing(3)
+        }
+    }
+
+    // MARK: - Colophon
+
+    private var colophon: some View {
+        VStack(alignment: .center, spacing: 8) {
+            Rectangle()
+                .fill(PepTheme.textPrimary.opacity(0.12))
+                .frame(width: 24, height: 0.5)
+            Text("FIN.")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(2.4)
+                .foregroundStyle(PepTheme.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 12)
+    }
+}
+
+#Preview {
+    StreakInfoSheet()
 }
