@@ -2,14 +2,9 @@ import SwiftUI
 
 struct BodyGoalSectionView: View {
     @Bindable var viewModel: BodyGoalViewModel
-    var aiInsight: String? = nil
 
     var body: some View {
         VStack(spacing: 8) {
-            if let insight = aiInsight {
-                AIInsightStrip(content: insight, color: .green)
-                    .padding(.horizontal, 2)
-            }
             if let line = MorningBriefService.shared.buildLines().bodyGoal {
                 BriefLineRow(line: line, icon: "scalemass.fill")
                     .padding(.horizontal, 2)

@@ -3,6 +3,7 @@ import PhotosUI
 
 struct BodyGoalDetailView: View {
     @Bindable var viewModel: BodyGoalViewModel
+    @State private var todaysPlanVM = TodaysPlanViewModel.shared
     @State private var expanded: ExpandedSection? = .trends
     @State private var photosVM = ProgressPhotosViewModel()
     @State private var photosLoaded: Bool = false
@@ -25,6 +26,14 @@ struct BodyGoalDetailView: View {
                 editorialMasthead
                 goalHeader
                 statTriptych
+                EditorialInsightSection(
+                    eyebrow: "BODY · INSIGHT",
+                    title: "Today's Read",
+                    content: todaysPlanVM.moduleContent(for: "body"),
+                    accent: viewModel.currentGoal.color,
+                    isRefreshing: todaysPlanVM.isBackgroundRefreshing || (todaysPlanVM.isLoading && todaysPlanVM.moduleContent(for: "body") == nil),
+                    lastUpdated: todaysPlanVM.lastFetchDate
+                )
                 actionStack
             }
             .padding(.horizontal)

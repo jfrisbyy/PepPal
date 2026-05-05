@@ -2,7 +2,6 @@ import SwiftUI
 
 struct DailyActivityCard: View {
     @Bindable var viewModel: EnergyBalanceViewModel
-    var aiInsight: String? = nil
     var onLogActivity: () -> Void
     var onTapActivity: () -> Void
 

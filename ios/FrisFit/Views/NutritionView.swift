@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NutritionView: View {
     @State private var viewModel = NutritionViewModel.shared
+    @State private var todaysPlanVM = TodaysPlanViewModel.shared
     @State private var showMealLogMethod: Bool = false
     @State private var selectedMealTimeForLog: MealTime = .breakfast
     @State private var animatedCalorieProgress: Double = 0
@@ -15,6 +16,14 @@ struct NutritionView: View {
         ScrollView {
             VStack(spacing: 20) {
                 calorieRing
+                EditorialInsightSection(
+                    eyebrow: "FUEL · INSIGHT",
+                    title: "Today's Read",
+                    content: todaysPlanVM.moduleContent(for: "nutrition"),
+                    accent: PepTheme.amber,
+                    isRefreshing: todaysPlanVM.isBackgroundRefreshing || (todaysPlanVM.isLoading && todaysPlanVM.moduleContent(for: "nutrition") == nil),
+                    lastUpdated: todaysPlanVM.lastFetchDate
+                )
                 macroBreakdown
                 WaterIntakeCard()
                 mealLog

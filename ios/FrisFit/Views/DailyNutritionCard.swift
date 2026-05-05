@@ -2,7 +2,6 @@ import SwiftUI
 
 struct DailyNutritionCard: View {
     @Bindable var viewModel: EnergyBalanceViewModel
-    var aiInsight: String? = nil
     var onLogMeal: () -> Void
     var onTapNutrition: () -> Void
 

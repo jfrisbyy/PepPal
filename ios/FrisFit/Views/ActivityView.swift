@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ActivityView: View {
     @Bindable var viewModel: EnergyBalanceViewModel
-    var aiInsight: String? = nil
+    @State private var todaysPlanVM = TodaysPlanViewModel.shared
     @State private var showLogActivity: Bool = false
 
     private let stepsColor = Color(red: 0.38, green: 0.82, blue: 0.55)
@@ -12,9 +12,14 @@ struct ActivityView: View {
         ScrollView {
             VStack(spacing: 20) {
                 heroRingCard
-                if let insight = aiInsight {
-                    AIInsightStrip(content: insight, color: .orange)
-                }
+                EditorialInsightSection(
+                    eyebrow: "MOVE · INSIGHT",
+                    title: "Today's Read",
+                    content: todaysPlanVM.moduleContent(for: "training"),
+                    accent: .orange,
+                    isRefreshing: todaysPlanVM.isBackgroundRefreshing || (todaysPlanVM.isLoading && todaysPlanVM.moduleContent(for: "training") == nil),
+                    lastUpdated: todaysPlanVM.lastFetchDate
+                )
                 breakdownCard
                 balanceCard
                 trendCard

@@ -1,18 +1,34 @@
-# Nutrition card opens full page with quick log button
+# Smarter daily brief refresh + category insights on full pages
 
-**Behavior change**
+## How the daily brief will refresh
 
-- Tapping the Nutrition card on the homepage will no longer expand it inline — it will open the full Nutrition page directly (matching how the Weight Loss and Protocol cards now work).
-- A dedicated "Quick Log" button stays on the home card so you can log a meal without leaving the homepage.
+- **On new log** — any meal, workout, weight, dose, or bloodwork log immediately refreshes the daily brief and the category overviews.
+- **Three time windows** — if no new log happens, the brief refreshes at most three times per day: morning (~~7am), afternoon (~~1pm), and evening (~7pm).
+- **Only when the app is open** — these scheduled windows only fire when the user actually opens or returns to the app, so there are no API calls for inactive users.
+- A small saved record per device tracks which windows have already run today, so opening the app multiple times in the same window won't trigger duplicate refreshes.
 
-**Home card design**
+## Home screen changes
 
-- Compact, premium editorial layout: "FUEL" eyebrow, serif "Nutrition" title, calorie count, progress bar, and a slim P / C / F macro row.
-- A prominent amber "Quick Log" pill button on the right side of the card (won't trigger the page navigation when tapped).
-- Tapping anywhere else on the card opens the full Nutrition page; subtle chevron indicates it's tappable.
+- The Nutrition, Activity, and Weight Loss cards on the home page will no longer show the small AI insight line — the cards stay focused on numbers, progress, and quick logging.
+- Tapping a card still opens its full overview page.
 
-**Full Nutrition page**
+## Category full pages — new "Insights" section
 
-- Uses the existing full Nutrition page so all current detail (macros, meals, history) is preserved.
-- Reached via a smooth push navigation, consistent with the Weight Loss and Protocols flows.
+Each category's full page (Nutrition, Activity, Weight Loss) gets a dedicated **Insights** section in the same premium editorial style as the rest of the app:
+
+- A serif headline and uppercase tracked eyebrow ("INSIGHT", "FUEL", "MOMENTUM", etc.)
+- A short narrative paragraph generated specifically for that category
+- A subtle accent rule and timestamp showing when the insight was last updated
+- A gentle shimmer/refresh state when the brief is updating
+- Tone-matched accent color per category (amber for nutrition, teal for activity, violet for weight)
+
+These category insights:
+
+- Update at the same time as the daily brief (new log, or one of the 3 daily windows when the app is opened)
+- Live **only** on the category's full page — never on the home cards
+
+## What stays the same
+
+- The morning brief on the home screen still shows the warm narrative and deterministic status lines.
+- All existing logging, navigation, and editorial styling on the cards and full pages are preserved.
 

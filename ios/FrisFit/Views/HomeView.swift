@@ -21,7 +21,8 @@ struct HomeView: View {
     @State private var logMealTime: MealTime = .lunch
     @State private var trainViewModel = TrainViewModel()
     @State private var showProgramCreation: Bool = false
-    @State private var todaysPlanVM = TodaysPlanViewModel()
+    @State private var todaysPlanVM = TodaysPlanViewModel.shared
+    @Environment(\.scenePhase) private var scenePhase
     @State private var nutritionViewModel = NutritionViewModel.shared
     @State private var showGlobalSearch: Bool = false
     @State private var showPepChatFromBrief: Bool = false
@@ -103,6 +104,11 @@ struct HomeView: View {
                 }
             }
             .onAppear { performHomeAppear() }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active {
+                    triggerPlanFetch()
+                }
+            }
             .onReceive(NotificationCenter.default.publisher(for: .supabaseDataChanged)) { note in
                 let source = (note.userInfo?["source"] as? String) ?? ""
                 Task { @MainActor in
@@ -250,7 +256,7 @@ struct HomeView: View {
             // 02 — Composition
             CollapsibleEditorialSection(eyebrow: "02 \u{2014} Composition", storageKey: "composition") {
                 VStack(spacing: 16) {
-                    BodyGoalSectionView(viewModel: bodyGoalViewModel, aiInsight: todaysPlanVM.moduleContent(for: "body"))
+                    BodyGoalSectionView(viewModel: bodyGoalViewModel)
                 }
             }
             .padding(.bottom, 40)
@@ -258,12 +264,12 @@ struct HomeView: View {
             // 03 — Energy & Movement
             CollapsibleEditorialSection(eyebrow: "03 \u{2014} Activity", storageKey: "activity") {
                 VStack(spacing: 16) {
-                    DailyActivityCard(viewModel: energyBalanceViewModel, aiInsight: todaysPlanVM.moduleContent(for: "training"), onLogActivity: {
+                    DailyActivityCard(viewModel: energyBalanceViewModel, onLogActivity: {
                         showLogActivity = true
                     }, onTapActivity: {
                         showActivity = true
                     })
-                    DailyNutritionCard(viewModel: energyBalanceViewModel, aiInsight: todaysPlanVM.moduleContent(for: "nutrition"), onLogMeal: {
+                    DailyNutritionCard(viewModel: energyBalanceViewModel, onLogMeal: {
                         let hour = Calendar.current.component(.hour, from: Date())
                         if hour < 10 { logMealTime = .breakfast }
                         else if hour < 14 { logMealTime = .lunch }
@@ -281,7 +287,7 @@ struct HomeView: View {
                 NutritionView()
             }
             .navigationDestination(isPresented: $showActivity) {
-                ActivityView(viewModel: energyBalanceViewModel, aiInsight: todaysPlanVM.moduleContent(for: "training"))
+                ActivityView(viewModel: energyBalanceViewModel)
             }
             .onChange(of: showNutrition) { _, isShowing in
                 if !isShowing {
@@ -810,25 +816,45 @@ struct HomeView: View {
 
     private func triggerPlanFetch(forceRefresh: Bool = false) {
         syncInsightsStore()
-        todaysPlanVM.fetchPlanIfNeeded(
-            firstName: viewModel.userFirstName,
-            activeProtocol: viewModel.activeProtocol,
-            nutrition: viewModel.nutrition,
-            nutritionTarget: nutritionViewModel.dailyTarget,
-            loggedMeals: nutritionViewModel.loggedMeals,
-            recentDailyMeals: recentDailyMealsLast14Days(),
-            bodyGoalVM: bodyGoalViewModel,
-            todaysPlan: viewModel.todaysPlan,
-            activeProgram: viewModel.activeProgram,
-            bloodworkEntries: bloodworkEntries,
-            streakDays: viewModel.quickStats.streakDays,
-            workoutsThisWeek: viewModel.quickStats.workoutsThisWeek,
-            workoutHistory: trainViewModel.workoutHistory,
-            muscleRecoveryItems: trainViewModel.muscleRecoveryItems,
-            weeklyMuscleVolumes: trainViewModel.weeklyMuscleVolumes,
-            personalRecords: trainViewModel.personalRecords,
-            forceRefresh: forceRefresh
-        )
+        if forceRefresh {
+            todaysPlanVM.forceRefresh(
+                firstName: viewModel.userFirstName,
+                activeProtocol: viewModel.activeProtocol,
+                nutrition: viewModel.nutrition,
+                nutritionTarget: nutritionViewModel.dailyTarget,
+                loggedMeals: nutritionViewModel.loggedMeals,
+                recentDailyMeals: recentDailyMealsLast14Days(),
+                bodyGoalVM: bodyGoalViewModel,
+                todaysPlan: viewModel.todaysPlan,
+                activeProgram: viewModel.activeProgram,
+                bloodworkEntries: bloodworkEntries,
+                streakDays: viewModel.quickStats.streakDays,
+                workoutsThisWeek: viewModel.quickStats.workoutsThisWeek,
+                workoutHistory: trainViewModel.workoutHistory,
+                muscleRecoveryItems: trainViewModel.muscleRecoveryItems,
+                weeklyMuscleVolumes: trainViewModel.weeklyMuscleVolumes,
+                personalRecords: trainViewModel.personalRecords
+            )
+        } else {
+            todaysPlanVM.refreshForWindowIfDue(
+                firstName: viewModel.userFirstName,
+                activeProtocol: viewModel.activeProtocol,
+                nutrition: viewModel.nutrition,
+                nutritionTarget: nutritionViewModel.dailyTarget,
+                loggedMeals: nutritionViewModel.loggedMeals,
+                recentDailyMeals: recentDailyMealsLast14Days(),
+                bodyGoalVM: bodyGoalViewModel,
+                todaysPlan: viewModel.todaysPlan,
+                activeProgram: viewModel.activeProgram,
+                bloodworkEntries: bloodworkEntries,
+                streakDays: viewModel.quickStats.streakDays,
+                workoutsThisWeek: viewModel.quickStats.workoutsThisWeek,
+                workoutHistory: trainViewModel.workoutHistory,
+                muscleRecoveryItems: trainViewModel.muscleRecoveryItems,
+                weeklyMuscleVolumes: trainViewModel.weeklyMuscleVolumes,
+                personalRecords: trainViewModel.personalRecords
+            )
+        }
     }
 
     // MARK: - Activity Feed

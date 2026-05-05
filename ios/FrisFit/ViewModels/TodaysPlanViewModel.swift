@@ -2,6 +2,8 @@ import SwiftUI
 
 @Observable
 final class TodaysPlanViewModel {
+    static let shared = TodaysPlanViewModel()
+
     var planResponse: TodaysPlanResponse?
     var isLoading: Bool = false
     var errorMessage: String?
@@ -11,23 +13,16 @@ final class TodaysPlanViewModel {
     private let cacheKey = "todaysPlanCache"
     private let cacheHashKey = "todaysPlanHash"
     private let cacheDateKey = "todaysPlanCacheTimestamp"
+    private static let windowsDoneKey = "todaysPlanWindowsDone"
 
-    private var scopedDebounceTasks: [String: Task<Void, Never>] = [:]
-    private var dirtyDomains: Set<String> = []
-    private var lastHolisticDate: Date?
-    private var lastSignalSnapshot: SignalSnapshot?
-
-    private struct SignalSnapshot: Equatable {
-        let proteinGoalHit: Bool
-        let calorieGoalHit: Bool
-        let calorieBudgetBlown: Bool
-        let workoutCompletedToday: Bool
-        let hasAnyLogToday: Bool
-        let doseLoggedToday: Bool
-    }
-
-    private static let scopedDebounceSeconds: UInt64 = 45
-    private static let holisticMaxStaleSeconds: TimeInterval = 4 * 60 * 60
+    /// Log sources that should trigger an immediate holistic brief refresh.
+    private static let logTriggerSources: Set<String> = [
+        "meal", "meal_delete",
+        "workout", "activity",
+        "weight", "measurement", "bodyGoal",
+        "dose", "sideEffect",
+        "bloodwork"
+    ]
 
     var hasPlan: Bool { planResponse != nil }
 
@@ -59,10 +54,6 @@ final class TodaysPlanViewModel {
         UserDefaults.standard.set(data, forKey: cacheKey)
         UserDefaults.standard.set(hash, forKey: cacheHashKey)
         UserDefaults.standard.set(Date(), forKey: cacheDateKey)
-    }
-
-    private var cachedHash: String? {
-        UserDefaults.standard.string(forKey: cacheHashKey)
     }
 
     func templateFallback(
@@ -108,61 +99,103 @@ final class TodaysPlanViewModel {
         )
     }
 
-    private static func domain(forSource source: String) -> String? {
-        switch source {
-        case "meal", "meal_delete": return "nutrition"
-        case "workout", "activity": return "training"
-        case "weight", "measurement", "bodyGoal": return "body"
-        case "dose", "sideEffect": return "protocol"
-        case "bloodwork": return "bloodwork"
-        default: return nil
-        }
+    // MARK: - Time-of-day windows
+
+    /// Morning: 00:00-11:59, Afternoon: 12:00-16:59, Evening: 17:00-23:59.
+    private enum Window: String { case morning, afternoon, evening }
+
+    private func currentWindow(_ date: Date = Date()) -> Window {
+        let hour = Calendar.current.component(.hour, from: date)
+        if hour < 12 { return .morning }
+        if hour < 17 { return .afternoon }
+        return .evening
     }
 
-    private func computeSignals(_ context: ContextBundle) -> SignalSnapshot {
-        let proteinHit: Bool = {
-            guard let n = context.nutritionToday, n.proteinTarget > 0 else { return false }
-            return n.proteinConsumed >= n.proteinTarget
-        }()
-        let calorieHit: Bool = {
-            guard let n = context.nutritionToday, n.caloriesTarget > 0 else { return false }
-            return n.caloriesConsumed >= Int(Double(n.caloriesTarget) * 0.95)
-        }()
-        let calorieBlown: Bool = {
-            guard let n = context.nutritionToday, n.caloriesTarget > 0 else { return false }
-            return n.caloriesConsumed > Int(Double(n.caloriesTarget) * 1.1)
-        }()
-        let workoutDone = context.trainingContext?.completedToday ?? false
-        let hasLog = (context.nutritionToday?.mealsLogged ?? 0) > 0 ||
-            (context.trainingContext?.completedToday ?? false) ||
-            (context.protocolContext?.doseLoggedToday ?? false)
-        let doseLogged = context.protocolContext?.doseLoggedToday ?? false
-        return SignalSnapshot(
-            proteinGoalHit: proteinHit,
-            calorieGoalHit: calorieHit,
-            calorieBudgetBlown: calorieBlown,
-            workoutCompletedToday: workoutDone,
-            hasAnyLogToday: hasLog,
-            doseLoggedToday: doseLogged
+    private static func dayString(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = .current
+        return f.string(from: date)
+    }
+
+    private func windowsDoneToday() -> Set<String> {
+        guard let raw = UserDefaults.standard.string(forKey: Self.windowsDoneKey) else { return [] }
+        let parts = raw.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2, String(parts[0]) == Self.dayString(Date()) else { return [] }
+        return Set(parts[1].split(separator: ",").map(String.init))
+    }
+
+    private func markCurrentWindowDone() {
+        var done = windowsDoneToday()
+        done.insert(currentWindow().rawValue)
+        let today = Self.dayString(Date())
+        UserDefaults.standard.set("\(today)|\(done.sorted().joined(separator: ","))", forKey: Self.windowsDoneKey)
+    }
+
+    private func isCurrentWindowDone() -> Bool {
+        windowsDoneToday().contains(currentWindow().rawValue)
+    }
+
+    // MARK: - Refresh entry points
+
+    /// Called when the home view appears or the app returns to foreground.
+    /// Runs a holistic refresh if there's no plan yet, or if the current
+    /// time-of-day window hasn't been refreshed today. Otherwise is a no-op.
+    func refreshForWindowIfDue(
+        firstName: String,
+        activeProtocol: PeptideProtocol?,
+        nutrition: NutritionSnapshot,
+        nutritionTarget: MacroTarget,
+        loggedMeals: [LoggedMeal],
+        recentDailyMeals: [[LoggedMeal]] = [],
+        bodyGoalVM: BodyGoalViewModel,
+        todaysPlan: WorkoutPlan,
+        activeProgram: TrainingProgram?,
+        bloodworkEntries: [BloodworkEntry],
+        streakDays: Int,
+        workoutsThisWeek: Int,
+        workoutHistory: [WorkoutHistoryDetail] = [],
+        muscleRecoveryItems: [MuscleRecoveryItem] = [],
+        weeklyMuscleVolumes: [WeeklyMuscleVolume] = [],
+        personalRecords: [TrainPersonalRecord] = []
+    ) {
+        guard !isLoading else { return }
+        if hasPlan && isCurrentWindowDone() { return }
+
+        let context = TodaysPlanService.shared.assembleContext(
+            firstName: firstName,
+            activeProtocol: activeProtocol,
+            nutrition: nutrition,
+            nutritionTarget: nutritionTarget,
+            loggedMeals: loggedMeals,
+            recentDailyMeals: recentDailyMeals,
+            bodyGoalVM: bodyGoalVM,
+            todaysPlan: todaysPlan,
+            activeProgram: activeProgram,
+            bloodworkEntries: bloodworkEntries,
+            streakDays: streakDays,
+            workoutsThisWeek: workoutsThisWeek,
+            workoutHistory: workoutHistory,
+            muscleRecoveryItems: muscleRecoveryItems,
+            weeklyMuscleVolumes: weeklyMuscleVolumes,
+            personalRecords: personalRecords
         )
+
+        if !hasPlan {
+            let fallback = templateFallback(
+                firstName: firstName,
+                activeProtocol: activeProtocol,
+                nutritionTarget: nutritionTarget
+            )
+            planResponse = fallback
+        }
+        runHolisticRefresh(context: context)
     }
 
-    private func shouldTriggerHolistic(_ newSignals: SignalSnapshot) -> Bool {
-        guard let previous = lastSignalSnapshot else {
-            return newSignals.hasAnyLogToday
-        }
-        if newSignals.proteinGoalHit != previous.proteinGoalHit { return true }
-        if newSignals.calorieGoalHit != previous.calorieGoalHit { return true }
-        if newSignals.calorieBudgetBlown != previous.calorieBudgetBlown { return true }
-        if newSignals.workoutCompletedToday != previous.workoutCompletedToday { return true }
-        if newSignals.doseLoggedToday != previous.doseLoggedToday { return true }
-        if newSignals.hasAnyLogToday && !previous.hasAnyLogToday { return true }
-        if let last = lastHolisticDate, Date().timeIntervalSince(last) > Self.holisticMaxStaleSeconds, newSignals.hasAnyLogToday {
-            return true
-        }
-        return false
-    }
-
+    /// Called on any user-generated log. Any meal/workout/weight/dose/bloodwork
+    /// log triggers an immediate holistic refresh; non-log notifications are
+    /// ignored.
     func handleDataChange(
         source: String,
         firstName: String,
@@ -182,6 +215,8 @@ final class TodaysPlanViewModel {
         weeklyMuscleVolumes: [WeeklyMuscleVolume] = [],
         personalRecords: [TrainPersonalRecord] = []
     ) {
+        guard Self.logTriggerSources.contains(source) else { return }
+
         let context = TodaysPlanService.shared.assembleContext(
             firstName: firstName,
             activeProtocol: activeProtocol,
@@ -200,69 +235,11 @@ final class TodaysPlanViewModel {
             weeklyMuscleVolumes: weeklyMuscleVolumes,
             personalRecords: personalRecords
         )
-
-        let signals = computeSignals(context)
-
-        if shouldTriggerHolistic(signals) {
-            lastSignalSnapshot = signals
-            scopedDebounceTasks.values.forEach { $0.cancel() }
-            scopedDebounceTasks.removeAll()
-            dirtyDomains.removeAll()
-            runHolisticRefresh(context: context)
-            return
-        }
-        lastSignalSnapshot = signals
-
-        guard let domain = Self.domain(forSource: source) else { return }
-        dirtyDomains.insert(domain)
-        scheduleScopedRefresh(domain: domain, context: context)
-    }
-
-    private func scheduleScopedRefresh(domain: String, context: ContextBundle) {
-        scopedDebounceTasks[domain]?.cancel()
-        let task = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(Self.scopedDebounceSeconds))
-            guard !Task.isCancelled, let self else { return }
-            await self.performScopedRefresh(domain: domain, context: context)
-        }
-        scopedDebounceTasks[domain] = task
-    }
-
-    @MainActor
-    private func performScopedRefresh(domain: String, context: ContextBundle) async {
-        guard hasPlan else {
-            runHolisticRefresh(context: context)
-            return
-        }
-        isBackgroundRefreshing = true
-        defer { isBackgroundRefreshing = false }
-        do {
-            let module = try await TodaysPlanService.shared.generateModule(domain: domain, context: context)
-            guard var plan = planResponse else { return }
-            var modules = plan.modules
-            if let idx = modules.firstIndex(where: { $0.type == domain }) {
-                modules[idx] = module
-            } else {
-                modules.append(module)
-            }
-            plan = TodaysPlanResponse(summary: plan.summary, modules: modules)
-            withAnimation(.easeInOut(duration: 0.3)) {
-                planResponse = plan
-            }
-            cachePlan(plan, hash: context.contentHash)
-            dirtyDomains.remove(domain)
-            scopedDebounceTasks.removeValue(forKey: domain)
-        } catch {
-            print("[TodaysPlan] Scoped \(domain) refresh failed: \(error)")
-        }
+        runHolisticRefresh(context: context)
     }
 
     private func runHolisticRefresh(context: ContextBundle) {
         let currentHash = context.contentHash
-        if let cached = cachedHash, cached == currentHash, hasPlan {
-            lastHolisticDate = Date()
-            return
-        }
         if hasPlan {
             isBackgroundRefreshing = true
         } else {
@@ -277,8 +254,8 @@ final class TodaysPlanViewModel {
                     self.planResponse = response
                 }
                 self.lastFetchDate = Date()
-                self.lastHolisticDate = Date()
                 self.cachePlan(response, hash: currentHash)
+                self.markCurrentWindowDone()
             } catch {
                 print("[TodaysPlan] Holistic refresh error: \(error)")
             }
@@ -287,89 +264,7 @@ final class TodaysPlanViewModel {
         }
     }
 
-    func fetchPlanIfNeeded(
-        firstName: String,
-        activeProtocol: PeptideProtocol?,
-        nutrition: NutritionSnapshot,
-        nutritionTarget: MacroTarget,
-        loggedMeals: [LoggedMeal],
-        recentDailyMeals: [[LoggedMeal]] = [],
-        bodyGoalVM: BodyGoalViewModel,
-        todaysPlan: WorkoutPlan,
-        activeProgram: TrainingProgram?,
-        bloodworkEntries: [BloodworkEntry],
-        streakDays: Int,
-        workoutsThisWeek: Int,
-        workoutHistory: [WorkoutHistoryDetail] = [],
-        muscleRecoveryItems: [MuscleRecoveryItem] = [],
-        weeklyMuscleVolumes: [WeeklyMuscleVolume] = [],
-        personalRecords: [TrainPersonalRecord] = [],
-        forceRefresh: Bool = false
-    ) {
-        guard !isLoading else { return }
-
-        let context = TodaysPlanService.shared.assembleContext(
-            firstName: firstName,
-            activeProtocol: activeProtocol,
-            nutrition: nutrition,
-            nutritionTarget: nutritionTarget,
-            loggedMeals: loggedMeals,
-            recentDailyMeals: recentDailyMeals,
-            bodyGoalVM: bodyGoalVM,
-            todaysPlan: todaysPlan,
-            activeProgram: activeProgram,
-            bloodworkEntries: bloodworkEntries,
-            streakDays: streakDays,
-            workoutsThisWeek: workoutsThisWeek,
-            workoutHistory: workoutHistory,
-            muscleRecoveryItems: muscleRecoveryItems,
-            weeklyMuscleVolumes: weeklyMuscleVolumes,
-            personalRecords: personalRecords
-        )
-
-        let currentHash = context.contentHash
-
-        if !forceRefresh, let cached = cachedHash, cached == currentHash, hasPlan {
-            return
-        }
-
-        let hadCachedPlan = hasPlan
-        if hadCachedPlan {
-            isBackgroundRefreshing = true
-        } else {
-            isLoading = true
-            let fallback = templateFallback(
-                firstName: firstName,
-                activeProtocol: activeProtocol,
-                nutritionTarget: nutritionTarget
-            )
-            if planResponse == nil {
-                planResponse = fallback
-            }
-        }
-        errorMessage = nil
-
-        Task {
-            do {
-                let response = try await TodaysPlanService.shared.generatePlan(context: context)
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    planResponse = response
-                }
-                lastFetchDate = Date()
-                lastHolisticDate = Date()
-                lastSignalSnapshot = computeSignals(context)
-                cachePlan(response, hash: currentHash)
-            } catch {
-                print("[TodaysPlan] Error: \(error)")
-                if !hadCachedPlan && planResponse?.summary.contains("Log your first data") == true {
-                    errorMessage = "Could not generate today's plan"
-                }
-            }
-            isLoading = false
-            isBackgroundRefreshing = false
-        }
-    }
-
+    /// Manual force-refresh (e.g. pull-to-refresh, chat context builder).
     func forceRefresh(
         firstName: String,
         activeProtocol: PeptideProtocol?,
@@ -388,7 +283,7 @@ final class TodaysPlanViewModel {
         weeklyMuscleVolumes: [WeeklyMuscleVolume] = [],
         personalRecords: [TrainPersonalRecord] = []
     ) {
-        fetchPlanIfNeeded(
+        let context = TodaysPlanService.shared.assembleContext(
             firstName: firstName,
             activeProtocol: activeProtocol,
             nutrition: nutrition,
@@ -404,8 +299,8 @@ final class TodaysPlanViewModel {
             workoutHistory: workoutHistory,
             muscleRecoveryItems: muscleRecoveryItems,
             weeklyMuscleVolumes: weeklyMuscleVolumes,
-            personalRecords: personalRecords,
-            forceRefresh: true
+            personalRecords: personalRecords
         )
+        runHolisticRefresh(context: context)
     }
 }
