@@ -413,6 +413,8 @@ final class HealthKitService {
             isShowingCachedData = false
             lastRefreshedAt = Date()
             persistScalarCache()
+            Task { await HealthCloudSyncService.shared.syncIfNeeded() }
+            Task { await HealthCloudSyncService.shared.backfillIfNeeded() }
         }
         currentViewDate = Date()
         async let s = fetchSteps()
@@ -1018,6 +1020,14 @@ final class HealthKitService {
         for (id, freq) in observed {
             guard let type = HKObjectType.quantityType(forIdentifier: id) else { continue }
             healthStore.enableBackgroundDelivery(for: type, frequency: freq) { _, _ in }
+            // Observer query that uploads the latest delta to the cloud whenever
+            // new samples arrive in the background (e.g. ring closed, workout ended).
+            let observer = HKObserverQuery(sampleType: type, predicate: nil) { _, _, _ in
+                Task { @MainActor in
+                    await HealthCloudSyncService.shared.syncIfNeeded()
+                }
+            }
+            healthStore.execute(observer)
         }
     }
 
@@ -1516,7 +1526,7 @@ final class HealthKitService {
         return await fetchCumulativeSum(for: identifier, unit: unit, start: startOfDay, end: Date())
     }
 
-    private func fetchCumulativeSum(for identifier: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async -> Double {
+    func fetchCumulativeSum(for identifier: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async -> Double {
         guard let quantityType = HKObjectType.quantityType(forIdentifier: identifier) else { return 0 }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
 

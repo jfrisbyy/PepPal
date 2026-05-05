@@ -4,8 +4,10 @@ import HealthKit
 struct AppleHealthSyncView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var healthKit = HealthKitService.shared
+    @State private var cloud = HealthCloudSyncService.shared
     @State private var lastSynced: Date? = nil
     @State private var isSyncing: Bool = false
+    @State private var showDeleteConfirm: Bool = false
 
     @AppStorage("health.sync.weight") private var syncWeight: Bool = true
     @AppStorage("health.sync.hr") private var syncHR: Bool = true
@@ -26,6 +28,7 @@ struct AppleHealthSyncView: View {
                     connectCard
                 } else {
                     statusCard
+                    cloudSyncCard
                     metricsCard
                     writebackCard
                 }
@@ -275,6 +278,107 @@ struct AppleHealthSyncView: View {
             }
         }
         .tint(PepTheme.teal)
+    }
+
+    private var cloudSyncCard: some View {
+        GlassCard(accent: .blue) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: "icloud.and.arrow.up.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.blue)
+                        .frame(width: 30, height: 30)
+                        .background(Color.blue.opacity(0.15), in: .circle)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Cloud sync")
+                            .font(.system(.headline, weight: .bold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text(cloudStatusLabel)
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    Spacer()
+                    if cloud.isSyncing {
+                        ProgressView().controlSize(.small)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    statPill("\(cloud.daysStored)", "days")
+                    statPill("\(cloud.workoutsStored)", "workouts")
+                }
+
+                Text("Your Health snapshots, sleep, and workouts are encrypted and stored in your account so summaries, AI briefings, and offline cards always have your latest numbers.")
+                    .font(.caption2)
+                    .foregroundStyle(PepTheme.textSecondary)
+
+                HStack(spacing: 10) {
+                    Button {
+                        Task { await cloud.resyncRecent(days: 90) }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                            Text("Re-sync 90 days").fontWeight(.semibold)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(PepTheme.teal, in: .capsule)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(cloud.isSyncing)
+
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "trash")
+                            Text("Delete cloud data").fontWeight(.semibold)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.red.opacity(0.12), in: .capsule)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(cloud.isSyncing)
+                }
+            }
+        }
+        .task { await cloud.refreshState() }
+        .alert("Delete cloud Health data?", isPresented: $showDeleteConfirm) {
+            Button("Delete", role: .destructive) {
+                Task { await cloud.deleteAllCloudData() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently removes every Apple Health snapshot, series point, sleep night, and workout we've stored for you. Local cache and Apple Health itself are untouched.")
+        }
+    }
+
+    private func statPill(_ value: String, _ label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(.title3, design: .rounded, weight: .heavy))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(PepTheme.textSecondary)
+                .textCase(.uppercase)
+                .tracking(0.8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(Color.blue.opacity(0.08), in: .rect(cornerRadius: 12))
+    }
+
+    private var cloudStatusLabel: String {
+        guard let last = cloud.lastSyncedAt else { return "Waiting for first sync" }
+        let rf = RelativeDateTimeFormatter()
+        rf.unitsStyle = .short
+        return "Uploaded \(rf.localizedString(for: last, relativeTo: Date()))"
     }
 
     private var lastSyncedLabel: String {
