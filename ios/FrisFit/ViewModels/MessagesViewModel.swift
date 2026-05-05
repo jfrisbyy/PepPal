@@ -297,12 +297,16 @@ final class MessagesViewModel {
 
     func startConversation(with user: SocialUser) -> UUID {
         if let existing = conversations.first(where: { $0.participant.id == user.id }) {
-            return existing.id
+            // If we already know this conversation, make sure the supabase id is filled in
+            // and proactively load full history so the chat screen has data to render.
+            let existingId = existing.id
+            Task { await self.loadFullConversation(conversationID: existingId) }
+            return existingId
         }
 
-        let placeholderId = UUID()
+        let localId = UUID()
         let conversation = Conversation(
-            id: placeholderId,
+            id: localId,
             participant: user,
             supabaseConversationId: nil
         )
@@ -316,21 +320,18 @@ final class MessagesViewModel {
                     otherUserId: user.id.uuidString
                 )
 
-                if let idx = conversations.firstIndex(where: { $0.id == placeholderId }) {
-                    let updated = Conversation(
-                        id: UUID(uuidString: convId) ?? placeholderId,
-                        participant: user,
-                        messages: conversations[idx].messages,
-                        supabaseConversationId: convId
-                    )
-                    conversations[idx] = updated
-                }
+                guard let idx = conversations.firstIndex(where: { $0.id == localId }) else { return }
+                // Keep the local UUID stable so any view holding `localId` keeps working.
+                // Only attach the Supabase conversation id, then hydrate messages.
+                conversations[idx].supabaseConversationId = convId
+                await self.loadFullConversation(conversationID: localId)
+                await self.subscribeRealtime(conversationID: localId)
             } catch {
-                // Keep placeholder
+                self.error = error.localizedDescription
             }
         }
 
-        return placeholderId
+        return localId
     }
 
     func markAsRead(conversationID: UUID) {

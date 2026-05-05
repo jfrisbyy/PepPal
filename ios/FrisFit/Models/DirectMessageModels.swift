@@ -52,7 +52,7 @@ nonisolated struct Conversation: Identifiable, Sendable {
     var messages: [DirectMessage]
     var lastMessage: DirectMessage? { messages.last }
     var unreadCount: Int
-    let supabaseConversationId: String?
+    var supabaseConversationId: String?
 
     init(id: UUID = UUID(), participant: SocialUser, messages: [DirectMessage] = [], unreadCount: Int? = nil, supabaseConversationId: String? = nil) {
         self.id = id
