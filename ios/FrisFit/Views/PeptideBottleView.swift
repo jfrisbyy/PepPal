@@ -210,17 +210,17 @@ struct PeptideBottleView: View {
     private func startWaveAnimation() {
         wavePhase = 0
         secondaryWavePhase = .pi
-        withAnimation(.linear(duration: 2.6).repeatForever(autoreverses: false)) {
+        withAnimation(.linear(duration: 5.2).repeatForever(autoreverses: false)) {
             wavePhase = .pi * 2
         }
-        withAnimation(.linear(duration: 3.4).repeatForever(autoreverses: false)) {
+        withAnimation(.linear(duration: 6.8).repeatForever(autoreverses: false)) {
             secondaryWavePhase = .pi * 2 + .pi
         }
     }
 
     private func startBob() {
         bobPhase = 0
-        withAnimation(.easeInOut(duration: 2.8).repeatForever(autoreverses: false)) {
+        withAnimation(.easeInOut(duration: 5.6).repeatForever(autoreverses: false)) {
             bobPhase = .pi * 2
         }
     }
