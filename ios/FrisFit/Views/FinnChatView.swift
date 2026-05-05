@@ -20,49 +20,42 @@ struct PepChatView: View {
         VStack(spacing: 0) {
             pepNavBar
 
-            MedicalDisclaimerBanner(compact: true)
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
-
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 2) {
+                    LazyVStack(spacing: 0) {
                         pepProfileHeader
-                            .padding(.bottom, 8)
+                            .padding(.bottom, 20)
 
                         ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
                             let showTimestamp = shouldShowTimestamp(at: index)
 
                             if showTimestamp {
-                                Text(message.timestamp.formatted(.dateTime.hour().minute()))
-                                    .font(.caption2)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                                    .padding(.top, 12)
-                                    .padding(.bottom, 4)
+                                timestampDivider(message.timestamp)
+                                    .padding(.top, index == 0 ? 0 : 18)
+                                    .padding(.bottom, 10)
                             }
 
                             switch message.role {
                             case .pep:
                                 PepBubble(message: message, viewModel: viewModel, showAvatar: shouldShowPepAvatar(at: index))
-                                    .padding(.top, isSameRoleAsPrevious(at: index) && !showTimestamp ? 2 : 8)
+                                    .padding(.top, isSameRoleAsPrevious(at: index) && !showTimestamp ? 4 : 12)
                             case .user:
                                 UserBubble(text: message.content)
-                                    .padding(.top, isSameRoleAsPrevious(at: index) && !showTimestamp ? 2 : 8)
+                                    .padding(.top, isSameRoleAsPrevious(at: index) && !showTimestamp ? 4 : 12)
                             }
                         }
 
                         if viewModel.isGenerating {
                             PepTypingBubble()
-                                .padding(.top, 8)
+                                .padding(.top, 12)
                         }
 
                         Color.clear
                             .frame(height: 1)
                             .id("bottom")
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.bottom, 8)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
                 }
                 .scrollIndicators(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -83,73 +76,132 @@ struct PepChatView: View {
         .appBackground()
     }
 
+    // MARK: - Nav bar
+
     private var pepNavBar: some View {
         VStack(spacing: 0) {
             HStack {
                 Button {
                     dismiss()
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .semibold))
-                    }
-                    .foregroundStyle(PepTheme.violet)
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(PepTheme.elevated.opacity(0.7))
+                        .clipShape(Circle())
                 }
 
                 Spacer()
 
-                VStack(spacing: 2) {
-                    PepNavAvatar(size: 32)
+                VStack(spacing: 1) {
+                    Text("CONVERSATION")
+                        .font(.system(size: 9, weight: .black))
+                        .tracking(1.8)
+                        .foregroundStyle(PepTheme.textTertiary)
                     Text("Pep")
-                        .font(.system(.caption, weight: .semibold))
+                        .font(.system(.headline, design: .serif, weight: .semibold))
+                        .kerning(-0.2)
                         .foregroundStyle(PepTheme.textPrimary)
                 }
 
                 Spacer()
 
-                Button {
-                } label: {
-                    Image(systemName: "video")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(PepTheme.violet)
-                }
-                .opacity(0)
+                Color.clear.frame(width: 36, height: 36)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.vertical, 10)
 
             Rectangle()
                 .fill(PepTheme.separatorColor)
                 .frame(height: 0.5)
         }
-        .background(PepTheme.cardSurface.opacity(0.8))
         .background(.ultraThinMaterial)
     }
 
+    // MARK: - Profile header
+
     private var pepProfileHeader: some View {
-        VStack(spacing: 8) {
-            PepNavAvatar(size: 60)
+        VStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [PepTheme.teal.opacity(0.5), PepTheme.violet.opacity(0.4)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+                    .frame(width: 84, height: 84)
+                PepNavAvatar(size: 72)
+            }
 
-            Text("Pep")
-                .font(.system(.headline, weight: .semibold))
-                .foregroundStyle(PepTheme.textPrimary)
+            VStack(spacing: 6) {
+                Text("PEPTIDE RESEARCH COMPANION")
+                    .font(.system(size: 9, weight: .black))
+                    .tracking(2.0)
+                    .foregroundStyle(PepTheme.teal)
 
-            Text("Peptide Research Companion")
-                .font(.caption)
-                .foregroundStyle(PepTheme.textSecondary)
+                Text("Pep")
+                    .font(.system(size: 30, weight: .semibold, design: .serif))
+                    .kerning(-0.5)
+                    .foregroundStyle(PepTheme.textPrimary)
 
-            Text("For informational & educational purposes only")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(PepTheme.amber)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(PepTheme.amber.opacity(0.1))
-                .clipShape(.capsule)
+                Text("A thoughtful guide to your protocol — \nask anything, get clear answers.")
+                    .font(.system(size: 13, design: .serif))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                    .padding(.top, 2)
+            }
+
+            HStack(spacing: 6) {
+                Image(systemName: "info.circle.fill")
+                    .font(.system(size: 9, weight: .bold))
+                Text("Educational only · not medical advice")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(0.3)
+            }
+            .foregroundStyle(PepTheme.amber)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(PepTheme.amber.opacity(0.10))
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(PepTheme.amber.opacity(0.18), lineWidth: 0.5)
+                    )
+            )
+
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(width: 36, height: 0.5)
+                .padding(.top, 6)
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 16)
-        .padding(.bottom, 8)
+        .padding(.top, 28)
     }
+
+    // MARK: - Timestamp divider
+
+    private func timestampDivider(_ date: Date) -> some View {
+        HStack(spacing: 10) {
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(height: 0.5)
+            Text(date.formatted(.dateTime.hour().minute()))
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(PepTheme.textTertiary)
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(height: 0.5)
+        }
+    }
+
+    // MARK: - Input bar
 
     private var pepInputBar: some View {
         VStack(spacing: 0) {
@@ -157,58 +209,84 @@ struct PepChatView: View {
                 .fill(PepTheme.separatorColor)
                 .frame(height: 0.5)
 
-            HStack(alignment: .bottom, spacing: 8) {
+            HStack(alignment: .bottom, spacing: 10) {
                 Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
                         showQuickActions.toggle()
                     }
                 } label: {
-                    Image(systemName: showQuickActions ? "xmark.circle.fill" : "plus.circle.fill")
-                        .font(.system(size: 30))
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                    Image(systemName: showQuickActions ? "xmark" : "plus")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(
+                            Circle()
+                                .fill(PepTheme.elevated)
+                                .overlay(
+                                    Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                                )
+                        )
                         .contentTransition(.symbolEffect(.replace))
                 }
 
-                HStack(spacing: 0) {
-                    TextField("Ask Pep anything...", text: $viewModel.inputText, axis: .vertical)
+                HStack(alignment: .bottom, spacing: 0) {
+                    TextField("Message Pep…", text: $viewModel.inputText, axis: .vertical)
                         .lineLimit(1...5)
-                        .font(.body)
+                        .font(.system(size: 15, design: .serif))
                         .foregroundStyle(PepTheme.textPrimary)
                         .focused($isInputFocused)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
 
                     if viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Button {
                             handleMicTap()
                         } label: {
-                            Image(systemName: recorder.isRecording ? "stop.circle.fill" : (recorder.isTranscribing ? "waveform" : "mic.fill"))
-                                .font(.system(size: 16))
-                                .foregroundStyle(recorder.isRecording ? .red : PepTheme.textSecondary.opacity(0.6))
+                            Image(systemName: recorder.isRecording ? "stop.fill" : (recorder.isTranscribing ? "waveform" : "mic.fill"))
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(recorder.isRecording ? PepTheme.danger : PepTheme.textSecondary)
                                 .symbolEffect(.pulse, isActive: recorder.isRecording || recorder.isTranscribing)
+                                .frame(width: 30, height: 30)
                         }
-                        .padding(.trailing, 10)
+                        .padding(.trailing, 6)
                         .disabled(recorder.isTranscribing)
+                    } else {
+                        Button {
+                            viewModel.sendMessage()
+                        } label: {
+                            Image(systemName: "arrow.up")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(PepTheme.invertedText)
+                                .frame(width: 30, height: 30)
+                                .background(
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [PepTheme.teal, PepTheme.violet.opacity(0.85)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                )
+                        }
+                        .disabled(viewModel.isGenerating)
+                        .sensoryFeedback(.impact(weight: .light), trigger: viewModel.messages.count)
+                        .padding(.trailing, 4)
+                        .transition(.scale.combined(with: .opacity))
                     }
                 }
-                .background(PepTheme.elevated)
-                .clipShape(.capsule)
-
-                if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Button {
-                        viewModel.sendMessage()
-                    } label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 30))
-                            .foregroundStyle(PepTheme.violet)
-                    }
-                    .disabled(viewModel.isGenerating)
-                    .sensoryFeedback(.impact(weight: .light), trigger: viewModel.messages.count)
-                    .transition(.scale.combined(with: .opacity))
-                }
+                .background(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(PepTheme.elevated)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                )
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 14)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: viewModel.inputText.isEmpty)
 
             if showQuickActions {
@@ -228,46 +306,49 @@ struct PepChatView: View {
             Text("Enable microphone access in Settings to use voice input.")
         }
         .background(
-            PepTheme.cardSurface
+            PepTheme.background
                 .ignoresSafeArea(edges: .bottom)
         )
     }
 
     private var quickActionsRow: some View {
-        HStack(spacing: 20) {
-            QuickActionButton(icon: "pill.fill", label: "Peptides", color: PepTheme.teal) {
-                viewModel.inputText = "Tell me about BPC-157"
-                showQuickActions = false
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                QuickActionPill(icon: "pill.fill", label: "Peptides", color: PepTheme.teal) {
+                    viewModel.inputText = "Tell me about BPC-157"
+                    showQuickActions = false
+                }
+                QuickActionPill(icon: "function", label: "Reconstitution", color: PepTheme.blue) {
+                    viewModel.inputText = "Help me with reconstitution math"
+                    showQuickActions = false
+                }
+                QuickActionPill(icon: "syringe.fill", label: "Injection", color: PepTheme.coral) {
+                    viewModel.inputText = "Where should I inject next?"
+                    showQuickActions = false
+                }
+                QuickActionPill(icon: "dumbbell.fill", label: "Training", color: PepTheme.violet) {
+                    viewModel.inputText = "What should I train today?"
+                    showQuickActions = false
+                }
             }
-            QuickActionButton(icon: "function", label: "Reconstitution", color: PepTheme.blue) {
-                viewModel.inputText = "Help me with reconstitution math"
-                showQuickActions = false
-            }
-            QuickActionButton(icon: "syringe.fill", label: "Injection", color: .orange) {
-                viewModel.inputText = "Where should I inject next?"
-                showQuickActions = false
-            }
-            QuickActionButton(icon: "dumbbell.fill", label: "Training", color: PepTheme.violet) {
-                viewModel.inputText = "What should I train today?"
-                showQuickActions = false
-            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 12)
+        .scrollClipDisabled()
     }
 
     private var recordingIndicator: some View {
         HStack(spacing: 10) {
             Circle()
-                .fill(.red)
-                .frame(width: 8, height: 8)
+                .fill(PepTheme.danger)
+                .frame(width: 7, height: 7)
                 .symbolEffect(.pulse, options: .repeating)
-            Text("Listening… tap stop when done")
-                .font(.system(.caption, weight: .medium))
+            Text("Listening · tap stop when done")
+                .font(.system(size: 12, weight: .medium, design: .serif))
                 .foregroundStyle(PepTheme.textSecondary)
             Spacer()
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 18)
         .padding(.bottom, 10)
     }
 
@@ -320,7 +401,9 @@ struct PepChatView: View {
 
 typealias FinnChatView = PepChatView
 
-struct QuickActionButton: View {
+// MARK: - Quick action pill
+
+struct QuickActionPill: View {
     let icon: String
     let label: String
     let color: Color
@@ -328,21 +411,42 @@ struct QuickActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            HStack(spacing: 7) {
                 Image(systemName: icon)
-                    .font(.system(size: 22))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(color)
-                    .frame(width: 50, height: 50)
-                    .background(color.opacity(0.15))
-                    .clipShape(Circle())
-
                 Text(label)
-                    .font(.caption2)
-                    .foregroundStyle(PepTheme.textSecondary)
+                    .font(.system(size: 12, weight: .semibold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(
+                Capsule()
+                    .fill(PepTheme.elevated)
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(color.opacity(0.25), lineWidth: 0.5)
+            )
         }
+        .buttonStyle(.plain)
     }
 }
+
+// Kept for any external references.
+struct QuickActionButton: View {
+    let icon: String
+    let label: String
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        QuickActionPill(icon: icon, label: label, color: color, action: action)
+    }
+}
+
+// MARK: - Avatar
 
 struct PepNavAvatar: View {
     let size: CGFloat
@@ -352,7 +456,7 @@ struct PepNavAvatar: View {
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [PepTheme.teal, PepTheme.violet.opacity(0.7)],
+                        colors: [PepTheme.teal, PepTheme.violet.opacity(0.75)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -360,7 +464,7 @@ struct PepNavAvatar: View {
                 .frame(width: size, height: size)
 
             Text("P")
-                .font(.system(size: size * 0.4, weight: .bold, design: .rounded))
+                .font(.system(size: size * 0.42, weight: .semibold, design: .serif))
                 .foregroundStyle(.white)
         }
     }
@@ -368,46 +472,54 @@ struct PepNavAvatar: View {
 
 typealias FinnNavAvatar = PepNavAvatar
 
+// MARK: - Pep bubble
+
 struct PepBubble: View {
     let message: PepMessage
     let viewModel: PepChatViewModel
     let showAvatar: Bool
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 6) {
+        HStack(alignment: .top, spacing: 10) {
             if showAvatar {
-                PepNavAvatar(size: 28)
+                PepNavAvatar(size: 26)
+                    .padding(.top, 2)
             } else {
-                Color.clear.frame(width: 28)
+                Color.clear.frame(width: 26)
             }
 
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                if showAvatar {
+                    Text("PEP")
+                        .font(.system(size: 9, weight: .black))
+                        .tracking(1.6)
+                        .foregroundStyle(PepTheme.teal)
+                }
+
                 buildContent(message.content, exerciseNames: message.exerciseNames)
-                    .font(.body)
+                    .font(.system(size: 15, design: .serif))
                     .foregroundStyle(PepTheme.textPrimary)
+                    .lineSpacing(3)
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(pepBubbleBackground)
-                    .clipShape(PepBubbleShape(showTail: showAvatar))
+                    .padding(.vertical, 11)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(PepTheme.cardSurface)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                    )
             }
 
-            Spacer(minLength: 50)
+            Spacer(minLength: 40)
         }
-    }
-
-    private var pepBubbleBackground: some View {
-        Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(red: 38/255, green: 38/255, blue: 42/255, alpha: 1)
-                : UIColor(red: 230/255, green: 230/255, blue: 235/255, alpha: 1)
-        })
     }
 
     @ViewBuilder
     private func buildContent(_ content: String, exerciseNames: [String]) -> some View {
         if exerciseNames.isEmpty {
             Text(content)
-                .lineSpacing(2)
         } else {
             ExerciseLinkText(content: content, exerciseNames: exerciseNames, viewModel: viewModel)
         }
@@ -416,64 +528,7 @@ struct PepBubble: View {
 
 typealias FinnBubble = PepBubble
 
-struct PepBubbleShape: Shape {
-    let showTail: Bool
-
-    func path(in rect: CGRect) -> Path {
-        let radius: CGFloat = 18
-        let tailSize: CGFloat = showTail ? 6 : 0
-
-        var path = Path()
-
-        path.move(to: CGPoint(x: rect.minX + tailSize, y: rect.maxY - radius))
-        path.addArc(
-            center: CGPoint(x: rect.minX + tailSize + radius, y: rect.minY + radius),
-            radius: radius,
-            startAngle: .degrees(180),
-            endAngle: .degrees(270),
-            clockwise: false
-        )
-        path.addArc(
-            center: CGPoint(x: rect.maxX - radius, y: rect.minY + radius),
-            radius: radius,
-            startAngle: .degrees(270),
-            endAngle: .degrees(0),
-            clockwise: false
-        )
-        path.addArc(
-            center: CGPoint(x: rect.maxX - radius, y: rect.maxY - radius),
-            radius: radius,
-            startAngle: .degrees(0),
-            endAngle: .degrees(90),
-            clockwise: false
-        )
-
-        if showTail {
-            path.addLine(to: CGPoint(x: rect.minX + tailSize + radius, y: rect.maxY))
-            path.addQuadCurve(
-                to: CGPoint(x: rect.minX, y: rect.maxY + 2),
-                control: CGPoint(x: rect.minX + tailSize, y: rect.maxY)
-            )
-            path.addQuadCurve(
-                to: CGPoint(x: rect.minX + tailSize, y: rect.maxY - 4),
-                control: CGPoint(x: rect.minX + tailSize - 1, y: rect.maxY)
-            )
-        } else {
-            path.addArc(
-                center: CGPoint(x: rect.minX + tailSize + radius, y: rect.maxY - radius),
-                radius: radius,
-                startAngle: .degrees(90),
-                endAngle: .degrees(180),
-                clockwise: false
-            )
-        }
-
-        path.closeSubpath()
-        return path
-    }
-}
-
-typealias FinnBubbleShape = PepBubbleShape
+// MARK: - User bubble
 
 struct UserBubble: View {
     let text: String
@@ -482,80 +537,44 @@ struct UserBubble: View {
         HStack {
             Spacer(minLength: 50)
             Text(text)
-                .font(.body)
+                .font(.system(size: 15, design: .serif))
                 .foregroundStyle(.white)
+                .lineSpacing(3)
                 .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(PepTheme.violet)
-                .clipShape(UserBubbleShape())
+                .padding(.vertical, 11)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [PepTheme.violet, PepTheme.violet.opacity(0.82)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
         }
     }
 }
 
-struct UserBubbleShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        let radius: CGFloat = 18
-        let tailSize: CGFloat = 6
-
-        var path = Path()
-
-        path.move(to: CGPoint(x: rect.minX + radius, y: rect.minY))
-        path.addArc(
-            center: CGPoint(x: rect.maxX - tailSize - radius, y: rect.minY + radius),
-            radius: radius,
-            startAngle: .degrees(270),
-            endAngle: .degrees(0),
-            clockwise: false
-        )
-
-        path.addLine(to: CGPoint(x: rect.maxX - tailSize, y: rect.maxY - radius))
-
-        path.addQuadCurve(
-            to: CGPoint(x: rect.maxX, y: rect.maxY + 2),
-            control: CGPoint(x: rect.maxX - tailSize, y: rect.maxY)
-        )
-        path.addQuadCurve(
-            to: CGPoint(x: rect.maxX - tailSize, y: rect.maxY - 4),
-            control: CGPoint(x: rect.maxX - tailSize + 1, y: rect.maxY)
-        )
-
-        path.addLine(to: CGPoint(x: rect.minX + radius, y: rect.maxY))
-        path.addArc(
-            center: CGPoint(x: rect.minX + radius, y: rect.maxY - radius),
-            radius: radius,
-            startAngle: .degrees(90),
-            endAngle: .degrees(180),
-            clockwise: false
-        )
-        path.addArc(
-            center: CGPoint(x: rect.minX + radius, y: rect.minY + radius),
-            radius: radius,
-            startAngle: .degrees(180),
-            endAngle: .degrees(270),
-            clockwise: false
-        )
-
-        path.closeSubpath()
-        return path
-    }
-}
+// MARK: - Typing bubble
 
 struct PepTypingBubble: View {
     var body: some View {
-        HStack(alignment: .bottom, spacing: 6) {
-            PepNavAvatar(size: 28)
+        HStack(alignment: .top, spacing: 10) {
+            PepNavAvatar(size: 26)
+                .padding(.top, 2)
 
             TypingDots()
                 .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.vertical, 14)
                 .background(
-                    Color(UIColor { traits in
-                        traits.userInterfaceStyle == .dark
-                            ? UIColor(red: 38/255, green: 38/255, blue: 42/255, alpha: 1)
-                            : UIColor(red: 230/255, green: 230/255, blue: 235/255, alpha: 1)
-                    })
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(PepTheme.cardSurface)
                 )
-                .clipShape(PepBubbleShape(showTail: true))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                )
 
             Spacer()
         }
@@ -571,9 +590,9 @@ struct TypingDots: View {
         HStack(spacing: 5) {
             ForEach(0..<3, id: \.self) { index in
                 Circle()
-                    .fill(PepTheme.textSecondary.opacity(phase == index ? 0.9 : 0.35))
-                    .frame(width: 8, height: 8)
-                    .scaleEffect(phase == index ? 1.15 : 1.0)
+                    .fill(PepTheme.textSecondary.opacity(phase == index ? 0.9 : 0.30))
+                    .frame(width: 6, height: 6)
+                    .scaleEffect(phase == index ? 1.2 : 1.0)
             }
         }
         .onAppear {
@@ -585,6 +604,8 @@ struct TypingDots: View {
         }
     }
 }
+
+// MARK: - Exercise link text
 
 struct ExerciseLinkText: View {
     let content: String
@@ -666,9 +687,11 @@ struct WrappingTextFlow: View {
         }
 
         return result
-            .lineSpacing(2)
+            .lineSpacing(3)
     }
 }
+
+// MARK: - Animated avatar wrappers
 
 struct FinnAvatar: View {
     let size: CGFloat
