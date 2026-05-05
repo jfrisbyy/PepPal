@@ -1,47 +1,51 @@
-# Streamline Training page with editorial polish
+# Redesign the program builder as 'Design Your Program' — editorial, no AI talk
 
-## What's changing on the Training page
+## What changes
 
-The Train tab has accumulated overlapping sections. I'll tighten it into a focused, editorial layout while preserving every existing capability.
+A full editorial redesign of the multi-step program builder, with all "AI / generate / building" terminology replaced by quiet, confident editorial language. The flow will feel like a tailored atelier experience, not a chatbot.
 
-### New page flow (Train mode)
+### Naming & copy
 
-1. **Inline header** — minimal, just the mode switcher icon (kept).
-2. **Mode pill bar** — horizontal pills for Run / Ride / Hoops / Swim etc. (kept).
-3. **Today hero (unified)** — replaces the separate Today's Session card *and* the Routines carousel:
-  - Large serif day name with an "01 — TODAY" eyebrow
-  - If a program is active: shows today's exercises + a single "Begin Workout" CTA, with the program name as a small chip linking to program management
-  - If no program but routines exist: shows top routines as a clean editorial list with one-tap start
-  - If neither: a quiet "Quick Start" CTA + ghost "Browse Routines" button
-  - The cluttered "OR — Quick / Log Sport / New Program" triple-button row is **removed**
-4. **Weekly strip** — one horizontal row: consistency ring · sessions · volume. Replaces the 2×2 grid.
-5. **Progress (02)** — two clean tiles side-by-side: "Personal Records" (latest PR + count) and "Recovery" (worst-status muscle + count). Tap either to open the full Progress sheet.
-6. **Coach card** — Sport coach card kept (one tile, unchanged).
-7. **Library** — slim row link to Exercise Library (kept, slightly tightened).
-8. **History (03)** — compressed rows: tighter padding, single-line meta, smaller chevron, capped at 5 items. "SEE ALL" opens a dedicated full-history sheet.
+- Title across all screens: **"Design Your Program"** (replaces "AI Program Builder" / "Smart Program Builder")
+- Primary action: **"Compose Program"** (replaces "Generate Program")
+- Secondary actions: **"Refine"** (replaces "Regenerate"), **"Begin Program"** (replaces "Start This Program")
+- Personalization callout: **"Personalized from your profile"** (replaces "Auto-filled from your profile" and "Your Data — Sending to AI")
+- Removes every visible mention of "AI", "generate", "build", "sparkles", "brain" iconography
 
-### What's being removed
+### Editorial composition
 
-- Dead/unused section code (old consistency ring card, weekly insights grid, separate PR list, weekly volume bars, muscle recovery grid, warmup section, templates carousel, dual action buttons block) — these are defined but no longer rendered, removing them reduces file size and confusion.
-- The standalone Routines section (merged into Today hero).
-- The "OR" secondary actions row inside Today's Session.
-- One of the duplicate stat tiles (consistency was shown twice).
+- **Hero step header** with a small uppercase kicker (e.g. "CHAPTER ONE · INTENT"), a serif headline, and a thin hairline divider — replacing the icon + bold title pattern
+- Step indicator becomes a slim numbered progression ("01 — 02 — 03 — 04") with a hairline rule
+- Cards adopt editorial whitespace: serif headlines, sentence-case labels, refined kickers, and softened violet accents
+- Replace checkmark/checkbox circles with elegant inline radio marks; selected state uses a thin violet hairline and subtle tint
+- Schedule + equipment selectors become refined pill rows with editorial spacing rather than chunky tab bars
 
-### Sport dashboards (Running / Cycling / Basketball / Swimming / Soccer / Tennis)
+### Composing screen (loading)
 
-Apply the same editorial header treatment — eyebrow number labels (e.g. "01 — TODAY"), serif headline, muted accent rule line — without changing any content, stats, or actions inside.
+- Removes the pulsing sparkle. Shows a quiet centered layout:
+  - Thin determinate-feeling progress line (animated)
+  - Serif headline: **"Composing your plan."**
+  - Single rotating subline of editorial phrases (e.g. "Considering your protocol.", "Sequencing your week.", "Selecting your movements.")
+- Errors render in the same editorial frame with a "Try again" link
 
-### Visual style
+### Result screen
 
-- Premium editorial: serif headlines, tracked-uppercase eyebrows ("01 — TODAY", "02 — PROGRESS", "03 — HISTORY"), thin gradient rule lines, muted teal accents
-- Single primary teal CTA per screen, ghost secondary
-- Glass surfaces with subtle borders (consistent with rest of app)
-- Smooth spring transitions on state changes
+- Replaces the green "Program Generated" badge with a small editorial label: **"YOUR PROGRAM"** in tracked uppercase
+- Program name styled as a serif display title, with a subtle pencil affordance for renaming
+- Stats row reframed as editorial metadata: "4 days · 22 movements · 4 of 4 placed"
+- Weekly schedule overview gets a refined typographic week strip with hairline cells
+- Day cards use editorial numbering ("I · Push", "II · Pull"), serif day names, and a quieter expand affordance
+- Action buttons restyled: a primary teal "Begin Program" with refined typography and a quiet "Refine" link below
 
-### Not changing
+### Behind the scenes
 
-- All actions still reachable: New Program (via program chip menu), Log Sport (via sport mode pills), Quick Workout (via Today hero CTA when no program)
-- All existing sheets and navigation destinations remain wired
-- TrainViewModel and data flow untouched
-- Sport dashboards keep all their functionality
+- Same underlying program-composition service and inputs — only the presentation, copy, and microcopy change
+- All tracked context (protocol, body goal, weights, history) still informs the result, just framed as "personalized from your profile"
+
+### Screens touched
+
+- The 4-step program designer (Intent, Cadence, Equipment, Refinements)
+- The composing/loading screen
+- The completed program review screen
+- Entry points referencing the old name updated to "Design Your Program"
 

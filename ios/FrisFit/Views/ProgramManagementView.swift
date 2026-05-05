@@ -360,7 +360,7 @@ struct ProgramManagementView: View {
             }
 
             HStack(spacing: 10) {
-                addOptionSmall(icon: "sparkles", title: "Build with AI", color: PepTheme.violet) {
+                addOptionSmall(icon: "square.grid.3x1.below.line.grid.1x2", title: "Design Yours", color: PepTheme.violet) {
                     showProgramCreation = true
                 }
                 addOptionSmall(icon: "doc.badge.plus", title: "From Scratch", color: PepTheme.amber) {

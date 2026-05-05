@@ -276,13 +276,13 @@ struct ProgramCreationView: View {
             VStack(spacing: 12) {
                 pathCard(
                     index: 0,
-                    icon: "sparkles",
-                    title: "Build with AI",
+                    icon: "square.grid.3x1.below.line.grid.1x2",
+                    title: "Design Your Program",
                     subtitle: hasUserContext
-                        ? "Pre-loaded with your data — just customize"
-                        : "Personalized to your goals & schedule",
+                        ? "Personalized from your profile — refine and compose"
+                        : "Tailored to your goals, schedule, and equipment",
                     gradient: [PepTheme.violet, PepTheme.violet.opacity(0.6)],
-                    badge: hasUserContext ? "AUTO-FILLED" : "SMART"
+                    badge: hasUserContext ? "PERSONALIZED" : "TAILORED"
                 ) {
                     showAIBuilderWithSuggestion = nil
                     showAIBuilder = true
