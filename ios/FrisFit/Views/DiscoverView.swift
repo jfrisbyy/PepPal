@@ -55,6 +55,8 @@ struct DiscoverView: View {
                 withAnimation(.easeOut(duration: 0.7)) { heroAppeared = true }
                 withAnimation(.easeOut(duration: 0.5).delay(0.3)) { cardsAppeared = true }
             }
+            .task { await viewModel.refreshLiveStats() }
+            .refreshable { await viewModel.forceRefreshLiveStats() }
         }
     }
 
@@ -306,7 +308,12 @@ struct DiscoverView: View {
                 HStack(spacing: 12) {
                     ForEach(Array(viewModel.trendingCompounds.enumerated()), id: \.element.id) { index, compound in
                         NavigationLink(value: compound) {
-                            TrendingCompoundCard(compound: compound, rank: index + 1)
+                            TrendingCompoundCard(
+                                compound: compound,
+                                rank: index + 1,
+                                userCount: viewModel.liveUserCount(for: compound),
+                                newStarts: viewModel.newStarts(for: compound)
+                            )
                         }
                         .buttonStyle(.scale)
                         .opacity(cardsAppeared ? 1 : 0)
@@ -340,7 +347,10 @@ struct DiscoverView: View {
         LazyVStack(spacing: 10) {
             ForEach(viewModel.filteredCompounds) { compound in
                 NavigationLink(value: compound) {
-                    CompoundCardView(compound: compound)
+                    CompoundCardView(
+                        compound: compound,
+                        userCount: viewModel.liveUserCount(for: compound)
+                    )
                 }
                 .buttonStyle(.scale)
             }
@@ -366,6 +376,8 @@ struct DiscoverView: View {
 struct TrendingCompoundCard: View {
     let compound: CompoundProfile
     let rank: Int
+    let userCount: Int
+    let newStarts: Int
 
     private var accentColor: Color {
         compound.categories.first?.color ?? PepTheme.teal
@@ -401,10 +413,20 @@ struct TrendingCompoundCard: View {
                     .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
 
-                Text(formatCompact(compound.communityUsers))
+                Text(formatCompact(userCount))
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundStyle(PepTheme.textSecondary)
                     .lineLimit(1)
+
+                if newStarts > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 8, weight: .heavy))
+                        Text("\(newStarts) this week")
+                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                    }
+                    .foregroundStyle(accentColor)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
@@ -431,6 +453,12 @@ struct TrendingCompoundCard: View {
 
 struct CompoundCardView: View {
     let compound: CompoundProfile
+    let userCount: Int
+
+    init(compound: CompoundProfile, userCount: Int? = nil) {
+        self.compound = compound
+        self.userCount = userCount ?? compound.communityUsers
+    }
 
     private var accentColor: Color {
         compound.categories.first?.color ?? PepTheme.teal
@@ -508,7 +536,11 @@ struct CompoundCardView: View {
 
     private var metaLine: String {
         var parts: [String] = []
-        parts.append("\(formatCompact(compound.communityUsers)) users")
+        if userCount > 0 {
+            parts.append("\(formatCompact(userCount)) users")
+        } else {
+            parts.append("Be the first")
+        }
         if !compound.sideEffects.isEmpty {
             parts.append("\(compound.sideEffects.count) cautions")
         }

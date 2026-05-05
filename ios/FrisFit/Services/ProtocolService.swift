@@ -389,6 +389,8 @@ final class ProtocolService {
         var created = proto
         created.supabaseId = protocolId
 
+        Task { await MainActor.run { Task { await CompoundStatsService.shared.refresh() } } }
+
         // Fan out to friends if sharing protocols is enabled
         let sharePrefs = await StatSharingService.shared.currentUserPrefs
         if sharePrefs.isEnabled, sharePrefs.categories.contains(.protocols) {
@@ -438,6 +440,7 @@ final class ProtocolService {
             .delete()
             .eq("id", value: id)
             .execute()
+        await MainActor.run { Task { await CompoundStatsService.shared.refresh() } }
     }
 
     func updateProtocolName(id: String, name: String) async throws {
@@ -504,6 +507,7 @@ final class ProtocolService {
             experience_level: nil
         )
         try await supabase.from("protocols").update(update).eq("id", value: id).execute()
+        await MainActor.run { Task { await CompoundStatsService.shared.refresh() } }
 
         if !isActive {
             // Protocol ended — fan out a finished event if sharing protocols

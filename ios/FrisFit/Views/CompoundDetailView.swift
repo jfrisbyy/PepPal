@@ -14,6 +14,8 @@ struct CompoundDetailView: View {
     @State private var selectedSocialPost: FeedPost?
     @State private var selectedSocialUser: SocialUser?
     @State private var socialViewModel = SocialViewModel()
+    @State private var realProtocolUsers: [ProtocolUser] = []
+    @State private var liveStat: CompoundUsageStat?
 
     private enum SocialSort: String, CaseIterable {
         case recent = "Recent"
@@ -35,22 +37,11 @@ struct CompoundDetailView: View {
         let totalWeeks: Int
     }
 
-    private var usersOnProtocol: [ProtocolUser] {
-        let target = compound.name.lowercased()
-        return MockFriendsService.shared.profiles.compactMap { profile -> ProtocolUser? in
-            guard let proto = profile.activeProtocols.first(where: { p in
-                let n = p.name.lowercased()
-                return n == target || n.contains(target) || target.contains(n)
-            }) else { return nil }
-            return ProtocolUser(
-                id: profile.user.id,
-                user: profile.user,
-                dosage: proto.dosage,
-                frequency: proto.frequency,
-                week: proto.week,
-                totalWeeks: proto.totalWeeks
-            )
-        }
+    private var usersOnProtocol: [ProtocolUser] { realProtocolUsers }
+
+    private var displayedUserCount: Int {
+        if let s = liveStat, s.recent_users > 0 { return s.recent_users }
+        return compound.communityUsers
     }
 
     private var isTracking: Bool {
@@ -1054,7 +1045,10 @@ struct CompoundDetailView: View {
         }
         .padding(.horizontal)
         .padding(.top, 12)
-        .task(id: compound.id) { await loadSocialPosts() }
+        .task(id: compound.id) {
+            async let _: () = loadSocialPosts()
+            async let _: () = loadRealProtocolUsers()
+        }
         .navigationDestination(item: $selectedSocialPost) { post in
             PostDetailView(post: post, viewModel: socialViewModel)
         }
@@ -1070,7 +1064,7 @@ struct CompoundDetailView: View {
 
                 HStack(spacing: 0) {
                     communityMetric(
-                        value: formatNumber(compound.communityUsers),
+                        value: formatNumber(displayedUserCount),
                         label: "Users"
                     )
                     statDivider
@@ -1249,6 +1243,55 @@ struct CompoundDetailView: View {
         case .trending:
             return socialPosts.sorted { ($0.likeCount + $0.commentCount * 2 + $0.repostCount * 3) > ($1.likeCount + $1.commentCount * 2 + $1.repostCount * 3) }
         }
+    }
+
+    private func loadRealProtocolUsers() async {
+        await CompoundStatsService.shared.loadIfNeeded()
+        liveStat = CompoundStatsService.shared.stat(for: compound.name)
+        let publicUsers = await CompoundStatsService.shared.fetchPublicUsers(for: compound.name, limit: 24)
+        realProtocolUsers = publicUsers.map { p in
+            let color = Self.colorFromHex(p.avatarColorHex) ?? PepTheme.teal
+            let user = SocialUser(
+                id: p.id,
+                name: p.displayName,
+                username: p.username,
+                avatarInitial: p.avatarInitial,
+                avatarColor: color,
+                avatarURL: p.avatarURL,
+                activeProgramName: p.activeProgram,
+                streak: p.streak,
+                totalFP: p.totalFP
+            )
+            let dosage: String
+            if let dose = p.doseMcg, dose > 0 {
+                dosage = dose >= 1000 ? String(format: "%.1f mg", dose / 1000.0) : "\(Int(dose))mcg"
+            } else {
+                dosage = "—"
+            }
+            let week: Int
+            if let start = p.startedAt {
+                week = max(1, Int(Date().timeIntervalSince(start) / (86400 * 7)) + 1)
+            } else { week = 1 }
+            return ProtocolUser(
+                id: p.id,
+                user: user,
+                dosage: dosage,
+                frequency: p.frequency ?? "",
+                week: week,
+                totalWeeks: p.totalWeeks ?? 0
+            )
+        }
+    }
+
+    private static func colorFromHex(_ hex: String?) -> Color? {
+        guard var cleaned = hex?.trimmingCharacters(in: .whitespacesAndNewlines), !cleaned.isEmpty else { return nil }
+        if cleaned.hasPrefix("#") { cleaned.removeFirst() }
+        guard cleaned.count == 6, let num = UInt64(cleaned, radix: 16) else { return nil }
+        return Color(
+            red: Double((num >> 16) & 0xFF) / 255.0,
+            green: Double((num >> 8) & 0xFF) / 255.0,
+            blue: Double(num & 0xFF) / 255.0
+        )
     }
 
     private func loadSocialPosts() async {
