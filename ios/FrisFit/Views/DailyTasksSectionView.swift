@@ -35,7 +35,8 @@ struct DailyTasksSectionView: View {
     }
 
     private func sectionHeader(completedCount: Int, totalCount: Int) -> some View {
-        Button {
+        let isComplete = completedCount == totalCount && totalCount > 0
+        return Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
                 isDailyTasksCollapsed.toggle()
             }
@@ -43,31 +44,39 @@ struct DailyTasksSectionView: View {
                 lastOpenedDateString = todayKey
             }
         } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "checklist")
-                    .font(.system(size: 11, weight: .semibold))
+            HStack(spacing: 8) {
+                Text("04")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .foregroundStyle(PepTheme.amber)
+                Rectangle()
+                    .fill(PepTheme.amber.opacity(0.55))
+                    .frame(width: 14, height: 1)
                 Text("DAILY TASKS")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-                    .tracking(0.5)
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(2.0)
+                    .foregroundStyle(PepTheme.amber)
 
                 Text("\(completedCount)/\(totalCount)")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundStyle(completedCount == totalCount && totalCount > 0 ? PepTheme.teal : PepTheme.textSecondary.opacity(0.5))
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(isComplete ? PepTheme.teal : PepTheme.textSecondary.opacity(0.55))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background((isComplete ? PepTheme.teal : PepTheme.textSecondary).opacity(0.1))
+                    .clipShape(.capsule)
 
-                if completedCount == totalCount && totalCount > 0 {
+                if isComplete {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 9))
+                        .font(.system(size: 10))
                         .foregroundStyle(PepTheme.teal)
                 }
 
                 if isDailyTasksCollapsed {
-                    Text("·")
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                    Text("\u{2014}")
+                        .font(.system(size: 10))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
                     Text(collapsedHint(completed: completedCount, total: totalCount))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(PepTheme.textSecondary)
+                        .font(.system(size: 12, weight: .semibold, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
@@ -80,12 +89,12 @@ struct DailyTasksSectionView: View {
                 }
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(PepTheme.amber.opacity(0.5))
                     .rotationEffect(.degrees(isDailyTasksCollapsed ? 0 : 90))
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 11)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -175,37 +184,33 @@ struct DailyTasksSectionView: View {
     }
 
     private var protocolFocusStrip: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 5) {
-                Image(systemName: "wand.and.stars")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(PepTheme.teal)
-                Text("PROTOCOL-TUNED")
-                    .font(.system(size: 9, weight: .heavy))
-                    .foregroundStyle(PepTheme.teal)
-                    .tracking(0.5)
+        HStack(alignment: .top, spacing: 10) {
+            Rectangle()
+                .fill(PepTheme.teal)
+                .frame(width: 2)
+                .frame(maxHeight: .infinity)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text("PROTOCOL-TUNED")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.6)
+                        .foregroundStyle(PepTheme.teal)
+                    Image(systemName: "wand.and.stars")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(PepTheme.teal.opacity(0.7))
+                }
+                Text(viewModel.protocolDeckFocus)
+                    .font(.system(size: 13, weight: .medium, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary.opacity(0.88))
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-
-            Text(viewModel.protocolDeckFocus)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(PepTheme.textPrimary.opacity(0.8))
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(10)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [PepTheme.teal.opacity(0.06), PepTheme.teal.opacity(0.02)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .clipShape(.rect(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(PepTheme.teal.opacity(0.12), lineWidth: 0.5)
-        )
+        .background(PepTheme.teal.opacity(0.05))
+        .clipShape(.rect(cornerRadius: 8))
     }
 
     private func collapsedHint(completed: Int, total: Int) -> String {

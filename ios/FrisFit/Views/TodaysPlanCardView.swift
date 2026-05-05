@@ -208,14 +208,21 @@ struct PlanMainHeaderView: View {
     var onTriggerPlanFetch: (_ forceRefresh: Bool) -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             PepAvatar(size: 32)
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(viewModel.isSelectedDateToday ? "Today's Plan" : "Plan")
-                        .font(.system(.subheadline, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 8) {
+                    Text("02")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(PepTheme.teal)
+                    Rectangle()
+                        .fill(PepTheme.teal.opacity(0.55))
+                        .frame(width: 14, height: 1)
+                    Text(viewModel.isSelectedDateToday ? "TODAY\u{2019}S PLAN" : "PLAN")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .tracking(2.0)
+                        .foregroundStyle(PepTheme.teal)
 
                     if viewModel.hasProtocolDeck {
                         HStack(spacing: 3) {
@@ -235,9 +242,10 @@ struct PlanMainHeaderView: View {
                 if isPlanMinimized {
                     minimizedSubtitle
                 } else if let date = todaysPlanVM.lastFetchDate {
-                    Text(planTimeAgo(from: date))
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                    Text(planTimeAgo(from: date).uppercased())
+                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                        .tracking(1.0)
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.55))
                 }
             }
 
@@ -274,15 +282,16 @@ struct PlanMainHeaderView: View {
     }
 
     private var minimizedSubtitle: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             Text("\(viewModel.completedCount)/\(viewModel.todaysTasks.count) tasks")
-                .font(.system(.caption2, weight: .medium))
+                .font(.system(size: 11, weight: .semibold, design: .serif))
                 .foregroundStyle(PepTheme.textSecondary)
             if !viewModel.todaysPlan.isRestDay, viewModel.activeProgram != nil {
-                Text("·")
-                    .foregroundStyle(PepTheme.textSecondary)
+                Text("\u{2014}")
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
                 Text(viewModel.todaysPlan.name)
-                    .font(.system(.caption2, weight: .medium))
+                    .font(.system(size: 11, weight: .semibold, design: .serif))
                     .foregroundStyle(PepTheme.textSecondary)
                     .lineLimit(1)
             }
@@ -537,21 +546,25 @@ struct PlanTrainingSectionView: View {
                 isTrainingCollapsed.toggle()
             }
         } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "figure.strengthtraining.traditional")
-                    .font(.system(size: 11, weight: .semibold))
+            HStack(spacing: 8) {
+                Text("03")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .foregroundStyle(PepTheme.blue)
+                Rectangle()
+                    .fill(PepTheme.blue.opacity(0.55))
+                    .frame(width: 14, height: 1)
                 Text("TRAINING")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-                    .tracking(0.5)
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(2.0)
+                    .foregroundStyle(PepTheme.blue)
 
                 if isTrainingCollapsed && hasProgram {
-                    Text("·")
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                    Text("\u{2014}")
+                        .font(.system(size: 10))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
                     Text(viewModel.todaysPlan.isRestDay ? "Rest Day" : viewModel.todaysPlan.name)
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(PepTheme.textSecondary)
+                        .font(.system(size: 12, weight: .semibold, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
                         .lineLimit(1)
                 }
 
@@ -563,21 +576,21 @@ struct PlanTrainingSectionView: View {
                     } label: {
                         Image(systemName: "pencil")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                            .foregroundStyle(PepTheme.blue.opacity(0.8))
                             .frame(width: 22, height: 22)
-                            .background(PepTheme.elevated.opacity(0.7))
+                            .background(PepTheme.blue.opacity(0.1))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
                 }
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(PepTheme.blue.opacity(0.5))
                     .rotationEffect(.degrees(isTrainingCollapsed ? 0 : 90))
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 11)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -756,20 +769,18 @@ struct PlanTrainingSectionView: View {
     }
 
     private var compactHeaderRow: some View {
-        HStack(spacing: 6) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(viewModel.todaysPlan.name)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 18, weight: .bold, design: .serif))
                 .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .truncationMode(.tail)
 
             if let program = viewModel.activeProgram {
-                Text("·")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
-                Text("W\(program.currentWeek) \(dayPositionLabel(program: program))")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                Text("W\(program.currentWeek) \u{00B7} \(dayPositionLabel(program: program))")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(PepTheme.blue.opacity(0.85))
                     .lineLimit(1)
             }
 
@@ -777,7 +788,7 @@ struct PlanTrainingSectionView: View {
 
             Image(systemName: viewModel.isPlanExpanded ? "chevron.up" : "chevron.down")
                 .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
         }
     }
 
@@ -929,10 +940,10 @@ struct PlanTrainingSectionView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Image(systemName: "bed.double.fill")
-                    .font(.title2)
+                    .font(.title3)
                     .foregroundStyle(PepTheme.amber)
                 Text("Rest Day")
-                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                    .font(.system(size: 20, weight: .bold, design: .serif))
                     .foregroundStyle(PepTheme.textPrimary)
             }
 

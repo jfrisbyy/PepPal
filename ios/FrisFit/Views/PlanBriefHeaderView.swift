@@ -48,20 +48,22 @@ struct PlanBriefHeaderView: View {
                 isCollapsed = false
             }
         } label: {
-            HStack(spacing: 6) {
-                Text("DAILY BRIEF")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-                    .tracking(0.5)
+            HStack(spacing: 10) {
+                Rectangle()
+                    .fill(PepTheme.violet)
+                    .frame(width: 2, height: 22)
 
-                Text("·")
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-
-                Text(collapsedSummary)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("DAILY BRIEF  \u{2014}  NO. 01")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.8)
+                        .foregroundStyle(PepTheme.violet.opacity(0.9))
+                    Text(collapsedSummary)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
 
                 Spacer(minLength: 4)
 
@@ -69,12 +71,12 @@ struct PlanBriefHeaderView: View {
                     ProgressView().controlSize(.mini).tint(PepTheme.violet)
                 }
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(PepTheme.violet.opacity(0.55))
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -88,45 +90,58 @@ struct PlanBriefHeaderView: View {
     }
 
     private var expandedContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             topBar
+
+            Rectangle()
+                .fill(PepTheme.violet.opacity(0.18))
+                .frame(height: 0.5)
 
             if todaysPlanVM.isLoading && narrative == nil {
                 shimmerContent
             } else {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text(headline)
-                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .font(.system(size: 22, weight: .bold, design: .serif))
                         .foregroundStyle(PepTheme.textPrimary)
+                        .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(body_)
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(PepTheme.textPrimary.opacity(0.82))
-                        .lineSpacing(3)
+                        .foregroundStyle(PepTheme.textPrimary.opacity(0.78))
+                        .lineSpacing(4)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if let watchFor {
-                    HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "eye.fill")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(PepTheme.violet.opacity(0.7))
-                            .padding(.top, 1)
-                        Text("Watch for: \(watchFor)")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(PepTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer()
+                    HStack(alignment: .top, spacing: 10) {
+                        Rectangle()
+                            .fill(PepTheme.violet)
+                            .frame(width: 2)
+                            .frame(maxHeight: .infinity)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("WATCH FOR")
+                                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                                .tracking(1.6)
+                                .foregroundStyle(PepTheme.violet.opacity(0.85))
+                            Text(watchFor)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 0)
                     }
-                    .padding(10)
-                    .background(PepTheme.violet.opacity(0.08))
-                    .clipShape(.rect(cornerRadius: 10))
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .background(PepTheme.violet.opacity(0.06))
+                    .clipShape(.rect(cornerRadius: 8))
                 }
 
                 chatButton
             }
         }
-        .padding(14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
         .background(
             LinearGradient(
                 colors: [
@@ -169,28 +184,25 @@ struct PlanBriefHeaderView: View {
     }
 
     private var topBar: some View {
-        HStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [PepTheme.violet, PepTheme.teal.opacity(0.8)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 30, height: 30)
-                Image(systemName: timeOfDayIcon)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white)
-            }
-            VStack(alignment: .leading, spacing: 1) {
-                Text("DAILY BRIEF")
-                    .font(.system(size: 10, weight: .heavy))
-                    .tracking(1)
-                    .foregroundStyle(PepTheme.violet)
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text("01")
+                        .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(PepTheme.violet)
+                    Rectangle()
+                        .fill(PepTheme.violet.opacity(0.6))
+                        .frame(width: 18, height: 1)
+                    Text("DAILY BRIEF")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .tracking(2.2)
+                        .foregroundStyle(PepTheme.violet)
+                    Image(systemName: timeOfDayIcon)
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(PepTheme.violet.opacity(0.7))
+                }
                 Text(greeting)
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .font(.system(size: 18, weight: .bold, design: .serif))
                     .foregroundStyle(PepTheme.textPrimary)
             }
             Spacer()
@@ -202,8 +214,8 @@ struct PlanBriefHeaderView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(PepTheme.violet.opacity(0.6))
-                        .frame(width: 26, height: 26)
+                        .foregroundStyle(PepTheme.violet.opacity(0.7))
+                        .frame(width: 28, height: 28)
                         .background(PepTheme.violet.opacity(0.1))
                         .clipShape(Circle())
                 }
@@ -216,20 +228,30 @@ struct PlanBriefHeaderView: View {
         Button {
             onChatAboutThis(buildPlanContextString())
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 PepNavAvatar(size: 22)
-                Text("Chat about this")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.violet)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("DISCUSS")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.4)
+                        .foregroundStyle(PepTheme.violet.opacity(0.7))
+                    Text("Chat about this brief")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(PepTheme.violet)
+                }
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(PepTheme.violet.opacity(0.5))
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(PepTheme.violet.opacity(0.6))
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
             .background(PepTheme.violet.opacity(0.08))
-            .clipShape(.capsule)
+            .clipShape(.rect(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(PepTheme.violet.opacity(0.18), lineWidth: 0.5)
+            )
         }
         .buttonStyle(.plain)
     }
