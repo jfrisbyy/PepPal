@@ -17,12 +17,10 @@ struct TrainView: View {
     @State private var selectedSport: Sport = .basketball
     @State private var isLoading: Bool = true
     @State private var expandedItemId: UUID? = nil
-    @State private var showAllRecovery: Bool = false
     @State private var showAnalyticsDetail: Bool = false
     @State private var showProgramCreation: Bool = false
     @State private var showLiveRun: Bool = false
     @State private var showLiveRide: Bool = false
-    @State private var showBasketballGameLog: Bool = false
     @State private var showProgressSheet: Bool = false
     @State private var showRoutines: Bool = false
     @State private var showRoutineEditor: Bool = false
@@ -51,73 +49,11 @@ struct TrainView: View {
                         if viewModel.currentMode.type == .main {
                             mainContent
                                 .transition(.opacity)
-                        } else if viewModel.currentMode.type == .running {
-                            RunningDashboardView(
-                                runVM: runVM,
-                                accentColor: viewModel.currentMode.type.color
-                            ) {
-                                showLiveRun = true
-                            }
-                            .padding(.horizontal)
-                            .padding(.bottom, 24)
-                            .transition(.opacity)
-                        } else if viewModel.currentMode.type == .cycling {
-                            CyclingDashboardView(
-                                cyclingVM: cyclingVM,
-                                accentColor: viewModel.currentMode.type.color
-                            ) {
-                                showLiveRide = true
-                            }
-                            .padding(.horizontal)
-                            .padding(.bottom, 24)
-                            .transition(.opacity)
-                        } else if viewModel.currentMode.type == .basketball {
-                            BasketballDashboardView(
-                                bbVM: bbVM,
-                                accentColor: viewModel.currentMode.type.color
-                            )
-                            .padding(.horizontal)
-                            .padding(.bottom, 24)
-                            .transition(.opacity)
-                        } else if viewModel.currentMode.type == .swimming {
-                            SwimmingDashboardView(
-                                swimVM: swimVM,
-                                accentColor: viewModel.currentMode.type.color
-                            )
-                            .padding(.horizontal)
-                            .padding(.bottom, 24)
-                            .transition(.opacity)
-                        } else if viewModel.currentMode.type == .soccer {
-                            SoccerDashboardView(
-                                soccerVM: soccerVM,
-                                accentColor: viewModel.currentMode.type.color
-                            )
-                            .padding(.horizontal)
-                            .padding(.bottom, 24)
-                            .transition(.opacity)
-                        } else if viewModel.currentMode.type == .tennis {
-                            TennisDashboardView(
-                                tennisVM: tennisVM,
-                                accentColor: viewModel.currentMode.type.color
-                            )
-                            .padding(.horizontal)
-                            .padding(.bottom, 24)
-                            .transition(.opacity)
                         } else {
-                            SportModeContentView(
-                                mode: viewModel.currentMode,
-                                viewModel: viewModel
-                            ) {
-                                if let sport = viewModel.currentMode.type.sport {
-                                    selectedSport = sport
-                                    showSportLog = true
-                                } else {
-                                    showSportSelector = true
-                                }
-                            }
-                            .padding(.horizontal)
-                            .padding(.bottom, 24)
-                            .transition(.opacity)
+                            sportModeContent
+                                .padding(.horizontal)
+                                .padding(.bottom, 24)
+                                .transition(.opacity)
                         }
                     }
                 }
@@ -162,7 +98,6 @@ struct TrainView: View {
                     viewModel.addSportSession(session)
                 }
             }
-
             .navigationDestination(isPresented: $showLiveRun) {
                 LiveRunView(runVM: runVM)
             }
@@ -286,6 +221,17 @@ struct TrainView: View {
                     TennisMatchDetailView(match: match)
                 }
             }
+            .sheet(isPresented: $showProgressSheet) {
+                TrainProgressSheet(viewModel: viewModel)
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $showRoutines) {
+                RoutinesListView(trainViewModel: viewModel)
+            }
+            .sheet(isPresented: $showRoutineEditor) {
+                RoutineEditorView()
+                    .presentationDetents([.large])
+            }
             .onAppear {
                 viewModel.loadAllData()
                 homeViewModel.loadProtocolsFromSupabase()
@@ -302,7 +248,7 @@ struct TrainView: View {
         }
     }
 
-    // MARK: - Inline Header (scrolls away)
+    // MARK: - Inline Header
 
     private var inlineHeader: some View {
         HStack {
@@ -355,250 +301,393 @@ struct TrainView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Main Content
+    // MARK: - Main Content (streamlined)
 
     private var mainContent: some View {
-        VStack(spacing: 20) {
-            todayWorkoutSection
-            routinesSection
+        VStack(spacing: 24) {
+            todayHero
+            weeklyStripSection
+            progressTilesSection
             SportCoachCard(sport: .main, accent: PepTheme.teal)
-            statTilesSection
-            progressStripSection
-            libraryButton
+            libraryRow
             historySection
         }
         .padding(.horizontal)
         .padding(.bottom, 24)
-        .sheet(isPresented: $showProgressSheet) {
-            TrainProgressSheet(viewModel: viewModel)
-                .presentationDetents([.large])
-        }
-        .sheet(isPresented: $showRoutines) {
-            RoutinesListView(trainViewModel: viewModel)
-        }
-        .sheet(isPresented: $showRoutineEditor) {
-            RoutineEditorView()
-                .presentationDetents([.large])
-        }
     }
 
-    // MARK: - Routines Section
+    // MARK: - Today Hero (unified)
 
-    private var routinesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionEyebrow("Routines", number: "02", accent: PepTheme.teal) {
-                Button {
-                    showRoutines = true
-                } label: {
-                    Text(routineStore.routines.isEmpty ? "MANAGE" : "SEE ALL")
-                        .font(.system(size: 10, weight: .semibold))
-                        .tracking(1.4)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-            }
-
-            if routineStore.routines.isEmpty {
-                routinesEmptyState
-            } else {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 12) {
-                        ForEach(routineStore.routines.prefix(6)) { routine in
-                            Button {
-                                startWorkoutFromRoutine(routine)
-                            } label: {
-                                routineCompactCard(routine)
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        Button {
-                            showRoutineEditor = true
-                        } label: {
-                            VStack(spacing: 8) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(PepTheme.teal)
-                                Text("New Routine")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(PepTheme.textPrimary)
-                            }
-                            .frame(width: 150, height: 100)
-                            .background(PepTheme.teal.opacity(0.08))
-                            .clipShape(.rect(cornerRadius: 14))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .strokeBorder(style: StrokeStyle(lineWidth: 0.8, dash: [4]))
-                                    .foregroundStyle(PepTheme.teal.opacity(0.4))
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .contentMargins(.horizontal, 0)
-                .scrollIndicators(.hidden)
-            }
-        }
-    }
-
-    private var routinesEmptyState: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 12) {
-                Image(systemName: "bookmark.fill")
-                    .font(.title3)
-                    .foregroundStyle(PepTheme.teal.opacity(0.8))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Save your favorites")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("Log a workout and tap Save as Routine to reuse it with one tap.")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+    private var todayHero: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Eyebrow + program chip
+            HStack(alignment: .center) {
+                heroEyebrow
                 Spacer()
+                if let program = viewModel.activeProgram {
+                    Button {
+                        viewModel.showProgramManagement = true
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text(program.name)
+                                .font(.system(size: 11, weight: .semibold))
+                                .lineLimit(1)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 8, weight: .bold))
+                        }
+                        .foregroundStyle(PepTheme.teal)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(PepTheme.teal.opacity(0.12))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
             }
 
-            HStack(spacing: 8) {
-                Button {
-                    showRoutineEditor = true
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .bold))
-                        Text("New Routine")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .foregroundStyle(PepTheme.teal)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .background(PepTheme.teal.opacity(0.12))
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
+            // Headline
+            Text(headlineText)
+                .font(.system(size: 32, weight: .semibold, design: .serif))
+                .kerning(-0.6)
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button {
-                    showRoutines = true
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "calendar.badge.clock")
-                            .font(.system(size: 11, weight: .semibold))
-                        Text("Programs")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .foregroundStyle(PepTheme.violet)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .background(PepTheme.violet.opacity(0.12))
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
+            accentRule
 
-                Spacer()
-            }
+            // Body
+            heroBody
         }
-        .padding(14)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(PepTheme.cardSurface)
-        .clipShape(.rect(cornerRadius: 14))
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 18))
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 18)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [PepTheme.teal.opacity(0.18), PepTheme.glassBorderBottom],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.5
+                )
         )
     }
 
-    private func routineCompactCard(_ routine: Routine) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 4) {
-                ForEach(routine.muscleGroups.prefix(3), id: \.self) { muscle in
+    private var heroEyebrow: some View {
+        HStack(spacing: 8) {
+            Text("01")
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundStyle(PepTheme.teal.opacity(0.9))
+            Text("—")
+                .font(.system(size: 10))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.45))
+            Text("TODAY")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.8)
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
+        }
+    }
+
+    private var headlineText: String {
+        if viewModel.isRestDay { return "Rest Day" }
+        if !viewModel.todayWorkoutDays.isEmpty { return viewModel.todayDayName }
+        if !routineStore.routines.isEmpty { return "Choose a Routine" }
+        return "Quick Start"
+    }
+
+    @ViewBuilder
+    private var heroBody: some View {
+        if viewModel.isRestDay {
+            restDayBody
+        } else if !viewModel.todayWorkoutDays.isEmpty {
+            todayProgramBody
+        } else if !routineStore.routines.isEmpty {
+            todayRoutinesBody
+        } else {
+            todayQuickStartBody
+        }
+    }
+
+    private var restDayBody: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                Image(systemName: "bed.double.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.green.opacity(0.85))
+                Text("Recovery is where growth happens. Stay hydrated and stretch.")
+                    .font(.system(size: 13, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            primaryCTA(title: "Log a Workout Anyway", icon: "bolt.fill") {
+                startEmptyWorkout()
+            }
+        }
+    }
+
+    private var todayProgramBody: some View {
+        VStack(spacing: 18) {
+            ForEach(Array(viewModel.todayWorkoutDays.enumerated()), id: \.element.id) { idx, day in
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        if let tod = day.timeOfDay {
+                            HStack(spacing: 4) {
+                                Image(systemName: tod.icon)
+                                    .font(.system(size: 9))
+                                Text(tod.label.uppercased())
+                                    .font(.system(size: 9, weight: .bold))
+                                    .tracking(1.0)
+                            }
+                            .foregroundStyle(PepTheme.amber)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(PepTheme.amber.opacity(0.12))
+                            .clipShape(Capsule())
+                        }
+                        Text(day.name)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Spacer()
+                        Text("\(day.exercises.count) ex")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+
+                    VStack(spacing: 0) {
+                        ForEach(Array(day.exercises.enumerated()), id: \.element.id) { exIdx, exercise in
+                            exerciseRow(exercise)
+                            if exIdx < day.exercises.count - 1 {
+                                Rectangle()
+                                    .fill(PepTheme.glassBorderTop.opacity(0.5))
+                                    .frame(height: 0.5)
+                                    .padding(.leading, 38)
+                            }
+                        }
+                    }
+
+                    primaryCTA(title: "Begin Workout", icon: "play.fill") {
+                        startWorkoutFromDay(day)
+                    }
+
+                    if idx < viewModel.todayWorkoutDays.count - 1 {
+                        accentRule.padding(.top, 4)
+                    }
+                }
+            }
+        }
+    }
+
+    private func exerciseRow(_ exercise: ProgramExercise) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: exercise.primaryMuscle.icon)
+                .font(.system(size: 11))
+                .foregroundStyle(PepTheme.teal.opacity(0.75))
+                .frame(width: 26, height: 26)
+                .background(PepTheme.teal.opacity(0.1))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(exercise.exerciseName)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(1)
+                Text("\(exercise.targetSets) × \(exercise.targetRepsMin)–\(exercise.targetRepsMax)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            Spacer()
+
+            let trend = viewModel.progressiveOverloadTrend(for: exercise.exerciseName)
+            Text(trend)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(trend == "↑" ? .green : trend == "↓" ? .red : PepTheme.textTertiary)
+        }
+        .padding(.vertical, 7)
+    }
+
+    private var todayRoutinesBody: some View {
+        VStack(spacing: 12) {
+            VStack(spacing: 0) {
+                ForEach(Array(routineStore.routines.prefix(3).enumerated()), id: \.element.id) { idx, routine in
+                    Button {
+                        startWorkoutFromRoutine(routine)
+                    } label: {
+                        routineEditorialRow(routine)
+                    }
+                    .buttonStyle(.plain)
+                    if idx < min(routineStore.routines.count, 3) - 1 {
+                        Rectangle()
+                            .fill(PepTheme.glassBorderTop.opacity(0.5))
+                            .frame(height: 0.5)
+                    }
+                }
+            }
+
+            HStack(spacing: 10) {
+                primaryCTA(title: "Quick Workout", icon: "bolt.fill") {
+                    startEmptyWorkout()
+                }
+                ghostCTA(title: "All Routines", icon: "list.bullet") {
+                    showRoutines = true
+                }
+            }
+        }
+    }
+
+    private func routineEditorialRow(_ routine: Routine) -> some View {
+        HStack(spacing: 12) {
+            HStack(spacing: -6) {
+                ForEach(Array(routine.muscleGroups.prefix(3).enumerated()), id: \.offset) { _, muscle in
                     Image(systemName: muscle.icon)
                         .font(.system(size: 10))
                         .foregroundStyle(PepTheme.teal)
-                        .frame(width: 22, height: 22)
-                        .background(PepTheme.teal.opacity(0.12))
+                        .frame(width: 24, height: 24)
+                        .background(PepTheme.teal.opacity(0.14))
                         .clipShape(Circle())
+                        .overlay(Circle().strokeBorder(PepTheme.cardSurface, lineWidth: 1.5))
                 }
-                Spacer()
-                Image(systemName: "play.circle.fill")
-                    .font(.title3)
-                    .foregroundStyle(PepTheme.teal)
+            }
+            .frame(width: 56, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(routine.name)
+                    .font(.system(size: 14, weight: .semibold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text("\(routine.exercises.count) ex")
+                    Text("·")
+                    Text("\(routine.estimatedMinutes)m")
+                }
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
             }
 
-            Text(routine.name)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(PepTheme.textPrimary)
-                .lineLimit(1)
+            Spacer()
 
-            HStack(spacing: 6) {
-                Label("\(routine.exercises.count)", systemImage: "dumbbell.fill")
-                Text("·")
-                Label("\(routine.estimatedMinutes)m", systemImage: "clock")
-            }
-            .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(PepTheme.textSecondary)
+            Image(systemName: "play.circle.fill")
+                .font(.title3)
+                .foregroundStyle(PepTheme.teal)
         }
-        .padding(12)
-        .frame(width: 170, height: 100, alignment: .leading)
-        .background(PepTheme.cardSurface)
-        .clipShape(.rect(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-        )
+        .padding(.vertical, 10)
     }
 
-    private func startWorkoutFromRoutine(_ routine: Routine) {
-        let exercises: [WorkoutExercise] = routine.exercises.map { pe in
-            let exercise = ExerciseLibrary.all.first { $0.id == pe.exerciseId } ?? ExerciseLibrary.all[0]
-            return WorkoutExercise(
-                exercise: exercise,
-                targetSets: pe.targetSets,
-                previousWeight: pe.prescribedWeight,
-                previousReps: pe.targetRepsMax
+    private var todayQuickStartBody: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("No active program. Start something quick or build a routine you can reuse.")
+                .font(.system(size: 13, design: .serif))
+                .italic()
+                .foregroundStyle(PepTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            primaryCTA(title: "Quick Workout", icon: "bolt.fill") {
+                startEmptyWorkout()
+            }
+
+            HStack(spacing: 10) {
+                ghostCTA(title: "Browse Routines", icon: "list.bullet.rectangle.portrait") {
+                    showRoutines = true
+                }
+                ghostCTA(title: "New Program", icon: "plus.rectangle.on.folder") {
+                    showProgramCreation = true
+                }
+            }
+        }
+    }
+
+    private var accentRule: some View {
+        LinearGradient(
+            colors: [PepTheme.teal.opacity(0.45), PepTheme.teal.opacity(0.0)],
+            startPoint: .leading, endPoint: .trailing
+        )
+        .frame(height: 0.6)
+    }
+
+    // MARK: - CTAs
+
+    private func primaryCTA(title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 14, weight: .bold))
+            }
+            .foregroundStyle(.black)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(PepTheme.teal)
+            .clipShape(.rect(cornerRadius: 12))
+        }
+        .buttonStyle(.scale)
+        .sensoryFeedback(.impact(weight: .medium), trigger: sessionManager.showActiveWorkout)
+    }
+
+    private func ghostCTA(title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .foregroundStyle(PepTheme.teal)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .background(PepTheme.teal.opacity(0.1))
+            .clipShape(.rect(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(PepTheme.teal.opacity(0.25), lineWidth: 0.5)
             )
         }
-        sessionManager.startSession(name: routine.name, exercises: exercises)
-        routineStore.markPerformed(routine.id)
+        .buttonStyle(.plain)
     }
 
-    // MARK: - Stat Tiles (condensed)
+    // MARK: - Weekly Strip
 
-    private var statTilesSection: some View {
+    private var weeklyStripSection: some View {
         let insight = viewModel.weeklyInsight
-        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-            consistencyTile
-            statTile(icon: "figure.strengthtraining.traditional", label: "Sessions", value: "\(insight.totalSessions)", color: PepTheme.teal)
-            statTile(icon: "scalemass.fill", label: "Volume", value: viewModel.formattedVolume(insight.totalVolume), color: PepTheme.violet)
-            statTile(icon: "flame.fill", label: "Calories", value: "\(insight.totalCaloriesBurned)", color: .orange)
+        return HStack(spacing: 10) {
+            consistencyChip
+            weeklyStat(label: "Sessions", value: "\(insight.totalSessions)", accent: PepTheme.teal)
+            weeklyStat(label: "Volume", value: viewModel.formattedVolume(insight.totalVolume), accent: PepTheme.violet)
         }
     }
 
-    private var consistencyTile: some View {
-        HStack(spacing: 12) {
+    private var consistencyChip: some View {
+        HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .stroke(PepTheme.elevated, lineWidth: 5)
-                    .frame(width: 44, height: 44)
+                    .stroke(PepTheme.elevated, lineWidth: 4)
+                    .frame(width: 38, height: 38)
                 Circle()
                     .trim(from: 0, to: viewModel.consistencyProgress)
-                    .stroke(PepTheme.teal, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                    .frame(width: 44, height: 44)
+                    .stroke(PepTheme.teal, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .frame(width: 38, height: 38)
                     .rotationEffect(.degrees(-90))
                 Text("\(viewModel.workoutsCompletedThisWeek)")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(PepTheme.teal)
             }
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text("\(viewModel.workoutsCompletedThisWeek)/\(viewModel.weeklyWorkoutGoal)")
-                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundStyle(PepTheme.textPrimary)
-                Text("Consistency")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(PepTheme.textSecondary)
+                Text("WEEK")
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.85))
             }
-            Spacer(minLength: 0)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 84, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 70, alignment: .leading)
         .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
@@ -607,25 +696,25 @@ struct TrainView: View {
         )
     }
 
-    private func statTile(icon: String, label: String, value: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func weeklyStat(label: String, value: String, accent: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text(label.uppercased())
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(1.4)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.3)
                 .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
             Text(value)
-                .font(.system(.title2, design: .serif, weight: .semibold))
+                .font(.system(.title3, design: .serif, weight: .semibold))
                 .kerning(-0.3)
                 .foregroundStyle(PepTheme.textPrimary)
-            Spacer(minLength: 0)
             LinearGradient(
-                colors: [color.opacity(0.5), color.opacity(0.0)],
+                colors: [accent.opacity(0.5), accent.opacity(0)],
                 startPoint: .leading, endPoint: .trailing
             )
             .frame(height: 0.5)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 84, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 70, alignment: .leading)
         .background(PepTheme.cardSurface)
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
@@ -634,11 +723,11 @@ struct TrainView: View {
         )
     }
 
-    // MARK: - Progress Strip
+    // MARK: - Progress Tiles (02)
 
-    private var progressStripSection: some View {
+    private var progressTilesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionEyebrow("Progress", number: "03", accent: PepTheme.teal) {
+            SectionEyebrow("Progress", number: "02", accent: PepTheme.teal) {
                 Button {
                     showProgressSheet = true
                 } label: {
@@ -649,1049 +738,189 @@ struct TrainView: View {
                 }
             }
 
-            ScrollView(.horizontal) {
-                HStack(spacing: 10) {
-                    ForEach(viewModel.personalRecords.prefix(5)) { pr in
-                        progressPRCard(pr)
-                    }
-                    ForEach(viewModel.muscleRecoveryItems.prefix(4)) { item in
-                        progressRecoveryCard(item)
-                    }
-                }
-            }
-            .contentMargins(.horizontal, 0)
-            .scrollIndicators(.hidden)
-        }
-    }
-
-    private func progressPRCard(_ pr: TrainPersonalRecord) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(pr.isNew ? "NEW PR" : "PR")
-                .font(.system(size: 9, weight: .semibold))
-                .tracking(1.6)
-                .foregroundStyle(PepTheme.amber)
-
-            Text(pr.exerciseName)
-                .font(.system(size: 14, weight: .semibold, design: .serif))
-                .foregroundStyle(PepTheme.textPrimary)
-                .lineLimit(2)
-
-            Spacer(minLength: 0)
-
-            Text("\(Int(pr.weight)) lbs × \(pr.reps)")
-                .font(.system(.subheadline, design: .serif, weight: .semibold))
-                .foregroundStyle(PepTheme.textPrimary)
-        }
-        .padding(12)
-        .frame(width: 140, height: 100, alignment: .leading)
-        .background(PepTheme.cardSurface)
-        .clipShape(.rect(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(PepTheme.amber.opacity(0.25), lineWidth: 0.5)
-        )
-    }
-
-    private func progressRecoveryCard(_ item: MuscleRecoveryItem) -> some View {
-        let color: Color = switch item.status {
-        case .recovered: .green
-        case .recovering: .orange
-        case .fatigued: .red
-        }
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("RECOVERY")
-                .font(.system(size: 9, weight: .semibold))
-                .tracking(1.6)
-                .foregroundStyle(color)
-
-            Text(item.muscle.rawValue)
-                .font(.system(size: 14, weight: .semibold, design: .serif))
-                .foregroundStyle(PepTheme.textPrimary)
-                .lineLimit(2)
-
-            Spacer(minLength: 0)
-
-            Text(item.status.rawValue)
-                .font(.system(.subheadline, design: .serif, weight: .semibold))
-                .foregroundStyle(color)
-        }
-        .padding(12)
-        .frame(width: 140, height: 100, alignment: .leading)
-        .background(PepTheme.cardSurface)
-        .clipShape(.rect(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(color.opacity(0.25), lineWidth: 0.5)
-        )
-    }
-
-    // MARK: - Today's Workout
-
-    private var todayWorkoutSection: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("01 — TODAY'S SESSION")
-                            .font(.system(size: 10, weight: .semibold))
-                            .tracking(2.0)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
-                        Text(viewModel.todayDayName)
-                            .font(.system(size: 22, weight: .semibold, design: .serif))
-                            .kerning(-0.4)
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-                    Spacer()
-                    if let program = viewModel.activeProgram {
-                        Button {
-                            viewModel.showProgramManagement = true
-                        } label: {
-                            HStack(spacing: 5) {
-                                Text(program.name)
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .lineLimit(1)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 8, weight: .bold))
-                            }
-                            .foregroundStyle(PepTheme.teal)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(PepTheme.teal.opacity(0.12))
-                            .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                if viewModel.isRestDay {
-                    restDayContent
-                } else if !viewModel.todayWorkoutDays.isEmpty {
-                    todayWorkoutsContent
-                } else {
-                    noProgamContent
-                }
-            }
-        }
-    }
-
-    private var restDayContent: some View {
-        VStack(spacing: 12) {
             HStack(spacing: 10) {
-                Image(systemName: "bed.double.fill")
-                    .font(.title2)
-                    .foregroundStyle(.green.opacity(0.8))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Rest Day")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("Recovery is where growth happens. Stay hydrated and stretch.")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.green.opacity(0.06))
-            .clipShape(.rect(cornerRadius: 10))
-
-            secondaryActionsRow
-        }
-    }
-
-    private var todayWorkoutsContent: some View {
-        VStack(spacing: 14) {
-            ForEach(Array(viewModel.todayWorkoutDays.enumerated()), id: \.element.id) { idx, day in
-                todayExercisesList(day, showDivider: idx < viewModel.todayWorkoutDays.count - 1)
+                personalRecordTile
+                recoveryTile
             }
         }
     }
 
-    private func todayExercisesList(_ day: ProgramDay, showDivider: Bool = false) -> some View {
-        let isLastDay = !showDivider
-        return VStack(spacing: 8) {
-            HStack {
-                if let tod = day.timeOfDay {
-                    HStack(spacing: 4) {
-                        Image(systemName: tod.icon)
-                            .font(.system(size: 10))
-                        Text(tod.label.uppercased())
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(0.8)
-                    }
-                    .foregroundStyle(PepTheme.amber)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(PepTheme.amber.opacity(0.12))
-                    .clipShape(Capsule())
-                }
-                Text(day.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Spacer()
-                Text("\(day.exercises.count) exercises")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-
-            ForEach(day.exercises) { exercise in
-                HStack(spacing: 10) {
-                    Image(systemName: exercise.primaryMuscle.icon)
-                        .font(.system(size: 12))
-                        .foregroundStyle(PepTheme.teal.opacity(0.7))
-                        .frame(width: 28, height: 28)
-                        .background(PepTheme.teal.opacity(0.1))
-                        .clipShape(Circle())
-
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(exercise.exerciseName)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(PepTheme.textPrimary)
-                            .lineLimit(1)
-                        Text("\(exercise.targetSets) sets × \(exercise.targetRepsMin)-\(exercise.targetRepsMax) reps")
-                            .font(.system(size: 11))
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    let trend = viewModel.progressiveOverloadTrend(for: exercise.exerciseName)
-                    Text(trend)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(trend == "↑" ? .green : trend == "↓" ? .red : PepTheme.textSecondary)
-                }
-                .padding(.vertical, 4)
-            }
-
-            Button {
-                startWorkoutFromDay(day)
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "play.fill")
-                        .font(.caption)
-                    Text("Begin Workout")
-                        .font(.subheadline.weight(.bold))
-                }
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(PepTheme.teal)
-                .clipShape(.rect(cornerRadius: 12))
-            }
-            .buttonStyle(.scale)
-            .padding(.top, 4)
-            .sensoryFeedback(.impact(weight: .medium), trigger: sessionManager.showActiveWorkout)
-
-            if isLastDay {
-                secondaryActionsRow
-                    .padding(.top, 2)
-            }
-
-            if showDivider {
-                Divider()
-                    .background(PepTheme.glassBorderTop)
-                    .padding(.top, 4)
-            }
-        }
-    }
-
-    private func startWorkoutFromDay(_ day: ProgramDay) {
-        let exercises = day.exercises.map { pe in
-            let exercise = ExerciseLibrary.all.first { $0.id == pe.exerciseId } ?? ExerciseLibrary.all[0]
-            return WorkoutExercise(
-                exercise: exercise,
-                targetSets: pe.targetSets,
-                previousWeight: Double.random(in: 95...185),
-                previousReps: Int.random(in: 8...12)
-            )
-        }
-        sessionManager.startSession(name: day.name, exercises: exercises)
-    }
-
-    private var noProgamContent: some View {
-        VStack(spacing: 14) {
-            VStack(spacing: 6) {
-                Image(systemName: "figure.strengthtraining.traditional")
-                    .font(.system(size: 28))
-                    .foregroundStyle(PepTheme.teal.opacity(0.6))
-                Text("No Active Program")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Text("Set up a training program to get started")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-
-            Button {
-                startEmptyWorkout()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Log a Workout")
-                        .font(.system(size: 14, weight: .bold))
-                }
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(PepTheme.teal)
-                .clipShape(.rect(cornerRadius: 12))
-            }
-            .buttonStyle(.plain)
-            .sensoryFeedback(.impact(weight: .medium), trigger: sessionManager.showActiveWorkout)
-
-            Button {
-                showRoutines = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "list.bullet.rectangle.portrait")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text(routineStore.routines.isEmpty ? "Browse Routines" : "Start from Routine")
-                        .font(.system(size: 13, weight: .semibold))
-                }
-                .foregroundStyle(PepTheme.teal)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 11)
-                .background(PepTheme.teal.opacity(0.12))
-                .clipShape(.rect(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(PepTheme.teal.opacity(0.3), lineWidth: 0.5)
-                )
-            }
-            .buttonStyle(.plain)
-
-            secondaryActionsRow
-        }
-    }
-
-    // MARK: - Secondary actions (merged into hero)
-
-    private var secondaryActionsRow: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Text("OR")
-                    .font(.system(size: 9, weight: .semibold))
-                    .tracking(1.8)
-                    .foregroundStyle(PepTheme.textTertiary)
-                Rectangle()
-                    .fill(PepTheme.glassBorderTop)
-                    .frame(height: 0.5)
-            }
-
-            HStack(spacing: 8) {
-                editorialQuickAction(
-                    eyebrow: "01",
-                    title: "Quick",
-                    subtitle: "Workout",
-                    icon: "bolt.fill",
-                    accent: PepTheme.teal
-                ) { startEmptyWorkout() }
-
-                editorialQuickAction(
-                    eyebrow: "02",
-                    title: "Log",
-                    subtitle: "Sport",
-                    icon: "sportscourt.fill",
-                    accent: .orange
-                ) { showSportSelector = true }
-
-                editorialQuickAction(
-                    eyebrow: "03",
-                    title: "New",
-                    subtitle: "Program",
-                    icon: "plus.rectangle.on.folder",
-                    accent: PepTheme.violet
-                ) { showProgramCreation = true }
-            }
-        }
-        .padding(.top, 6)
-    }
-
-    private func editorialQuickAction(
-        eyebrow: String,
-        title: String,
-        subtitle: String,
-        icon: String,
-        accent: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .top) {
-                    Text(eyebrow)
+    private var personalRecordTile: some View {
+        let prs = viewModel.personalRecords
+        let latest = prs.first
+        return Button {
+            showProgressSheet = true
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(latest?.isNew == true ? "NEW PR" : "PERSONAL RECORD")
                         .font(.system(size: 9, weight: .semibold))
                         .tracking(1.4)
-                        .foregroundStyle(PepTheme.textTertiary)
-                    Spacer(minLength: 4)
-                    Image(systemName: icon)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(accent)
+                        .foregroundStyle(PepTheme.amber)
+                    Spacer()
+                    Image(systemName: "trophy.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(PepTheme.amber.opacity(0.85))
                 }
 
-                Spacer(minLength: 6)
-
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold, design: .serif))
+                if let latest {
+                    Text(latest.exerciseName)
+                        .font(.system(size: 15, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.textPrimary)
-                    Text(subtitle)
-                        .font(.system(size: 14, weight: .regular, design: .serif))
+                        .lineLimit(2)
+
+                    Spacer(minLength: 0)
+
+                    Text("\(Int(latest.weight)) lbs × \(latest.reps)")
+                        .font(.system(.subheadline, design: .serif, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+
+                    Text("\(prs.count) tracked")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                } else {
+                    Text("Log a set to start tracking PRs")
+                        .font(.system(size: 12, design: .serif))
                         .italic()
                         .foregroundStyle(PepTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
                 }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
-            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-            .clipShape(.rect(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [accent.opacity(0.25), PepTheme.glassBorderBottom],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
-                    )
-            )
-        }
-        .buttonStyle(.scale)
-        .sensoryFeedback(.impact(weight: .light), trigger: sessionManager.showActiveWorkout)
-    }
-
-    // MARK: - Consistency Ring
-
-    private var consistencyRingSection: some View {
-        GlassCard {
-            HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .stroke(PepTheme.elevated, lineWidth: 8)
-                        .frame(width: 64, height: 64)
-                    Circle()
-                        .trim(from: 0, to: viewModel.consistencyProgress)
-                        .stroke(
-                            AngularGradient(
-                                colors: [PepTheme.teal, PepTheme.teal.opacity(0.4), PepTheme.teal],
-                                center: .center
-                            ),
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                        )
-                        .frame(width: 64, height: 64)
-                        .rotationEffect(.degrees(-90))
-
-                    VStack(spacing: 0) {
-                        Text("\(viewModel.workoutsCompletedThisWeek)")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundStyle(PepTheme.teal)
-                        Text("/\(viewModel.weeklyWorkoutGoal)")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Weekly Consistency")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("\(viewModel.workoutsCompletedThisWeek) of \(viewModel.weeklyWorkoutGoal) sessions completed")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-
-                    if viewModel.workoutsCompletedThisWeek >= viewModel.weeklyWorkoutGoal {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark.seal.fill")
-                                .font(.system(size: 11))
-                            Text("Goal reached!")
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                        .foregroundStyle(.green)
-                    } else {
-                        Text("\(viewModel.weeklyWorkoutGoal - viewModel.workoutsCompletedThisWeek) more to hit your goal")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(PepTheme.amber)
-                    }
-                }
-                Spacer()
-            }
-        }
-    }
-
-    // MARK: - Weekly Insights
-
-    private var weeklyInsightsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                HeadlineText(text: "This Week")
-                Spacer()
-            }
-
-            let insight = viewModel.weeklyInsight
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                insightTile(icon: "figure.strengthtraining.traditional", label: "Sessions", value: "\(insight.totalSessions)", color: PepTheme.teal)
-                insightTile(icon: "scalemass.fill", label: "Volume", value: viewModel.formattedVolume(insight.totalVolume), color: PepTheme.teal)
-                insightTile(icon: "clock.fill", label: "Avg Duration", value: "\(insight.avgDuration)m", color: PepTheme.violet)
-                insightTile(icon: "flame.fill", label: "Calories", value: "\(insight.totalCaloriesBurned)", color: .orange)
-            }
-
-
-        }
-    }
-
-    private func insightTile(icon: String, label: String, value: String, color: Color) -> some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 12))
-                    .foregroundStyle(color)
-                Spacer()
-            }
-            HStack {
-                Text(value)
-                    .font(.system(.title3, design: .rounded, weight: .bold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Spacer()
-            }
-            HStack {
-                Text(label)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(PepTheme.textSecondary)
-                Spacer()
-            }
-        }
-        .padding(14)
-        .background(PepTheme.cardSurface)
-        .clipShape(.rect(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-        )
-    }
-
-    // MARK: - Personal Records
-
-    private var personalRecordsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "trophy.fill")
-                    .foregroundStyle(PepTheme.amber)
-                HeadlineText(text: "Personal Records")
-                Spacer()
-            }
-
-            let newPRs = viewModel.personalRecords.filter(\.isNew)
-            if !newPRs.isEmpty {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 10) {
-                        ForEach(newPRs) { pr in
-                            prCard(pr)
-                        }
-                    }
-                }
-                .contentMargins(.horizontal, 0)
-                .scrollIndicators(.hidden)
-            }
-
-            ForEach(viewModel.personalRecords) { pr in
-                prRow(pr)
-            }
-        }
-    }
-
-    private func prCard(_ pr: TrainPersonalRecord) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 4) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(PepTheme.amber)
-                Text("NEW PR")
-                    .font(.system(size: 9, weight: .black))
-                    .foregroundStyle(PepTheme.amber)
-                    .tracking(1)
-            }
-
-            Text(pr.exerciseName)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(PepTheme.textPrimary)
-                .lineLimit(1)
-
-            Text("\(Int(pr.weight)) lbs × \(pr.reps)")
-                .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(PepTheme.amber)
-
-            if let prev = pr.previousBest {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 9, weight: .bold))
-                    Text("+\(Int(pr.weight - prev)) lbs")
-                        .font(.system(size: 10, weight: .semibold))
-                }
-                .foregroundStyle(.green)
-            }
-        }
-        .padding(14)
-        .frame(width: 160, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [PepTheme.amber.opacity(0.08), PepTheme.cardSurface],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .clipShape(.rect(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(PepTheme.amber.opacity(0.2), lineWidth: 0.5)
-        )
-    }
-
-    private func prRow(_ pr: TrainPersonalRecord) -> some View {
-        HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 3)
-                .fill(pr.isNew ? PepTheme.amber : PepTheme.glassBorderTop)
-                .frame(width: 3, height: 32)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(pr.exerciseName)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .lineLimit(1)
-                Text(pr.dateAchieved.formatted(.dateTime.month(.abbreviated).day()))
-                    .font(.system(size: 10))
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-
-            Spacer()
-
-            Text("\(Int(pr.weight)) lbs")
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(pr.isNew ? PepTheme.amber : PepTheme.textPrimary)
-        }
-        .padding(.vertical, 2)
-    }
-
-    // MARK: - Weekly Volume Chart
-
-    private var weeklyVolumeSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(PepTheme.teal)
-                HeadlineText(text: "Weekly Volume")
-                Spacer()
-            }
-
-            let volumes = viewModel.weeklyMuscleVolumes
-            ForEach(volumes) { vol in
-                HStack(spacing: 10) {
-                    Image(systemName: vol.muscle.icon)
-                        .font(.system(size: 12))
-                        .foregroundStyle(PepTheme.teal.opacity(0.7))
-                        .frame(width: 24)
-
-                    Text(vol.muscle.rawValue)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .frame(width: 70, alignment: .leading)
-
-                    GeometryReader { geo in
-                        let fraction = vol.targetSets > 0 ? min(CGFloat(vol.setsCompleted) / CGFloat(vol.targetSets), 1.0) : 0
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(PepTheme.elevated)
-                                .frame(height: 10)
-
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(
-                                    fraction >= 1.0
-                                        ? AnyShapeStyle(.green.opacity(0.8))
-                                        : fraction >= 0.6
-                                            ? AnyShapeStyle(PepTheme.teal)
-                                            : AnyShapeStyle(PepTheme.amber)
-                                )
-                                .frame(width: max(geo.size.width * fraction, 4), height: 10)
-                        }
-                    }
-                    .frame(height: 10)
-
-                    Text("\(vol.setsCompleted)/\(vol.targetSets)")
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .frame(width: 36, alignment: .trailing)
-                }
-            }
-        }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.5
-                )
-        )
-    }
-
-    // MARK: - Muscle Recovery
-
-    private var muscleRecoverySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "heart.text.clipboard")
-                    .foregroundStyle(.green)
-                HeadlineText(text: "Recovery Status")
-                Spacer()
-                Button {
-                    withAnimation(.spring(response: 0.3)) {
-                        showAllRecovery.toggle()
-                    }
-                } label: {
-                    Text(showAllRecovery ? "Less" : "See All")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PepTheme.teal)
-                }
-            }
-
-            let items = showAllRecovery ? viewModel.muscleRecoveryItems : Array(viewModel.muscleRecoveryItems.prefix(4))
-
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-                ForEach(items) { item in
-                    recoveryCell(item)
-                }
-            }
-        }
-    }
-
-    private func recoveryCell(_ item: MuscleRecoveryItem) -> some View {
-        let color: Color = switch item.status {
-        case .recovered: .green
-        case .recovering: .orange
-        case .fatigued: .red
-        }
-
-        return HStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(color.opacity(0.12))
-                    .frame(width: 32, height: 32)
-                Image(systemName: item.status.icon)
-                    .font(.system(size: 13))
-                    .foregroundStyle(color)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.muscle.rawValue)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .lineLimit(1)
-                Text(item.status.rawValue)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(color)
-            }
-            Spacer()
-        }
-        .padding(10)
-        .background(PepTheme.cardSurface)
-        .clipShape(.rect(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(color.opacity(0.15), lineWidth: 0.5)
-        )
-    }
-
-    // MARK: - Warmup
-
-    private var warmupSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "figure.flexibility")
-                    .foregroundStyle(.orange)
-                HeadlineText(text: "Warm-up")
-                Spacer()
-                Text(viewModel.todayWorkoutDay != nil ? "For today" : "General")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-
-            ForEach(viewModel.warmupExercises) { warmup in
-                HStack(spacing: 12) {
-                    Image(systemName: warmup.icon)
-                        .font(.system(size: 14))
-                        .foregroundStyle(.orange.opacity(0.8))
-                        .frame(width: 32, height: 32)
-                        .background(.orange.opacity(0.1))
-                        .clipShape(Circle())
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(warmup.name)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text(warmup.type.rawValue)
-                            .font(.system(size: 10))
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    Text(warmup.durationOrReps)
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.orange)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.orange.opacity(0.1))
-                        .clipShape(Capsule())
-                }
-            }
-        }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [.orange.opacity(0.12), PepTheme.glassBorderBottom],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.5
-                )
-        )
-    }
-
-    // MARK: - Action Buttons
-
-    private var actionButtons: some View {
-        VStack(spacing: 12) {
-            Button {
-                startEmptyWorkout()
-            } label: {
-                HStack(alignment: .center, spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(.black.opacity(0.12))
-                            .frame(width: 36, height: 36)
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(.black)
-                    }
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("QUICK · OPEN STUDIO")
-                            .font(.system(size: 9, weight: .semibold))
-                            .tracking(1.8)
-                            .foregroundStyle(.black.opacity(0.55))
-                        Text("Start a Workout")
-                            .font(.system(size: 19, weight: .semibold, design: .serif))
-                            .kerning(-0.3)
-                            .foregroundStyle(.black)
-                    }
-                    Spacer()
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(.black.opacity(0.7))
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .frame(maxWidth: .infinity)
-                .background(
-                    LinearGradient(
-                        colors: [PepTheme.teal, PepTheme.teal.opacity(0.85)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .clipShape(.rect(cornerRadius: 16))
-                .shadow(color: PepTheme.teal.opacity(0.25), radius: 14, x: 0, y: 6)
-            }
-            .buttonStyle(.scalePrimary)
-            .sensoryFeedback(.impact(weight: .medium), trigger: sessionManager.showActiveWorkout)
-
-            HStack(spacing: 10) {
-                Button {
-                    showProgramCreation = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.rectangle.on.folder")
-                            .font(.body)
-                        Text("New Program")
-                            .font(.subheadline.weight(.semibold))
-                    }
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(PepTheme.elevated)
-                    .clipShape(.rect(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-                    )
-                }
-                .buttonStyle(.scale)
-
-                Button {
-                    showSportSelector = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "sportscourt.fill")
-                            .font(.body)
-                        Text("Log Sport")
-                            .font(.subheadline.weight(.semibold))
-                    }
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        LinearGradient(
-                            colors: [PepTheme.elevated, PepTheme.elevated.opacity(0.8)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .clipShape(.rect(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [Color.orange.opacity(0.25), PepTheme.glassBorderBottom],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.5
-                            )
-                    )
-                }
-                .buttonStyle(.scale)
-            }
-        }
-    }
-
-    // MARK: - Templates
-
-    private var templatesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                HeadlineText(text: "My Templates")
-                Spacer()
-                Button { } label: {
-                    Text("See All")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PepTheme.teal)
-                }
-            }
-
-            ScrollView(.horizontal) {
-                HStack(spacing: 12) {
-                    ForEach(viewModel.templates) { template in
-                        templateCard(template)
-                    }
-                }
-            }
-            .contentMargins(.horizontal, 0)
-            .scrollIndicators(.hidden)
-        }
-    }
-
-    private func templateCard(_ template: WorkoutTemplate) -> some View {
-        Button { } label: {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 6) {
-                    ForEach(template.muscleGroups.prefix(3)) { muscle in
-                        Image(systemName: muscle.icon)
-                            .font(.system(size: 11))
-                            .foregroundStyle(PepTheme.teal)
-                            .frame(width: 26, height: 26)
-                            .background(PepTheme.teal.opacity(0.12))
-                            .clipShape(Circle())
-                    }
-                }
-
-                Text(template.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .lineLimit(1)
-
-                HStack(spacing: 8) {
-                    Label("\(template.exerciseCount)", systemImage: "dumbbell")
-                    Text("·")
-                    Label("\(template.estimatedMinutes)m", systemImage: "clock")
-                }
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(14)
-            .frame(width: 160, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 124, alignment: .leading)
             .background(PepTheme.cardSurface)
             .clipShape(.rect(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
-                    )
+                    .strokeBorder(PepTheme.amber.opacity(0.22), lineWidth: 0.5)
             )
         }
-        .buttonStyle(.scale)
+        .buttonStyle(.plain)
     }
 
-    // MARK: - Library Button
+    private var recoveryTile: some View {
+        let items = viewModel.muscleRecoveryItems
+        let worst = items.min { lhs, rhs in
+            recoveryRank(lhs.status) < recoveryRank(rhs.status)
+        }
+        let recoveringCount = items.filter { $0.status != .recovered }.count
+        let color: Color = {
+            guard let worst else { return .green }
+            return statusColor(worst.status)
+        }()
 
-    private var libraryButton: some View {
+        return Button {
+            showProgressSheet = true
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("RECOVERY")
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(color)
+                    Spacer()
+                    Image(systemName: "heart.text.clipboard")
+                        .font(.system(size: 10))
+                        .foregroundStyle(color.opacity(0.85))
+                }
+
+                if let worst {
+                    Text(worst.muscle.rawValue)
+                        .font(.system(size: 15, weight: .semibold, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .lineLimit(2)
+
+                    Spacer(minLength: 0)
+
+                    Text(worst.status.rawValue)
+                        .font(.system(.subheadline, design: .serif, weight: .semibold))
+                        .foregroundStyle(color)
+
+                    Text("\(recoveringCount) recovering")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                } else {
+                    Text("All muscle groups fresh")
+                        .font(.system(size: 12, design: .serif))
+                        .italic()
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Spacer(minLength: 0)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 124, alignment: .leading)
+            .background(PepTheme.cardSurface)
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(color.opacity(0.22), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func recoveryRank(_ status: MuscleRecoveryStatus) -> Int {
+        switch status {
+        case .fatigued: 0
+        case .recovering: 1
+        case .recovered: 2
+        }
+    }
+
+    private func statusColor(_ status: MuscleRecoveryStatus) -> Color {
+        switch status {
+        case .recovered: .green
+        case .recovering: .orange
+        case .fatigued: .red
+        }
+    }
+
+    // MARK: - Library
+
+    private var libraryRow: some View {
         Button {
             showLibrary = true
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "books.vertical.fill")
-                    .font(.title3)
+                    .font(.system(size: 15))
                     .foregroundStyle(PepTheme.teal)
-                VStack(alignment: .leading, spacing: 2) {
+                    .frame(width: 32, height: 32)
+                    .background(PepTheme.teal.opacity(0.12))
+                    .clipShape(Circle())
+                VStack(alignment: .leading, spacing: 1) {
                     Text("Exercise Library")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(PepTheme.textPrimary)
-                    Text("Browse \(ExerciseLibrary.all.count) exercises")
-                        .font(.caption)
+                    Text("\(ExerciseLibrary.all.count) exercises")
+                        .font(.system(size: 10))
                         .foregroundStyle(PepTheme.textSecondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(PepTheme.textSecondary)
             }
-            .padding(16)
+            .padding(12)
             .background(PepTheme.cardSurface)
-            .clipShape(.rect(cornerRadius: 16))
+            .clipShape(.rect(cornerRadius: 14))
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
-                    )
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
         }
         .buttonStyle(.scale)
     }
 
-    // MARK: - History
+    // MARK: - History (compressed)
 
     private var historySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionEyebrow("Activity History", number: "04", accent: PepTheme.teal) {
-                Button { } label: {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionEyebrow("Activity History", number: "03", accent: PepTheme.teal) {
+                Button {
+                    showProgressSheet = true
+                } label: {
                     Text("SEE ALL")
                         .font(.system(size: 10, weight: .semibold))
                         .tracking(1.4)
@@ -1709,14 +938,16 @@ struct TrainView: View {
                     startEmptyWorkout()
                 }
             } else {
-                ForEach(viewModel.combinedHistory.prefix(6)) { item in
-                    combinedHistoryRow(item)
+                VStack(spacing: 6) {
+                    ForEach(viewModel.combinedHistory.prefix(5)) { item in
+                        historyRow(item)
+                    }
                 }
             }
         }
     }
 
-    private func combinedHistoryRow(_ item: CombinedHistoryItem) -> some View {
+    private func historyRow(_ item: CombinedHistoryItem) -> some View {
         let isExpanded = expandedItemId == item.id
         let accentColor = item.isSportSession ? (item.sportSession?.sport.color ?? PepTheme.teal) : PepTheme.teal
 
@@ -1726,67 +957,58 @@ struct TrainView: View {
             }
         } label: {
             VStack(spacing: 0) {
-                HStack(spacing: 14) {
+                HStack(spacing: 12) {
                     if let session = item.sportSession {
                         ZStack {
                             Circle()
                                 .fill(session.sport.color.opacity(0.15))
-                                .frame(width: 40, height: 40)
+                                .frame(width: 34, height: 34)
                             Image(systemName: session.sport.icon)
-                                .font(.system(size: 16))
+                                .font(.system(size: 14))
                                 .foregroundStyle(session.sport.color)
                         }
                     } else {
-                        VStack(spacing: 2) {
+                        VStack(spacing: 0) {
                             Text(dayAbbreviation(item.date))
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 9, weight: .bold))
                                 .foregroundStyle(PepTheme.textSecondary)
                             Text(dayNumber(item.date))
-                                .font(.system(size: 18, weight: .bold))
+                                .font(.system(size: 16, weight: .bold))
                                 .foregroundStyle(PepTheme.textPrimary)
                         }
-                        .frame(width: 40)
+                        .frame(width: 34)
                     }
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
-                            Text(item.name)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                                .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.name)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .lineLimit(1)
 
-                            if let session = item.sportSession {
-                                Text(session.sessionType.rawValue)
-                                    .font(.system(size: 9, weight: .semibold))
-                                    .foregroundStyle(session.sport.color)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(session.sport.color.opacity(0.12))
-                                    .clipShape(Capsule())
-                            }
-                        }
-
-                        HStack(spacing: 10) {
-                            Label("\(item.durationMinutes)m", systemImage: "clock")
+                        HStack(spacing: 8) {
+                            Text("\(item.durationMinutes)m")
                             if item.totalVolume > 0 {
-                                Label(viewModel.formattedVolume(item.totalVolume), systemImage: "scalemass")
+                                Text("·")
+                                Text(viewModel.formattedVolume(item.totalVolume))
                             }
                             if let session = item.sportSession {
-                                Label("\(session.intensity)/10", systemImage: "flame")
+                                Text("·")
+                                Text("\(session.intensity)/10")
                             }
                         }
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(PepTheme.textSecondary)
                     }
 
                     Spacer()
 
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(PepTheme.textSecondary)
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 }
-                .padding(12)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
 
                 if isExpanded {
                     expandedContent(item: item, accentColor: accentColor)
@@ -1800,9 +1022,7 @@ struct TrainView: View {
                     .strokeBorder(
                         isExpanded
                             ? accentColor.opacity(0.2)
-                            : (item.isSportSession
-                                ? (item.sportSession?.sport.color ?? PepTheme.glassBorderTop).opacity(0.15)
-                                : PepTheme.glassBorderTop.opacity(0.4)),
+                            : PepTheme.glassBorderTop.opacity(0.4),
                         lineWidth: isExpanded ? 0.8 : 0.5
                     )
             )
@@ -1855,26 +1075,19 @@ struct TrainView: View {
                     }
 
                     HStack(spacing: 0) {
-                        Text("SET")
-                            .frame(width: 32, alignment: .leading)
-                        Text("WEIGHT")
-                            .frame(maxWidth: .infinity)
-                        Text("REPS")
-                            .frame(maxWidth: .infinity)
-                        Text("VOL")
-                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        Text("SET").frame(width: 32, alignment: .leading)
+                        Text("WEIGHT").frame(maxWidth: .infinity)
+                        Text("REPS").frame(maxWidth: .infinity)
+                        Text("VOL").frame(maxWidth: .infinity, alignment: .trailing)
                     }
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
 
                     ForEach(exercise.sets) { set in
                         HStack(spacing: 0) {
-                            Text("\(set.setNumber)")
-                                .frame(width: 32, alignment: .leading)
-                            Text("\(Int(set.weight)) lbs")
-                                .frame(maxWidth: .infinity)
-                            Text("\(set.reps)")
-                                .frame(maxWidth: .infinity)
+                            Text("\(set.setNumber)").frame(width: 32, alignment: .leading)
+                            Text("\(Int(set.weight)) lbs").frame(maxWidth: .infinity)
+                            Text("\(set.reps)").frame(maxWidth: .infinity)
                             Text("\(Int(set.weight) * set.reps)")
                                 .frame(maxWidth: .infinity, alignment: .trailing)
                                 .foregroundStyle(accentColor.opacity(0.7))
@@ -1976,10 +1189,99 @@ struct TrainView: View {
         .clipShape(.rect(cornerRadius: 8))
     }
 
+    // MARK: - Sport Mode Content (with editorial header)
+
+    @ViewBuilder
+    private var sportModeContent: some View {
+        VStack(spacing: 16) {
+            sportEditorialHeader
+
+            switch viewModel.currentMode.type {
+            case .running:
+                RunningDashboardView(
+                    runVM: runVM,
+                    accentColor: viewModel.currentMode.type.color
+                ) {
+                    showLiveRun = true
+                }
+            case .cycling:
+                CyclingDashboardView(
+                    cyclingVM: cyclingVM,
+                    accentColor: viewModel.currentMode.type.color
+                ) {
+                    showLiveRide = true
+                }
+            case .basketball:
+                BasketballDashboardView(
+                    bbVM: bbVM,
+                    accentColor: viewModel.currentMode.type.color
+                )
+            case .swimming:
+                SwimmingDashboardView(
+                    swimVM: swimVM,
+                    accentColor: viewModel.currentMode.type.color
+                )
+            case .soccer:
+                SoccerDashboardView(
+                    soccerVM: soccerVM,
+                    accentColor: viewModel.currentMode.type.color
+                )
+            case .tennis:
+                TennisDashboardView(
+                    tennisVM: tennisVM,
+                    accentColor: viewModel.currentMode.type.color
+                )
+            default:
+                SportModeContentView(
+                    mode: viewModel.currentMode,
+                    viewModel: viewModel
+                ) {
+                    if let sport = viewModel.currentMode.type.sport {
+                        selectedSport = sport
+                        showSportLog = true
+                    } else {
+                        showSportSelector = true
+                    }
+                }
+            }
+        }
+    }
+
+    private var sportEditorialHeader: some View {
+        let mode = viewModel.currentMode
+        let accent = mode.type.color
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("01")
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(accent.opacity(0.9))
+                Text("—")
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.45))
+                Text(mode.name.uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.8)
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
+                Spacer()
+            }
+
+            Text(mode.name)
+                .font(.system(size: 28, weight: .semibold, design: .serif))
+                .kerning(-0.5)
+                .foregroundStyle(PepTheme.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            LinearGradient(
+                colors: [accent.opacity(0.5), accent.opacity(0)],
+                startPoint: .leading, endPoint: .trailing
+            )
+            .frame(height: 0.6)
+        }
+    }
+
     // MARK: - Helpers
 
-    private func startWorkoutFromProgram(_ program: TrainingProgram) {
-        guard let day = viewModel.todayWorkoutDay ?? program.days.first else { return }
+    private func startWorkoutFromDay(_ day: ProgramDay) {
         let exercises = day.exercises.map { pe in
             let exercise = ExerciseLibrary.all.first { $0.id == pe.exerciseId } ?? ExerciseLibrary.all[0]
             return WorkoutExercise(
@@ -1990,6 +1292,25 @@ struct TrainView: View {
             )
         }
         sessionManager.startSession(name: day.name, exercises: exercises)
+    }
+
+    private func startWorkoutFromRoutine(_ routine: Routine) {
+        let exercises: [WorkoutExercise] = routine.exercises.map { pe in
+            let exercise = ExerciseLibrary.all.first { $0.id == pe.exerciseId } ?? ExerciseLibrary.all[0]
+            return WorkoutExercise(
+                exercise: exercise,
+                targetSets: pe.targetSets,
+                previousWeight: pe.prescribedWeight,
+                previousReps: pe.targetRepsMax
+            )
+        }
+        sessionManager.startSession(name: routine.name, exercises: exercises)
+        routineStore.markPerformed(routine.id)
+    }
+
+    private func startWorkoutFromProgram(_ program: TrainingProgram) {
+        guard let day = viewModel.todayWorkoutDay ?? program.days.first else { return }
+        startWorkoutFromDay(day)
     }
 
     private func startEmptyWorkout() {
