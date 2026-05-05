@@ -115,28 +115,8 @@ struct TodaysPlanCardView: View {
     @ViewBuilder
     private var expandedTrainingContent: some View {
         if !isPlanMinimized && viewModel.isPlanExpanded && !viewModel.todaysPlan.isRestDay && viewModel.activeProgram != nil {
-            VStack(spacing: 8) {
-                if let trainingInsight = todaysPlanVM.activeModuleContent(for: "training") {
-                    AIInsightStrip(
-                        content: trainingInsight,
-                        color: PepTheme.blue,
-                        actionLabel: "Start Workout",
-                        actionIcon: "figure.strengthtraining.traditional",
-                        onAction: { onStartWorkout() }
-                    )
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                }
-                expandedPlanContent
-            }
-            .transition(.opacity.combined(with: .move(edge: .top)))
-        } else if !isPlanMinimized && viewModel.isPlanExpanded && viewModel.todaysPlan.isRestDay {
-            if let trainingInsight = todaysPlanVM.activeModuleContent(for: "training") {
-                AIInsightStrip(content: trainingInsight, color: PepTheme.blue)
-                    .padding(.horizontal, 2)
-                    .padding(.top, 4)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            expandedPlanContent
+                .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }
 
@@ -1024,24 +1004,22 @@ struct ExpandedPlanContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            editorialHeader
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+
             splitDayStripExpanded
                 .padding(.horizontal, 16)
-                .padding(.top, 10)
+                .padding(.top, 12)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 ForEach(Array(viewModel.todaysPlan.planExercises.enumerated()), id: \.element.id) { index, exercise in
                     planExerciseRow(exercise, index: index + 1)
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 4)
-
-            if viewModel.isSelectedDateToday {
-                actionButtons
-            } else {
-                Spacer().frame(height: 12)
-            }
+            .padding(.top, 14)
+            .padding(.bottom, 14)
         }
         .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
@@ -1058,6 +1036,89 @@ struct ExpandedPlanContentView: View {
         )
         .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 4)
         .padding(.top, -8)
+    }
+
+    private var editorialHeader: some View {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text("TODAY")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.6)
+                        .foregroundStyle(PepTheme.teal.opacity(0.9))
+                    Rectangle()
+                        .fill(PepTheme.teal.opacity(0.4))
+                        .frame(width: 14, height: 0.6)
+                    Text(sessionMetaLine)
+                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                        .tracking(1.0)
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                }
+                Text(viewModel.todaysPlan.name)
+                    .font(.system(size: 19, weight: .bold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            if viewModel.isSelectedDateToday {
+                inlineActionStrip
+            }
+        }
+    }
+
+    private var sessionMetaLine: String {
+        let exercises = viewModel.todaysPlan.exercises
+        let minutes = viewModel.todaysPlan.estimatedMinutes
+        let sets = viewModel.todaysPlan.planExercises.reduce(0) { $0 + $1.sets }
+        var parts: [String] = []
+        parts.append("\(exercises) MOVEMENTS")
+        if sets > 0 { parts.append("\(sets) SETS") }
+        parts.append("\(minutes) MIN")
+        return parts.joined(separator: " \u{00B7} ")
+    }
+
+    private var inlineActionStrip: some View {
+        HStack(spacing: 6) {
+            Button {
+                viewModel.showEditSplit = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 9, weight: .bold))
+                    Text("Edit Split")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(0.4)
+                }
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.85))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(PepTheme.elevated.opacity(0.7))
+                .clipShape(.capsule)
+                .overlay(
+                    Capsule().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                onStartWorkout()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 9, weight: .bold))
+                    Text("Start")
+                        .font(.system(size: 10, weight: .heavy))
+                        .tracking(0.6)
+                }
+                .foregroundStyle(PepTheme.invertedText)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(PepTheme.teal)
+                .clipShape(.capsule)
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.impact(weight: .light), trigger: false)
+        }
     }
 
     private var splitDayStripExpanded: some View {
