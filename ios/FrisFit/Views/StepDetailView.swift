@@ -32,8 +32,8 @@ struct StepDetailView: View {
                     hourlyBreakdownCard
                 }
 
-                EditorialSectionHeader(eyebrow: viewModel.selectedPeriod == .day ? "04 \u{2014} This Week" : "03 \u{2014} Recent Days", title: nil)
-                recentDaysCard
+                EditorialSectionHeader(eyebrow: recentSectionEyebrow, title: recentSectionTitle)
+                recentBreakdownCard
             }
             .padding(.horizontal)
             .padding(.bottom, 40)
@@ -690,14 +690,102 @@ struct StepDetailView: View {
         .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5))
     }
 
-    // MARK: - Recent days
+    // MARK: - Recent breakdown (adapts to selected period)
 
-    private var recentDaysCard: some View {
-        let recent = Array(viewModel.dailySteps.suffix(7).reversed())
-        let maxSteps = max(viewModel.stepGoal, recent.map(\.steps).max() ?? 1)
+    private struct RecentRow: Identifiable {
+        let id = UUID()
+        let title: String
+        let subtitle: String
+        let value: Int
+        let goal: Int?
+    }
+
+    private var recentSectionEyebrow: String {
+        switch viewModel.selectedPeriod {
+        case .day: return "04 \u{2014} This Week"
+        case .week: return "03 \u{2014} Recent Days"
+        case .month: return "03 \u{2014} Recent Weeks"
+        case .sixMonths: return "03 \u{2014} Recent Weeks"
+        case .year: return "03 \u{2014} Recent Months"
+        }
+    }
+
+    private var recentSectionTitle: String? { nil }
+
+    private var recentRows: [RecentRow] {
+        let cal = Calendar.current
+        switch viewModel.selectedPeriod {
+        case .day, .week:
+            let recent = Array(viewModel.dailySteps.suffix(7).reversed())
+            return recent.map { day in
+                RecentRow(
+                    title: dayLabel(for: day.date),
+                    subtitle: day.dateLabel.uppercased(),
+                    value: day.steps,
+                    goal: viewModel.stepGoal
+                )
+            }
+        case .month:
+            // Group last 30 days into weeks
+            let days = viewModel.dailySteps.suffix(30)
+            let grouped = Dictionary(grouping: days) { day -> Date in
+                cal.dateInterval(of: .weekOfYear, for: day.date)?.start ?? day.date
+            }
+            let weeks = grouped.keys.sorted(by: >).prefix(5)
+            return weeks.map { weekStart -> RecentRow in
+                let items = grouped[weekStart] ?? []
+                let total = items.reduce(0) { $0 + $1.steps }
+                let weekEnd = cal.date(byAdding: .day, value: 6, to: weekStart) ?? weekStart
+                let f = DateFormatter()
+                f.dateFormat = "MMM d"
+                return RecentRow(
+                    title: weekTitle(for: weekStart),
+                    subtitle: "\(f.string(from: weekStart)) \u{2013} \(f.string(from: weekEnd))".uppercased(),
+                    value: total,
+                    goal: viewModel.stepGoal * 7
+                )
+            }
+        case .sixMonths:
+            let recent = Array(viewModel.weeklySteps.suffix(8).reversed())
+            return recent.map { week in
+                let weekEnd = cal.date(byAdding: .day, value: 6, to: week.weekStart) ?? week.weekStart
+                let f = DateFormatter()
+                f.dateFormat = "MMM d"
+                return RecentRow(
+                    title: weekTitle(for: week.weekStart),
+                    subtitle: "\(f.string(from: week.weekStart)) \u{2013} \(f.string(from: weekEnd))".uppercased(),
+                    value: week.steps,
+                    goal: viewModel.stepGoal * 7
+                )
+            }
+        case .year:
+            let recent = Array(viewModel.monthlySteps.suffix(12).reversed())
+            return recent.map { month in
+                let days = cal.range(of: .day, in: .month, for: month.monthStart)?.count ?? 30
+                return RecentRow(
+                    title: month.fullLabel,
+                    subtitle: "\(formattedNumber(month.steps / max(days, 1))) AVG/DAY",
+                    value: month.steps,
+                    goal: viewModel.stepGoal * days
+                )
+            }
+        }
+    }
+
+    private var recentValueUnit: String {
+        switch viewModel.selectedPeriod {
+        case .day, .week: return "steps"
+        case .month, .sixMonths: return "steps/week"
+        case .year: return "steps/month"
+        }
+    }
+
+    private var recentBreakdownCard: some View {
+        let rows = recentRows
+        let maxV = max(rows.map(\.value).max() ?? 1, rows.compactMap(\.goal).max() ?? 1)
 
         return VStack(alignment: .leading, spacing: 14) {
-            if recent.isEmpty {
+            if rows.isEmpty {
                 Text("No history available yet")
                     .font(.system(.subheadline, design: .serif))
                     .italic()
@@ -705,22 +793,24 @@ struct StepDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 12)
             } else {
-                ForEach(Array(recent.enumerated()), id: \.element.id) { idx, day in
+                ForEach(Array(rows.enumerated()), id: \.element.id) { idx, row in
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(dayLabel(for: day.date))
+                            Text(row.title)
                                 .font(.system(size: 14, weight: .semibold, design: .serif))
                                 .foregroundStyle(PepTheme.textPrimary)
-                            Text(day.dateLabel.uppercased())
+                                .lineLimit(1)
+                            Text(row.subtitle)
                                 .font(.system(size: 9, weight: .heavy))
                                 .tracking(1.4)
                                 .foregroundStyle(PepTheme.textTertiary)
+                                .lineLimit(1)
                         }
-                        .frame(width: 96, alignment: .leading)
+                        .frame(width: 110, alignment: .leading)
 
                         GeometryReader { geo in
-                            let ratio = min(CGFloat(day.steps) / CGFloat(maxSteps), 1.0)
-                            let met = day.steps >= viewModel.stepGoal
+                            let ratio = min(CGFloat(row.value) / CGFloat(max(maxV, 1)), 1.0)
+                            let met = (row.goal.map { row.value >= $0 } ?? false)
                             ZStack(alignment: .leading) {
                                 Capsule().fill(PepTheme.elevated)
                                 Capsule()
@@ -735,19 +825,19 @@ struct StepDetailView: View {
                         .frame(height: 10)
 
                         HStack(spacing: 2) {
-                            if day.steps >= viewModel.stepGoal {
+                            if let g = row.goal, row.value >= g {
                                 Image(systemName: "checkmark.seal.fill")
                                     .font(.system(size: 10))
                                     .foregroundStyle(PepTheme.success)
                             }
-                            Text(formattedNumber(day.steps))
+                            Text(compactInt(row.value))
                                 .font(.system(.caption, design: .serif, weight: .semibold))
-                                .foregroundStyle(day.steps >= viewModel.stepGoal ? PepTheme.success : PepTheme.textPrimary)
+                                .foregroundStyle((row.goal.map { row.value >= $0 } ?? false) ? PepTheme.success : PepTheme.textPrimary)
                         }
                         .frame(width: 70, alignment: .trailing)
                     }
 
-                    if idx != recent.indices.last {
+                    if idx != rows.indices.last {
                         Rectangle()
                             .fill(PepTheme.separatorColor)
                             .frame(height: 0.5)
@@ -759,6 +849,23 @@ struct StepDetailView: View {
         .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5))
+    }
+
+    private func weekTitle(for weekStart: Date) -> String {
+        let cal = Calendar.current
+        let now = Date()
+        if let interval = cal.dateInterval(of: .weekOfYear, for: now), interval.start == weekStart {
+            return "This Week"
+        }
+        if let lastWeek = cal.date(byAdding: .weekOfYear, value: -1, to: now),
+           let interval = cal.dateInterval(of: .weekOfYear, for: lastWeek), interval.start == weekStart {
+            return "Last Week"
+        }
+        let weeksAgo = cal.dateComponents([.weekOfYear], from: weekStart, to: now).weekOfYear ?? 0
+        if weeksAgo > 0 { return "\(weeksAgo) weeks ago" }
+        let f = DateFormatter()
+        f.dateFormat = "'Week of' MMM d"
+        return f.string(from: weekStart)
     }
 
     // MARK: - Helpers
