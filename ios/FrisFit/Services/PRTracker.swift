@@ -3,13 +3,17 @@ import Foundation
 @MainActor
 final class PRTracker {
     static let shared = PRTracker()
-    private init() {}
+
+    private init() {
+        Task { await self.hydrateFromSupabase() }
+    }
 
     private let defaults = UserDefaults.standard
 
     private func weightKey(_ exerciseId: String) -> String { "pr.weight.\(exerciseId)" }
     private func oneRMKey(_ exerciseId: String) -> String { "pr.1rm.\(exerciseId)" }
     private func volumeKey(_ exerciseId: String) -> String { "pr.volume.\(exerciseId)" }
+    private func nameKey(_ exerciseId: String) -> String { "pr.name.\(exerciseId)" }
 
     struct PRHit: Sendable {
         let kind: Kind
@@ -63,6 +67,38 @@ final class PRTracker {
             defaults.set(volume, forKey: volumeKey(exerciseId))
         }
 
+        if !hits.isEmpty {
+            defaults.set(exerciseName, forKey: nameKey(exerciseId))
+            let bestW = bestWeight(for: exerciseId)
+            let best1 = best1RM(for: exerciseId)
+            let bestV = bestVolume(for: exerciseId)
+            Task.detached {
+                await PersistenceSyncService.shared.upsertPersonalRecord(
+                    exerciseId: exerciseId,
+                    exerciseName: exerciseName,
+                    bestWeight: bestW,
+                    bestOneRM: best1,
+                    bestVolume: bestV
+                )
+            }
+        }
+
         return hits
+    }
+
+    /// Pull authoritative values from Supabase and back-fill the local cache.
+    func hydrateFromSupabase() async {
+        let rows = await PersistenceSyncService.shared.fetchPersonalRecords()
+        for row in rows {
+            let exId = row.exercise_id
+            // Take the max of remote vs local so optimistic local writes are not clobbered.
+            let localW = bestWeight(for: exId)
+            let local1 = best1RM(for: exId)
+            let localV = bestVolume(for: exId)
+            defaults.set(max(localW, row.best_weight), forKey: weightKey(exId))
+            defaults.set(max(local1, row.best_one_rm), forKey: oneRMKey(exId))
+            defaults.set(max(localV, row.best_volume), forKey: volumeKey(exId))
+            defaults.set(row.exercise_name, forKey: nameKey(exId))
+        }
     }
 }

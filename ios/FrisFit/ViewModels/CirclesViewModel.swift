@@ -55,37 +55,49 @@ final class CirclesViewModel {
     private var dataLoaded: Bool = false
 
     init() {
-        loadMockData()
+        Task { await self.refresh() }
+    }
+
+    func refresh() async {
+        await loadFromSupabaseAsync(force: true)
     }
 
     func loadFromSupabase() {
         guard AuthService.shared.authState == .signedIn, !dataLoaded else { return }
+        Task { await self.loadFromSupabaseAsync(force: false) }
+    }
+
+    private func loadFromSupabaseAsync(force: Bool) async {
+        guard AuthService.shared.authState == .signedIn else {
+            myCircles = []
+            publicCircles = []
+            return
+        }
+        if !force && dataLoaded { return }
         dataLoaded = true
         isLoading = true
-        Task {
-            do {
-                let userId = try AuthService.shared.currentUserId()
-                let myRaw = try await CircleService.shared.fetchMyCircles(userId: userId)
-                var myConverted: [FitCircle] = []
-                for circle in myRaw {
-                    guard let cid = circle.id else { continue }
-                    let members = try await CircleService.shared.fetchMembers(circleId: cid)
-                    myConverted.append(CircleService.shared.toFitCircle(circle, members: members))
-                }
-                if !myConverted.isEmpty {
-                    myCircles = myConverted
-                }
+        defer { isLoading = false }
+        do {
+            let userId = try AuthService.shared.currentUserId()
+            let myRaw = try await CircleService.shared.fetchMyCircles(userId: userId)
+            var myConverted: [FitCircle] = []
+            for circle in myRaw {
+                guard let cid = circle.id else { continue }
+                let members = try await CircleService.shared.fetchMembers(circleId: cid)
+                myConverted.append(CircleService.shared.toFitCircle(circle, members: members))
+            }
+            myCircles = myConverted
 
-                let pubRaw = try await CircleService.shared.fetchPublicCircles(userId: userId)
-                var pubConverted: [FitCircle] = []
-                for circle in pubRaw {
-                    guard let cid = circle.id else { continue }
-                    let members = try await CircleService.shared.fetchMembers(circleId: cid)
-                    pubConverted.append(CircleService.shared.toFitCircle(circle, members: members))
-                }
-                publicCircles = pubConverted
-            } catch {}
-            isLoading = false
+            let pubRaw = try await CircleService.shared.fetchPublicCircles(userId: userId)
+            var pubConverted: [FitCircle] = []
+            for circle in pubRaw {
+                guard let cid = circle.id else { continue }
+                let members = try await CircleService.shared.fetchMembers(circleId: cid)
+                pubConverted.append(CircleService.shared.toFitCircle(circle, members: members))
+            }
+            publicCircles = pubConverted
+        } catch {
+            print("CirclesViewModel.loadFromSupabase error: \(error)")
         }
     }
 
@@ -238,120 +250,33 @@ final class CirclesViewModel {
     }
 
     private func loadCircleData(for circle: FitCircle) {
-        circleTasks = [
-            CircleTask(id: UUID(), name: "Complete Workout", value: 150, category: "Strength", taskType: .perPerson, createdBy: sampleUsers[0], isPenalty: false, isCompletedToday: true),
-            CircleTask(id: UUID(), name: "10,000 Steps", value: 100, category: "Cardio", taskType: .perPerson, createdBy: sampleUsers[1], isPenalty: false, isCompletedToday: false),
-            CircleTask(id: UUID(), name: "Hit Protein Goal", value: 80, category: "Nutrition", taskType: .perPerson, createdBy: sampleUsers[0], isPenalty: false, isCompletedToday: true),
-            CircleTask(id: UUID(), name: "Group 5K Run", value: 200, category: "Cardio", taskType: .circleTask, createdBy: sampleUsers[2], isPenalty: false, isCompletedToday: false),
-            CircleTask(id: UUID(), name: "Drink Gallon Water", value: 60, category: "Nutrition", taskType: .perPerson, createdBy: sampleUsers[0], isPenalty: false, isCompletedToday: false),
-            CircleTask(id: UUID(), name: "Skip Workout (Penalty)", value: -50, category: "Lifestyle", taskType: .perPerson, createdBy: sampleUsers[1], isPenalty: true, isCompletedToday: false),
-        ]
+        // Real per-circle data starts empty until backed by Supabase tables.
+        // The leaderboard is derived live from the members we already have.
+        circleTasks = []
+        messages = []
+        posts = []
+        badges = []
+        awards = []
+        competitions = []
+        taskRequests = []
 
-        leaderboard = circle.members.sorted(by: { $0.totalPoints > $1.totalPoints }).enumerated().map { idx, member in
-            LeaderboardMember(
-                id: member.id,
-                user: member.user,
-                rank: idx + 1,
-                totalPoints: member.totalPoints,
-                goalStreak: member.goalStreak,
-                longestStreak: member.longestStreak,
-                weeklyHistory: (0..<12).map { _ in Int.random(in: 500...2500) },
-                topTasks: [
-                    TaskTotal(taskName: "Complete Workout", count: Int.random(in: 8...30)),
-                    TaskTotal(taskName: "10,000 Steps", count: Int.random(in: 5...25)),
-                    TaskTotal(taskName: "Hit Protein Goal", count: Int.random(in: 10...28)),
-                ]
-            )
-        }
-
-        let now = Date()
-        messages = [
-            CircleMessage(id: UUID(), sender: sampleUsers[0], content: "Just crushed a new deadlift PR! 💪", imageUrl: nil, createdAt: now.addingTimeInterval(-3600)),
-            CircleMessage(id: UUID(), sender: sampleUsers[1], content: "Nice! What did you hit?", imageUrl: nil, createdAt: now.addingTimeInterval(-3000)),
-            CircleMessage(id: UUID(), sender: sampleUsers[0], content: "405 for a clean double", imageUrl: nil, createdAt: now.addingTimeInterval(-2700)),
-            CircleMessage(id: UUID(), sender: sampleUsers[2], content: "Beast mode 🔥", imageUrl: nil, createdAt: now.addingTimeInterval(-1800)),
-            CircleMessage(id: UUID(), sender: meUser, content: "Congrats! I'm going for mine tomorrow", imageUrl: nil, createdAt: now.addingTimeInterval(-900)),
-        ]
-
-        posts = [
-            CirclePost(id: UUID(), author: sampleUsers[3], content: "Week 3 of our cut is going strong. Down 4lbs collectively as a group. Keep pushing everyone! 🏋️‍♂️", imageUrl: nil, createdAt: now.addingTimeInterval(-7200), likeCount: 8, isLiked: true, comments: [
-                CirclePostComment(id: UUID(), author: sampleUsers[0], content: "Let's gooo!", createdAt: now.addingTimeInterval(-5000), likeCount: 2, isLiked: false),
-            ]),
-            CirclePost(id: UUID(), author: sampleUsers[1], content: "New challenge idea: first to log 20 workouts this month gets bragging rights. Who's in?", imageUrl: nil, createdAt: now.addingTimeInterval(-86400), likeCount: 5, isLiked: false, comments: []),
-        ]
-
-        badges = [
-            CircleBadge(id: UUID(), name: "Iron Streak", description: "Complete a 30-day workout streak", icon: "flame.fill", required: 30, progress: 22, earned: false, rewardType: .points, rewardPoints: 500, rewardGift: nil),
-            CircleBadge(id: UUID(), name: "Protein King", description: "Hit protein goal 20 times", icon: "fish.fill", required: 20, progress: 20, earned: true, rewardType: .both, rewardPoints: 200, rewardGift: "Custom shaker bottle"),
-            CircleBadge(id: UUID(), name: "5K Warrior", description: "Complete 10 group runs", icon: "figure.run", required: 10, progress: 6, earned: false, rewardType: .gift, rewardPoints: nil, rewardGift: "Team t-shirt"),
-            CircleBadge(id: UUID(), name: "Early Bird", description: "Log 15 workouts before 7 AM", icon: "sunrise.fill", required: 15, progress: 3, earned: false, rewardType: .points, rewardPoints: 300, rewardGift: nil),
-        ]
-
-        awards = [
-            CircleAward(id: UUID(), name: "First to 10K", description: "First member to reach 10,000 total points", type: .firstTo, target: 10000, category: nil, winnerId: sampleUsers[3].id, winnerName: sampleUsers[3].name, rewardType: .both, rewardPoints: 1000, rewardGift: "Gold star pin"),
-            CircleAward(id: UUID(), name: "Cardio King", description: "Most cardio completions this month", type: .mostInCategory, target: nil, category: "Cardio", winnerId: nil, winnerName: nil, rewardType: .points, rewardPoints: 500, rewardGift: nil),
-            CircleAward(id: UUID(), name: "Weekly Champion", description: "Highest points in a single week", type: .weeklyChampion, target: nil, category: nil, winnerId: sampleUsers[0].id, winnerName: sampleUsers[0].name, rewardType: .points, rewardPoints: 250, rewardGift: nil),
-        ]
-
-        let opponentCircle = CompetitionCircleInfo(id: UUID(), name: "Iron Warriors", memberCount: 5)
-        let thisCircle = CompetitionCircleInfo(id: circle.id, name: circle.name, memberCount: circle.memberCount)
-        competitions = [
-            CircleCompetition(id: UUID(), name: "January Showdown", description: "Most total points in January", competitionType: .timed, circleOne: thisCircle, circleTwo: opponentCircle, startDate: now.addingTimeInterval(-604800), endDate: now.addingTimeInterval(604800 * 3), targetPoints: nil, circleOnePoints: 12450, circleTwoPoints: 11800, winnerId: nil, status: .active),
-            CircleCompetition(id: UUID(), name: "Race to 50K", description: "First circle to 50,000 points wins", competitionType: .targetPoints, circleOne: thisCircle, circleTwo: CompetitionCircleInfo(id: UUID(), name: "Flex Factory", memberCount: 4), startDate: now.addingTimeInterval(-86400 * 14), endDate: nil, targetPoints: 50000, circleOnePoints: 32100, circleTwoPoints: 28700, winnerId: nil, status: .active),
-        ]
-
-        taskRequests = [
-            CircleTaskRequest(id: UUID(), requester: sampleUsers[4], type: "add", taskName: "Morning Yoga", taskValue: 40, status: "pending", createdAt: now.addingTimeInterval(-43200)),
-        ]
+        leaderboard = circle.members
+            .sorted(by: { $0.totalPoints > $1.totalPoints })
+            .enumerated()
+            .map { idx, member in
+                LeaderboardMember(
+                    id: member.id,
+                    user: member.user,
+                    rank: idx + 1,
+                    totalPoints: member.totalPoints,
+                    goalStreak: member.goalStreak,
+                    longestStreak: member.longestStreak,
+                    weeklyHistory: [],
+                    topTasks: []
+                )
+            }
     }
 
-    private func loadMockData() {
-        let circleColors: [Color] = [
-            Color(red: 0.0, green: 0.7, blue: 1.0),
-            Color(red: 0.9, green: 0.3, blue: 0.5),
-            Color(red: 0.3, green: 0.85, blue: 0.4),
-        ]
-
-        let circle1Members = [
-            CircleMember(id: UUID(), user: meUser, role: .owner, joinedAt: Date().addingTimeInterval(-86400 * 30), totalPoints: 7200, weeklyPoints: 1850, goalStreak: 12, longestStreak: 18),
-            CircleMember(id: UUID(), user: sampleUsers[0], role: .admin, joinedAt: Date().addingTimeInterval(-86400 * 28), totalPoints: 8420, weeklyPoints: 2100, goalStreak: 14, longestStreak: 22),
-            CircleMember(id: UUID(), user: sampleUsers[1], role: .member, joinedAt: Date().addingTimeInterval(-86400 * 25), totalPoints: 12350, weeklyPoints: 2800, goalStreak: 21, longestStreak: 21),
-            CircleMember(id: UUID(), user: sampleUsers[2], role: .member, joinedAt: Date().addingTimeInterval(-86400 * 20), totalPoints: 5680, weeklyPoints: 1200, goalStreak: 7, longestStreak: 15),
-            CircleMember(id: UUID(), user: sampleUsers[3], role: .member, joinedAt: Date().addingTimeInterval(-86400 * 15), totalPoints: 18900, weeklyPoints: 3200, goalStreak: 45, longestStreak: 45),
-        ]
-
-        let circle2Members = [
-            CircleMember(id: UUID(), user: meUser, role: .member, joinedAt: Date().addingTimeInterval(-86400 * 10), totalPoints: 3200, weeklyPoints: 1100, goalStreak: 5, longestStreak: 8),
-            CircleMember(id: UUID(), user: sampleUsers[4], role: .owner, joinedAt: Date().addingTimeInterval(-86400 * 45), totalPoints: 6750, weeklyPoints: 1600, goalStreak: 10, longestStreak: 16),
-            CircleMember(id: UUID(), user: sampleUsers[5], role: .admin, joinedAt: Date().addingTimeInterval(-86400 * 40), totalPoints: 15200, weeklyPoints: 2900, goalStreak: 33, longestStreak: 33),
-        ]
-
-        myCircles = [
-            FitCircle(id: UUID(), name: "Gym Bros", description: "Daily accountability for strength training", ownerId: meUser.id, isPrivate: false, dailyPointGoal: 300, weeklyPointGoal: 2000, totalCirclePoints: 52550, inviteCode: "GYMBR0S1", createdAt: Date().addingTimeInterval(-86400 * 30), members: circle1Members, accentColor: circleColors[0]),
-            FitCircle(id: UUID(), name: "Cut Season", description: "Summer shred accountability crew", ownerId: sampleUsers[4].id, isPrivate: true, dailyPointGoal: 250, weeklyPointGoal: 1500, totalCirclePoints: 25150, inviteCode: "CUTS3ASN", createdAt: Date().addingTimeInterval(-86400 * 45), members: circle2Members, accentColor: circleColors[1]),
-        ]
-
-        let pub1Members = [
-            CircleMember(id: UUID(), user: sampleUsers[0], role: .owner, joinedAt: Date().addingTimeInterval(-86400 * 60), totalPoints: 22000, weeklyPoints: 3100, goalStreak: 30, longestStreak: 42),
-            CircleMember(id: UUID(), user: sampleUsers[3], role: .member, joinedAt: Date().addingTimeInterval(-86400 * 50), totalPoints: 18000, weeklyPoints: 2700, goalStreak: 20, longestStreak: 28),
-        ]
-        let pub2Members = [
-            CircleMember(id: UUID(), user: sampleUsers[5], role: .owner, joinedAt: Date().addingTimeInterval(-86400 * 90), totalPoints: 30000, weeklyPoints: 3500, goalStreak: 55, longestStreak: 55),
-        ]
-
-        publicCircles = [
-            FitCircle(id: UUID(), name: "Iron Warriors", description: "Powerlifting focused group. Heavy weights, big gains.", ownerId: sampleUsers[0].id, isPrivate: false, dailyPointGoal: 400, weeklyPointGoal: 2500, totalCirclePoints: 40000, inviteCode: "IR0NWAR1", createdAt: Date().addingTimeInterval(-86400 * 60), members: pub1Members, accentColor: Color(red: 0.9, green: 0.6, blue: 0.1)),
-            FitCircle(id: UUID(), name: "Morning Grind", description: "5 AM workout crew. No excuses.", ownerId: sampleUsers[5].id, isPrivate: false, dailyPointGoal: 200, weeklyPointGoal: 1200, totalCirclePoints: 30000, inviteCode: "MRNGRND1", createdAt: Date().addingTimeInterval(-86400 * 90), members: pub2Members, accentColor: Color(red: 0.5, green: 0.3, blue: 0.9)),
-        ]
-
-        pendingInvites = [
-            CircleInvite(id: UUID(), circleId: UUID(), circleName: "Flex Factory", inviter: sampleUsers[2], status: "pending", createdAt: Date().addingTimeInterval(-3600)),
-        ]
-
-        cheerlines = [
-            Cheerline(id: UUID(), sender: sampleUsers[0], message: "You're killing it this week! Keep going! 🔥", expiresAt: Date().addingTimeInterval(43200), read: false, createdAt: Date().addingTimeInterval(-1800)),
-        ]
-    }
 }
 
 nonisolated enum CircleDetailTab: String, CaseIterable, Sendable {

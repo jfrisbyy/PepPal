@@ -2,8 +2,8 @@ import Foundation
 import SwiftUI
 
 /// Persistent long-term memory of everything the AI has learned about the user.
-/// Facts persist to local storage (keyed per signed-in user) so they survive
-/// app rebuilds, and get injected into every AI call as a compact memo.
+/// Facts are persisted on Supabase (per-user, RLS-protected) with a UserDefaults
+/// cache for offline access. They are injected into every AI call as a compact memo.
 @MainActor
 @Observable
 final class AIMemoryStore {
@@ -19,6 +19,7 @@ final class AIMemoryStore {
     private init() {
         isEnabled = UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true
         load()
+        Task { await self.hydrateFromSupabase() }
     }
 
     // MARK: - Public API
@@ -38,7 +39,6 @@ final class AIMemoryStore {
             }
     }
 
-    /// Decay an existing fact's confidence and link the contradicting fact.
     func contradict(_ existingId: UUID, with newFactId: UUID) {
         guard let idx = facts.firstIndex(where: { $0.id == existingId }) else { return }
         facts[idx].confidence = max(0.1, facts[idx].confidence - 0.25)
@@ -47,9 +47,9 @@ final class AIMemoryStore {
         }
         facts[idx].updatedAt = Date()
         persist()
+        syncFact(facts[idx])
     }
 
-    /// Detect headlines that invert an existing fact and decay the old one.
     private func detectContradictions(for newFact: AIMemoryFact) {
         let inverseMarkers = ["no longer", "now hits", "now hitting", "reversed", "stopped", "not anymore", "contradicts"]
         let lower = newFact.headline.lowercased()
@@ -75,8 +75,6 @@ final class AIMemoryStore {
         }
     }
 
-    /// Upsert a fact. If a similar headline exists for the same kind/domain,
-    /// reinforce it (bump count + recency) instead of duplicating.
     @discardableResult
     func upsert(_ fact: AIMemoryFact) -> AIMemoryFact {
         guard isEnabled else { return fact }
@@ -93,12 +91,14 @@ final class AIMemoryStore {
             existing.reinforceCount += 1
             facts[idx] = existing
             persist()
+            syncFact(existing)
             return existing
         }
         facts.insert(fact, at: 0)
         detectContradictions(for: fact)
         trim()
         persist()
+        syncFact(fact)
         return fact
     }
 
@@ -112,6 +112,7 @@ final class AIMemoryStore {
         facts[idx].isPinned = pinned
         facts[idx].updatedAt = Date()
         persist()
+        syncFact(facts[idx])
     }
 
     func mute(_ id: UUID, muted: Bool = true) {
@@ -119,29 +120,47 @@ final class AIMemoryStore {
         facts[idx].isMuted = muted
         facts[idx].updatedAt = Date()
         persist()
+        syncFact(facts[idx])
     }
 
     func delete(_ id: UUID) {
         facts.removeAll { $0.id == id }
         persist()
+        Task.detached {
+            await PersistenceSyncService.shared.deleteAIMemoryFact(id: id.uuidString.lowercased())
+        }
     }
 
     func clear(domain: String? = nil, kind: AIMemoryFact.Kind? = nil) {
+        let removed = facts.filter { fact in
+            (domain == nil || fact.domain == domain) &&
+            (kind == nil || fact.kind == kind)
+        }
         facts.removeAll { fact in
             (domain == nil || fact.domain == domain) &&
             (kind == nil || fact.kind == kind)
         }
         persist()
+        for fact in removed {
+            let fid = fact.id
+            Task.detached {
+                await PersistenceSyncService.shared.deleteAIMemoryFact(id: fid.uuidString.lowercased())
+            }
+        }
     }
 
     func clearAll() {
+        let removed = facts
         facts = []
         persist()
+        for fact in removed {
+            let fid = fact.id
+            Task.detached {
+                await PersistenceSyncService.shared.deleteAIMemoryFact(id: fid.uuidString.lowercased())
+            }
+        }
     }
 
-    /// Replace all existing facts that share a sourceTag (and optional kind/domain)
-    /// with a fresh batch. Used when re-running a chapter (About You, Goals, etc.)
-    /// so stale numbers do not linger until expiry.
     func replaceFactsWith(
         sourceTag: String,
         domain: String? = nil,
@@ -152,11 +171,23 @@ final class AIMemoryStore {
             upsertMany(fresh)
             return
         }
+        let removed = facts.filter { fact in
+            guard fact.sourceTag == sourceTag else { return false }
+            if let domain, fact.domain != domain { return false }
+            if let kind, fact.kind != kind { return false }
+            return true
+        }
         facts.removeAll { fact in
             guard fact.sourceTag == sourceTag else { return false }
             if let domain, fact.domain != domain { return false }
             if let kind, fact.kind != kind { return false }
             return true
+        }
+        for fact in removed {
+            let fid = fact.id
+            Task.detached {
+                await PersistenceSyncService.shared.deleteAIMemoryFact(id: fid.uuidString.lowercased())
+            }
         }
         for f in fresh { upsert(f) }
         persist()
@@ -167,7 +198,6 @@ final class AIMemoryStore {
         UserDefaults.standard.set(enabled, forKey: enabledKey)
     }
 
-    /// Compact memo to inject into AI system prompts. Keeps the token cost low.
     func memoForAgent(limit: Int = 14) -> String {
         let active = allFacts().prefix(limit)
         guard !active.isEmpty else { return "" }
@@ -224,9 +254,55 @@ final class AIMemoryStore {
         UserDefaults.standard.set(data, forKey: storageKey)
     }
 
+    private func syncFact(_ fact: AIMemoryFact) {
+        guard isEnabled else { return }
+        guard let data = try? JSONEncoder().encode(fact),
+              let json = String(data: data, encoding: .utf8) else { return }
+        let category = "\(fact.kind.rawValue).\(fact.domain)"
+        let id = fact.id.uuidString.lowercased()
+        let source = fact.sourceTag.isEmpty ? nil : fact.sourceTag
+        let confidence = fact.confidence
+        Task.detached {
+            await PersistenceSyncService.shared.upsertAIMemoryFact(
+                id: id,
+                category: category,
+                contentJSON: json,
+                confidence: confidence,
+                source: source
+            )
+        }
+    }
+
+    func hydrateFromSupabase() async {
+        let rows = await PersistenceSyncService.shared.fetchAIMemoryFacts()
+        guard !rows.isEmpty else {
+            // Push current local facts to Supabase on first-ever sync.
+            for fact in facts { syncFact(fact) }
+            return
+        }
+        var byId: [UUID: AIMemoryFact] = [:]
+        for fact in facts { byId[fact.id] = fact }
+        for row in rows {
+            guard let data = row.content.data(using: .utf8),
+                  let fact = try? JSONDecoder().decode(AIMemoryFact.self, from: data) else { continue }
+            if let local = byId[fact.id] {
+                // Prefer the more recently reinforced version.
+                byId[fact.id] = local.lastReinforcedAt > fact.lastReinforcedAt ? local : fact
+            } else {
+                byId[fact.id] = fact
+            }
+        }
+        facts = byId.values.sorted { lhs, rhs in
+            if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
+            return lhs.lastReinforcedAt > rhs.lastReinforcedAt
+        }
+        persist()
+    }
+
     /// Call after sign-in/out so the store swaps to the correct user bucket.
     func reloadForCurrentUser() {
         facts = []
         load()
+        Task { await self.hydrateFromSupabase() }
     }
 }
