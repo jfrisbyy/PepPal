@@ -542,10 +542,18 @@ struct PlanTrainingSectionView: View {
                     Text("\u{2014}")
                         .font(.system(size: 10))
                         .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
-                    Text(viewModel.todaysPlan.isRestDay ? "Rest Day" : viewModel.todaysPlan.name)
-                        .font(.system(size: 12, weight: .semibold, design: .serif))
-                        .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                        .lineLimit(1)
+                    if viewModel.todaysPlan.isRestDay {
+                        Text("Rest Day")
+                            .font(.system(size: 12, weight: .semibold, design: .serif))
+                            .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                            .lineLimit(1)
+                    } else if let program = viewModel.activeProgram {
+                        Text("W\(program.currentWeek) \u{00B7} \(dayPositionLabel(program: program))")
+                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                            .tracking(1.2)
+                            .foregroundStyle(PepTheme.textPrimary.opacity(0.7))
+                            .lineLimit(1)
+                    }
                 }
 
                 Spacer()
@@ -749,18 +757,12 @@ struct PlanTrainingSectionView: View {
     }
 
     private var compactHeaderRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(viewModel.todaysPlan.name)
-                .font(.system(size: 18, weight: .bold, design: .serif))
-                .foregroundStyle(PepTheme.textPrimary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-
+        HStack(alignment: .center, spacing: 8) {
             if let program = viewModel.activeProgram {
                 Text("W\(program.currentWeek) \u{00B7} \(dayPositionLabel(program: program))")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.2)
-                    .foregroundStyle(PepTheme.blue.opacity(0.85))
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(PepTheme.blue.opacity(0.9))
                     .lineLimit(1)
             }
 

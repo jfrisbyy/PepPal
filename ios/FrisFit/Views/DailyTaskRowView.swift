@@ -52,33 +52,24 @@ struct DailyTaskRowView: View {
     }
 
     private var rowContent: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 5)
-                    .stroke(task.isCompleted ? PepTheme.teal : PepTheme.textSecondary.opacity(0.3), lineWidth: 1.5)
-                    .frame(width: 20, height: 20)
-                    .background(
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(task.isCompleted ? PepTheme.teal : Color.clear)
-                    )
+                Circle()
+                    .stroke(task.isCompleted ? PepTheme.teal : PepTheme.textSecondary.opacity(0.35), lineWidth: 1)
+                    .frame(width: 18, height: 18)
 
                 if task.isCompleted {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(PepTheme.invertedText)
+                    Circle()
+                        .fill(PepTheme.teal)
+                        .frame(width: 9, height: 9)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
+            .padding(.top, 1)
 
-            Image(systemName: task.icon)
-                .font(.system(size: 12))
-                .foregroundStyle(task.isCompleted ? PepTheme.teal.opacity(0.5) : PepTheme.textSecondary)
-                .frame(width: 18)
-                .padding(.top, 2)
-
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(task.name)
-                    .font(.system(.subheadline, weight: task.isCompleted ? .medium : .semibold))
+                    .font(.system(size: 15, weight: task.isCompleted ? .regular : .medium, design: .serif))
                     .foregroundStyle(task.isCompleted ? PepTheme.textSecondary.opacity(0.5) : PepTheme.textPrimary)
                     .strikethrough(task.isCompleted, color: PepTheme.textSecondary.opacity(0.3))
                     .lineLimit(2)
@@ -86,9 +77,10 @@ struct DailyTaskRowView: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 if task.actionLink != .none && !task.goalDescription.isEmpty {
-                    Text(task.goalDescription)
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(PepTheme.teal.opacity(0.7))
+                    Text(task.goalDescription.uppercased())
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.0)
+                        .foregroundStyle(PepTheme.teal.opacity(0.75))
                         .lineLimit(1)
                 }
             }
@@ -111,14 +103,18 @@ struct DailyTaskRowView: View {
             }
             .padding(.top, 2)
         }
-        .padding(.vertical, 7)
-        .padding(.horizontal, 8)
+        .padding(.vertical, 9)
+        .padding(.horizontal, 10)
         .background(
             task.isCompleted
-                ? PepTheme.teal.opacity(0.04)
+                ? PepTheme.teal.opacity(0.03)
                 : (task.isProtocolRecommended ? PepTheme.teal.opacity(0.02) : Color.clear)
         )
-        .clipShape(.rect(cornerRadius: 8))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(PepTheme.textSecondary.opacity(0.08))
+                .frame(height: 0.5)
+        }
     }
 
     private var sourceBadge: some View {
