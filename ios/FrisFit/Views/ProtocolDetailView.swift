@@ -65,6 +65,7 @@ struct ProtocolDetailView: View {
                 }
 
                 supplySection
+                vialsSection
                 sideEffectTrendSection
                 batchInfoSection
                 supplementStackSection
@@ -220,6 +221,10 @@ struct ProtocolDetailView: View {
         .onAppear {
             viewModel.refreshFromSupabase()
         }
+    }
+
+    private var vialsSection: some View {
+        ProtocolVialsSection(protocolData: viewModel.protocolData)
     }
 
     private var proactiveInsightsSection: some View {

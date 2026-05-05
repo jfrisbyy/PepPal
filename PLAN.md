@@ -1,21 +1,29 @@
-# Merge the two protocol detail pages into one unified view
-
-## The problem
-
-Right now tapping a protocol can land you on two different pages depending on entry point:
-- A **pharmacology page** (big bottle, medication-level chart, half-life, refill button, vial info, dose history) when tapping the protocol from the home card.
-- A **protocol detail page** (cycle timeline, dose log, interactions, side effects, reconstitution, supply, notes, etc.) when opening from "Manage Protocols" or the Details footer button.
-
-These will be combined into a single, definitive protocol page.
+# Remove the standalone Vial Inventory page and surface vials inside each protocol
 
 ## What changes
 
-- **One page for everything.** All entry points — tapping the protocol card, tapping a specific compound inside the stack, the Details footer, and the Manage Protocols list — now open the same unified protocol page.
-- **New hero at the top of the page.** The page leads with the large animated bottle, the medication-level chart, range selector (24h / 7d / 30d), half-life facts row, and the Refill button — exactly the premium feel of the old pharmacology page.
-- **Per-compound focus.** For multi-compound protocols, the hero shows a compound switcher at the top. Tapping a specific compound from the home card opens this page already focused on that compound's chart.
-- **Everything else preserved underneath.** Below the hero you still get: proactive insights, interactions, next dose action, cycle timeline, dose log, injection sites, reconstitution, side effects, goal-specific tracking (weight loss / healing / muscle / cognitive / tanning), supply, batch info, supplements, and notes.
-- **No more duplicate page.** The old standalone pharmacology page is removed so there's one source of truth.
+The standalone "Vial Inventory" page is going away. Every vial will live where it actually matters — inside the protocol it belongs to. One source of truth, less navigation.
 
-## Result
+## What you'll see
 
-Users see a single, premium editorial protocol page with the chart and refill front-and-center, and all the deeper tracking tools below — no more two conflicting views.
+- **Profile menu**: the "Vial Inventory" row is removed. Scan history stays accessible from a smaller link in Settings (so old scans aren't lost).
+- **Protocol detail page**: gets a new **"Vials"** section in the same premium editorial styling as the rest of the page. It shows:
+  - Active vial up top (with batch, source, expiration/BUD, doses remaining, low-stock chip)
+  - Stockpiled / reserve vials below (collapsed by default, tap to expand)
+  - Archived/depleted vials tucked into a "History" disclosure
+  - Add Vial, Scan Vial, and Integrity Check actions live right here
+- **Home protocol tracker**: unchanged on the surface, but the "Manage Vials" button now jumps directly to the Vials section of that protocol's detail page instead of opening the old inventory sheet.
+- **Reconstitution Calculator**: still pulls from the same vial data, no visible change.
+
+## Rules
+
+- Every vial must be tied to a protocol's compound. You can't add a "floating" vial anymore.
+- If a user tries to add a vial for a compound with no active protocol, we prompt them to start a protocol first (one tap — pre-fills the compound).
+- Existing vials are preserved and automatically shown under their matching protocol.
+
+## What stays the same
+
+- All vial data, batch info, scan history, BUD/expiry tracking, low-stock alerts, supply forecasts, and AI context — fully intact.
+- Onboarding's vial-setup step still works.
+- The morning brief and AI assistant still see the full vial picture.
+

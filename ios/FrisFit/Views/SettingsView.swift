@@ -18,6 +18,7 @@ struct SettingsView: View {
                 unitsSection
                 personalizationSection
                 aiMemorySection
+                vialScanHistorySection
                 timerSection
                 healthKitSection
                 compoundAccessSection
@@ -91,6 +92,43 @@ struct SettingsView: View {
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+        }
+    }
+
+    @State private var showVialScanHistory: Bool = false
+
+    private var vialScanHistorySection: some View {
+        SettingsCard(title: "Compound Tools") {
+            Button {
+                showVialScanHistory = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.body)
+                        .foregroundStyle(PepTheme.violet)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Vial Scan History")
+                            .font(.body)
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("View labels you've scanned previously")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+        .sheet(isPresented: $showVialScanHistory) {
+            NavigationStack {
+                VialScanHistoryView { _, _ in
+                    showVialScanHistory = false
                 }
             }
         }

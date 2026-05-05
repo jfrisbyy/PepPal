@@ -13,7 +13,7 @@ struct ProtocolPharmacologyHero: View {
     @State private var showInfoSheet: Bool = false
     @State private var showRefillSheet: Bool = false
     @State private var showReconCalc: Bool = false
-    @State private var showVialInventory: Bool = false
+    @State private var showAddVial: Bool = false
     @State private var inventory = VialInventoryStore.shared
 
     private var compound: ProtocolCompound? {
@@ -110,9 +110,9 @@ struct ProtocolPharmacologyHero: View {
             RefillActionSheet(
                 compoundName: compound?.compoundName ?? focusedCompoundName,
                 vialSizeMg: compound?.vialSizeMg,
-                onOpenInventory: {
+                onAddVial: {
                     showRefillSheet = false
-                    showVialInventory = true
+                    showAddVial = true
                 },
                 onOpenReconCalc: {
                     showRefillSheet = false
@@ -121,8 +121,16 @@ struct ProtocolPharmacologyHero: View {
             )
             .presentationDetents([.medium])
         }
-        .sheet(isPresented: $showVialInventory) {
-            NavigationStack { VialInventoryView() }
+        .sheet(isPresented: $showAddVial) {
+            AddEditVialSheet(vial: nil) { new in
+                var v = new
+                if v.compoundName.isEmpty, let name = compound?.compoundName {
+                    v.compoundName = name
+                }
+                inventory.add(v)
+                VialBUDNotificationService.shared.scheduleBUDReminder(for: v)
+                Task { await VialBUDNotificationService.shared.requestAuthIfNeeded() }
+            }
         }
         .sheet(isPresented: $showReconCalc) {
             ReconstitutionCalculatorView(
@@ -536,18 +544,18 @@ struct PKInfoSheet: View {
 struct RefillActionSheet: View {
     let compoundName: String
     let vialSizeMg: Double?
-    let onOpenInventory: () -> Void
+    let onAddVial: () -> Void
     let onOpenReconCalc: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
-                row(title: "Open Vial Inventory",
-                    subtitle: "Add a new vial or reconstitute an existing one",
-                    icon: "testtube.2",
+                row(title: "Add a New Vial",
+                    subtitle: "Log a fresh \(compoundName) vial with batch & BUD",
+                    icon: "plus.circle.fill",
                     color: PepTheme.violet,
-                    action: onOpenInventory)
+                    action: onAddVial)
                 row(title: "Reconstitution Calculator",
                     subtitle: "Mix BAC water for a fresh \(compoundName) vial",
                     icon: "function",

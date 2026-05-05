@@ -19,13 +19,22 @@ struct ProtocolSectionView: View {
     @State private var showTitrationPicker: Bool = false
     @State private var titrationTargetProto: PeptideProtocol? = nil
     @State private var titrationBuilder: TitrationBuilderContext? = nil
-    @State private var showVialInventory: Bool = false
     @State private var showTrends: Bool = false
     @State private var trendsProto: PeptideProtocol? = nil
     @State private var showVialScanner: Bool = false
     @State private var showIntegrityCheck: Bool = false
     @State private var showAIChat: Bool = false
     @State private var scanHandoff: VialScanHandoff? = nil
+
+    private func protocolMatching(compoundName: String) -> PeptideProtocol? {
+        let active = protocols.first(where: { proto in
+            proto.isActive && proto.compounds.contains(where: { $0.compoundName.localizedCaseInsensitiveCompare(compoundName) == .orderedSame })
+        })
+        if let active { return active }
+        return protocols.first(where: { proto in
+            proto.compounds.contains(where: { $0.compoundName.localizedCaseInsensitiveCompare(compoundName) == .orderedSame })
+        })
+    }
 
     private var protocols: [PeptideProtocol] {
         viewModel.allProtocols.sorted { a, b in
@@ -114,9 +123,6 @@ struct ProtocolSectionView: View {
                 viewModel.saveTitrationSchedule(schedule)
             }
         }
-        .sheet(isPresented: $showVialInventory) {
-            NavigationStack { VialInventoryView() }
-        }
         .sheet(item: $trendsProto) { proto in
             NavigationStack { ProtocolTrendsView(protocolData: proto) }
         }
@@ -142,7 +148,15 @@ struct ProtocolSectionView: View {
         .sheet(item: $scanHandoff) { handoff in
             switch handoff.kind {
             case .inventory:
-                NavigationStack { VialInventoryView() }
+                if let proto = protocolMatching(compoundName: handoff.prefill.compoundName) {
+                    NavigationStack {
+                        ProtocolDetailView(protocolData: proto, initialCompoundName: handoff.prefill.compoundName)
+                    }
+                } else {
+                    ProtocolSetupWizardView(initialCompound: handoff.prefill.compoundName) { newProto in
+                        viewModel.saveProtocolToSupabase(newProto)
+                    }
+                }
             case .reconstitute:
                 ReconstitutionCalculatorView(
                     initialCompound: handoff.prefill.compoundName,
@@ -202,7 +216,12 @@ struct ProtocolSectionView: View {
             let lowStock = SupplyForecastService.lowStockForecasts(from: protocols)
             if !lowStock.isEmpty {
                 LowStockBanner(forecasts: lowStock) {
-                    showVialInventory = true
+                    if let firstLow = lowStock.first,
+                       let proto = protocolMatching(compoundName: firstLow.compoundName) {
+                        navDetailProto = ProtocolDetailNavTarget(proto: proto, compoundName: firstLow.compoundName)
+                    } else if let proto = protocols.first {
+                        navDetailProto = ProtocolDetailNavTarget(proto: proto, compoundName: nil)
+                    }
                 }
             }
             GlassCard(accent: PepTheme.teal) {
@@ -752,7 +771,7 @@ struct ProtocolSectionView: View {
                     showVialScanner = true
                 }
                 toolTile(title: "Vials", icon: "testtube.2", color: PepTheme.violet) {
-                    showVialInventory = true
+                    navDetailProto = ProtocolDetailNavTarget(proto: proto, compoundName: primaryCompound)
                 }
                 toolTile(title: "Integrity", icon: "checkmark.seal.fill", color: .green) {
                     showIntegrityCheck = true

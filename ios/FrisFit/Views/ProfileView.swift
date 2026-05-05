@@ -84,8 +84,6 @@ struct ProfileView: View {
                     ProgressPhotosView()
                 case .protocolHistory:
                     ProtocolHistoryView()
-                case .vialInventory:
-                    VialInventoryView()
                 case .biomarkerTrends:
                     BiomarkerTrackingView()
                 case .stackBuilder:
@@ -419,11 +417,6 @@ struct ProfileView: View {
             }
             .buttonStyle(.scale)
 
-            NavigationLink(value: ProfileDestination.vialInventory) {
-                ProfileMenuRow(icon: "testtube.2", title: "Vial Inventory", subtitle: vialInventorySubtitle)
-            }
-            .buttonStyle(.scale)
-
             Button {
                 showReconCalculator = true
             } label: {
@@ -500,14 +493,6 @@ struct ProfileView: View {
         return "\(n)"
     }
 
-    private var vialInventorySubtitle: String {
-        let store = VialInventoryStore.shared
-        if store.vials.isEmpty { return "Track vials, BUD, and doses remaining" }
-        let lows = store.lowStockCount
-        if lows > 0 { return "\(store.vials.count) vials • \(lows) need attention" }
-        return "\(store.vials.count) vials tracked"
-    }
-
     private func deletePost(_ post: UserPost) {
         let supabaseId = post.id.uuidString.lowercased()
         Task {
@@ -539,7 +524,6 @@ enum ProfileDestination: Hashable {
     case bloodwork
     case progressPhotos
     case protocolHistory
-    case vialInventory
     case biomarkerTrends
     case stackBuilder
     case appleHealth
