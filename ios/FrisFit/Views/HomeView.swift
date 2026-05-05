@@ -1425,90 +1425,103 @@ struct HomeView: View {
     // MARK: - Daily Tasks Section
 
     private var dailyTasksSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            dailyTasksHeader
+            if !isDailyTasksCollapsed {
+                dailyTasksContent
+            }
+        }
+    }
+
+    private var dailyTasksHeader: some View {
         let tasks = viewModel.todaysTasks
         let completedCount = tasks.filter(\.isCompleted).count
         let totalCount = tasks.count
+        let allDone = completedCount == totalCount && totalCount > 0
 
-        return VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
-                    isDailyTasksCollapsed.toggle()
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "checklist")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(PepTheme.amber)
-                    Text("DAILY TASKS")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-                        .tracking(0.5)
-
-                    Text("\(completedCount)/\(totalCount)")
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .foregroundStyle(completedCount == totalCount && totalCount > 0 ? PepTheme.teal : PepTheme.textSecondary.opacity(0.5))
-
-                    if completedCount == totalCount && totalCount > 0 {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 9))
-                            .foregroundStyle(PepTheme.teal)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
-                        .rotationEffect(.degrees(isDailyTasksCollapsed ? 0 : 90))
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .contentShape(.rect)
+        return Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                isDailyTasksCollapsed.toggle()
             }
-            .buttonStyle(.plain)
-
-            if !isDailyTasksCollapsed {
-                VStack(spacing: 0) {
-                    if viewModel.hasProtocolDeck && !viewModel.protocolDeckFocus.isEmpty {
-                        planProtocolFocusStrip
-                            .padding(.horizontal, 14)
-                            .padding(.bottom, 6)
-                    }
-
-                    ForEach(TaskCategory.builtInCases) { category in
-                        let catTasks = viewModel.todaysTasks(for: category)
-                        if !catTasks.isEmpty {
-                            planCategorySection(name: category.rawValue, icon: category.icon, color: category.color, tasks: catTasks, key: category.rawValue)
-                        }
-                    }
-
-                    ForEach(viewModel.customCategories) { custom in
-                        let catTasks = viewModel.todaysTasks(forCustom: custom.id)
-                        if !catTasks.isEmpty {
-                            planCategorySection(name: custom.name, icon: custom.icon, color: custom.color, tasks: catTasks, key: custom.id.uuidString)
-                        }
-                    }
-
-                    Button {
-                        showAddTask = true
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 14))
-                            Text("Add Task")
-                                .font(.system(.caption, weight: .semibold))
-                        }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "checklist")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(PepTheme.amber)
+                Text("DAILY TASKS")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                    .tracking(0.5)
+                Text("\(completedCount)/\(totalCount)")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundStyle(allDone ? PepTheme.teal : PepTheme.textSecondary.opacity(0.5))
+                if allDone {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 9))
                         .foregroundStyle(PepTheme.teal)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity)
-                    }
-                    .sensoryFeedback(.impact(weight: .light), trigger: showAddTask)
                 }
-                .padding(.horizontal, 10)
-                .padding(.bottom, 6)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+                    .rotationEffect(.degrees(isDailyTasksCollapsed ? 0 : 90))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var dailyTasksContent: some View {
+        VStack(spacing: 0) {
+            if viewModel.hasProtocolDeck && !viewModel.protocolDeckFocus.isEmpty {
+                planProtocolFocusStrip
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 6)
+            }
+            dailyTasksBuiltInList
+            dailyTasksCustomList
+            dailyTasksAddButton
+        }
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    private var dailyTasksBuiltInList: some View {
+        ForEach(TaskCategory.builtInCases) { category in
+            let catTasks = viewModel.todaysTasks(for: category)
+            if !catTasks.isEmpty {
+                planCategorySection(name: category.rawValue, icon: category.icon, color: category.color, tasks: catTasks, key: category.rawValue)
             }
         }
+    }
+
+    private var dailyTasksCustomList: some View {
+        ForEach(viewModel.customCategories) { custom in
+            let catTasks = viewModel.todaysTasks(forCustom: custom.id)
+            if !catTasks.isEmpty {
+                planCategorySection(name: custom.name, icon: custom.icon, color: custom.color, tasks: catTasks, key: custom.id.uuidString)
+            }
+        }
+    }
+
+    private var dailyTasksAddButton: some View {
+        Button {
+            showAddTask = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 14))
+                Text("Add Task")
+                    .font(.system(.caption, weight: .semibold))
+            }
+            .foregroundStyle(PepTheme.teal)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: showAddTask)
     }
 
     private var planProtocolFocusStrip: some View {
