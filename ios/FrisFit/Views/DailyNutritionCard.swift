@@ -32,22 +32,8 @@ struct DailyNutritionCard: View {
     }
 
     private var collapsedContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "fork.knife")
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.amber)
-                    Text("Nutrition")
-                        .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
-                Spacer()
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
-                    .contentTransition(.symbolEffect(.replace))
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            editorialHeader
 
             if viewModel.isLoading {
                 HStack {
@@ -62,6 +48,38 @@ struct DailyNutritionCard: View {
                 calorieProgressBar
                 compactMacroRow
             }
+        }
+    }
+
+    private var editorialHeader: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text("FUEL")
+                        .font(.system(.caption2, weight: .heavy))
+                        .tracking(3.5)
+                        .foregroundStyle(PepTheme.amber)
+                    Rectangle()
+                        .fill(PepTheme.shimmerHighlight)
+                        .frame(width: 16, height: 1)
+                }
+                Text("Nutrition")
+                    .font(.system(size: 22, weight: .bold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+            Spacer()
+            ZStack {
+                Circle()
+                    .fill(PepTheme.amber.opacity(0.12))
+                    .frame(width: 32, height: 32)
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(PepTheme.amber)
+            }
+            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.45))
+                .contentTransition(.symbolEffect(.replace))
         }
     }
 

@@ -19,37 +19,12 @@ struct BodyGoalSectionView: View {
                 viewModel.showFullDetail = true
             } label: {
                 GlassCard(accent: viewModel.currentGoal.color) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack(spacing: 10) {
-                            ZStack {
-                                Circle()
-                                    .fill(viewModel.currentGoal.color.opacity(0.15))
-                                    .frame(width: 36, height: 36)
-                                Image(systemName: viewModel.currentGoal.icon)
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundStyle(viewModel.currentGoal.color)
-                            }
+                    VStack(alignment: .leading, spacing: 16) {
+                        editorialHeader
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(viewModel.currentGoal.rawValue)
-                                    .font(.system(.subheadline, weight: .bold))
-                                    .foregroundStyle(PepTheme.textPrimary)
-                                Text(viewModel.currentGoal.subtitle)
-                                    .font(.system(.caption2, weight: .medium))
-                                    .foregroundStyle(PepTheme.textSecondary)
-                            }
-
-                            Spacer()
-
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .tint(PepTheme.teal)
-                            } else {
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(PepTheme.textSecondary)
-                            }
-                        }
+                        Rectangle()
+                            .fill(PepTheme.shimmerHighlight)
+                            .frame(height: 0.5)
 
                         if viewModel.currentWeight > 0 {
                             HStack(spacing: 20) {
@@ -134,6 +109,46 @@ struct BodyGoalSectionView: View {
         }
         .navigationDestination(isPresented: $viewModel.showFullDetail) {
             BodyGoalDetailView(viewModel: viewModel)
+        }
+    }
+
+    private var editorialHeader: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text("BODY")
+                        .font(.system(.caption2, weight: .heavy))
+                        .tracking(3.5)
+                        .foregroundStyle(viewModel.currentGoal.color)
+                    Rectangle()
+                        .fill(PepTheme.shimmerHighlight)
+                        .frame(width: 16, height: 1)
+                }
+                Text(viewModel.currentGoal.rawValue)
+                    .font(.system(size: 22, weight: .bold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text(viewModel.currentGoal.subtitle)
+                    .font(.system(.caption, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            Spacer()
+            ZStack {
+                Circle()
+                    .fill(viewModel.currentGoal.color.opacity(0.12))
+                    .frame(width: 32, height: 32)
+                Image(systemName: viewModel.currentGoal.icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(viewModel.currentGoal.color)
+            }
+            if viewModel.isLoading {
+                ProgressView()
+                    .tint(PepTheme.teal)
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.45))
+            }
         }
     }
 
