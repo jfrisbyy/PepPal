@@ -9,11 +9,19 @@ final class TodaysPlanViewModel {
     var errorMessage: String?
     var lastFetchDate: Date?
     var isBackgroundRefreshing: Bool = false
+    /// When the user picks a past date in the calendar, this holds that day's
+    /// locked briefing pulled from the cloud. Today always reads from `planResponse`.
+    var historicalPlan: TodaysPlanResponse?
+    var historicalDate: Date?
+    var isLoadingHistorical: Bool = false
 
     private let cacheKey = "todaysPlanCache"
     private let cacheHashKey = "todaysPlanHash"
     private let cacheDateKey = "todaysPlanCacheTimestamp"
     private static let windowsDoneKey = "todaysPlanWindowsDone"
+    /// Pending trigger reason — set just before kicking off a refresh so the
+    /// completion handler can record it alongside the cloud-saved briefing.
+    private var pendingTrigger: String = "window"
 
     /// Log sources that should trigger an immediate holistic brief refresh.
     private static let logTriggerSources: Set<String> = [
@@ -39,14 +47,49 @@ final class TodaysPlanViewModel {
     }
 
     func loadCachedPlan() {
-        guard let data = UserDefaults.standard.data(forKey: cacheKey),
-              let timestamp = UserDefaults.standard.object(forKey: cacheDateKey) as? Date,
-              Calendar.current.isDateInToday(timestamp),
-              let cached = try? JSONDecoder().decode(TodaysPlanResponse.self, from: data) else {
+        if let data = UserDefaults.standard.data(forKey: cacheKey),
+           let timestamp = UserDefaults.standard.object(forKey: cacheDateKey) as? Date,
+           Calendar.current.isDateInToday(timestamp),
+           let cached = try? JSONDecoder().decode(TodaysPlanResponse.self, from: data) {
+            planResponse = cached
+            lastFetchDate = timestamp
+        }
+        // Cloud fallback: if local cache was empty (cold install, signed in on
+        // another device), hydrate today's brief from Supabase before any AI call.
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            guard self.planResponse == nil || !Calendar.current.isDateInToday(self.lastFetchDate ?? .distantPast) else { return }
+            if let latest = await BriefingCloudService.shared.fetchLatestBriefing(),
+               Calendar.current.isDateInToday(latest.day) {
+                self.planResponse = latest.plan
+                self.lastFetchDate = Date()
+            }
+            await BriefingCloudService.shared.lockYesterdayIfNeeded()
+        }
+    }
+
+    /// Loads a saved briefing for a past date (calendar picker on home screen).
+    /// Today always renders `planResponse`; older days render `historicalPlan`.
+    func loadHistoricalBriefing(for date: Date) {
+        if Calendar.current.isDateInToday(date) {
+            historicalPlan = nil
+            historicalDate = nil
             return
         }
-        planResponse = cached
-        lastFetchDate = timestamp
+        if let existing = historicalDate, Calendar.current.isDate(existing, inSameDayAs: date), historicalPlan != nil {
+            return
+        }
+        historicalPlan = nil
+        historicalDate = date
+        isLoadingHistorical = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let plan = await BriefingCloudService.shared.fetchBriefing(for: date)
+            if let pinned = self.historicalDate, Calendar.current.isDate(pinned, inSameDayAs: date) {
+                self.historicalPlan = plan
+            }
+            self.isLoadingHistorical = false
+        }
     }
 
     private func cachePlan(_ plan: TodaysPlanResponse, hash: String) {
@@ -54,6 +97,18 @@ final class TodaysPlanViewModel {
         UserDefaults.standard.set(data, forKey: cacheKey)
         UserDefaults.standard.set(hash, forKey: cacheHashKey)
         UserDefaults.standard.set(Date(), forKey: cacheDateKey)
+        // Persist to the cloud so other devices and historical lookups find it.
+        let trigger = pendingTrigger
+        let windowKey = currentWindow().rawValue
+        Task.detached { @MainActor in
+            await BriefingCloudService.shared.saveBriefing(
+                date: Date(),
+                plan: plan,
+                dataHash: hash,
+                trigger: trigger,
+                windowKey: windowKey
+            )
+        }
     }
 
     func templateFallback(
@@ -101,14 +156,17 @@ final class TodaysPlanViewModel {
 
     // MARK: - Time-of-day windows
 
-    /// Morning: 00:00-11:59, Afternoon: 12:00-16:59, Evening: 17:00-23:59.
+    /// Three refresh windows anchored at 6 AM / 1 PM / 6 PM. Hours before 6 AM
+    /// fall into the previous evening's window so a 5 AM open doesn't burn a
+    /// generation that the 6 AM one will redo.
     private enum Window: String { case morning, afternoon, evening }
 
     private func currentWindow(_ date: Date = Date()) -> Window {
         let hour = Calendar.current.component(.hour, from: date)
-        if hour < 12 { return .morning }
-        if hour < 17 { return .afternoon }
-        return .evening
+        if hour < 6 { return .evening }       // overnight rolls into prior evening
+        if hour < 13 { return .morning }      // 6 AM – 12:59 PM
+        if hour < 18 { return .afternoon }    // 1 PM – 5:59 PM
+        return .evening                       // 6 PM onward
     }
 
     private static func dayString(_ date: Date) -> String {
@@ -190,6 +248,7 @@ final class TodaysPlanViewModel {
             )
             planResponse = fallback
         }
+        pendingTrigger = "window"
         runHolisticRefresh(context: context)
     }
 
@@ -235,6 +294,7 @@ final class TodaysPlanViewModel {
             weeklyMuscleVolumes: weeklyMuscleVolumes,
             personalRecords: personalRecords
         )
+        pendingTrigger = "event"
         runHolisticRefresh(context: context)
     }
 
@@ -301,6 +361,7 @@ final class TodaysPlanViewModel {
             weeklyMuscleVolumes: weeklyMuscleVolumes,
             personalRecords: personalRecords
         )
+        pendingTrigger = "manual"
         runHolisticRefresh(context: context)
     }
 }

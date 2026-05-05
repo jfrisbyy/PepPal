@@ -24,6 +24,16 @@ final class InsightsViewModel {
 
     private init() {
         loadCached()
+        // Cloud fallback so a fresh install / new device still has the last
+        // investigation immediately, no AI call required.
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            if self.investigation == nil,
+               let cloud = await BriefingCloudService.shared.fetchLatestInvestigation() {
+                self.investigation = cloud
+                self.cache(cloud)
+            }
+        }
     }
 
     var hero: AgentInsight? { investigation?.hero }
@@ -64,6 +74,7 @@ final class InsightsViewModel {
                 self.investigation = result
             }
             cache(result)
+            await BriefingCloudService.shared.saveInvestigation(result, trigger: "auto")
         } catch {
             print("[Insights] investigation failed: \(error)")
             let detail: String

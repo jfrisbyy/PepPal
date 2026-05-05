@@ -183,6 +183,12 @@ struct HomeView: View {
             .onChange(of: todaysPlanVM.planResponse?.actionItems.count ?? 0) { _, _ in
                 viewModel.aiActionItems = todaysPlanVM.planResponse?.actionItems ?? []
             }
+            .onChange(of: viewModel.selectedDate) { _, newValue in
+                todaysPlanVM.loadHistoricalBriefing(for: newValue)
+            }
+            .onAppear {
+                todaysPlanVM.loadHistoricalBriefing(for: viewModel.selectedDate)
+            }
         }
     }
 
