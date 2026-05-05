@@ -22,11 +22,12 @@ final class DiscoverViewModel {
 
     // MARK: - Live counts
 
+    /// Real Supabase user count for a compound. Returns 0 when no live data
+    /// is available — we intentionally do NOT fall back to the mock
+    /// `communityUsers` placeholder on Discover so social stats reflect the
+    /// actual community.
     func liveUserCount(for compound: CompoundProfile) -> Int {
-        if let s = liveStats[compound.name.lowercased()], s.recent_users > 0 {
-            return s.recent_users
-        }
-        return compound.communityUsers
+        max(liveStats[compound.name.lowercased()]?.recent_users ?? 0, 0)
     }
 
     func newStarts(for compound: CompoundProfile) -> Int {
@@ -34,14 +35,8 @@ final class DiscoverViewModel {
     }
 
     func trendingScore(for compound: CompoundProfile) -> Int {
-        if let s = liveStats[compound.name.lowercased()] {
-            // If we have live data, prefer it. Mix in mock as a tiny tiebreaker
-            // so brand-new compounds with no real signal still get some ordering.
-            return s.trending_score * 1000 + (compound.communityUsers / 100)
-        }
-        // No live signal yet — use mock community users so the rail isn't empty on
-        // first launch.
-        return compound.communityUsers
+        // Order purely by live signal. Compounds with no real users score 0.
+        (liveStats[compound.name.lowercased()]?.trending_score ?? 0)
     }
 
     func refreshLiveStats() async {
