@@ -154,32 +154,30 @@ struct DailyNutritionCard: View {
     }
 
     private var quickLogButton: some View {
-        Button {
-            onLogMeal()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("Quick Log")
-                    .font(.system(size: 13, weight: .semibold))
-                    .tracking(0.3)
-                Spacer()
-                Image(systemName: "fork.knife")
-                    .font(.system(size: 11, weight: .semibold))
-                    .opacity(0.7)
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(PepTheme.textSecondary.opacity(0.12))
+                .frame(height: 0.5)
+                .padding(.bottom, 10)
+
+            Button {
+                onLogMeal()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 10, weight: .bold))
+                    Text("LOG MEAL")
+                        .font(.system(size: 10, weight: .heavy))
+                        .tracking(2.5)
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 9, weight: .bold))
+                        .opacity(0.6)
+                }
+                .foregroundStyle(PepTheme.amber)
+                .contentShape(Rectangle())
             }
-            .foregroundStyle(.white)
-            .padding(.vertical, 11)
-            .padding(.horizontal, 14)
-            .background(
-                LinearGradient(
-                    colors: [PepTheme.amber, PepTheme.amber.opacity(0.85)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .clipShape(.rect(cornerRadius: 12))
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 }

@@ -176,33 +176,31 @@ struct DailyActivityCard: View {
     }
 
     private var quickLogButton: some View {
-        Button {
-            onLogActivity()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("Quick Log")
-                    .font(.system(size: 13, weight: .semibold))
-                    .tracking(0.3)
-                Spacer()
-                Image(systemName: "figure.run")
-                    .font(.system(size: 11, weight: .semibold))
-                    .opacity(0.7)
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(PepTheme.textSecondary.opacity(0.12))
+                .frame(height: 0.5)
+                .padding(.bottom, 10)
+
+            Button {
+                onLogActivity()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 10, weight: .bold))
+                    Text("LOG ACTIVITY")
+                        .font(.system(size: 10, weight: .heavy))
+                        .tracking(2.5)
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 9, weight: .bold))
+                        .opacity(0.6)
+                }
+                .foregroundStyle(.orange)
+                .contentShape(Rectangle())
             }
-            .foregroundStyle(.white)
-            .padding(.vertical, 11)
-            .padding(.horizontal, 14)
-            .background(
-                LinearGradient(
-                    colors: [.orange, .orange.opacity(0.85)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .clipShape(.rect(cornerRadius: 12))
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 
     private func formattedSteps(_ steps: Int) -> String {
