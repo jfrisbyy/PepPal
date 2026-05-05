@@ -377,7 +377,35 @@ struct StepDetailView: View {
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 2]))
                 }
             }
-            .chartXSelection(value: $selectedDate)
+            .chartOverlay { proxy in
+                GeometryReader { geo in
+                    Rectangle()
+                        .fill(Color.clear)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            SpatialTapGesture()
+                                .onEnded { value in
+                                    guard let plotFrame = proxy.plotFrame else { return }
+                                    let origin = geo[plotFrame].origin
+                                    let location = CGPoint(
+                                        x: value.location.x - origin.x,
+                                        y: value.location.y - origin.y
+                                    )
+                                    if let date: Date = proxy.value(atX: location.x) {
+                                        if let nearest = nearestPoint(to: date, in: points) {
+                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                                                if let current = selectedDate, isSelected(nearest), Calendar.current.isDate(current, equalTo: nearest.date, toGranularity: .second) {
+                                                    selectedDate = nil
+                                                } else {
+                                                    selectedDate = nearest.date
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                        )
+                }
+            }
             .chartYAxis {
                 AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
                     AxisGridLine().foregroundStyle(PepTheme.textSecondary.opacity(0.08))
