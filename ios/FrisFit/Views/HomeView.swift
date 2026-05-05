@@ -8,6 +8,7 @@ struct HomeView: View {
     @State private var showReconCalculator: Bool = false
     @State private var showQuickActions: Bool = false
     @State private var showNutrition: Bool = false
+    @State private var showActivity: Bool = false
     @State private var showDailyTasks: Bool = false
     @State private var showStepDetail: Bool = false
     @State private var bodyGoalViewModel = BodyGoalViewModel()
@@ -259,6 +260,8 @@ struct HomeView: View {
                 VStack(spacing: 16) {
                     DailyActivityCard(viewModel: energyBalanceViewModel, aiInsight: todaysPlanVM.moduleContent(for: "training"), onLogActivity: {
                         showLogActivity = true
+                    }, onTapActivity: {
+                        showActivity = true
                     })
                     DailyNutritionCard(viewModel: energyBalanceViewModel, aiInsight: todaysPlanVM.moduleContent(for: "nutrition"), onLogMeal: {
                         let hour = Calendar.current.component(.hour, from: Date())
@@ -277,7 +280,15 @@ struct HomeView: View {
             .navigationDestination(isPresented: $showNutrition) {
                 NutritionView()
             }
+            .navigationDestination(isPresented: $showActivity) {
+                ActivityView(viewModel: energyBalanceViewModel, aiInsight: todaysPlanVM.moduleContent(for: "training"))
+            }
             .onChange(of: showNutrition) { _, isShowing in
+                if !isShowing {
+                    Task { await energyBalanceViewModel.refresh() }
+                }
+            }
+            .onChange(of: showActivity) { _, isShowing in
                 if !isShowing {
                     Task { await energyBalanceViewModel.refresh() }
                 }

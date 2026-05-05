@@ -4,51 +4,38 @@ struct DailyActivityCard: View {
     @Bindable var viewModel: EnergyBalanceViewModel
     var aiInsight: String? = nil
     var onLogActivity: () -> Void
-    @State private var isExpanded: Bool = false
+    var onTapActivity: () -> Void
 
     private let stepsColor = Color(red: 0.38, green: 0.82, blue: 0.55)
     private let exerciseColor = Color.orange
 
     var body: some View {
-        GlassCard(accent: .orange) {
-            VStack(alignment: .leading, spacing: 0) {
-                collapsedContent
+        Button {
+            onTapActivity()
+        } label: {
+            GlassCard(accent: .orange) {
+                VStack(alignment: .leading, spacing: 14) {
+                    editorialHeader
 
-                if isExpanded {
-                    expandedContent
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    if viewModel.isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView().tint(.orange)
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                    } else {
+                        ringAndContext
+                        balanceBar
+                        quickLogButton
+                    }
                 }
             }
         }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
-                isExpanded.toggle()
-            }
-        }
-        .sensoryFeedback(.selection, trigger: isExpanded)
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: viewModel.activeCaloriesBurned)
         .onAppear {
             viewModel.loadData()
-        }
-    }
-
-    // MARK: - Collapsed
-
-    private var collapsedContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            editorialHeader
-
-            if viewModel.isLoading {
-                HStack {
-                    Spacer()
-                    ProgressView().tint(PepTheme.teal)
-                    Spacer()
-                }
-                .padding(.vertical, 24)
-            } else {
-                ringAndContext
-                balanceBar
-            }
         }
     }
 
@@ -77,10 +64,9 @@ struct DailyActivityCard: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.orange)
             }
-            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(PepTheme.textSecondary.opacity(0.45))
-                .contentTransition(.symbolEffect(.replace))
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
         }
     }
 
@@ -134,21 +120,6 @@ struct DailyActivityCard: View {
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                     .padding(.top, 2)
-
-                if let needed = viewModel.additionalActiveCaloriesNeeded {
-                    Text("Need \(needed) more to hit deficit")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.orange.opacity(0.9))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                } else if let headroom = viewModel.additionalFoodAllowed,
-                          viewModel.targetBalanceDelta ?? 0 < 0 {
-                    Text("\(headroom) cal headroom to eat")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.green.opacity(0.9))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -205,95 +176,34 @@ struct DailyActivityCard: View {
         .padding(.top, 4)
     }
 
-    // MARK: - Expanded
-
-    private var expandedContent: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Divider().overlay(PepTheme.shimmerHighlight)
-                .padding(.top, 12)
-
-            if let insight = aiInsight {
-                AIInsightStrip(content: insight, color: .orange)
-            }
-
-            if let line = MorningBriefService.shared.buildLines().training {
-                BriefLineRow(line: line, icon: "figure.strengthtraining.traditional")
-            }
-
-            breakdownTiles
-
-            if viewModel.tefCalories > 0 {
-                HStack(spacing: 6) {
-                    Text("~\(viewModel.tefCalories) cal digestion (TEF)")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
-                    Spacer()
-                }
-            }
-
-            if let hint = goalHint {
-                goalHintCard(hint)
-            }
-
-            if let source = viewModel.activitySourceDescription {
-                sourceAttributionRow(source)
-            }
-
-            logActivityButton
-
-            if !viewModel.weeklyTrend.isEmpty {
-                weeklyTrendSection
-            }
-
-            if !viewModel.unifiedActivities.isEmpty {
-                recentActivitiesSection
-            }
-        }
-    }
-
-    private var breakdownTiles: some View {
-        HStack(spacing: 8) {
-            stepsBreakdownTile
-            breakdownTile(
-                icon: "figure.run",
-                label: "Exercise",
-                value: viewModel.exerciseCalories,
-                color: exerciseColor,
-                dimmed: false
-            )
-            breakdownTile(
-                icon: "bolt.heart.fill",
-                label: "Resting",
-                value: viewModel.restingBurn,
-                color: PepTheme.violet,
-                dimmed: false
-            )
-        }
-    }
-
-    private var stepsBreakdownTile: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 5) {
-                Image(systemName: "figure.walk")
+    private var quickLogButton: some View {
+        Button {
+            onLogActivity()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                Text("Quick Log")
+                    .font(.system(size: 13, weight: .semibold))
+                    .tracking(0.3)
+                Spacer()
+                Image(systemName: "figure.run")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(stepsColor)
-                Text("Steps")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
+                    .opacity(0.7)
             }
-            Text(formattedSteps(viewModel.stepsToday))
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(PepTheme.textPrimary)
-            Text(viewModel.stepsCalories > 0 ? "\(viewModel.stepsCalories) cal" : "steps")
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+            .foregroundStyle(.white)
+            .padding(.vertical, 11)
+            .padding(.horizontal, 14)
+            .background(
+                LinearGradient(
+                    colors: [.orange, .orange.opacity(0.85)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(.rect(cornerRadius: 12))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .background(stepsColor.opacity(viewModel.hasWatchData ? 0.08 : 0.04))
-        .clipShape(.rect(cornerRadius: 10))
-        .opacity(viewModel.hasWatchData ? 1 : 0.6)
+        .buttonStyle(.plain)
     }
 
     private func formattedSteps(_ steps: Int) -> String {
@@ -301,193 +211,6 @@ struct DailyActivityCard: View {
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = ","
         return formatter.string(from: NSNumber(value: steps)) ?? "\(steps)"
-    }
-
-    private func breakdownTile(icon: String, label: String, value: Int, color: Color, dimmed: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 5) {
-                Image(systemName: icon)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(color)
-                Text(label)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-            Text("\(value)")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(PepTheme.textPrimary)
-            Text("cal")
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .background(color.opacity(dimmed ? 0.04 : 0.08))
-        .clipShape(.rect(cornerRadius: 10))
-        .opacity(dimmed ? 0.6 : 1)
-    }
-
-    private var goalHint: String? {
-        if let needed = viewModel.additionalActiveCaloriesNeeded {
-            let foodToReduce = needed
-            return "To hit your deficit: burn \(needed) more active or eat \(foodToReduce) less."
-        }
-        if let headroom = viewModel.additionalFoodAllowed,
-           viewModel.targetBalanceDelta ?? 0 < 0 {
-            return "You've earned \(headroom) cal of headroom — on track for your deficit."
-        }
-        return nil
-    }
-
-    private func goalHintCard(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "target")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.orange)
-                .padding(.top, 1)
-            Text(text)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer()
-        }
-        .padding(10)
-        .background(Color.orange.opacity(0.08))
-        .clipShape(.rect(cornerRadius: 10))
-    }
-
-    private func sourceAttributionRow(_ text: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: viewModel.hasWatchData ? "applewatch" : "square.and.pencil")
-                .font(.system(size: 11))
-                .foregroundStyle(viewModel.hasWatchData ? .green : PepTheme.textSecondary)
-            Text(text)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
-        }
-    }
-
-    private var weeklyTrendSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("7-Day Activity Trend")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                Spacer()
-                if viewModel.weeklyAvgBurn > 0 {
-                    Text("avg \(viewModel.weeklyAvgBurn) cal")
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.orange.opacity(0.8))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(.orange.opacity(0.1))
-                        .clipShape(.capsule)
-                }
-            }
-
-            MiniBarChart(data: viewModel.weeklyTrend, barColor: .orange, height: 60)
-        }
-        .padding(.top, 4)
-    }
-
-    private var logActivityButton: some View {
-        Button {
-            onLogActivity()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                Text("Log Activity")
-                    .font(.system(size: 14, weight: .semibold))
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 11)
-            .background(.orange.gradient)
-            .clipShape(.rect(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var recentActivitiesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Today's Activities")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(PepTheme.textSecondary)
-
-            ForEach(viewModel.unifiedActivities.prefix(5)) { activity in
-                unifiedActivityRow(activity)
-            }
-        }
-    }
-
-    private func unifiedActivityRow(_ activity: UnifiedActivity) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: activityIcon(forSport: activity.sport))
-                .font(.system(size: 12))
-                .foregroundStyle(.orange)
-                .frame(width: 24)
-
-            VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 5) {
-                    Text(activity.sport)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .lineLimit(1)
-                    if activity.source == .appleWatch {
-                        Image(systemName: "applewatch")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(.green)
-                    }
-                }
-                Text("\(activity.durationMinutes) min")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-            }
-
-            Spacer()
-
-            if activity.calories > 0 {
-                Text("\(activity.calories) cal")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-        }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 10)
-        .background(PepTheme.elevated.opacity(0.5))
-        .clipShape(.rect(cornerRadius: 8))
-    }
-
-    private func activityIcon(forSport sport: String) -> String {
-        switch sport.lowercased() {
-        case "walking": return "figure.walk"
-        case "running": return "figure.run"
-        case "cycling": return "figure.outdoor.cycle"
-        case "swimming": return "figure.pool.swim"
-        case "hiking": return "figure.hiking"
-        case "yoga": return "figure.yoga"
-        case "hiit": return "bolt.heart.fill"
-        case "rowing": return "figure.rowing"
-        case "elliptical": return "figure.elliptical"
-        case "jump rope": return "figure.jumprope"
-        case "stair climbing": return "figure.stairs"
-        case "boxing": return "figure.boxing"
-        case "martial arts": return "figure.martial.arts"
-        case "pilates": return "figure.pilates"
-        case "rock climbing": return "figure.climbing"
-        case "basketball": return "basketball.fill"
-        case "soccer": return "soccerball"
-        case "tennis": return "tennis.racket"
-        case "football": return "football.fill"
-        case "baseball": return "baseball.fill"
-        case "dancing": return "figure.dance"
-        case "stretching": return "figure.flexibility"
-        case "strength": return "figure.strengthtraining.traditional"
-        case "cardio": return "figure.mixed.cardio"
-        default: return "flame.fill"
-        }
     }
 }
 
