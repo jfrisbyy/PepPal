@@ -101,7 +101,8 @@ final class NutritionAIService {
     }
 
     func estimateFromPhoto(_ imageData: Data) async throws -> (result: AIEstimationResult, overlays: [PhotoFoodOverlay]) {
-        let base64 = imageData.base64EncodedString()
+        let optimized = Self.downscaleForVision(imageData) ?? imageData
+        let base64 = optimized.base64EncodedString()
         let dataURL = "data:image/jpeg;base64,\(base64)"
 
         let userContent: [[String: Any]] = [
@@ -116,6 +117,29 @@ final class NutritionAIService {
 
         let responseText = try await callOpenRouter(messages: messages)
         return try parsePhotoResponse(responseText)
+    }
+
+    /// Downscales a meal photo to a vision-optimal size before sending it to the model.
+    /// Vision models internally resize to ~768–1024px tiles, so anything larger just
+    /// inflates payload size and token cost without improving accuracy.
+    static func downscaleForVision(_ imageData: Data, maxDimension: CGFloat = 1024, quality: CGFloat = 0.7) -> Data? {
+        guard let image = UIImage(data: imageData) else { return nil }
+        let size = image.size
+        let longest = max(size.width, size.height)
+        guard longest > 0 else { return nil }
+        let scale = min(1, maxDimension / longest)
+        if scale >= 1 {
+            return image.jpegData(compressionQuality: quality)
+        }
+        let newSize = CGSize(width: floor(size.width * scale), height: floor(size.height * scale))
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
+        let resized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+        return resized.jpegData(compressionQuality: quality)
     }
 
     private func callOpenRouter(messages: [[String: Any]], isRetry: Bool = false) async throws -> String {
