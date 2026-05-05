@@ -32,6 +32,9 @@ final class TrainViewModel {
     private var programsLoadedFromSupabase: Bool = false
     private var loadedForUserId: String? = nil
     private var authObserver: NSObjectProtocol?
+    /// Programs that have not been confirmed synced to Supabase yet.
+    /// Either created offline, or last persist attempt failed.
+    private var pendingSyncProgramIds: Set<UUID> = []
 
     var programName: String = ""
     var programType: ProgramType = .recurringSplit
@@ -384,10 +387,24 @@ final class TrainViewModel {
                         activeStartOffset = entry.startDayOffset
                     }
                 }
-                savedPrograms = programs
+                // Preserve any local programs that haven't been synced yet,
+                // so an empty/partial Supabase response never wipes pending work.
+                let priorLocal = savedPrograms
+                let remoteIds = Set(programs.map(\.id))
+                let unsynced = priorLocal.filter { !remoteIds.contains($0.id) }
+                if !unsynced.isEmpty {
+                    print("[TrainVM] Preserving \(unsynced.count) unsynced local program(s) after fetch")
+                    for prog in unsynced { pendingSyncProgramIds.insert(prog.id) }
+                }
+                savedPrograms = programs + unsynced
                 programSupabaseIds = idMap
-                activeProgram = programs.first { $0.isActive }
+                activeProgram = savedPrograms.first { $0.isActive }
                 loadedForUserId = currentUid
+                // Retry persistence for anything we kept locally or that previously failed.
+                let toRetry = savedPrograms.filter { pendingSyncProgramIds.contains($0.id) }
+                for prog in toRetry {
+                    persistProgramToSupabase(prog)
+                }
                 if let offset = activeStartOffset {
                     UserDefaults.standard.set(offset, forKey: Self.programStartDayKey)
                 } else {
@@ -429,12 +446,15 @@ final class TrainViewModel {
                 }
                 return
             }
+            // Mark as pending until we confirm a successful round-trip.
+            pendingSyncProgramIds.insert(program.id)
             do {
                 if let sid = programSupabaseIds[program.id] {
                     try await TrainingProgramService.shared.updateProgram(id: sid, program: program, startDayOffset: offset)
                     if program.isActive {
                         try? await TrainingProgramService.shared.deactivateAll(exceptId: sid)
                     }
+                    pendingSyncProgramIds.remove(program.id)
                     print("[TrainVM] Updated program '\(program.name)' in Supabase: \(sid)")
                     await MainActor.run {
                         DebugBanner.shared.log(.success, "Program synced", "Updated '\(program.name)' in Supabase.")
@@ -445,15 +465,17 @@ final class TrainViewModel {
                     if program.isActive {
                         try? await TrainingProgramService.shared.deactivateAll(exceptId: sid)
                     }
+                    pendingSyncProgramIds.remove(program.id)
                     print("[TrainVM] Created program '\(program.name)' in Supabase: \(sid)")
                     await MainActor.run {
                         DebugBanner.shared.log(.success, "Program saved", "Created '\(program.name)' in Supabase (id: \(sid.prefix(8))…).")
                     }
                 }
             } catch {
-                print("[TrainVM] Failed to persist program '\(program.name)': \(error)")
+                // Keep marked as pending so a later launch / refresh retries.
+                print("[TrainVM] Failed to persist program '\(program.name)': \(error) — will retry on next launch")
                 await MainActor.run {
-                    DebugBanner.shared.log(.error, "Program save failed", "\(error.localizedDescription)\n\nRaw: \(error)")
+                    DebugBanner.shared.log(.error, "Program save failed", "\(error.localizedDescription)\n\nWill retry automatically.")
                 }
             }
         }
