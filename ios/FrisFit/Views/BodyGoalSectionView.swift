@@ -350,185 +350,377 @@ struct GoalPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedGoal: FitnessGoalType = .weightLoss
     @State private var showDetails: Bool = false
+    @State private var showSavedConfirmation: Bool = false
+    @State private var saveErrorVisible: Bool = false
+    @State private var wasSaving: Bool = false
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                VStack(spacing: 4) {
-                    Text("Set Your Goal")
-                        .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("Choose a goal type and set your target")
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-                .padding(.top, 8)
+            VStack(spacing: 28) {
+                editorialHeader
 
-                VStack(spacing: 8) {
-                    ForEach(FitnessGoalType.allCases) { goal in
-                        Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                selectedGoal = goal
-                                showDetails = true
-                            }
-                        } label: {
-                            HStack(spacing: 12) {
-                                ZStack {
-                                    Circle()
-                                        .fill(goal.color.opacity(0.15))
-                                        .frame(width: 40, height: 40)
-                                    Image(systemName: goal.icon)
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundStyle(goal.color)
-                                }
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(goal.rawValue)
-                                        .font(.system(.subheadline, weight: .semibold))
-                                        .foregroundStyle(PepTheme.textPrimary)
-                                    Text(goal.subtitle)
-                                        .font(.caption)
-                                        .foregroundStyle(PepTheme.textSecondary)
-                                }
-
-                                Spacer()
-
-                                if selectedGoal == goal {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.title3)
-                                        .foregroundStyle(goal.color)
-                                }
-                            }
-                            .padding(12)
-                            .background(
-                                selectedGoal == goal
-                                ? goal.color.opacity(0.08)
-                                : PepTheme.elevated.opacity(0.5)
-                            )
-                            .clipShape(.rect(cornerRadius: 12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .strokeBorder(
-                                        selectedGoal == goal ? goal.color.opacity(0.3) : Color.clear,
-                                        lineWidth: 1
-                                    )
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+                goalChoiceSection
 
                 if showDetails {
                     goalDetailsSection
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
-                Button {
-                    viewModel.currentGoal = selectedGoal
-                    viewModel.saveGoal()
-                } label: {
-                    HStack(spacing: 8) {
-                        if viewModel.isSaving {
-                            ProgressView()
-                                .tint(PepTheme.invertedText)
-                        }
-                        Text("Save Goal")
-                            .font(.system(.body, weight: .semibold))
-                    }
-                    .foregroundStyle(PepTheme.invertedText)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(selectedGoal.color, in: .rect(cornerRadius: 12))
+                if saveErrorVisible, let err = viewModel.errorMessage {
+                    errorBanner(err)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-                .buttonStyle(.scale)
-                .disabled(viewModel.isSaving)
-                .padding(.top, 4)
+
+                saveButton
+                    .padding(.top, 4)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 24)
+            .padding(.top, 12)
+            .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
         .presentationContentInteraction(.scrolls)
         .appBackground()
+        .overlay(alignment: .top) {
+            if showSavedConfirmation {
+                savedToast
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(10)
+            }
+        }
+        .sensoryFeedback(.success, trigger: showSavedConfirmation)
+        .sensoryFeedback(.error, trigger: saveErrorVisible)
         .onAppear {
             selectedGoal = viewModel.currentGoal
             showDetails = true
         }
-    }
-
-    private var goalDetailsSection: some View {
-        VStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Target Weight (lbs)")
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                TextField("e.g. 175.0", text: $viewModel.goalTargetWeightText)
-                    .keyboardType(.decimalPad)
-                    .font(.system(.title3, design: .rounded, weight: .bold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .padding(14)
-                    .background(PepTheme.elevated)
-                    .clipShape(.rect(cornerRadius: 12))
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Target Date")
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                DatePicker("", selection: $viewModel.targetDate, in: Date()..., displayedComponents: .date)
-                    .datePickerStyle(.compact)
-                    .labelsHidden()
-                    .tint(selectedGoal.color)
-                    .padding(10)
-                    .background(PepTheme.elevated)
-                    .clipShape(.rect(cornerRadius: 12))
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Weekly Rate (lbs/week)")
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                TextField("e.g. 1.0", text: $viewModel.goalWeeklyRateText)
-                    .keyboardType(.decimalPad)
-                    .font(.system(.body, design: .rounded, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .padding(14)
-                    .background(PepTheme.elevated)
-                    .clipShape(.rect(cornerRadius: 12))
-
-                HStack(spacing: 6) {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 10))
-                    Text(rateRecommendation)
-                        .font(.system(.caption2, weight: .medium))
+        .onChange(of: viewModel.isSaving) { oldValue, newValue in
+            if oldValue == true && newValue == false {
+                if viewModel.errorMessage == nil {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+                        showSavedConfirmation = true
+                    }
+                    Task {
+                        try? await Task.sleep(for: .seconds(1.6))
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            showSavedConfirmation = false
+                        }
+                    }
+                } else {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        saveErrorVisible = true
+                    }
                 }
-                .foregroundStyle(PepTheme.textSecondary)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Height (cm)")
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                HStack {
-                    Text(String(format: "%.0f cm", viewModel.heightCm))
-                        .font(.system(.body, design: .rounded, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Spacer()
-                    Text(heightInFeetInches)
-                        .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-                Slider(value: $viewModel.heightCm, in: 120...220, step: 1)
-                    .tint(selectedGoal.color)
             }
         }
-        .padding(16)
+    }
+
+    // MARK: Editorial Header
+
+    private var editorialHeader: some View {
+        VStack(spacing: 14) {
+            Text("DEFINE")
+                .font(.system(.caption2, weight: .heavy))
+                .tracking(4)
+                .foregroundStyle(selectedGoal.color)
+
+            Text("Set Your Goal")
+                .font(.system(size: 34, weight: .bold, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .multilineTextAlignment(.center)
+
+            Rectangle()
+                .fill(PepTheme.shimmerHighlight)
+                .frame(width: 40, height: 1)
+
+            Text("A clear target turns intention into momentum. Choose your direction, then dial in the details.")
+                .font(.system(.subheadline, design: .serif))
+                .italic()
+                .foregroundStyle(PepTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+                .padding(.horizontal, 12)
+        }
+        .padding(.top, 4)
+    }
+
+    // MARK: Goal Selection
+
+    private var goalChoiceSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionLabel("01", title: "Direction")
+
+            VStack(spacing: 10) {
+                ForEach(FitnessGoalType.allCases) { goal in
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedGoal = goal
+                            showDetails = true
+                        }
+                    } label: {
+                        goalRow(goal)
+                    }
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.selection, trigger: selectedGoal)
+                }
+            }
+        }
+    }
+
+    private func goalRow(_ goal: FitnessGoalType) -> some View {
+        let isSelected = selectedGoal == goal
+        return HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(goal.color.opacity(isSelected ? 0.22 : 0.12))
+                    .frame(width: 44, height: 44)
+                Image(systemName: goal.icon)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(goal.color)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(goal.rawValue)
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text(goal.subtitle)
+                    .font(.system(.caption, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            Spacer()
+
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(goal.color)
+                    .transition(.scale.combined(with: .opacity))
+            } else {
+                Image(systemName: "circle")
+                    .font(.title3)
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.3))
+            }
+        }
+        .padding(14)
+        .background(
+            isSelected
+            ? goal.color.opacity(0.08)
+            : PepTheme.cardSurface.opacity(0.5)
+        )
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(
+                    isSelected ? goal.color.opacity(0.35) : PepTheme.glassBorderTop.opacity(0.5),
+                    lineWidth: isSelected ? 1 : 0.5
+                )
+        )
+    }
+
+    private func sectionLabel(_ number: String, title: String) -> some View {
+        HStack(spacing: 10) {
+            Text(number)
+                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                .foregroundStyle(selectedGoal.color)
+            Rectangle()
+                .fill(PepTheme.shimmerHighlight)
+                .frame(width: 18, height: 1)
+            Text(title.uppercased())
+                .font(.system(.caption, weight: .heavy))
+                .tracking(2)
+                .foregroundStyle(PepTheme.textPrimary)
+            Spacer()
+        }
+    }
+
+    // MARK: Save Button
+
+    private var saveButton: some View {
+        Button {
+            saveErrorVisible = false
+            viewModel.errorMessage = nil
+            viewModel.currentGoal = selectedGoal
+            viewModel.saveGoal()
+        } label: {
+            HStack(spacing: 10) {
+                if viewModel.isSaving {
+                    ProgressView()
+                        .tint(PepTheme.invertedText)
+                } else if showSavedConfirmation {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16, weight: .bold))
+                }
+                Text(showSavedConfirmation ? "Goal Saved" : (viewModel.isSaving ? "Saving…" : "Save Goal"))
+                    .font(.system(.body, weight: .semibold))
+                    .tracking(0.5)
+            }
+            .foregroundStyle(PepTheme.invertedText)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                LinearGradient(
+                    colors: [selectedGoal.color, selectedGoal.color.opacity(0.85)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: .rect(cornerRadius: 14)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+            )
+            .shadow(color: selectedGoal.color.opacity(0.35), radius: 16, y: 6)
+        }
+        .buttonStyle(.scale)
+        .disabled(viewModel.isSaving)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showSavedConfirmation)
+    }
+
+    // MARK: Toast & Error
+
+    private var savedToast: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(selectedGoal.color.opacity(0.2))
+                    .frame(width: 28, height: 28)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(selectedGoal.color)
+            }
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Goal Saved")
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("Your target is locked in")
+                    .font(.system(.caption2, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            Spacer(minLength: 4)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(selectedGoal.color.opacity(0.35), lineWidth: 0.75)
         )
+        .shadow(color: Color.black.opacity(0.25), radius: 18, y: 8)
+        .padding(.horizontal, 24)
+    }
+
+    private func errorBanner(_ message: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Color(red: 255/255, green: 107/255, blue: 107/255))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Couldn't save")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text(message)
+                    .font(.caption2)
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .lineLimit(2)
+            }
+            Spacer()
+            Button {
+                withAnimation { saveErrorVisible = false }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+        .padding(12)
+        .background(Color(red: 255/255, green: 107/255, blue: 107/255).opacity(0.1))
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color(red: 255/255, green: 107/255, blue: 107/255).opacity(0.3), lineWidth: 0.5)
+        )
+    }
+
+    private var goalDetailsSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            sectionLabel("02", title: "Calibrate")
+
+            VStack(spacing: 16) {
+                editorialField(label: "Target Weight", suffix: "lbs") {
+                    TextField("e.g. 175.0", text: $viewModel.goalTargetWeightText)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 28, weight: .bold, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary)
+                }
+
+                editorialField(label: "Target Date", suffix: nil) {
+                    DatePicker("", selection: $viewModel.targetDate, in: Date()..., displayedComponents: .date)
+                        .datePickerStyle(.compact)
+                        .labelsHidden()
+                        .tint(selectedGoal.color)
+                }
+
+                editorialField(label: "Weekly Rate", suffix: "lbs/wk") {
+                    TextField("e.g. 1.0", text: $viewModel.goalWeeklyRateText)
+                        .keyboardType(.decimalPad)
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                }
+
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkle")
+                        .font(.system(size: 9))
+                    Text(rateRecommendation)
+                        .font(.system(.caption2, design: .serif))
+                        .italic()
+                }
+                .foregroundStyle(PepTheme.textSecondary)
+                .padding(.horizontal, 4)
+
+                editorialField(label: "Height", suffix: heightInFeetInches) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(String(format: "%.0f cm", viewModel.heightCm))
+                            .font(.system(.title3, design: .rounded, weight: .bold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Slider(value: $viewModel.heightCm, in: 120...220, step: 1)
+                            .tint(selectedGoal.color)
+                    }
+                }
+            }
+            .padding(18)
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+            .clipShape(.rect(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+            )
+        }
+    }
+
+    private func editorialField<Content: View>(label: String, suffix: String?, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(label.uppercased())
+                    .font(.system(.caption2, weight: .heavy))
+                    .tracking(1.8)
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
+                if let suffix {
+                    Text(suffix)
+                        .font(.system(.caption2, design: .serif))
+                        .italic()
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                }
+            }
+            content()
+            Rectangle()
+                .fill(PepTheme.shimmerHighlight)
+                .frame(height: 0.5)
+        }
     }
 
     private var rateRecommendation: String {
