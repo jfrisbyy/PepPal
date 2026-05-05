@@ -39,7 +39,7 @@ enum SmartProgramEngine {
     ) -> [SmartProgramSuggestion] {
         var suggestions: [SmartProgramSuggestion] = []
 
-        let compounds = activeProtocol?.compounds.map { $0.name.lowercased() } ?? []
+        let compounds = activeProtocol?.compounds.map { $0.compoundName.lowercased() } ?? []
         let protocolGoal = activeProtocol?.goal
         let phase = activeProtocol?.currentPhase
 
