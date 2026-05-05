@@ -102,15 +102,18 @@ final class ActivityLogService {
             .execute()
     }
 
+    private static let countedActivityTypes: Set<String> = ["workout", "sportSession", "activity", "cardio", "run", "ride", "swim"]
+
     func todayCaloriesBurned(userId: String) async throws -> (calories: Int, count: Int) {
         let today = try await fetchTodayActivities(userId: userId)
         let workouts = try await WorkoutService.shared.fetchWorkouts(userId: userId, limit: 20)
         let todayStr = dateOnly.string(from: Date())
         let todayWorkouts = workouts.filter { $0.date == todayStr }
         let workoutCals = todayWorkouts.reduce(0) { $0 + ($1.calories_burned ?? 0) }
-        let manualCals = today.filter { $0.activity_type == "manual" }.reduce(0) { $0 + ($1.calories_burned ?? 0) }
+        let manualLogs = today.filter { Self.countedActivityTypes.contains($0.activity_type) }
+        let manualCals = manualLogs.reduce(0) { $0 + ($1.calories_burned ?? 0) }
         let totalCals = workoutCals + manualCals
-        let count = todayWorkouts.count + today.filter { $0.activity_type == "manual" }.count
+        let count = todayWorkouts.count + manualLogs.count
         return (totalCals, count)
     }
 
@@ -135,7 +138,7 @@ final class ActivityLogService {
             }
         }
 
-        for row in rows where row.activity_type == "manual" {
+        for row in rows where Self.countedActivityTypes.contains(row.activity_type) {
             dailyMap[row.activity_date, default: 0] += row.calories_burned ?? 0
         }
 

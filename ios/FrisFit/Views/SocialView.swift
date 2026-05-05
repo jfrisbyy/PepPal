@@ -9,37 +9,71 @@ struct SocialView: View {
     @State private var commentPost: WorkoutPost?
     @State private var commentFeedPost: FeedPost?
     @State private var selectedPost: FeedPost?
+    @State private var editingPost: FeedPost?
     @State private var isLoading: Bool = true
     @State private var showComposer: Bool = false
+    @State private var selectedHashtag: String?
+    @State private var selectedUserForMention: SocialUser?
+    @Namespace private var communityPickerNS
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
-                feedView
+                Group {
+                    if viewModel.communityMode == .feed {
+                        feedView
+                    } else {
+                        FriendsStatsView(topHeader: {
+                            communityModePicker
+                                .padding(.horizontal)
+                                .padding(.top, 4)
+                                .padding(.bottom, 10)
+                        })
+                        .transition(.opacity)
+                    }
+                }
 
-                composeButton
+                if viewModel.communityMode == .feed && viewModel.pendingIncomingCount > 0 {
+                    VStack {
+                        newPostsPill
+                            .padding(.top, 8)
+                        Spacer()
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.pendingIncomingCount)
+                }
+
+                if viewModel.communityMode == .feed {
+                    composeButton
+                }
             }
-            .background(PepTheme.background.ignoresSafeArea())
-            .navigationTitle("Community")
+            .appBackground(accent: PepTheme.violet)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 14) {
+                    HStack(spacing: 18) {
+                        NavigationLink {
+                            CommunityDiscoverView()
+                        } label: {
+                            Image(systemName: "safari")
+                                .font(.system(size: 15, weight: .light))
+                                .foregroundStyle(PepTheme.textPrimary.opacity(0.75))
+                        }
+
                         NavigationLink {
                             NotificationsView()
                         } label: {
                             ZStack(alignment: .topTrailing) {
-                                Image(systemName: "bell.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(PepTheme.teal)
+                                Image(systemName: "bell")
+                                    .font(.system(size: 15, weight: .light))
+                                    .foregroundStyle(PepTheme.textPrimary.opacity(0.75))
 
                                 if notificationsViewModel.unreadCount > 0 {
-                                    Text("\(notificationsViewModel.unreadCount)")
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundStyle(.white)
-                                        .frame(minWidth: 16, minHeight: 16)
-                                        .background(Color.red)
-                                        .clipShape(.circle)
-                                        .offset(x: 6, y: -6)
+                                    Circle()
+                                        .fill(PepTheme.teal)
+                                        .frame(width: 6, height: 6)
+                                        .offset(x: 4, y: -2)
                                 }
                             }
                         }
@@ -47,27 +81,24 @@ struct SocialView: View {
                         NavigationLink {
                             GroupsListView(viewModel: groupsViewModel)
                         } label: {
-                            Image(systemName: "person.3.fill")
-                                .font(.system(size: 16))
-                                .foregroundStyle(PepTheme.teal)
+                            Image(systemName: "person.2")
+                                .font(.system(size: 15, weight: .light))
+                                .foregroundStyle(PepTheme.textPrimary.opacity(0.75))
                         }
 
                         NavigationLink {
                             DirectMessagesView(viewModel: messagesViewModel)
                         } label: {
                             ZStack(alignment: .topTrailing) {
-                                Image(systemName: "bubble.left.and.bubble.right.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(PepTheme.teal)
+                                Image(systemName: "bubble.left")
+                                    .font(.system(size: 15, weight: .light))
+                                    .foregroundStyle(PepTheme.textPrimary.opacity(0.75))
 
                                 if messagesViewModel.totalUnread > 0 {
-                                    Text("\(messagesViewModel.totalUnread)")
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundStyle(.white)
-                                        .frame(minWidth: 16, minHeight: 16)
-                                        .background(Color.red)
-                                        .clipShape(.circle)
-                                        .offset(x: 6, y: -6)
+                                    Circle()
+                                        .fill(PepTheme.teal)
+                                        .frame(width: 6, height: 6)
+                                        .offset(x: 4, y: -2)
                                 }
                             }
                         }
@@ -91,7 +122,16 @@ struct SocialView: View {
             .sheet(isPresented: $showComposer) {
                 PostComposerView(socialViewModel: viewModel)
             }
+            .sheet(item: $editingPost) { post in
+                EditPostSheet(post: post, viewModel: viewModel)
+            }
             .navigationDestination(for: SocialUser.self) { user in
+                UserProfileView(user: user, viewModel: profileViewModel)
+            }
+            .navigationDestination(item: Binding(get: { selectedHashtag.map(HashtagDestination.init) }, set: { selectedHashtag = $0?.tag })) { dest in
+                HashtagFeedView(tag: dest.tag)
+            }
+            .navigationDestination(item: $selectedUserForMention) { user in
                 UserProfileView(user: user, viewModel: profileViewModel)
             }
             .onChange(of: viewModel.isLoadingFeed) { _, newValue in
@@ -113,25 +153,61 @@ struct SocialView: View {
         }
     }
 
+    private var newPostsPill: some View {
+        Button {
+            Task { await viewModel.loadNewPosts() }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 9, weight: .semibold))
+                Text("\(viewModel.pendingIncomingCount) NEW")
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .tracking(1.4)
+            }
+            .foregroundStyle(PepTheme.textPrimary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(PepTheme.cardSurface, in: .capsule)
+            .overlay(
+                Capsule().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+            )
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: viewModel.pendingIncomingCount)
+    }
+
+    private func blockUser(_ userId: String) async {
+        do {
+            let myId = try AuthService.shared.currentUserId()
+            try await ModerationService.shared.block(blockerId: myId, blockedId: userId)
+            await viewModel.refreshBlockedUserIds()
+        } catch {}
+    }
+
+    private func openMention(_ handle: String) async {
+        do {
+            let myId = (try? AuthService.shared.currentUserId()) ?? ""
+            let profiles = try await MessagingService.shared.searchUsers(query: handle, excludeUserId: myId)
+            if let match = profiles.first(where: { ($0.username ?? "").caseInsensitiveCompare(handle) == .orderedSame }) ?? profiles.first {
+                let user = MessagingService.shared.socialUserFromAuthor(match)
+                selectedUserForMention = user
+            }
+        } catch {}
+    }
+
     private var composeButton: some View {
         Button {
             showComposer = true
         } label: {
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [PepTheme.teal, PepTheme.teal.opacity(0.8)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 56, height: 56)
-                    .shadow(color: PepTheme.teal.opacity(0.4), radius: 12, x: 0, y: 4)
+                    .fill(PepTheme.cardSurface)
+                    .frame(width: 52, height: 52)
+                    .overlay(Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5))
+                    .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 3)
 
                 Image(systemName: "square.and.pencil")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 18, weight: .light))
+                    .foregroundStyle(PepTheme.textPrimary)
             }
         }
         .buttonStyle(.scale)
@@ -141,9 +217,67 @@ struct SocialView: View {
         .transition(.scale.combined(with: .opacity))
     }
 
+    private var communityModePicker: some View {
+        HStack(spacing: 28) {
+            ForEach(CommunityMode.allCases, id: \.self) { mode in
+                let isSelected = viewModel.communityMode == mode
+                Button {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+                        viewModel.communityMode = mode
+                    }
+                } label: {
+                    VStack(spacing: 6) {
+                        Text(mode.rawValue.uppercased())
+                            .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
+                            .tracking(2.0)
+                            .foregroundStyle(isSelected ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.7))
+                        ZStack(alignment: .center) {
+                            Rectangle()
+                                .fill(PepTheme.separatorColor.opacity(0.3))
+                                .frame(height: 1)
+                            if isSelected {
+                                Rectangle()
+                                    .fill(PepTheme.textPrimary)
+                                    .frame(height: 1.5)
+                                    .matchedGeometryEffect(id: "communityPickerSelection", in: communityPickerNS)
+                            }
+                        }
+                        .frame(width: 36)
+                    }
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+        }
+        .sensoryFeedback(.selection, trigger: viewModel.communityMode)
+    }
+
     private var feedView: some View {
+        feedScrollView
+            .searchable(text: $viewModel.postSearchQuery, isPresented: $viewModel.isPostSearchActive, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search posts, people, tags")
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+    }
+
+    private var isSearchActive: Bool {
+        !viewModel.postSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var feedScrollView: some View {
         ScrollView {
             VStack(spacing: 0) {
+                communityModePicker
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+                    .padding(.bottom, 10)
+
+                if isSearchActive {
+                    searchResultsSection
+                        .padding(.top, 4)
+                        .transition(.opacity)
+                }
+
                 feedFilterBar
                     .padding(.top, 4)
                     .padding(.bottom, 8)
@@ -152,10 +286,14 @@ struct SocialView: View {
                     SkeletonFeedView()
                         .padding(.top, 8)
                         .transition(.opacity)
+                } else if let error = viewModel.feedError {
+                    FeedErrorView(error: error) {
+                        Task { await viewModel.refreshFeed() }
+                    }
                 } else if viewModel.filteredFeedPosts.isEmpty {
                     EmptyStateView(
                         icon: viewModel.feedFilter == .following ? "person.2" : "tag",
-                        title: viewModel.feedFilter == .following ? "No Posts from Friends" : "No Matching Posts",
+                        title: viewModel.feedFilter == .following ? "No Posts from Following" : "No Matching Posts",
                         message: viewModel.feedFilter == .following
                             ? "Follow more people to see their posts here."
                             : "Try selecting different tags to find posts.",
@@ -180,8 +318,44 @@ struct SocialView: View {
                                 },
                                 onDelete: {
                                     viewModel.deletePost(post.id)
+                                },
+                                onEdit: {
+                                    editingPost = post
+                                },
+                                onBlock: {
+                                    Task { await blockUser(post.user.id.uuidString) }
+                                },
+                                onMute: {
+                                    // triggers filteredFeedPosts recompute via moderation store
+                                },
+                                onOpenMention: { handle in
+                                    Task { await openMention(handle) }
+                                },
+                                onOpenHashtag: { tag in
+                                    selectedHashtag = tag
+                                },
+                                onAppear: {
+                                    Task { await viewModel.loadMoreIfNeeded(currentPost: post) }
+                                },
+                                onUserTap: { user in
+                                    selectedUserForMention = user
                                 }
                             )
+                        }
+
+                        if viewModel.isLoadingMore {
+                            HStack {
+                                Spacer()
+                                ProgressView().tint(PepTheme.teal)
+                                Spacer()
+                            }
+                            .padding(.vertical, 20)
+                        } else if !viewModel.hasMorePosts && !viewModel.filteredFeedPosts.isEmpty {
+                            Text("You're all caught up")
+                                .font(.caption)
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 20)
                         }
                     }
                     .padding(.horizontal)
@@ -196,6 +370,165 @@ struct SocialView: View {
         }
     }
 
+    // MARK: - Search Results
+
+    private var searchResultsSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            hashtagsResultBlock
+            peopleResultBlock
+            postsEyebrow
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 4)
+    }
+
+    private var hashtagsResultBlock: some View {
+        let tags = viewModel.searchedHashtags
+        return VStack(alignment: .leading, spacing: 10) {
+            sectionEyebrow("01 \u{2014} HASHTAGS")
+            if tags.isEmpty {
+                Text("No matching tags")
+                    .font(.system(size: 12))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                    .italic()
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(tags.enumerated()), id: \.offset) { idx, tag in
+                        Button {
+                            selectedHashtag = tag
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "number")
+                                    .font(.system(size: 13, weight: .light))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                    .frame(width: 22)
+                                Text("#\(tag)")
+                                    .font(.system(size: 15, weight: .regular))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                                Spacer()
+                                Text("VIEW")
+                                    .font(.system(size: 9, weight: .regular, design: .monospaced))
+                                    .tracking(1.4)
+                                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10, weight: .light))
+                                    .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                            }
+                            .padding(.vertical, 12)
+                            .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        if idx < tags.count - 1 {
+                            Rectangle()
+                                .fill(PepTheme.separatorColor.opacity(0.4))
+                                .frame(height: 0.5)
+                        }
+                    }
+                }
+                .overlay(
+                    Rectangle()
+                        .fill(PepTheme.separatorColor.opacity(0.4))
+                        .frame(height: 0.5),
+                    alignment: .top
+                )
+                .overlay(
+                    Rectangle()
+                        .fill(PepTheme.separatorColor.opacity(0.4))
+                        .frame(height: 0.5),
+                    alignment: .bottom
+                )
+            }
+        }
+    }
+
+    private var peopleResultBlock: some View {
+        let people = viewModel.searchedPeople
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                sectionEyebrow("02 \u{2014} PEOPLE")
+                if viewModel.isSearchingPeople {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(PepTheme.textSecondary)
+                }
+                Spacer()
+            }
+            if people.isEmpty && !viewModel.isSearchingPeople {
+                Text("No people found")
+                    .font(.system(size: 12))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                    .italic()
+            } else if !people.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(Array(people.prefix(8).enumerated()), id: \.element.id) { idx, user in
+                        Button {
+                            selectedUserForMention = user
+                        } label: {
+                            HStack(spacing: 12) {
+                                Circle()
+                                    .fill(user.avatarColor.opacity(0.18))
+                                    .frame(width: 36, height: 36)
+                                    .overlay(
+                                        Text(user.avatarInitial)
+                                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                            .foregroundStyle(user.avatarColor)
+                                    )
+                                    .overlay(
+                                        Circle().strokeBorder(PepTheme.separatorColor.opacity(0.5), lineWidth: 0.5)
+                                    )
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(user.name)
+                                        .font(.system(size: 14, weight: .regular))
+                                        .foregroundStyle(PepTheme.textPrimary)
+                                    Text("@\(user.username)")
+                                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                                        .tracking(0.4)
+                                        .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10, weight: .light))
+                                    .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                            }
+                            .padding(.vertical, 10)
+                            .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        if idx < min(people.count, 8) - 1 {
+                            Rectangle()
+                                .fill(PepTheme.separatorColor.opacity(0.4))
+                                .frame(height: 0.5)
+                        }
+                    }
+                }
+                .overlay(
+                    Rectangle()
+                        .fill(PepTheme.separatorColor.opacity(0.4))
+                        .frame(height: 0.5),
+                    alignment: .top
+                )
+                .overlay(
+                    Rectangle()
+                        .fill(PepTheme.separatorColor.opacity(0.4))
+                        .frame(height: 0.5),
+                    alignment: .bottom
+                )
+            }
+        }
+    }
+
+    private var postsEyebrow: some View {
+        sectionEyebrow("03 \u{2014} POSTS")
+    }
+
+    private func sectionEyebrow(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .regular, design: .monospaced))
+            .tracking(1.8)
+            .foregroundStyle(PepTheme.textSecondary.opacity(0.75))
+    }
+
     private var feedFilterBar: some View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
@@ -203,23 +536,28 @@ struct SocialView: View {
                     if filter == .tags {
                         tagsFilterPill
                     } else {
+                        let isActive = viewModel.feedFilter == filter
                         Button {
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                 viewModel.feedFilter = filter
                                 viewModel.isTagsExpanded = false
                             }
                         } label: {
-                            Text(filter.rawValue)
-                                .font(.system(.subheadline, weight: viewModel.feedFilter == filter ? .bold : .medium))
-                                .foregroundStyle(viewModel.feedFilter == filter ? PepTheme.invertedText : PepTheme.textSecondary)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
+                            Text(filter.rawValue.uppercased())
+                                .font(.system(size: 11, weight: isActive ? .semibold : .regular))
+                                .tracking(1.4)
+                                .foregroundStyle(isActive ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.7))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 7)
                                 .background(
-                                    viewModel.feedFilter == filter
-                                        ? AnyShapeStyle(PepTheme.teal)
-                                        : AnyShapeStyle(PepTheme.elevated)
+                                    Capsule().fill(isActive ? PepTheme.cardSurface : Color.clear)
                                 )
-                                .clipShape(.capsule)
+                                .overlay(
+                                    Capsule().strokeBorder(
+                                        isActive ? PepTheme.textPrimary.opacity(0.7) : PepTheme.separatorColor,
+                                        lineWidth: 0.5
+                                    )
+                                )
                         }
                         .sensoryFeedback(.selection, trigger: viewModel.feedFilter)
                     }
@@ -239,7 +577,9 @@ struct SocialView: View {
     }
 
     private var tagsFilterPill: some View {
-        Button {
+        let isActive = viewModel.feedFilter == .tags
+        let activeCount = viewModel.selectedTags.count
+        return Button {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 if viewModel.feedFilter == .tags {
                     viewModel.isTagsExpanded.toggle()
@@ -249,30 +589,28 @@ struct SocialView: View {
                 }
             }
         } label: {
-            HStack(spacing: 5) {
-                Text("Tags")
-                    .font(.system(.subheadline, weight: viewModel.feedFilter == .tags ? .bold : .medium))
-                let activeCount = viewModel.selectedTags.count
-                if viewModel.feedFilter == .tags && activeCount > 0 {
-                    Text("\(activeCount)")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(PepTheme.teal)
-                        .frame(width: 18, height: 18)
-                        .background(PepTheme.invertedText.opacity(0.2))
-                        .clipShape(.circle)
+            HStack(spacing: 6) {
+                Text("TAGS")
+                    .font(.system(size: 11, weight: isActive ? .semibold : .regular))
+                    .tracking(1.4)
+                if isActive && activeCount > 0 {
+                    Text("·  \(activeCount)")
+                        .font(.system(size: 10, weight: .regular, design: .monospaced))
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 Image(systemName: viewModel.isTagsExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 9, weight: .regular))
             }
-            .foregroundStyle(viewModel.feedFilter == .tags ? PepTheme.invertedText : PepTheme.textSecondary)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(
-                viewModel.feedFilter == .tags
-                    ? AnyShapeStyle(PepTheme.teal)
-                    : AnyShapeStyle(PepTheme.elevated)
+            .foregroundStyle(isActive ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.7))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(Capsule().fill(isActive ? PepTheme.cardSurface : Color.clear))
+            .overlay(
+                Capsule().strokeBorder(
+                    isActive ? PepTheme.textPrimary.opacity(0.7) : PepTheme.separatorColor,
+                    lineWidth: 0.5
+                )
             )
-            .clipShape(.capsule)
         }
         .sensoryFeedback(.selection, trigger: viewModel.isTagsExpanded)
     }
@@ -285,6 +623,7 @@ struct SocialView: View {
                         let isExpanded = viewModel.expandedCategories.contains(category)
                         let hasActiveTag = category.tags.contains(where: { viewModel.selectedTags.contains($0) })
                         let activeCount = category.tags.filter { viewModel.selectedTags.contains($0) }.count
+                        let active = isExpanded || hasActiveTag
                         Button {
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                 if isExpanded {
@@ -294,39 +633,27 @@ struct SocialView: View {
                                 }
                             }
                         } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: category.icon)
-                                    .font(.system(size: 12))
-                                Text(category.rawValue)
-                                    .font(.system(.caption, weight: isExpanded || hasActiveTag ? .bold : .semibold))
+                            HStack(spacing: 6) {
+                                Text(category.rawValue.uppercased())
+                                    .font(.system(size: 10, weight: active ? .semibold : .regular))
+                                    .tracking(1.3)
                                 if activeCount > 0 {
                                     Text("\(activeCount)")
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundStyle(isExpanded || hasActiveTag ? PepTheme.teal : PepTheme.textSecondary)
-                                        .frame(width: 16, height: 16)
-                                        .background(
-                                            (isExpanded || hasActiveTag ? PepTheme.invertedText : PepTheme.elevated).opacity(0.3)
-                                        )
-                                        .clipShape(.circle)
+                                        .font(.system(size: 9, weight: .regular, design: .monospaced))
+                                        .foregroundStyle(PepTheme.textSecondary)
                                 }
                                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                                    .font(.system(size: 9, weight: .semibold))
+                                    .font(.system(size: 8, weight: .regular))
                             }
-                            .foregroundStyle(isExpanded || hasActiveTag ? PepTheme.invertedText : PepTheme.textPrimary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(
-                                isExpanded || hasActiveTag
-                                    ? AnyShapeStyle(PepTheme.teal)
-                                    : AnyShapeStyle(PepTheme.cardSurface)
-                            )
-                            .clipShape(.capsule)
+                            .foregroundStyle(active ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.7))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(Capsule().fill(active ? PepTheme.cardSurface : Color.clear))
                             .overlay(
-                                Capsule()
-                                    .strokeBorder(
-                                        isExpanded || hasActiveTag ? PepTheme.teal : PepTheme.separatorColor,
-                                        lineWidth: 1
-                                    )
+                                Capsule().strokeBorder(
+                                    active ? PepTheme.textPrimary.opacity(0.6) : PepTheme.separatorColor,
+                                    lineWidth: 0.5
+                                )
                             )
                         }
                         .sensoryFeedback(.selection, trigger: isExpanded)
@@ -363,17 +690,19 @@ struct SocialView: View {
                     }
                 } label: {
                     let allSelected = Set(category.tags).isSubset(of: viewModel.selectedTags)
-                    Text("All")
-                        .font(.system(.caption, weight: .bold))
-                        .foregroundStyle(allSelected ? PepTheme.invertedText : PepTheme.teal)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(
-                            allSelected
-                                ? AnyShapeStyle(PepTheme.teal)
-                                : AnyShapeStyle(PepTheme.teal.opacity(0.12))
+                    Text("ALL")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.3)
+                        .foregroundStyle(allSelected ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.7))
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(allSelected ? PepTheme.cardSurface : Color.clear))
+                        .overlay(
+                            Capsule().strokeBorder(
+                                allSelected ? PepTheme.textPrimary.opacity(0.6) : PepTheme.separatorColor,
+                                lineWidth: 0.5
+                            )
                         )
-                        .clipShape(.capsule)
                 }
 
                 ForEach(category.tags) { tag in
@@ -387,28 +716,18 @@ struct SocialView: View {
                             }
                         }
                     } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: tag.icon)
-                                .font(.system(size: 11))
-                            Text(tag.rawValue)
-                                .font(.system(.caption, weight: .semibold))
-                        }
-                        .foregroundStyle(isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(
-                            isSelected
-                                ? AnyShapeStyle(PepTheme.teal)
-                                : AnyShapeStyle(PepTheme.cardSurface)
-                        )
-                        .clipShape(.capsule)
-                        .overlay(
-                            Capsule()
-                                .strokeBorder(
-                                    isSelected ? PepTheme.teal : PepTheme.separatorColor,
-                                    lineWidth: 1
+                        Text("#" + tag.rawValue.lowercased())
+                            .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
+                            .foregroundStyle(isSelected ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.85))
+                            .padding(.horizontal, 11)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(isSelected ? PepTheme.cardSurface : Color.clear))
+                            .overlay(
+                                Capsule().strokeBorder(
+                                    isSelected ? PepTheme.textPrimary.opacity(0.6) : PepTheme.separatorColor,
+                                    lineWidth: 0.5
                                 )
-                        )
+                            )
                     }
                     .sensoryFeedback(.impact(weight: .light), trigger: isSelected)
                 }

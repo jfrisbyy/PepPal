@@ -22,11 +22,115 @@ final class MessagesViewModel {
     }
 
     private let messagingService = MessagingService.shared
+    private var realtimeSubscribedId: String?
+    var typingUserIds: Set<String> = []
+    private var typingResetTasks: [String: Task<Void, Never>] = [:]
+    var blockedUserIds: Set<String> = []
+    var uploadingAttachment: Bool = false
 
     init() {
         Task {
+            await loadBlocks()
             await loadConversations()
         }
+    }
+
+    func loadBlocks() async {
+        guard let userId = try? AuthService.shared.currentUserId() else { return }
+        if let ids = try? await ModerationService.shared.blockedUserIds(blockerId: userId) {
+            blockedUserIds = Set(ids.map { $0.lowercased() })
+        }
+    }
+
+    private func messageDate(_ iso: String?) -> Date? {
+        guard let iso else { return nil }
+        return messagingService.parseDate(iso)
+    }
+
+    private func makeDM(from msg: SupabaseDirectMessage) -> DirectMessage {
+        DirectMessage(
+            id: UUID(uuidString: msg.id ?? "") ?? UUID(),
+            senderID: UUID(uuidString: msg.sender_id) ?? UUID(),
+            text: msg.text_content ?? "",
+            timestamp: messagingService.parseDate(msg.created_at),
+            isRead: msg.is_read ?? false,
+            readAt: messageDate(msg.read_at),
+            attachments: msg.attachments ?? [],
+            supabaseId: msg.id
+        )
+    }
+
+    func subscribeRealtime(conversationID: UUID) async {
+        guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
+              let supabaseId = conversations[index].supabaseConversationId else { return }
+        if realtimeSubscribedId == supabaseId { return }
+        realtimeSubscribedId = supabaseId
+        let myId = try? AuthService.shared.currentUserId()
+        await RealtimeMessagingService.shared.subscribe(
+            conversationId: supabaseId,
+            userId: myId,
+            onMessage: { [weak self] msg in
+                guard let self else { return }
+                guard let idx = self.conversations.firstIndex(where: { $0.id == conversationID }) else { return }
+                let senderIdLower = msg.sender_id.lowercased()
+                if self.blockedUserIds.contains(senderIdLower) { return }
+                let dm = self.makeDM(from: msg)
+                if let existing = self.conversations[idx].messages.firstIndex(where: { $0.id == dm.id }) {
+                    self.conversations[idx].messages[existing] = dm
+                    return
+                }
+                self.conversations[idx].messages.append(dm)
+                self.typingUserIds.remove(dm.senderID.uuidString.lowercased())
+            },
+            onUpdate: { [weak self] msg in
+                guard let self else { return }
+                guard let idx = self.conversations.firstIndex(where: { $0.id == conversationID }) else { return }
+                guard let mid = msg.id, let uuid = UUID(uuidString: mid) else { return }
+                if let mIdx = self.conversations[idx].messages.firstIndex(where: { $0.id == uuid }) {
+                    self.conversations[idx].messages[mIdx].isRead = msg.is_read ?? self.conversations[idx].messages[mIdx].isRead
+                    if let ra = msg.read_at {
+                        self.conversations[idx].messages[mIdx].readAt = self.messagingService.parseDate(ra)
+                    }
+                }
+            },
+            onTyping: { [weak self] userId, isTyping in
+                guard let self else { return }
+                let key = userId.lowercased()
+                if isTyping {
+                    self.typingUserIds.insert(key)
+                    self.typingResetTasks[key]?.cancel()
+                    self.typingResetTasks[key] = Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(5))
+                        if !Task.isCancelled {
+                            self.typingUserIds.remove(key)
+                            self.typingResetTasks[key] = nil
+                        }
+                    }
+                } else {
+                    self.typingUserIds.remove(key)
+                    self.typingResetTasks[key]?.cancel()
+                    self.typingResetTasks[key] = nil
+                }
+            }
+        )
+    }
+
+    func sendTypingSignal() {
+        RealtimeMessagingService.shared.notifyTyping()
+    }
+
+    func stopTypingSignal() {
+        RealtimeMessagingService.shared.stopTyping()
+    }
+
+    func isParticipantTyping(in conversationID: UUID) -> Bool {
+        guard let conv = conversation(for: conversationID) else { return false }
+        return typingUserIds.contains(conv.participant.id.uuidString.lowercased())
+    }
+
+    func unsubscribeRealtime() async {
+        realtimeSubscribedId = nil
+        await RealtimeMessagingService.shared.unsubscribe()
     }
 
     func loadConversations() async {
@@ -44,14 +148,7 @@ final class MessagesViewModel {
 
                 var lastMessages: [DirectMessage] = []
                 if let msg = result.lastMessage {
-                    lastMessages.append(DirectMessage(
-                        id: UUID(uuidString: msg.id ?? "") ?? UUID(),
-                        senderID: UUID(uuidString: msg.sender_id) ?? UUID(),
-                        text: msg.text_content ?? "",
-                        timestamp: messagingService.parseDate(msg.created_at),
-                        isRead: msg.is_read ?? false,
-                        supabaseId: msg.id
-                    ))
+                    lastMessages.append(makeDM(from: msg))
                 }
 
                 let conv = Conversation(
@@ -78,13 +175,15 @@ final class MessagesViewModel {
 
         do {
             let messages = try await messagingService.fetchMessages(conversationId: supabaseId)
-            let mapped = messages.map { msg in
+            let mapped: [DirectMessage] = messages.map { msg in
                 DirectMessage(
                     id: UUID(uuidString: msg.id) ?? UUID(),
                     senderID: UUID(uuidString: msg.sender_id) ?? UUID(),
                     text: msg.text_content ?? "",
                     timestamp: messagingService.parseDate(msg.created_at),
                     isRead: msg.is_read ?? false,
+                    readAt: messageDate(msg.read_at),
+                    attachments: msg.attachments ?? [],
                     supabaseId: msg.id
                 )
             }
@@ -118,7 +217,7 @@ final class MessagesViewModel {
         }
     }
 
-    func sendMessage(to conversationID: UUID, text: String) {
+    func sendMessage(to conversationID: UUID, text: String, attachments: [DirectMessageAttachment] = []) {
         guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
               let supabaseConvId = conversations[index].supabaseConversationId else { return }
 
@@ -128,24 +227,71 @@ final class MessagesViewModel {
                 let sent = try await messagingService.sendMessage(
                     conversationId: supabaseConvId,
                     senderId: userId,
-                    text: text
+                    text: text,
+                    attachments: attachments
                 )
 
-                let dm = DirectMessage(
-                    id: UUID(uuidString: sent.id ?? "") ?? UUID(),
-                    senderID: UUID(uuidString: sent.sender_id) ?? UUID(),
-                    text: sent.text_content ?? text,
-                    timestamp: messagingService.parseDate(sent.created_at),
-                    isRead: true,
-                    supabaseId: sent.id
-                )
+                let dm = makeDM(from: sent)
 
                 if let idx = conversations.firstIndex(where: { $0.id == conversationID }) {
-                    conversations[idx].messages.append(dm)
+                    if !conversations[idx].messages.contains(where: { $0.id == dm.id }) {
+                        conversations[idx].messages.append(dm)
+                    }
                 }
             } catch {
-                // Silently fail
+                self.error = error.localizedDescription
             }
+        }
+    }
+
+    func uploadAndSendImage(to conversationID: UUID, data: Data, caption: String = "") async {
+        guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
+              let supabaseConvId = conversations[index].supabaseConversationId else { return }
+        uploadingAttachment = true
+        defer { uploadingAttachment = false }
+        do {
+            let att = try await messagingService.uploadDMImage(data: data, conversationId: supabaseConvId)
+            sendMessage(to: conversationID, text: caption, attachments: [att])
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func uploadAndSendVideo(to conversationID: UUID, data: Data, duration: Double?, caption: String = "") async {
+        guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
+              let supabaseConvId = conversations[index].supabaseConversationId else { return }
+        uploadingAttachment = true
+        defer { uploadingAttachment = false }
+        do {
+            let att = try await messagingService.uploadDMVideo(data: data, conversationId: supabaseConvId, durationSeconds: duration)
+            sendMessage(to: conversationID, text: caption, attachments: [att])
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func uploadAndSendVoice(to conversationID: UUID, data: Data, duration: Double?) async {
+        guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
+              let supabaseConvId = conversations[index].supabaseConversationId else { return }
+        uploadingAttachment = true
+        defer { uploadingAttachment = false }
+        do {
+            let att = try await messagingService.uploadDMVoice(data: data, conversationId: supabaseConvId, durationSeconds: duration)
+            sendMessage(to: conversationID, text: "", attachments: [att])
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func markMessageVisible(conversationID: UUID, messageID: UUID) {
+        guard let index = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
+        guard let mIdx = conversations[index].messages.firstIndex(where: { $0.id == messageID }) else { return }
+        let msg = conversations[index].messages[mIdx]
+        guard !msg.isRead, let supaId = msg.supabaseId else { return }
+        conversations[index].messages[mIdx].isRead = true
+        conversations[index].messages[mIdx].readAt = Date()
+        Task {
+            try? await messagingService.markSingleMessageRead(messageId: supaId)
         }
     }
 

@@ -5,6 +5,10 @@ struct RunDetailView: View {
     let run: CompletedRun
     let shoe: RunningShoe?
     @Environment(\.dismiss) private var dismiss
+    @State private var isReplaying: Bool = false
+    @State private var replayProgress: Double = 0
+    @State private var replayTask: Task<Void, Never>?
+    @State private var scrubbing: Bool = false
 
     private let accentColor = Color(red: 0.0, green: 0.9, blue: 1.0)
 
@@ -28,7 +32,7 @@ struct RunDetailView: View {
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle(run.runType.rawValue)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -48,15 +52,37 @@ struct RunDetailView: View {
     // MARK: - Route Map
 
     private var routeMapSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 10) {
             if !run.routeCoordinates.isEmpty && !run.isTreadmill {
-                Map {
-                    MapPolyline(coordinates: run.routeCoordinates.map {
-                        CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
-                    })
-                    .stroke(accentColor, lineWidth: 3)
+                let coords = run.routeCoordinates
+                let segments = paceSegments(from: coords)
+                let replayCount = max(2, Int(Double(coords.count) * replayProgress))
+                let currentCoord = coords[min(replayCount - 1, coords.count - 1)]
 
-                    if let first = run.routeCoordinates.first {
+                Map {
+                    ForEach(segments.indices, id: \.self) { i in
+                        let seg = segments[i]
+                        MapPolyline(coordinates: seg.points.map {
+                            CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+                        })
+                        .stroke(seg.color, lineWidth: 4)
+                    }
+
+                    if isReplaying || scrubbing {
+                        Annotation("Runner", coordinate: CLLocationCoordinate2D(latitude: currentCoord.latitude, longitude: currentCoord.longitude)) {
+                            ZStack {
+                                Circle()
+                                    .fill(accentColor)
+                                    .frame(width: 20, height: 20)
+                                    .shadow(color: accentColor, radius: 8)
+                                Image(systemName: "figure.run")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                    }
+
+                    if let first = coords.first {
                         Annotation("Start", coordinate: CLLocationCoordinate2D(latitude: first.latitude, longitude: first.longitude)) {
                             Circle()
                                 .fill(.green)
@@ -64,7 +90,7 @@ struct RunDetailView: View {
                                 .overlay(Circle().stroke(.white, lineWidth: 2))
                         }
                     }
-                    if let last = run.routeCoordinates.last {
+                    if let last = coords.last {
                         Annotation("Finish", coordinate: CLLocationCoordinate2D(latitude: last.latitude, longitude: last.longitude)) {
                             Circle()
                                 .fill(.red)
@@ -74,12 +100,56 @@ struct RunDetailView: View {
                     }
                 }
                 .mapStyle(.standard(pointsOfInterest: .excludingAll))
-                .frame(height: 200)
+                .frame(height: 220)
                 .clipShape(.rect(cornerRadius: 16))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
                         .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                 )
+                .overlay(alignment: .topLeading) {
+                    paceLegend
+                        .padding(10)
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    Button {
+                        toggleReplay()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: isReplaying ? "pause.fill" : "play.fill")
+                                .font(.system(size: 11, weight: .bold))
+                            Text(isReplaying ? "Pause" : "Replay")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(.black.opacity(0.65))
+                        .clipShape(Capsule())
+                    }
+                    .padding(12)
+                }
+
+                VStack(spacing: 4) {
+                    Slider(value: $replayProgress, in: 0...1, onEditingChanged: { editing in
+                        scrubbing = editing
+                        if editing { replayTask?.cancel(); isReplaying = false }
+                    })
+                    .tint(accentColor)
+                    HStack {
+                        Text(timeLabel(progress: 0))
+                            .font(.system(size: 9, weight: .medium, design: .rounded))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Spacer()
+                        Text(timeLabel(progress: replayProgress))
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundStyle(accentColor)
+                        Spacer()
+                        Text(timeLabel(progress: 1))
+                            .font(.system(size: 9, weight: .medium, design: .rounded))
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                }
+                .padding(.horizontal, 4)
             } else if run.isTreadmill {
                 HStack {
                     Spacer()
@@ -101,6 +171,85 @@ struct RunDetailView: View {
                 .clipShape(.rect(cornerRadius: 16))
             }
         }
+        .onDisappear { replayTask?.cancel() }
+    }
+
+    private func toggleReplay() {
+        if isReplaying {
+            replayTask?.cancel()
+            isReplaying = false
+            return
+        }
+        isReplaying = true
+        if replayProgress >= 0.99 { replayProgress = 0 }
+        let totalSteps = 100
+        let startStep = Int(replayProgress * Double(totalSteps))
+        replayTask = Task { @MainActor in
+            for step in startStep...totalSteps {
+                if Task.isCancelled { return }
+                withAnimation(.linear(duration: 0.08)) {
+                    replayProgress = Double(step) / Double(totalSteps)
+                }
+                try? await Task.sleep(for: .milliseconds(80))
+            }
+            isReplaying = false
+        }
+    }
+
+    private struct PaceSegment {
+        let points: [RouteCoordinate]
+        let color: Color
+    }
+
+    private func paceColor(_ pace: Double, minPace: Double, maxPace: Double) -> Color {
+        guard pace > 0, maxPace > minPace else { return .gray }
+        let t = (pace - minPace) / (maxPace - minPace)
+        let clamped = max(0, min(1, t))
+        if clamped < 0.5 {
+            let k = clamped / 0.5
+            return Color(red: k, green: 0.8, blue: 0.2 * (1 - k))
+        } else {
+            let k = (clamped - 0.5) / 0.5
+            return Color(red: 1.0, green: 0.8 * (1 - k), blue: 0)
+        }
+    }
+
+    private func paceSegments(from coords: [RouteCoordinate]) -> [PaceSegment] {
+        guard coords.count >= 2 else { return [] }
+        let paces = coords.map(\.pace).filter { $0 > 0 }
+        let minP = paces.min() ?? 0
+        let maxP = paces.max() ?? 1
+        var segments: [PaceSegment] = []
+        for i in 0..<(coords.count - 1) {
+            let c = paceColor(coords[i].pace, minPace: minP, maxPace: maxP)
+            segments.append(PaceSegment(points: [coords[i], coords[i + 1]], color: c))
+        }
+        return segments
+    }
+
+    private var paceLegend: some View {
+        HStack(spacing: 4) {
+            Text("Fast")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.green)
+            LinearGradient(colors: [.green, .yellow, .orange, .red], startPoint: .leading, endPoint: .trailing)
+                .frame(width: 60, height: 4)
+                .clipShape(Capsule())
+            Text("Slow")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.red)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.black.opacity(0.55))
+        .clipShape(Capsule())
+    }
+
+    private func timeLabel(progress: Double) -> String {
+        let secs = run.durationSeconds * progress
+        let m = Int(secs) / 60
+        let s = Int(secs) % 60
+        return String(format: "%d:%02d", m, s)
     }
 
     // MARK: - Primary Stats

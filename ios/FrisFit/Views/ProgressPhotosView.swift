@@ -16,6 +16,7 @@ final class ProgressPhotosViewModel {
     var addCategory: String = "Front"
     var addNote: String = ""
     var capturedImage: UIImage?
+    var stampedImage: UIImage?
 
     let categories = ["All", "Front", "Side", "Back"]
     let addCategories = ["Front", "Side", "Back"]
@@ -49,6 +50,7 @@ final class ProgressPhotosViewModel {
                     label: row.note ?? "",
                     photoUrl: row.photo_url,
                     category: row.category,
+                    orientation: row.orientation ?? row.category,
                     supabaseId: row.id
                 )
             }
@@ -70,7 +72,13 @@ final class ProgressPhotosViewModel {
     }
 
     func uploadPhoto(_ image: UIImage) async {
-        guard let imageData = image.jpegData(compressionQuality: 0.7) else {
+        let stamped = ProgressPhotoStamper.stamp(
+            image,
+            orientation: ProgressPhotoOrientation.from(addCategory) ?? .front,
+            date: Date()
+        )
+        stampedImage = stamped
+        guard let imageData = stamped.jpegData(compressionQuality: 0.75) else {
             errorMessage = "Failed to process image"
             return
         }
@@ -102,7 +110,8 @@ final class ProgressPhotosViewModel {
             let payload = InsertProgressPhoto(
                 user_id: userId,
                 photo_url: publicURL.absoluteString,
-                category: addCategory,
+                category: addCategory.lowercased(),
+                orientation: addCategory.lowercased(),
                 note: addNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : addNote.trimmingCharacters(in: .whitespacesAndNewlines),
                 taken_at: now.string(from: Date())
             )
@@ -115,6 +124,7 @@ final class ProgressPhotosViewModel {
             addNote = ""
             addCategory = "Front"
             capturedImage = nil
+            stampedImage = nil
             selectedPhotoItem = nil
             showAddSheet = false
             await loadPhotos()
@@ -135,6 +145,7 @@ nonisolated struct InsertProgressPhoto: Codable, Sendable {
     let user_id: String
     let photo_url: String
     let category: String
+    let orientation: String?
     let note: String?
     let taken_at: String
 }
@@ -144,8 +155,69 @@ nonisolated struct SupabaseProgressPhoto: Codable, Sendable {
     let user_id: String?
     let photo_url: String?
     let category: String?
+    let orientation: String?
     let note: String?
     let taken_at: String?
+}
+
+nonisolated enum ProgressPhotoStamper {
+    static func stamp(_ image: UIImage, orientation: ProgressPhotoOrientation, date: Date) -> UIImage {
+        let size = image.size
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        let dateString = formatter.string(from: date)
+        let orientationString = orientation.displayName.uppercased()
+
+        return renderer.image { ctx in
+            image.draw(in: CGRect(origin: .zero, size: size))
+
+            let padding: CGFloat = size.width * 0.04
+            let barHeight: CGFloat = size.width * 0.11
+            let barRect = CGRect(
+                x: padding,
+                y: size.height - barHeight - padding,
+                width: size.width - padding * 2,
+                height: barHeight
+            )
+            let bg = UIColor.black.withAlphaComponent(0.55)
+            bg.setFill()
+            let path = UIBezierPath(roundedRect: barRect, cornerRadius: barHeight / 4)
+            path.fill()
+
+            let fontSize = barHeight * 0.38
+            let orientationFont = UIFont.systemFont(ofSize: fontSize, weight: .heavy)
+            let dateFont = UIFont.systemFont(ofSize: fontSize * 0.8, weight: .semibold)
+            let textColor = UIColor.white
+
+            let orientationAttrs: [NSAttributedString.Key: Any] = [
+                .font: orientationFont,
+                .foregroundColor: textColor,
+                .kern: 1.2
+            ]
+            let dateAttrs: [NSAttributedString.Key: Any] = [
+                .font: dateFont,
+                .foregroundColor: textColor.withAlphaComponent(0.85)
+            ]
+
+            let orientationSize = (orientationString as NSString).size(withAttributes: orientationAttrs)
+            let dateSize = (dateString as NSString).size(withAttributes: dateAttrs)
+
+            let orientationOrigin = CGPoint(
+                x: barRect.minX + barHeight * 0.4,
+                y: barRect.midY - orientationSize.height / 2
+            )
+            let dateOrigin = CGPoint(
+                x: barRect.maxX - dateSize.width - barHeight * 0.4,
+                y: barRect.midY - dateSize.height / 2
+            )
+
+            (orientationString as NSString).draw(at: orientationOrigin, withAttributes: orientationAttrs)
+            (dateString as NSString).draw(at: dateOrigin, withAttributes: dateAttrs)
+
+            _ = ctx
+        }
+    }
 }
 
 struct ProgressPhotosView: View {
@@ -169,17 +241,28 @@ struct ProgressPhotosView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Progress Photos")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    viewModel.showSourcePicker = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(PepTheme.teal)
+                HStack(spacing: 14) {
+                    if viewModel.photos.count >= 2 {
+                        NavigationLink {
+                            ProgressPhotoComparisonView(photos: viewModel.photos)
+                        } label: {
+                            Image(systemName: "rectangle.split.2x1")
+                                .font(.title3)
+                                .foregroundStyle(PepTheme.violet)
+                        }
+                    }
+                    Button {
+                        viewModel.showSourcePicker = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(PepTheme.teal)
+                    }
                 }
             }
         }
@@ -243,6 +326,10 @@ struct ProgressPhotosView: View {
                 }
             }
         }
+    }
+
+    private func orientationFilter(_ photos: [ProgressPhoto]) -> [ProgressPhoto] {
+        photos
     }
 
     private var emptyState: some View {
@@ -339,7 +426,7 @@ private struct AddProgressPhotoSheet: View {
                 .padding(.top, 8)
             }
             .scrollIndicators(.hidden)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("New Progress Photo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -406,10 +493,26 @@ private struct ProgressPhotoCard: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                if let cat = photo.category, !cat.isEmpty {
-                    Text(cat.capitalized)
-                        .font(.system(.caption2, weight: .bold))
-                        .foregroundStyle(PepTheme.teal)
+                HStack(spacing: 6) {
+                    if let o = photo.orientationEnum {
+                        HStack(spacing: 4) {
+                            Image(systemName: o.icon)
+                                .font(.system(size: 9, weight: .bold))
+                            Text(o.displayName.uppercased())
+                                .font(.system(.caption2, weight: .heavy))
+                                .tracking(0.6)
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(PepTheme.teal)
+                        .clipShape(.capsule)
+                    } else if let cat = photo.category, !cat.isEmpty {
+                        Text(cat.capitalized)
+                            .font(.system(.caption2, weight: .bold))
+                            .foregroundStyle(PepTheme.teal)
+                    }
+                    Spacer()
                 }
                 Text(dateFormatter.string(from: photo.date))
                     .font(.caption)

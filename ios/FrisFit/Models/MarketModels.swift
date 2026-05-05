@@ -72,7 +72,6 @@ nonisolated struct MarketProgram: Identifiable, Sendable {
     let durationWeeks: Int
     let daysPerWeek: Int
     let equipment: String
-    let totalFP: Int
     let overview: String
     let gradientColors: [GradientColor]
     let iconName: String
@@ -110,7 +109,7 @@ nonisolated struct MarketProgram: Identifiable, Sendable {
         self.durationWeeks = durationWeeks
         self.daysPerWeek = daysPerWeek
         self.equipment = equipment
-        self.totalFP = totalFP
+        _ = totalFP
         self.overview = overview
         self.gradientColors = gradientColors
         self.iconName = iconName

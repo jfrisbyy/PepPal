@@ -11,6 +11,8 @@ struct ProfileView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var isUploadingAvatar: Bool = false
     @State private var navigateToPost: FeedPost?
+    @State private var selectedHashtag: String?
+    @State private var bannerStore = ProfileBannerStore.shared
 
     enum ProfileTab: String, CaseIterable {
         case posts = "Posts"
@@ -30,9 +32,6 @@ struct ProfileView: View {
                         bannerHeader
                         profileInfo
                             .padding(.horizontal, 16)
-                        statsBar
-                            .padding(.top, 16)
-                            .padding(.horizontal, 16)
                         tabSection
                             .padding(.top, 20)
                     }
@@ -41,7 +40,7 @@ struct ProfileView: View {
                 }
             }
             .scrollIndicators(.hidden)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground(accent: PepTheme.teal)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -85,6 +84,14 @@ struct ProfileView: View {
                     ProgressPhotosView()
                 case .protocolHistory:
                     ProtocolHistoryView()
+                case .vialInventory:
+                    VialInventoryView()
+                case .biomarkerTrends:
+                    BiomarkerTrackingView()
+                case .stackBuilder:
+                    PeptideStackBuilderView()
+                case .appleHealth:
+                    AppleHealthSyncView()
                 }
             }
             .navigationDestination(for: FeedPost.self) { post in
@@ -92,6 +99,9 @@ struct ProfileView: View {
             }
             .navigationDestination(item: $navigateToPost) { post in
                 PostDetailView(post: post, viewModel: socialViewModel)
+            }
+            .navigationDestination(item: Binding(get: { selectedHashtag.map(HashtagDestination.init) }, set: { selectedHashtag = $0?.tag })) { dest in
+                HashtagFeedView(tag: dest.tag)
             }
             .navigationDestination(for: FollowListDestination.self) { destination in
                 FollowListView(destination: destination, profileViewModel: viewModel)
@@ -101,16 +111,48 @@ struct ProfileView: View {
 
     private var bannerHeader: some View {
         ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-                colors: [
-                    PepTheme.teal.opacity(0.25),
-                    PepTheme.violet.opacity(0.15),
-                    PepTheme.background
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .frame(height: 120)
+            Group {
+                if let image = bannerStore.bannerImage {
+                    Color(.secondarySystemBackground)
+                        .frame(height: 130)
+                        .overlay {
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .allowsHitTesting(false)
+                        }
+                        .clipped()
+                } else if let urlString = viewModel.profile.bannerUrl, let url = URL(string: urlString) {
+                    Color(.secondarySystemBackground)
+                        .frame(height: 130)
+                        .overlay {
+                            AsyncImage(url: url) { phase in
+                                if let image = phase.image {
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .allowsHitTesting(false)
+                                }
+                            }
+                        }
+                        .clipped()
+                } else {
+                    LinearGradient(
+                        colors: [
+                            PepTheme.teal.opacity(0.10),
+                            PepTheme.background
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 130)
+                    .overlay(alignment: .bottom) {
+                        Rectangle()
+                            .fill(PepTheme.separatorColor)
+                            .frame(height: 0.5)
+                    }
+                }
+            }
 
             ZStack(alignment: .bottomTrailing) {
                 Circle()
@@ -137,13 +179,13 @@ struct ProfileView: View {
                     }
 
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 28, height: 28)
-                        .background(PepTheme.teal)
+                    Image(systemName: "camera")
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .frame(width: 26, height: 26)
+                        .background(PepTheme.background)
                         .clipShape(Circle())
-                        .overlay(Circle().strokeBorder(PepTheme.background, lineWidth: 2))
+                        .overlay(Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5))
                 }
                 .offset(x: -2, y: -2)
             }
@@ -201,28 +243,24 @@ struct ProfileView: View {
                     .padding(.top, 4)
             }
 
-            HStack(spacing: 16) {
+            HStack(spacing: 10) {
                 if let program = viewModel.profile.activeProgram {
-                    HStack(spacing: 4) {
-                        Image(systemName: "figure.run")
-                            .font(.caption2)
-                            .foregroundStyle(PepTheme.teal)
-                        Text(program)
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.teal)
-                    }
+                    Text(program.uppercased())
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.6)
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
+
+                    Text("—")
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.45))
                 }
 
-                HStack(spacing: 4) {
-                    Image(systemName: "calendar")
-                        .font(.caption2)
-                        .foregroundStyle(PepTheme.textSecondary)
-                    Text(viewModel.memberSinceFormatted)
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
+                Text(viewModel.memberSinceFormatted.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
             }
-            .padding(.top, 4)
+            .padding(.top, 6)
 
             HStack(spacing: 20) {
                 NavigationLink(value: FollowListDestination.following(userId: viewModel.profile.id.uuidString, username: viewModel.profile.displayName)) {
@@ -235,7 +273,10 @@ struct ProfileView: View {
                 }
                 .buttonStyle(.plain)
 
-                followStat(count: viewModel.profile.friendCount, label: "Friends")
+                NavigationLink(value: FollowListDestination.friends(userId: viewModel.profile.id.uuidString, username: viewModel.profile.displayName)) {
+                    followStat(count: viewModel.profile.friendCount, label: "Friends")
+                }
+                .buttonStyle(.plain)
             }
             .padding(.top, 8)
         }
@@ -285,9 +326,8 @@ struct ProfileView: View {
                                 .frame(maxWidth: .infinity)
 
                             Rectangle()
-                                .fill(selectedTab == tab ? PepTheme.teal : .clear)
-                                .frame(height: 2)
-                                .clipShape(.capsule)
+                                .fill(selectedTab == tab ? PepTheme.textPrimary : .clear)
+                                .frame(height: 1)
                         }
                     }
                     .sensoryFeedback(.selection, trigger: selectedTab)
@@ -322,6 +362,8 @@ struct ProfileView: View {
                         viewModel.togglePostLike(post.id)
                     }, onDelete: {
                         deletePost(post)
+                    }, onOpenHashtag: { tag in
+                        selectedHashtag = tag
                     })
                     Divider().overlay(PepTheme.separatorColor)
                 }
@@ -338,8 +380,7 @@ struct ProfileView: View {
             avatarColor: viewModel.profile.avatarColor,
             avatarURL: viewModel.profile.avatarUrl,
             activeProgramName: viewModel.profile.activeProgram,
-            streak: viewModel.profile.currentStreak,
-            totalFP: viewModel.profile.totalFP
+            streak: viewModel.profile.currentStreak
         )
         let mediaItems: [FeedMediaItem] = post.mediaUrls.map { url in
             FeedMediaItem(type: .photo, imageURL: url)
@@ -358,7 +399,11 @@ struct ProfileView: View {
     }
 
     private var healthTab: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            SectionEyebrow("Health", number: "01", accent: PepTheme.teal)
+                .padding(.horizontal, 4)
+                .padding(.bottom, 6)
+
             NavigationLink(value: ProfileDestination.bloodwork) {
                 ProfileMenuRow(icon: "drop.fill", title: "Bloodwork Tracking", subtitle: "Log and track your lab results over time")
             }
@@ -374,10 +419,30 @@ struct ProfileView: View {
             }
             .buttonStyle(.scale)
 
+            NavigationLink(value: ProfileDestination.vialInventory) {
+                ProfileMenuRow(icon: "testtube.2", title: "Vial Inventory", subtitle: vialInventorySubtitle)
+            }
+            .buttonStyle(.scale)
+
             Button {
                 showReconCalculator = true
             } label: {
-                ProfileMenuRow(icon: "function", title: "Reconstitution Calculator", subtitle: "Quick dose and concentration math")
+                ProfileMenuRow(icon: "function", title: "Reconstitution Calculator", subtitle: "Vial presets, syringe picker, BUD tracking")
+            }
+            .buttonStyle(.scale)
+
+            NavigationLink(value: ProfileDestination.biomarkerTrends) {
+                ProfileMenuRow(icon: "chart.xyaxis.line", title: "Biomarker Trends", subtitle: "Weight, HbA1c, sleep & more against your protocol")
+            }
+            .buttonStyle(.scale)
+
+            NavigationLink(value: ProfileDestination.stackBuilder) {
+                ProfileMenuRow(icon: "square.stack.3d.up.fill", title: "Stack Builder", subtitle: "Combine peptides with conflict & synergy checks")
+            }
+            .buttonStyle(.scale)
+
+            NavigationLink(value: ProfileDestination.appleHealth) {
+                ProfileMenuRow(icon: "heart.text.square.fill", title: "Apple Health Sync", subtitle: "Auto-import weight, HR, HRV, sleep into your trends")
             }
             .buttonStyle(.scale)
         }
@@ -386,7 +451,11 @@ struct ProfileView: View {
     }
 
     private var statsTab: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            SectionEyebrow("Stats", number: "01", accent: PepTheme.violet)
+                .padding(.horizontal, 4)
+                .padding(.bottom, 6)
+
             NavigationLink(value: ProfileDestination.analytics) {
                 ProfileMenuRow(icon: "chart.xyaxis.line", title: "Workout Analytics", subtitle: "Volume trends, muscle map, PRs")
             }
@@ -431,6 +500,14 @@ struct ProfileView: View {
         return "\(n)"
     }
 
+    private var vialInventorySubtitle: String {
+        let store = VialInventoryStore.shared
+        if store.vials.isEmpty { return "Track vials, BUD, and doses remaining" }
+        let lows = store.lowStockCount
+        if lows > 0 { return "\(store.vials.count) vials • \(lows) need attention" }
+        return "\(store.vials.count) vials tracked"
+    }
+
     private func deletePost(_ post: UserPost) {
         let supabaseId = post.id.uuidString.lowercased()
         Task {
@@ -462,6 +539,10 @@ enum ProfileDestination: Hashable {
     case bloodwork
     case progressPhotos
     case protocolHistory
+    case vialInventory
+    case biomarkerTrends
+    case stackBuilder
+    case appleHealth
 }
 
 extension WorkoutHistoryDetail: Hashable {
@@ -501,6 +582,7 @@ struct ProfilePostRow: View {
     var onTap: (() -> Void)? = nil
     let onLike: () -> Void
     var onDelete: (() -> Void)? = nil
+    var onOpenHashtag: ((String) -> Void)? = nil
 
     @State private var likeBounce: Int = 0
     @State private var showDeleteConfirm: Bool = false
@@ -595,10 +677,12 @@ struct ProfilePostRow: View {
                 }
 
                 if !post.content.isEmpty {
-                    Text(post.content)
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .lineSpacing(3)
+                    RichText(
+                        text: post.content,
+                        font: .subheadline,
+                        onHashtag: { tag in onOpenHashtag?(tag) }
+                    )
+                    .lineSpacing(3)
                 }
 
                 if !post.mediaUrls.isEmpty {
@@ -771,10 +855,10 @@ private struct ProfileMenuRow: View {
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: icon)
-                .font(.body)
-                .foregroundStyle(PepTheme.teal)
-                .frame(width: 28)
-            VStack(alignment: .leading, spacing: 2) {
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(PepTheme.textSecondary)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.system(.body, weight: .medium))
                     .foregroundStyle(PepTheme.textPrimary)
@@ -784,18 +868,15 @@ private struct ProfileMenuRow: View {
             }
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(PepTheme.textSecondary)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
         }
-        .padding(14)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(
-                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    lineWidth: 0.5
-                )
-        )
+        .padding(.vertical, 14)
+        .padding(.horizontal, 4)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(height: 0.5)
+        }
     }
 }

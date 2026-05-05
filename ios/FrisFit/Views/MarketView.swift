@@ -27,7 +27,7 @@ struct MarketView: View {
                 }
             }
             .scrollIndicators(.hidden)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Market")
             
             .searchable(text: $viewModel.searchText, prompt: "Search programs, plans & creators")

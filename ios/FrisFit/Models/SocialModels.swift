@@ -9,7 +9,6 @@ nonisolated struct SocialUser: Identifiable, Hashable, Sendable {
     let avatarURL: String?
     let activeProgramName: String?
     let streak: Int
-    let totalFP: Int
 
     init(
         id: UUID,
@@ -20,7 +19,7 @@ nonisolated struct SocialUser: Identifiable, Hashable, Sendable {
         avatarURL: String? = nil,
         activeProgramName: String?,
         streak: Int,
-        totalFP: Int
+        totalFP: Int = 0
     ) {
         self.id = id
         self.name = name
@@ -30,7 +29,7 @@ nonisolated struct SocialUser: Identifiable, Hashable, Sendable {
         self.avatarURL = avatarURL
         self.activeProgramName = activeProgramName
         self.streak = streak
-        self.totalFP = totalFP
+        _ = totalFP
     }
 
     nonisolated func hash(into hasher: inout Hasher) {
@@ -49,7 +48,6 @@ nonisolated struct WorkoutPost: Identifiable, Sendable {
     let workoutName: String
     let duration: Int
     let totalVolume: Int
-    let fpEarned: Int
     let exercisesCompleted: Int
     var likeCount: Int
     var isLiked: Bool
@@ -72,7 +70,6 @@ nonisolated enum LeaderboardPeriod: String, CaseIterable, Sendable {
 nonisolated struct LeaderboardEntry: Identifiable, Sendable {
     let id: UUID
     let user: SocialUser
-    let fp: Int
     let rank: Int
 }
 

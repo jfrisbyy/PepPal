@@ -13,8 +13,10 @@ struct ProgramManagementView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    if let active = viewModel.activeProgram {
-                        activeProgramSection(active)
+                    multiActiveToggle
+
+                    if !viewModel.activePrograms.isEmpty {
+                        activeProgramsSection
                     }
 
                     if !viewModel.inactivePrograms.isEmpty {
@@ -26,7 +28,7 @@ struct ProgramManagementView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("My Programs")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -69,22 +71,73 @@ struct ProgramManagementView: View {
         }
     }
 
-    // MARK: - Active Program
+    // MARK: - Multi-active toggle
 
-    private func activeProgramSection(_ program: TrainingProgram) -> some View {
+    private var multiActiveToggle: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "square.stack.3d.up.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(PepTheme.teal)
+                .frame(width: 36, height: 36)
+                .background(PepTheme.teal.opacity(0.12))
+                .clipShape(.rect(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Multiple Active Programs")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("Run multiple programs at once and toggle between them on Today.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+
+            Toggle("", isOn: Binding(
+                get: { viewModel.multiActiveEnabled },
+                set: { newValue in
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        viewModel.setMultiActiveEnabled(newValue)
+                    }
+                }
+            ))
+            .labelsHidden()
+            .tint(PepTheme.teal)
+        }
+        .padding(12)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+        .padding(.top, 4)
+    }
+
+    // MARK: - Active Programs
+
+    private var activeProgramsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "star.fill")
                     .font(.system(size: 10))
                     .foregroundStyle(PepTheme.teal)
-                Text("ACTIVE PROGRAM")
+                Text(viewModel.activePrograms.count > 1 ? "ACTIVE PROGRAMS" : "ACTIVE PROGRAM")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(PepTheme.teal)
                     .tracking(1.2)
+                Spacer()
+                if viewModel.activePrograms.count > 1 {
+                    Text("\(viewModel.activePrograms.count) running")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
             }
-            .padding(.top, 4)
 
-            programCard(program, isActive: true)
+            ForEach(viewModel.activePrograms) { program in
+                programCard(program, isActive: true)
+            }
         }
     }
 
@@ -163,10 +216,21 @@ struct ProgramManagementView: View {
                 Divider().opacity(0.3)
 
                 HStack(spacing: 0) {
-                    if !isActive {
-                        cardActionButton(icon: "play.fill", label: "Activate", color: PepTheme.teal) {
+                    if isActive && viewModel.multiActiveEnabled && viewModel.activePrograms.count > 1 {
+                        cardActionButton(icon: "pause.fill", label: "Deactivate", color: PepTheme.amber) {
                             withAnimation(.spring(response: 0.35)) {
-                                viewModel.switchToProgram(program)
+                                viewModel.setProgramActive(program, active: false)
+                            }
+                        }
+                        cardDivider
+                    } else if !isActive {
+                        cardActionButton(icon: "play.fill", label: viewModel.multiActiveEnabled ? "Add Active" : "Activate", color: PepTheme.teal) {
+                            withAnimation(.spring(response: 0.35)) {
+                                if viewModel.multiActiveEnabled {
+                                    viewModel.setProgramActive(program, active: true)
+                                } else {
+                                    viewModel.switchToProgram(program)
+                                }
                             }
                         }
 
@@ -209,9 +273,19 @@ struct ProgramManagementView: View {
         .contextMenu {
             if !isActive {
                 Button {
-                    viewModel.switchToProgram(program)
+                    if viewModel.multiActiveEnabled {
+                        viewModel.setProgramActive(program, active: true)
+                    } else {
+                        viewModel.switchToProgram(program)
+                    }
                 } label: {
-                    Label("Set as Active", systemImage: "star.fill")
+                    Label(viewModel.multiActiveEnabled ? "Add to Active" : "Set as Active", systemImage: "star.fill")
+                }
+            } else if viewModel.multiActiveEnabled && viewModel.activePrograms.count > 1 {
+                Button {
+                    viewModel.setProgramActive(program, active: false)
+                } label: {
+                    Label("Deactivate", systemImage: "pause.fill")
                 }
             }
 

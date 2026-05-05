@@ -193,7 +193,15 @@ struct ProtocolSetupWizardView: View {
     @State private var expandedTooltip: String?
     @State private var showPastDoseSheet: Bool = false
     @State private var savedProtocol: PeptideProtocol?
+    @State private var showVialScanner: Bool = false
+    @State private var showTitrationTemplates: Bool = false
+    let initialCompound: String?
     let onComplete: (PeptideProtocol) -> Void
+
+    init(initialCompound: String? = nil, onComplete: @escaping (PeptideProtocol) -> Void) {
+        self.initialCompound = initialCompound
+        self.onComplete = onComplete
+    }
 
     private var isExistingPath: Bool {
         protocolPath == .existingProtocol
@@ -280,7 +288,7 @@ struct ProtocolSetupWizardView: View {
                 name: "Skin Rejuvenation",
                 subtitle: "GHK-Cu, 4 weeks on / 4 weeks off",
                 goal: .tanning,
-                icon: "sparkles",
+                icon: "face.smiling",
                 compounds: [TemplateCompound(name: "GHK-Cu", doseMcg: 1000, frequency: "1x daily", route: .subcutaneous, timeOfDay: "Any time")],
                 totalWeeks: 8, loadingWeeks: 0, maintenanceWeeks: 4, taperingWeeks: 0, offCycleWeeks: 4,
                 experienceLevel: .intermediate
@@ -305,6 +313,7 @@ struct ProtocolSetupWizardView: View {
 
                 ScrollView {
                     VStack(spacing: 20) {
+                        MedicalDisclaimerBanner(compact: true)
                         if protocolPath == nil {
                             pathSelectionStep
                         } else {
@@ -320,7 +329,7 @@ struct ProtocolSetupWizardView: View {
                     bottomBar
                 }
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle(protocolPath == nil ? "New Protocol" : (isExistingPath ? "Log Current Protocol" : "New Protocol"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -331,6 +340,31 @@ struct ProtocolSetupWizardView: View {
             }
             .sheet(isPresented: $showTemplates) {
                 templateSheet
+            }
+            .fullScreenCover(isPresented: $showVialScanner) {
+                VialScannerView { scan, _ in
+                    applyScannedVial(scan)
+                }
+            }
+            .sheet(isPresented: $showTitrationTemplates) {
+                TitrationTemplatePickerView(
+                    onSelectTemplate: { template in
+                        applyTitrationTemplate(template)
+                    },
+                    onBuildCustom: {}
+                )
+            }
+            .onAppear {
+                if let name = initialCompound,
+                   !name.isEmpty,
+                   selectedCompounds.isEmpty,
+                   protocolPath == nil {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        protocolPath = .newProtocol
+                        selectedCompounds = [WizardCompound(name: name)]
+                        currentStep = 1
+                    }
+                }
             }
             .sheet(isPresented: $showPastDoseSheet) {
                 if let proto = savedProtocol {
@@ -417,6 +451,30 @@ struct ProtocolSetupWizardView: View {
                 )
             }
             .sensoryFeedback(.impact(weight: .medium), trigger: protocolPath)
+
+            Button {
+                showTitrationTemplates = true
+            } label: {
+                pathCard(
+                    title: "Guided Titration",
+                    subtitle: "Prebuilt dose ladders for Retatrutide, Tirzepatide, Semaglutide",
+                    icon: "chart.line.uptrend.xyaxis",
+                    color: PepTheme.amber
+                )
+            }
+            .sensoryFeedback(.impact(weight: .light), trigger: showTitrationTemplates)
+
+            Button {
+                showVialScanner = true
+            } label: {
+                pathCard(
+                    title: "Scan a Vial",
+                    subtitle: "Snap the label and auto-fill the compound",
+                    icon: "viewfinder",
+                    color: PepTheme.violet
+                )
+            }
+            .sensoryFeedback(.impact(weight: .light), trigger: showVialScanner)
         }
         .padding(.top, 12)
     }
@@ -700,19 +758,9 @@ struct ProtocolSetupWizardView: View {
 
                     Spacer()
 
-                    VStack(alignment: .trailing, spacing: 2) {
-                        HStack(spacing: 2) {
-                            Image(systemName: "star.fill")
-                                .font(.system(size: 9))
-                                .foregroundStyle(PepTheme.amber)
-                            Text(String(format: "%.1f", compound.averageRating))
-                                .font(.system(.caption2, design: .rounded, weight: .semibold))
-                                .foregroundStyle(PepTheme.textSecondary)
-                        }
-                        Text("\(compound.communityUsers) users")
-                            .font(.system(size: 9))
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
+                    Text("\(compound.communityUsers) users")
+                        .font(.system(size: 9))
+                        .foregroundStyle(PepTheme.textSecondary)
 
                     Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle")
                         .font(.system(size: 20))
@@ -1576,7 +1624,7 @@ struct ProtocolSetupWizardView: View {
                 }
                 .padding()
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Quick Start Templates")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1713,6 +1761,50 @@ struct ProtocolSetupWizardView: View {
             return .maintenance
         }
         return .maintenance
+    }
+
+    private func applyScannedVial(_ scan: ScannedVialLabel) {
+        guard !scan.compoundName.isEmpty else { return }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            protocolPath = .newProtocol
+            if !selectedCompounds.contains(where: { $0.name == scan.compoundName }) {
+                selectedCompounds.append(WizardCompound(name: scan.compoundName))
+            }
+            currentStep = 1
+        }
+    }
+
+    private func applyTitrationTemplate(_ template: TitrationTemplate) {
+        selectedGoal = .weightLoss
+        protocolName = template.name
+        let totalWeeks = (template.steps.last?.week ?? 4) + 4
+        durationWeeks = totalWeeks
+        hasPlannedEndDate = true
+        loadingWeeks = template.steps.count
+        maintenanceWeeks = max(4, totalWeeks - template.steps.count)
+        taperingWeeks = 0
+        offCycleWeeks = 0
+
+        var wc = WizardCompound(name: template.compound)
+        wc.frequency = "1x weekly"
+        wc.injectionRoute = .subcutaneous
+        wc.timeOfDay = "Morning"
+        let startMcg = template.steps.first?.doseMcg ?? 0
+        let unit = CompoundUnitHelper.unit(for: template.compound)
+        if unit == .mg {
+            let mg = startMcg / 1000
+            wc.doseText = mg == mg.rounded() ? String(Int(mg)) : String(format: "%.2f", mg)
+            wc.doseUnit = "mg"
+        } else {
+            wc.doseText = String(Int(startMcg))
+            wc.doseUnit = "mcg"
+        }
+        selectedCompounds = [wc]
+
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            protocolPath = .newProtocol
+            currentStep = stepCount - 1
+        }
     }
 
     private func applyTemplate(_ template: ProtocolTemplate) {
@@ -1920,7 +2012,7 @@ struct PastDoseLoggingSheet: View {
                 .padding(.bottom, 32)
             }
             .scrollIndicators(.hidden)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Past Doses")
             .navigationBarTitleDisplayMode(.inline)
         }

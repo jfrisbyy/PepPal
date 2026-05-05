@@ -13,23 +13,23 @@ struct BeginnersGuideView: View {
 
         var id: String { rawValue }
 
-        var icon: String {
+        var index: String {
             switch self {
-            case .whatArePeptides: return "atom"
-            case .reconstitution: return "drop.fill"
-            case .injection: return "syringe.fill"
-            case .storage: return "snowflake"
-            case .coas: return "doc.text.magnifyingglass"
+            case .whatArePeptides: return "01"
+            case .reconstitution: return "02"
+            case .injection: return "03"
+            case .storage: return "04"
+            case .coas: return "05"
             }
         }
 
-        var color: Color {
+        var shortLabel: String {
             switch self {
-            case .whatArePeptides: return PepTheme.teal
-            case .reconstitution: return PepTheme.blue
-            case .injection: return .orange
-            case .storage: return PepTheme.violet
-            case .coas: return .green
+            case .whatArePeptides: return "Basics"
+            case .reconstitution: return "Reconstitution"
+            case .injection: return "Injection"
+            case .storage: return "Storage"
+            case .coas: return "COAs"
             }
         }
 
@@ -47,108 +47,153 @@ struct BeginnersGuideView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 28) {
                     heroHeader
 
                     sectionPicker
 
                     contentForSection
-                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                        .transition(.opacity)
                 }
-                .padding(.bottom, 32)
+                .padding(.bottom, 40)
             }
             .scrollIndicators(.hidden)
-            .background(PepTheme.background.ignoresSafeArea())
-            .navigationTitle("Beginner's Guide")
-            .navigationBarTitleDisplayMode(.large)
+            .appBackground()
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("THE GUIDE")
+                        .font(.system(size: 11, weight: .semibold))
+                        .tracking(1.8)
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
-                        .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(PepTheme.teal)
+                        .font(.system(.subheadline, weight: .medium))
+                        .foregroundStyle(PepTheme.textPrimary)
                 }
             }
         }
     }
+
+    // MARK: - Hero
 
     private var heroHeader: some View {
-        ZStack(alignment: .bottomLeading) {
-            MeshGradient(
-                width: 3, height: 3,
-                points: [
-                    [0, 0], [0.5, 0], [1, 0],
-                    [0, 0.5], [0.5, 0.5], [1, 0.5],
-                    [0, 1], [0.5, 1], [1, 1]
-                ],
-                colors: [
-                    selectedSection.color.opacity(0.5), PepTheme.blue.opacity(0.3), PepTheme.violet.opacity(0.3),
-                    selectedSection.color.opacity(0.3), selectedSection.color.opacity(0.4), PepTheme.teal.opacity(0.2),
-                    PepTheme.background, PepTheme.background, PepTheme.background
-                ]
-            )
-            .frame(height: 120)
-
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .frame(width: 44, height: 44)
-                    Image(systemName: selectedSection.icon)
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(selectedSection.color)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(selectedSection.rawValue)
-                        .font(.system(.headline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text(selectedSection.subtitle)
-                        .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Text("ISSUE 01")
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(PepTheme.teal.opacity(0.9))
+                Text("—")
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.45))
+                Text("PEPTIDE RESEARCH")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
+                Spacer()
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 16)
+
+            Text("Understanding\npeptide research")
+                .font(.system(size: 34, weight: .regular, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .kerning(-0.6)
+                .lineSpacing(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text("A complete primer on reconstitution, injection technique, storage, and how to read a Certificate of Analysis.")
+                .font(.system(.subheadline, weight: .regular))
+                .foregroundStyle(PepTheme.textSecondary)
+                .lineSpacing(3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 14) {
+                metaItem(label: "Sections", value: "05")
+                hairlineDivider()
+                metaItem(label: "Reading", value: "8 min")
+                hairlineDivider()
+                metaItem(label: "Level", value: "Beginner")
+                Spacer()
+            }
+            .padding(.top, 4)
+
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(height: 0.5)
+                .padding(.top, 6)
         }
-        .animation(.smooth(duration: 0.4), value: selectedSection)
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
     }
+
+    private func metaItem(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.4)
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+            Text(value)
+                .font(.system(.footnote, design: .serif, weight: .regular))
+                .foregroundStyle(PepTheme.textPrimary)
+        }
+    }
+
+    private func hairlineDivider() -> some View {
+        Rectangle()
+            .fill(PepTheme.separatorColor)
+            .frame(width: 0.5, height: 22)
+    }
+
+    // MARK: - Section Picker
 
     private var sectionPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(GuideSection.allCases) { section in
-                    let isSelected = selectedSection == section
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            selectedSection = section
+        VStack(alignment: .leading, spacing: 10) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 22) {
+                    ForEach(GuideSection.allCases) { section in
+                        let isSelected = selectedSection == section
+                        Button {
+                            withAnimation(.smooth(duration: 0.35)) {
+                                selectedSection = section
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(spacing: 6) {
+                                    Text(section.index)
+                                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                                        .foregroundStyle(isSelected ? PepTheme.teal : PepTheme.textSecondary.opacity(0.55))
+                                    Text(section.shortLabel.uppercased())
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .tracking(1.4)
+                                        .foregroundStyle(isSelected ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.75))
+                                }
+                                Rectangle()
+                                    .fill(isSelected ? PepTheme.teal : Color.clear)
+                                    .frame(width: 28, height: 1.5)
+                            }
                         }
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: section.icon)
-                                .font(.system(size: 11))
-                            Text(section.rawValue)
-                                .font(.system(.caption, weight: .semibold))
-                        }
-                        .foregroundStyle(isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(isSelected ? AnyShapeStyle(section.color) : AnyShapeStyle(PepTheme.cardSurface))
-                        .clipShape(.capsule)
-                        .overlay(
-                            Capsule().strokeBorder(isSelected ? Color.clear : PepTheme.separatorColor, lineWidth: 1)
-                        )
+                        .buttonStyle(.plain)
+                        .sensoryFeedback(.selection, trigger: selectedSection)
                     }
-                    .sensoryFeedback(.selection, trigger: selectedSection)
                 }
+                .padding(.vertical, 2)
             }
-            .padding(.horizontal, 16)
+            .contentMargins(.horizontal, 20)
+
+            Rectangle()
+                .fill(PepTheme.separatorColor.opacity(0.6))
+                .frame(height: 0.5)
+                .padding(.horizontal, 20)
         }
-        .contentMargins(.horizontal, 0)
     }
+
+    // MARK: - Content
 
     @ViewBuilder
     private var contentForSection: some View {
-        VStack(spacing: 14) {
+        VStack(alignment: .leading, spacing: 22) {
+            sectionIntro
+
             switch selectedSection {
             case .whatArePeptides:
                 whatArePeptidesContent
@@ -161,67 +206,82 @@ struct BeginnersGuideView: View {
             case .coas:
                 coaContent
             }
+
+            disclaimerLine
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 20)
         .id(selectedSection)
+    }
+
+    private var sectionIntro: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(selectedSection.index)
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(PepTheme.teal)
+                Text("—")
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.45))
+                Text(selectedSection.subtitle.uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
+            }
+            Text(selectedSection.rawValue)
+                .font(.system(size: 26, weight: .regular, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .kerning(-0.4)
+        }
     }
 
     // MARK: - Sections
 
     private var whatArePeptidesContent: some View {
-        Group {
-            guideCard(
-                title: "What Are Peptides?",
-                content: "Peptides are short chains of amino acids — the building blocks of proteins. They occur naturally in your body and play roles in signaling, healing, and regulation. Research peptides are synthetic versions studied for various biological effects.",
-                icon: "atom"
+        VStack(alignment: .leading, spacing: 22) {
+            editorialPassage(
+                eyebrow: "Definition",
+                number: "01",
+                title: "What are peptides?",
+                body: "Peptides are short chains of amino acids — the building blocks of proteins. They occur naturally in your body and play roles in signaling, healing, and regulation. Research peptides are synthetic versions studied for various biological effects."
             )
-            guideCard(
-                title: "How Do They Work?",
-                content: "Peptides bind to specific receptors in your body, triggering biological responses. Different peptides target different systems — some promote tissue repair, others influence growth hormone release, metabolism, or cognitive function.",
-                icon: "gearshape.2.fill"
+            editorialPassage(
+                eyebrow: "Mechanism",
+                number: "02",
+                title: "How they work",
+                body: "Peptides bind to specific receptors in your body, triggering biological responses. Different peptides target different systems — some promote tissue repair, others influence growth hormone release, metabolism, or cognitive function."
             )
-            categoryOverviewCard
-            disclaimerCard
+            categoryOverview
         }
     }
 
-    private var categoryOverviewCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 7) {
-                    Image(systemName: "square.grid.2x2.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(selectedSection.color)
-                    Text("Categories")
-                        .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
+    private var categoryOverview: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow("Categories", number: "03", accent: PepTheme.teal)
 
-                VStack(spacing: 8) {
-                    ForEach(PeptideCategory.allCases.filter { $0 != .all }) { cat in
-                        HStack(spacing: 10) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(cat.color.opacity(0.15))
-                                    .frame(width: 32, height: 32)
-                                Image(systemName: cat.icon)
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(cat.color)
-                            }
-                            Text(cat.rawValue)
-                                .font(.system(.subheadline, weight: .medium))
-                                .foregroundStyle(PepTheme.textPrimary)
-                            Spacer()
-                            Text(categoryExamples(for: cat))
-                                .font(.system(.caption2, weight: .medium))
-                                .foregroundStyle(PepTheme.textSecondary)
-                                .lineLimit(1)
-                        }
-                        if cat != PeptideCategory.allCases.filter({ $0 != .all }).last {
-                            Rectangle()
-                                .fill(PepTheme.separatorColor)
-                                .frame(height: 0.5)
-                        }
+            VStack(spacing: 0) {
+                let cats = PeptideCategory.allCases.filter { $0 != .all }
+                ForEach(Array(cats.enumerated()), id: \.offset) { idx, cat in
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Text(String(format: "%02d", idx + 1))
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.55))
+                            .frame(width: 22, alignment: .leading)
+                        Text(cat.rawValue)
+                            .font(.system(.subheadline, design: .serif, weight: .regular))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Spacer(minLength: 12)
+                        Text(categoryExamples(for: cat))
+                            .font(.system(.caption2, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary)
+                            .multilineTextAlignment(.trailing)
+                            .lineLimit(1)
+                    }
+                    .padding(.vertical, 12)
+
+                    if idx < cats.count - 1 {
+                        Rectangle()
+                            .fill(PepTheme.separatorColor.opacity(0.6))
+                            .frame(height: 0.5)
                     }
                 }
             }
@@ -239,229 +299,221 @@ struct BeginnersGuideView: View {
         case .sexualHealth: return "PT-141, Kisspeptin"
         case .sarms: return "MK-677, RAD-140"
         case .igfVariants: return "IGF-1 LR3, IGF-1 DES"
-        case .hormonal: return "HCG, Enclomiphene, Nolvadex"
-        case .ancillary: return "Arimidex, Aromasin, Cabergoline"
+        case .hormonal: return "HCG, Enclomiphene"
+        case .ancillary: return "Arimidex, Aromasin"
         case .niche: return "DSIP, Thymosin Alpha-1"
         case .all: return ""
         }
     }
 
     private var reconstitutionContent: some View {
-        Group {
-            guideCard(
-                title: "What Is Reconstitution?",
-                content: "Most peptides come as a freeze-dried (lyophilized) powder in a vial. Reconstitution is the process of adding bacteriostatic water (BAC water) to dissolve the powder so it can be measured and injected.",
-                icon: "drop.fill"
+        VStack(alignment: .leading, spacing: 22) {
+            editorialPassage(
+                eyebrow: "Overview",
+                number: "01",
+                title: "What is reconstitution?",
+                body: "Most peptides come as a freeze-dried (lyophilized) powder in a vial. Reconstitution is the process of adding bacteriostatic water (BAC water) to dissolve the powder so it can be measured and injected."
             )
-            guideStepCard(steps: [
-                GuideStep(number: 1, title: "Gather Supplies", detail: "Peptide vial, BAC water, alcohol swabs, insulin syringe"),
-                GuideStep(number: 2, title: "Clean Vial Tops", detail: "Swab both the peptide vial and BAC water vial tops with alcohol"),
-                GuideStep(number: 3, title: "Draw BAC Water", detail: "Draw your desired volume of BAC water into the syringe (typically 1-2 mL)"),
-                GuideStep(number: 4, title: "Add Water Slowly", detail: "Insert needle into peptide vial. Let water drip down the side — never spray directly onto the powder"),
-                GuideStep(number: 5, title: "Gently Swirl", detail: "Roll the vial between your hands gently. Never shake — this can damage the peptide"),
-                GuideStep(number: 6, title: "Wait for Clarity", detail: "The solution should become clear. If cloudy, continue gentle swirling. Discard if it remains cloudy"),
-            ])
-            mathCard
-            disclaimerCard
+            editorialSteps(
+                eyebrow: "The Method",
+                number: "02",
+                steps: [
+                    GuideStep(number: 1, title: "Gather supplies", detail: "Peptide vial, BAC water, alcohol swabs, insulin syringe."),
+                    GuideStep(number: 2, title: "Clean vial tops", detail: "Swab both the peptide vial and BAC water vial tops with alcohol."),
+                    GuideStep(number: 3, title: "Draw BAC water", detail: "Draw your desired volume of BAC water into the syringe (typically 1–2 mL)."),
+                    GuideStep(number: 4, title: "Add water slowly", detail: "Insert the needle into the peptide vial. Let water drip down the side — never spray onto the powder."),
+                    GuideStep(number: 5, title: "Gently swirl", detail: "Roll the vial between your hands gently. Never shake — this can damage the peptide."),
+                    GuideStep(number: 6, title: "Wait for clarity", detail: "The solution should become clear. If cloudy, continue gentle swirling. Discard if it remains cloudy.")
+                ]
+            )
+            mathReference
         }
     }
 
-    private var mathCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 7) {
-                    Image(systemName: "function")
-                        .font(.system(size: 13))
-                        .foregroundStyle(selectedSection.color)
-                    Text("Concentration Math")
-                        .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
+    private var mathReference: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow("Concentration Math", number: "03", accent: PepTheme.teal)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    mathRow(label: "Example", value: "5mg vial + 2mL BAC water")
-                    mathRow(label: "Concentration", value: "2,500 mcg/mL")
-                    mathRow(label: "For 250mcg dose", value: "0.1 mL = 10 units")
-                }
-                .padding(12)
-                .background(selectedSection.color.opacity(0.06))
-                .clipShape(.rect(cornerRadius: 10))
-
-                HStack(spacing: 6) {
-                    Image(systemName: "info.circle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(selectedSection.color)
-                    Text("Use the Reconstitution Calculator in your protocol for easy math!")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
+            VStack(spacing: 0) {
+                figureRow(label: "Example", value: "5 mg vial + 2 mL BAC")
+                figureRow(label: "Concentration", value: "2,500 mcg / mL")
+                figureRow(label: "For 250 mcg", value: "0.1 mL · 10 units", isLast: true)
             }
+
+            footnote("Use the in-app reconstitution calculator for any vial size.")
         }
     }
 
-    private func mathRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(.caption, weight: .semibold))
-                .foregroundStyle(PepTheme.textSecondary)
-            Spacer()
-            Text(value)
-                .font(.system(.caption, design: .monospaced, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
+    private func figureRow(label: String, value: String, isLast: Bool = false) -> some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(label.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.4)
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.85))
+                Spacer(minLength: 12)
+                Text(value)
+                    .font(.system(.subheadline, design: .monospaced, weight: .regular))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+            .padding(.vertical, 12)
+
+            if !isLast {
+                Rectangle()
+                    .fill(PepTheme.separatorColor.opacity(0.6))
+                    .frame(height: 0.5)
+            }
         }
     }
 
     private var injectionContent: some View {
-        Group {
-            guideCard(
-                title: "Subcutaneous Injection",
-                content: "Most peptides are injected subcutaneously (under the skin, into fat tissue). This is the most common and easiest injection method for peptides. Use insulin syringes with short, thin needles.",
-                icon: "syringe.fill"
+        VStack(alignment: .leading, spacing: 22) {
+            editorialPassage(
+                eyebrow: "Method",
+                number: "01",
+                title: "Subcutaneous injection",
+                body: "Most peptides are injected subcutaneously — under the skin, into fat tissue. It is the easiest and most common route for peptides. Use insulin syringes with short, thin needles."
             )
-            guideStepCard(steps: [
-                GuideStep(number: 1, title: "Clean the Site", detail: "Swab the injection site with an alcohol pad and let it dry"),
-                GuideStep(number: 2, title: "Pinch the Skin", detail: "Pinch a fold of skin at the injection site"),
-                GuideStep(number: 3, title: "Insert at 45°", detail: "Insert the needle at a 45-degree angle into the pinched skin fold"),
-                GuideStep(number: 4, title: "Inject Slowly", detail: "Push the plunger slowly and steadily"),
-                GuideStep(number: 5, title: "Wait & Remove", detail: "Wait 5 seconds after pushing the plunger, then remove the needle"),
-                GuideStep(number: 6, title: "Dispose Safely", detail: "Place used needles in a sharps container. Never recap or reuse needles"),
-            ])
-            siteRotationCard
-            disclaimerCard
+            editorialSteps(
+                eyebrow: "The Procedure",
+                number: "02",
+                steps: [
+                    GuideStep(number: 1, title: "Clean the site", detail: "Swab the injection site with an alcohol pad and let it dry."),
+                    GuideStep(number: 2, title: "Pinch the skin", detail: "Pinch a fold of skin at the injection site."),
+                    GuideStep(number: 3, title: "Insert at 45°", detail: "Insert the needle at a 45-degree angle into the pinched fold."),
+                    GuideStep(number: 4, title: "Inject slowly", detail: "Push the plunger steadily — don't rush."),
+                    GuideStep(number: 5, title: "Wait & remove", detail: "Wait 5 seconds after pushing the plunger, then remove the needle."),
+                    GuideStep(number: 6, title: "Dispose safely", detail: "Place used needles in a sharps container. Never recap or reuse needles.")
+                ]
+            )
+            siteRotation
         }
     }
 
-    private var siteRotationCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 7) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 13))
-                        .foregroundStyle(selectedSection.color)
-                    Text("Site Rotation")
-                        .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
+    private var siteRotation: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow("Site Rotation", number: "03", accent: PepTheme.teal)
+            Text("Rotate injection sites to prevent tissue damage and lipodystrophy.")
+                .font(.system(.subheadline, design: .serif, weight: .regular))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineSpacing(3)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text("Rotate injection sites to prevent tissue damage and lipodystrophy.")
-                    .font(.subheadline)
-                    .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                    .lineSpacing(3)
-
-                HStack(spacing: 8) {
-                    ForEach(["Abdomen", "Thighs", "Deltoids", "Love Handles"], id: \.self) { site in
+            VStack(spacing: 0) {
+                let sites = ["Abdomen", "Thighs", "Deltoids", "Love handles"]
+                ForEach(Array(sites.enumerated()), id: \.offset) { idx, site in
+                    HStack(spacing: 12) {
+                        Text(String(format: "%02d", idx + 1))
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(PepTheme.teal.opacity(0.85))
+                            .frame(width: 22, alignment: .leading)
                         Text(site)
-                            .font(.system(.caption2, weight: .bold))
-                            .foregroundStyle(selectedSection.color)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(selectedSection.color.opacity(0.1))
-                            .clipShape(.capsule)
+                            .font(.system(.subheadline, design: .serif, weight: .regular))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Spacer()
+                    }
+                    .padding(.vertical, 11)
+                    if idx < sites.count - 1 {
+                        Rectangle()
+                            .fill(PepTheme.separatorColor.opacity(0.6))
+                            .frame(height: 0.5)
                     }
                 }
-
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 11))
-                        .foregroundStyle(PepTheme.teal)
-                    Text("PepPal tracks injection sites and suggests rotation automatically.")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
             }
+
+            footnote("EPTI tracks injection sites and suggests rotation automatically.")
         }
     }
 
     private var storageContent: some View {
-        Group {
-            storageConditionCard(
-                title: "Before Reconstitution",
-                content: "Lyophilized (powder) peptides should be stored in a cool, dark place. Refrigeration (36-46°F / 2-8°C) is ideal. Some can be stored at room temperature short-term, but refrigeration extends shelf life significantly.",
-                icon: "snowflake",
-                temp: "36-46°F",
-                tempLabel: "Refrigerated"
+        VStack(alignment: .leading, spacing: 22) {
+            storagePassage(
+                eyebrow: "Lyophilized",
+                number: "01",
+                title: "Before reconstitution",
+                body: "Powdered peptides should be stored in a cool, dark place. Refrigeration (36–46°F / 2–8°C) is ideal. Some can be stored at room temperature short-term, but refrigeration extends shelf life significantly.",
+                meta: "36–46°F",
+                metaLabel: "Refrigerated"
             )
-            storageConditionCard(
-                title: "After Reconstitution",
-                content: "Once mixed with BAC water, peptides MUST be refrigerated. Most reconstituted peptides remain stable for 4-6 weeks when refrigerated properly. Never freeze reconstituted peptides.",
-                icon: "thermometer.snowflake",
-                temp: "4-6 wks",
-                tempLabel: "Shelf Life"
+            storagePassage(
+                eyebrow: "Reconstituted",
+                number: "02",
+                title: "After reconstitution",
+                body: "Once mixed with BAC water, peptides must be refrigerated. Most reconstituted peptides remain stable for 4–6 weeks when refrigerated properly. Never freeze reconstituted peptides.",
+                meta: "4–6 wks",
+                metaLabel: "Shelf life"
             )
-            guideCard(
-                title: "BAC Water",
-                content: "Bacteriostatic water contains 0.9% benzyl alcohol, which prevents bacterial growth. This is why it's preferred over sterile water — it allows multiple draws from the same vial safely. Store BAC water at room temperature.",
-                icon: "drop.circle.fill"
+            editorialPassage(
+                eyebrow: "Solvent",
+                number: "03",
+                title: "Bacteriostatic water",
+                body: "BAC water contains 0.9% benzyl alcohol, which prevents bacterial growth. This is why it's preferred over sterile water — it allows multiple safe draws from the same vial. Store BAC water at room temperature."
             )
-            keyRulesCard
-            disclaimerCard
+            keyRules
         }
     }
 
-    private func storageConditionCard(title: String, content: String, icon: String, temp: String, tempLabel: String) -> some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    HStack(spacing: 7) {
-                        Image(systemName: icon)
-                            .font(.system(size: 13))
-                            .foregroundStyle(selectedSection.color)
-                        Text(title)
-                            .font(.system(.subheadline, weight: .bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-                    Spacer()
-                    VStack(spacing: 1) {
-                        Text(temp)
-                            .font(.system(.caption, design: .rounded, weight: .bold))
-                            .foregroundStyle(selectedSection.color)
-                        Text(tempLabel)
-                            .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(selectedSection.color.opacity(0.08))
-                    .clipShape(.rect(cornerRadius: 8))
-                }
+    private func storagePassage(eyebrow: String, number: String, title: String, body: String, meta: String, metaLabel: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionEyebrow(eyebrow, number: number, accent: PepTheme.teal)
 
-                Text(content)
-                    .font(.subheadline)
-                    .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                    .lineSpacing(4)
-            }
-        }
-    }
-
-    private var keyRulesCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 7) {
-                    Image(systemName: "checklist")
-                        .font(.system(size: 13))
-                        .foregroundStyle(selectedSection.color)
-                    Text("Key Rules")
-                        .font(.system(.subheadline, weight: .bold))
+            HStack(alignment: .firstTextBaseline) {
+                Text(title)
+                    .font(.system(.title3, design: .serif, weight: .regular))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .kerning(-0.3)
+                Spacer(minLength: 12)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(meta)
+                        .font(.system(.subheadline, design: .monospaced, weight: .regular))
                         .foregroundStyle(PepTheme.textPrimary)
+                    Text(metaLabel.uppercased())
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(1.3)
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.75))
                 }
+            }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(Array([
-                        "Always use BAC water, not sterile water",
-                        "Keep vials upright in the fridge",
-                        "Protect from light",
-                        "Never share needles or vials",
-                        "Track expiration dates",
-                        "Discard if solution becomes cloudy"
-                    ].enumerated()), id: \.offset) { _, rule in
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 13))
-                                .foregroundStyle(selectedSection.color)
-                            Text(rule)
-                                .font(.subheadline)
-                                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                        }
+            Text(body)
+                .font(.system(.subheadline, weight: .regular))
+                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                .lineSpacing(4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var keyRules: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow("Key Rules", number: "04", accent: PepTheme.teal)
+
+            let rules = [
+                "Always use BAC water, not sterile water.",
+                "Keep vials upright in the fridge.",
+                "Protect from light.",
+                "Never share needles or vials.",
+                "Track expiration dates.",
+                "Discard if the solution becomes cloudy."
+            ]
+
+            VStack(spacing: 0) {
+                ForEach(Array(rules.enumerated()), id: \.offset) { idx, rule in
+                    HStack(alignment: .top, spacing: 12) {
+                        Text(String(format: "%02d", idx + 1))
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.65))
+                            .frame(width: 22, alignment: .leading)
+                        Text(rule)
+                            .font(.system(.subheadline, design: .serif, weight: .regular))
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .lineSpacing(3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.vertical, 11)
+
+                    if idx < rules.count - 1 {
+                        Rectangle()
+                            .fill(PepTheme.separatorColor.opacity(0.6))
+                            .frame(height: 0.5)
                     }
                 }
             }
@@ -469,193 +521,182 @@ struct BeginnersGuideView: View {
     }
 
     private var coaContent: some View {
-        Group {
-            guideCard(
-                title: "What Is a COA?",
-                content: "A Certificate of Analysis (COA) is a document from an analytical lab that verifies the identity, purity, and quality of a compound. Reputable vendors provide COAs for every batch they sell.",
-                icon: "doc.text.magnifyingglass"
+        VStack(alignment: .leading, spacing: 22) {
+            editorialPassage(
+                eyebrow: "Definition",
+                number: "01",
+                title: "What is a COA?",
+                body: "A Certificate of Analysis is a document from an analytical lab verifying the identity, purity, and quality of a compound. Reputable vendors provide a COA for every batch they sell."
             )
-            coaChecklistCard
-            redFlagsCard
-            guideCard(
-                title: "Verified Vendors on PepPal",
-                content: "Vendors with the verification badge on PepPal have submitted COAs and third-party lab results for review. This badge cannot be purchased — it's earned through transparency. Check the Discover tab for verified sources.",
-                icon: "checkmark.shield.fill"
+            coaChecklist
+            redFlags
+            editorialPassage(
+                eyebrow: "Trust Signals",
+                number: "04",
+                title: "Verified vendors on EPTI",
+                body: "Vendors with the verification mark have submitted COAs and third-party lab results for review. The badge can't be purchased — it's earned through transparency."
             )
-            disclaimerCard
         }
     }
 
-    private var coaChecklistCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 7) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 13))
-                        .foregroundStyle(selectedSection.color)
-                    Text("What to Look For")
-                        .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
+    private var coaChecklist: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow("What to Look For", number: "02", accent: PepTheme.teal)
 
-                VStack(spacing: 6) {
-                    ForEach(Array([
-                        ("98%+", "Purity (ideally 99%+)"),
-                        ("HPLC", "Identity confirmation"),
-                        ("Low", "Endotoxin levels"),
-                        ("Pass", "Sterility testing"),
-                        ("Match", "Batch/lot number"),
-                        ("3rd Party", "Independent lab")
-                    ].enumerated()), id: \.offset) { _, item in
-                        HStack(spacing: 10) {
-                            Text(item.0)
-                                .font(.system(.caption2, design: .monospaced, weight: .bold))
-                                .foregroundStyle(selectedSection.color)
-                                .frame(width: 54, alignment: .trailing)
-                            Rectangle()
-                                .fill(PepTheme.separatorColor)
-                                .frame(width: 1, height: 16)
-                            Text(item.1)
-                                .font(.system(.caption, weight: .medium))
-                                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                            Spacer()
-                        }
-                        .padding(.vertical, 4)
+            let items: [(String, String)] = [
+                ("98%+", "Purity (ideally 99%+)"),
+                ("HPLC", "Identity confirmation"),
+                ("LOW", "Endotoxin levels"),
+                ("PASS", "Sterility testing"),
+                ("MATCH", "Batch / lot number"),
+                ("3RD PARTY", "Independent lab")
+            ]
+
+            VStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.offset) { idx, item in
+                    HStack(alignment: .firstTextBaseline, spacing: 14) {
+                        Text(item.0)
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(PepTheme.teal)
+                            .frame(width: 78, alignment: .leading)
+                        Text(item.1)
+                            .font(.system(.subheadline, design: .serif, weight: .regular))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Spacer()
+                    }
+                    .padding(.vertical, 11)
+                    if idx < items.count - 1 {
+                        Rectangle()
+                            .fill(PepTheme.separatorColor.opacity(0.6))
+                            .frame(height: 0.5)
                     }
                 }
             }
         }
     }
 
-    private var redFlagsCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 7) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.red)
-                    Text("Red Flags")
-                        .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
+    private var redFlags: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow("Red Flags", number: "03", accent: .red.opacity(0.85))
 
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(Array([
-                        "No COA available",
-                        "In-house testing only (no third-party lab)",
-                        "Purity below 97%",
-                        "COA doesn't match batch number",
-                        "Generic/template COA",
-                        "Vendor refuses to provide COA"
-                    ].enumerated()), id: \.offset) { _, flag in
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 13))
-                                .foregroundStyle(.red.opacity(0.7))
-                            Text(flag)
-                                .font(.subheadline)
-                                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                        }
+            let flags = [
+                "No COA available.",
+                "In-house testing only — no third-party lab.",
+                "Purity below 97%.",
+                "COA doesn't match the batch number.",
+                "Generic or template COA.",
+                "Vendor refuses to provide a COA."
+            ]
+
+            VStack(spacing: 0) {
+                ForEach(Array(flags.enumerated()), id: \.offset) { idx, flag in
+                    HStack(alignment: .top, spacing: 12) {
+                        Text("✕")
+                            .font(.system(size: 12, weight: .regular, design: .serif))
+                            .foregroundStyle(.red.opacity(0.75))
+                            .frame(width: 22, alignment: .leading)
+                        Text(flag)
+                            .font(.system(.subheadline, design: .serif, weight: .regular))
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .lineSpacing(3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.vertical, 11)
+                    if idx < flags.count - 1 {
+                        Rectangle()
+                            .fill(PepTheme.separatorColor.opacity(0.6))
+                            .frame(height: 0.5)
                     }
                 }
             }
         }
     }
 
-    // MARK: - Shared Components
+    // MARK: - Building Blocks
 
-    private func guideCard(title: String, content: String, icon: String) -> some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 7) {
-                    Image(systemName: icon)
-                        .font(.system(size: 13))
-                        .foregroundStyle(selectedSection.color)
-                    Text(title)
-                        .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
-
-                Text(content)
-                    .font(.subheadline)
-                    .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
-                    .lineSpacing(4)
-            }
+    private func editorialPassage(eyebrow: String, number: String, title: String, body: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionEyebrow(eyebrow, number: number, accent: PepTheme.teal)
+            Text(title)
+                .font(.system(.title3, design: .serif, weight: .regular))
+                .foregroundStyle(PepTheme.textPrimary)
+                .kerning(-0.3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(body)
+                .font(.system(.subheadline, weight: .regular))
+                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                .lineSpacing(4)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private func guideStepCard(steps: [GuideStep]) -> some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 7) {
-                    Image(systemName: "list.number")
-                        .font(.system(size: 13))
-                        .foregroundStyle(selectedSection.color)
-                    Text("Step by Step")
-                        .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
+    private func editorialSteps(eyebrow: String, number: String, steps: [GuideStep]) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionEyebrow(eyebrow, number: number, accent: PepTheme.teal)
 
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(steps) { step in
-                        HStack(alignment: .top, spacing: 12) {
-                            VStack(spacing: 0) {
-                                ZStack {
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [selectedSection.color, selectedSection.color.opacity(0.7)],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                        )
-                                        .frame(width: 28, height: 28)
-                                    Text("\(step.number)")
-                                        .font(.system(.caption2, design: .rounded, weight: .bold))
-                                        .foregroundStyle(.white)
-                                }
-                                if step.number < steps.count {
-                                    Rectangle()
-                                        .fill(selectedSection.color.opacity(0.2))
-                                        .frame(width: 2, height: 20)
-                                }
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(steps.enumerated()), id: \.element.id) { idx, step in
+                    HStack(alignment: .top, spacing: 14) {
+                        VStack(spacing: 0) {
+                            Text(String(format: "%02d", step.number))
+                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(PepTheme.teal)
+                                .padding(.top, 1)
+                            if idx < steps.count - 1 {
+                                Rectangle()
+                                    .fill(PepTheme.separatorColor.opacity(0.7))
+                                    .frame(width: 0.5)
+                                    .frame(maxHeight: .infinity)
+                                    .padding(.top, 6)
                             }
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(step.title)
-                                    .font(.system(.subheadline, weight: .semibold))
-                                    .foregroundStyle(PepTheme.textPrimary)
-                                Text(step.detail)
-                                    .font(.caption)
-                                    .foregroundStyle(PepTheme.textSecondary)
-                                    .lineSpacing(2)
-                            }
-                            .padding(.bottom, step.number < steps.count ? 8 : 0)
                         }
+                        .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(step.title)
+                                .font(.system(.subheadline, design: .serif, weight: .regular))
+                                .foregroundStyle(PepTheme.textPrimary)
+                                .kerning(-0.2)
+                            Text(step.detail)
+                                .font(.system(.footnote, weight: .regular))
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .lineSpacing(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.bottom, idx < steps.count - 1 ? 16 : 0)
                     }
                 }
             }
         }
     }
 
-    private var disclaimerCard: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.shield.fill")
-                .font(.system(size: 18))
-                .foregroundStyle(PepTheme.amber)
+    private func footnote(_ text: String) -> some View {
+        Text(text)
+            .font(.system(.caption, design: .serif, weight: .regular))
+            .italic()
+            .foregroundStyle(PepTheme.textSecondary)
+            .lineSpacing(2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 2)
+    }
 
-            Text("This guide is for educational purposes only. Always consult with a qualified healthcare professional before using any peptide or research compound.")
-                .font(.caption)
-                .foregroundStyle(PepTheme.textSecondary)
-                .lineSpacing(2)
+    private var disclaimerLine: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(height: 0.5)
+            HStack(alignment: .top, spacing: 10) {
+                Text("§")
+                    .font(.system(.subheadline, design: .serif, weight: .regular))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                Text("This guide is for educational purposes only. Always consult a qualified healthcare professional before using any peptide or research compound.")
+                    .font(.system(.caption, design: .serif, weight: .regular))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .lineSpacing(3)
+            }
         }
-        .padding(12)
-        .background(PepTheme.amber.opacity(0.08))
-        .clipShape(.rect(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(PepTheme.amber.opacity(0.15), lineWidth: 0.5)
-        )
+        .padding(.top, 8)
     }
 }
 

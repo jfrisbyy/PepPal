@@ -8,6 +8,7 @@ struct ProgramScheduleStep: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
+                scheduleHeader
                 ForEach(Array(viewModel.programDays.enumerated()), id: \.element.id) { index, day in
                     dayCard(index: index, day: day)
                 }
@@ -20,6 +21,19 @@ struct ProgramScheduleStep: View {
                 viewModel.addExercisesToDay(at: pickerDayIndex, exercises: selectedExercises)
             }
         }
+    }
+
+    private var scheduleHeader: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("WEEKLY SCHEDULE")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(PepTheme.textSecondary)
+                .tracking(1)
+            Text("Pick the day of the week for each workout and add your exercises.")
+                .font(.system(size: 12))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func dayCard(index: Int, day: ProgramDay) -> some View {
@@ -53,9 +67,12 @@ struct ProgramScheduleStep: View {
                 .background(PepTheme.elevated)
                 .clipShape(.rect(cornerRadius: 10))
 
+            weekdaySelector(dayIndex: index)
+
             if !day.exercises.isEmpty {
                 exercisesList(dayIndex: index)
             }
+
 
             Button {
                 pickerDayIndex = index
@@ -91,6 +108,123 @@ struct ProgramScheduleStep: View {
                     ),
                     lineWidth: 0.5
                 )
+        )
+    }
+
+    private func weekdaySelector(dayIndex: Int) -> some View {
+        let selected = viewModel.programDays[dayIndex].scheduledWeekday
+        let sharedWeekday: Int? = {
+            guard let wd = selected else { return nil }
+            let count = viewModel.programDays.filter { $0.scheduledWeekday == wd }.count
+            return count > 1 ? wd : nil
+        }()
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("SCHEDULED ON")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                .tracking(0.8)
+            HStack(spacing: 6) {
+                ForEach(ProgramWeekday.allCases) { weekday in
+                    let isSelected = selected == weekday.rawValue
+                    let sharedCount = viewModel.programDays.filter { $0.scheduledWeekday == weekday.rawValue && $0.id != viewModel.programDays[dayIndex].id }.count
+                    Button {
+                        withAnimation(.spring(duration: 0.2)) {
+                            viewModel.setWeekday(weekday.rawValue, forDayAt: dayIndex)
+                        }
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Text(weekday.singleLetter)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(isSelected ? .black : PepTheme.textPrimary)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 36)
+                                .background(isSelected ? PepTheme.teal : PepTheme.elevated)
+                                .clipShape(.rect(cornerRadius: 9))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 9)
+                                        .strokeBorder(
+                                            isSelected ? Color.clear : PepTheme.glassBorderTop,
+                                            lineWidth: 0.5
+                                        )
+                                )
+                            if sharedCount > 0 {
+                                Circle()
+                                    .fill(PepTheme.amber)
+                                    .frame(width: 6, height: 6)
+                                    .offset(x: -4, y: 4)
+                            }
+                        }
+                    }
+                }
+            }
+            if sharedWeekday != nil {
+                timeOfDaySelector(dayIndex: dayIndex)
+            }
+        }
+    }
+
+    private func timeOfDaySelector(dayIndex: Int) -> some View {
+        let weekday = viewModel.programDays[dayIndex].scheduledWeekday
+        let current = viewModel.programDays[dayIndex].timeOfDay
+        let usedByOther: Set<ProgramTimeOfDay> = Set(
+            viewModel.programDays.enumerated().compactMap { i, d in
+                (i != dayIndex && d.scheduledWeekday == weekday) ? d.timeOfDay : nil
+            }
+        )
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "clock.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(PepTheme.amber)
+                Text("TIME OF DAY")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                    .tracking(0.8)
+            }
+            HStack(spacing: 6) {
+                ForEach(ProgramTimeOfDay.allCases) { time in
+                    let isSelected = current == time
+                    let isTaken = usedByOther.contains(time) && !isSelected
+                    Button {
+                        withAnimation(.spring(duration: 0.2)) {
+                            viewModel.setTimeOfDay(isSelected ? nil : time, forDayAt: dayIndex)
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: time.icon)
+                                .font(.system(size: 10))
+                            Text(time.label)
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(
+                            isSelected ? .black : (isTaken ? PepTheme.textSecondary.opacity(0.4) : PepTheme.textPrimary)
+                        )
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 32)
+                        .background(
+                            isSelected
+                                ? PepTheme.amber
+                                : (isTaken ? PepTheme.elevated.opacity(0.4) : PepTheme.elevated)
+                        )
+                        .clipShape(.rect(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(
+                                    isSelected ? Color.clear : PepTheme.glassBorderTop,
+                                    lineWidth: 0.5
+                                )
+                        )
+                    }
+                    .disabled(isTaken)
+                }
+            }
+        }
+        .padding(10)
+        .background(PepTheme.amber.opacity(0.06))
+        .clipShape(.rect(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(PepTheme.amber.opacity(0.2), lineWidth: 0.5)
         )
     }
 

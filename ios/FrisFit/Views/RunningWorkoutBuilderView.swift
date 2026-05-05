@@ -20,7 +20,7 @@ struct RunningWorkoutBuilderView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Run Workouts")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

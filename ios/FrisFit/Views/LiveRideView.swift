@@ -106,11 +106,10 @@ struct LiveRideView: View {
     private var mapSection: some View {
         ZStack(alignment: .topTrailing) {
             Map(position: $mapCameraPosition) {
-                if cyclingVM.routePoints.count >= 2 {
-                    MapPolyline(coordinates: cyclingVM.routePoints.map {
-                        CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
-                    })
-                    .stroke(accentColor, lineWidth: 3)
+                ForEach(speedSegments.indices, id: \.self) { i in
+                    let seg = speedSegments[i]
+                    MapPolyline(coordinates: seg.coords)
+                        .stroke(seg.color, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
                 }
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
@@ -135,6 +134,62 @@ struct LiveRideView: View {
                 }
             }
             .padding(12)
+
+            if cyclingVM.isAutoPaused {
+                HStack(spacing: 8) {
+                    Image(systemName: "pause.circle.fill")
+                        .font(.system(size: 14))
+                    Text("Auto-paused")
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.95))
+                .clipShape(Capsule())
+                .frame(maxWidth: .infinity)
+                .padding(12)
+                .allowsHitTesting(false)
+            }
+        }
+    }
+
+    private struct ColoredSegment {
+        let coords: [CLLocationCoordinate2D]
+        let color: Color
+    }
+
+    private var speedSegments: [ColoredSegment] {
+        let pts = cyclingVM.routePoints
+        guard pts.count >= 2 else { return [] }
+        let validSpeeds = pts.map(\.speed).filter { $0 > 0 && $0 < 60 }
+        let minS = validSpeeds.min() ?? 5
+        let maxS = validSpeeds.max() ?? 30
+        var out: [ColoredSegment] = []
+        for i in 0..<(pts.count - 1) {
+            let a = pts[i]
+            let b = pts[i + 1]
+            let color = speedColor(a.speed, minSpeed: minS, maxSpeed: maxS)
+            out.append(ColoredSegment(
+                coords: [
+                    CLLocationCoordinate2D(latitude: a.latitude, longitude: a.longitude),
+                    CLLocationCoordinate2D(latitude: b.latitude, longitude: b.longitude)
+                ],
+                color: color
+            ))
+        }
+        return out
+    }
+
+    private func speedColor(_ speed: Double, minSpeed: Double, maxSpeed: Double) -> Color {
+        guard speed > 0, maxSpeed > minSpeed else { return accentColor }
+        let t = max(0, min(1, (speed - minSpeed) / (maxSpeed - minSpeed)))
+        if t < 0.5 {
+            let k = t / 0.5
+            return Color(red: 1.0, green: 0.85 * k, blue: 0)
+        } else {
+            let k = (t - 0.5) / 0.5
+            return Color(red: 1.0 - k, green: 0.85, blue: 0.25 * k)
         }
     }
 
@@ -447,7 +502,7 @@ struct RideSummarySheet: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Ride Complete")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

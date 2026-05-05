@@ -30,7 +30,7 @@ struct DescribeMealView: View {
                 .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Describe Meal")
             .navigationBarTitleDisplayMode(.inline)
             
@@ -112,10 +112,8 @@ struct DescribeMealView: View {
                     if isAnalyzing {
                         ProgressView()
                             .tint(PepTheme.invertedText)
-                    } else {
-                        Image(systemName: "sparkles")
                     }
-                    Text(isAnalyzing ? "Analyzing..." : "Estimate Nutrition")
+                    Text(isAnalyzing ? "Analyzing…" : "Estimate Nutrition")
                         .font(.system(.body, weight: .semibold))
                 }
                 .foregroundStyle(PepTheme.invertedText)

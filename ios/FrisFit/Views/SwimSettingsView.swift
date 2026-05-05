@@ -18,7 +18,7 @@ struct SwimSettingsView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Swim Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -101,6 +101,28 @@ final class NotificationsViewModel {
             unreadCount = count + requests.count
         } catch {}
     }
+
+    @MainActor
+    func subscribeRealtime() async {
+        guard let userId = try? AuthService.shared.currentUserId() else { return }
+        await NotificationsRealtimeService.shared.subscribe(userId: userId) { [weak self] inserted in
+            guard let self else { return }
+            if self.notifications.contains(where: { $0.id == inserted.id }) { return }
+            let app = AppNotification(
+                id: inserted.id,
+                type: inserted.type ?? "general",
+                title: inserted.title ?? "",
+                body: inserted.body ?? "",
+                isRead: inserted.is_read ?? false,
+                createdAt: self.messagingService.parseDate(inserted.created_at)
+            )
+            self.notifications.insert(app, at: 0)
+            if !(inserted.is_read ?? false) {
+                self.unreadCount += 1
+            }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+    }
 }
 
 struct AppNotification: Identifiable {
@@ -117,6 +139,14 @@ struct AppNotification: Identifiable {
         case "friend_request": return "person.2.fill"
         case "new_message": return "bubble.left.fill"
         case "friend_like", "friend_high_five": return "heart.fill"
+        case "friend_pr": return "trophy.fill"
+        case "friend_protocol_started": return "syringe.fill"
+        case "friend_protocol_finished": return "checkmark.seal.fill"
+        case "friend_sharing_on": return "hand.wave.fill"
+        case "friend_nudge": return "hand.tap.fill"
+        case "friend_reaction": return "face.smiling"
+        case "buddy_invite", "friend_buddy_invite": return "figure.2"
+        case "weekly_recap": return "chart.bar.xaxis"
         default: return "bell.fill"
         }
     }
@@ -126,7 +156,14 @@ struct AppNotification: Identifiable {
         case "new_follow": return PepTheme.teal
         case "friend_request": return PepTheme.violet
         case "new_message": return .blue
-        case "friend_like", "friend_high_five": return .red
+        case "friend_like", "friend_high_five", "friend_reaction": return .red
+        case "friend_pr": return PepTheme.amber
+        case "friend_protocol_started": return .pink
+        case "friend_protocol_finished": return .green
+        case "friend_sharing_on": return PepTheme.teal
+        case "friend_nudge": return PepTheme.amber
+        case "buddy_invite", "friend_buddy_invite": return PepTheme.violet
+        case "weekly_recap": return PepTheme.amber
         default: return PepTheme.textSecondary
         }
     }

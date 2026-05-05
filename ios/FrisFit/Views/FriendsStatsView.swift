@@ -1,0 +1,547 @@
+import SwiftUI
+
+struct FriendsStatsView<TopHeader: View>: View {
+    @ViewBuilder var topHeader: () -> TopHeader
+
+    init(@ViewBuilder topHeader: @escaping () -> TopHeader = { EmptyView() }) {
+        self.topHeader = topHeader
+    }
+
+    @State private var viewModel = FriendsStatsViewModel()
+    @State private var profileViewModel = ProfileViewModel()
+    @State private var showOnboarding: Bool = false
+    @State private var showSettings: Bool = false
+    @State private var selectedFriend: FriendStatSnapshot?
+    @State private var hasEnabledSharing: Bool = false
+    @State private var reactionTarget: ReactionTarget?
+    @State private var nudgeTarget: FriendStatSnapshot?
+
+    private let social = FriendSocialService.shared
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                topHeader()
+
+                header
+
+                if let recap = viewModel.weeklyRecap {
+                    NavigationLink(value: recap.id) {
+                        WeeklyRecapCard(recap: recap)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal)
+                }
+
+                if !hasEnabledSharing {
+                    shareCTA
+                        .padding(.horizontal)
+                }
+
+                if viewModel.isLoading {
+                    loadingGrid
+                        .padding(.horizontal)
+                } else if viewModel.friends.isEmpty {
+                    EmptyStateView(
+                        icon: "person.2",
+                        title: "No friends yet",
+                        message: "Follow people back to see their stats here. Stats only appear for mutual friends who have opted in."
+                    )
+                } else {
+                    friendsGrid
+                        .padding(.horizontal)
+
+                    if !viewModel.activityEvents.isEmpty {
+                        activitySection
+                            .padding(.horizontal)
+                    }
+                }
+
+                Color.clear.frame(height: 80)
+            }
+            .padding(.top, 8)
+        }
+        .scrollIndicators(.hidden)
+        .refreshable { await viewModel.load() }
+        .sheet(isPresented: $showOnboarding, onDismiss: { refreshOptIn() }) {
+            StatSharingOnboardingSheet()
+        }
+        .sheet(isPresented: $showSettings, onDismiss: { refreshOptIn() }) {
+            NavigationStack { StatSharingSettingsView() }
+        }
+        .navigationDestination(item: $selectedFriend) { friend in
+            FriendDashboardView(friend: friend, mySnapshot: viewModel.mySnapshot())
+        }
+        .navigationDestination(for: String.self) { recapId in
+            if let recap = viewModel.weeklyRecap, recap.id == recapId {
+                WeeklyRecapDetailView(recap: recap)
+            } else {
+                EmptyView()
+            }
+        }
+        .sheet(item: $reactionTarget) { target in
+            ReactionPickerSheet(target: target)
+                .presentationDetents([.height(180)])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(.ultraThinMaterial)
+        }
+        .sheet(item: $nudgeTarget) { friend in
+            NudgeMenuSheet(friend: friend)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+        .task {
+            refreshOptIn()
+            if !viewModel.hasSeenOnboarding {
+                showOnboarding = true
+            }
+            await viewModel.load()
+        }
+    }
+
+    private func refreshOptIn() {
+        hasEnabledSharing = viewModel.hasEnabledSharing
+    }
+
+    private var _socialObserver: Int { social.reactions.count + social.sentNudges.count + social.friendPresences.count }
+
+    private var header: some View {
+        SectionEyebrow("Friends", number: "00", accent: PepTheme.teal) {
+            Button {
+                showSettings = true
+            } label: {
+                Text("SETTINGS")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.4)
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private var shareCTA: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Share your progress with friends")
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text("Turn on stat sharing to see your friends' stats and let them see yours. You control what's visible.")
+                .font(.caption)
+                .foregroundStyle(PepTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                showOnboarding = true
+            } label: {
+                Text("ENABLE SHARING")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .overlay(
+                        Capsule().strokeBorder(PepTheme.textPrimary.opacity(0.6), lineWidth: 0.5)
+                    )
+            }
+            .buttonStyle(.scale)
+            .padding(.top, 4)
+        }
+        .padding(16)
+        .background(PepTheme.cardSurface, in: .rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+        )
+    }
+
+    private var loadingGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            ForEach(0..<4, id: \.self) { _ in
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(PepTheme.elevated)
+                    .frame(height: 160)
+                    .shimmering()
+            }
+        }
+    }
+
+    private var friendsGrid: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionEyebrow("Your Friends", number: "01", accent: PepTheme.teal) {
+                Text("\(viewModel.friends.count)")
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                ForEach(viewModel.friends) { friend in
+                    Button {
+                        selectedFriend = friend
+                    } label: {
+                        FriendStatCard(
+                            friend: friend,
+                            isLeaderStreak: friend.id == viewModel.friends.first?.id,
+                            onLongPress: { target in reactionTarget = target },
+                            onNudge: { nudgeTarget = friend }
+                        )
+                    }
+                    .buttonStyle(.scale)
+                    .disabled(!hasEnabledSharing)
+                    .opacity(hasEnabledSharing ? 1 : 0.55)
+                }
+            }
+        }
+    }
+
+    private var activitySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionEyebrow("Activity", number: "02", accent: PepTheme.violet)
+                .padding(.top, 8)
+
+            VStack(spacing: 0) {
+                ForEach(Array(viewModel.activityEvents.enumerated()), id: \.element.id) { index, event in
+                    FriendActivityRow(event: event)
+                    if index < viewModel.activityEvents.count - 1 {
+                        Divider().overlay(PepTheme.separatorColor).padding(.leading, 52)
+                    }
+                }
+            }
+            .background(PepTheme.cardSurface, in: .rect(cornerRadius: 16))
+        }
+    }
+}
+
+struct ReactionTarget: Identifiable, Hashable {
+    let id: String
+    let friendId: String
+    let friendName: String
+    let statLabel: String
+}
+
+struct FriendStatCard: View {
+    let friend: FriendStatSnapshot
+    var isLeaderStreak: Bool = false
+    var onLongPress: ((ReactionTarget) -> Void)? = nil
+    var onNudge: (() -> Void)? = nil
+
+    @State private var burstEmoji: StatReactionEmoji?
+    @State private var burstId: UUID = UUID()
+
+    private let social = FriendSocialService.shared
+
+    private var presence: FriendPresence? {
+        social.presence(for: friend.id.uuidString)
+    }
+
+    private var reactions: [StatReaction] {
+        social.reactions(forTarget: "streak", friendId: friend.id.uuidString)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                avatar
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(friend.user.name)
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .lineLimit(1)
+                    if let presence {
+                        presencePill(presence)
+                    } else {
+                        Text("@\(friend.user.username)")
+                            .font(.caption2)
+                            .foregroundStyle(PepTheme.textSecondary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+
+            if friend.isSharing {
+                sharingBody
+            } else {
+                lockedBody
+            }
+
+            if !reactions.isEmpty {
+                reactionStack
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            ZStack {
+                PepTheme.cardSurface
+                if isLeaderStreak {
+                    LinearGradient(
+                        colors: [PepTheme.amber.opacity(0.1), Color.clear],
+                        startPoint: .topTrailing,
+                        endPoint: .bottomLeading
+                    )
+                }
+            }
+            .clipShape(.rect(cornerRadius: 16))
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(presence != nil ? PepTheme.teal.opacity(0.5) : PepTheme.separatorColor, lineWidth: presence != nil ? 1 : 0.5)
+        )
+        .overlay(alignment: .topTrailing) {
+            if burstEmoji != nil {
+                ReactionBurst(emoji: burstEmoji!)
+                    .id(burstId)
+                    .padding(10)
+                    .allowsHitTesting(false)
+            }
+        }
+        .onLongPressGesture(minimumDuration: 0.35) {
+            guard friend.isSharing else { return }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            let label = presence != nil ? "workout" : (friend.streak > 0 ? "\(friend.streak)-day streak" : "progress")
+            onLongPress?(ReactionTarget(
+                id: "\(friend.id.uuidString)-streak",
+                friendId: friend.id.uuidString,
+                friendName: friend.user.name,
+                statLabel: label
+            ))
+        }
+        .onChange(of: reactions.count) { oldValue, newValue in
+            if newValue > oldValue, let last = reactions.last {
+                burstEmoji = last.emoji
+                burstId = UUID()
+                Task {
+                    try? await Task.sleep(for: .seconds(1.4))
+                    burstEmoji = nil
+                }
+            }
+        }
+    }
+
+    private func presencePill(_ presence: FriendPresence) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(PepTheme.teal)
+                .frame(width: 6, height: 6)
+                .overlay(
+                    Circle()
+                        .stroke(PepTheme.teal.opacity(0.4), lineWidth: 3)
+                        .scaleEffect(1.6)
+                        .opacity(0.5)
+                )
+            Text(presence.activity)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(PepTheme.teal)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(PepTheme.teal.opacity(0.12), in: Capsule())
+    }
+
+    private var reactionStack: some View {
+        HStack(spacing: -4) {
+            ForEach(Array(Set(reactions.map { $0.emoji })).prefix(3), id: \.self) { e in
+                Text(e.rawValue)
+                    .font(.system(size: 12))
+                    .frame(width: 20, height: 20)
+                    .background(PepTheme.elevated, in: Circle())
+                    .overlay(Circle().strokeBorder(PepTheme.cardSurface, lineWidth: 1.5))
+            }
+            if reactions.count > 1 {
+                Text("\(reactions.count)")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .padding(.leading, 6)
+            }
+        }
+    }
+
+    private var avatar: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(colors: [friend.user.avatarColor, friend.user.avatarColor.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .frame(width: 40, height: 40)
+            if let url = friend.user.avatarURL, let u = URL(string: url) {
+                AsyncImage(url: u) { image in
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Text(friend.user.avatarInitial).font(.system(.subheadline, design: .rounded, weight: .bold)).foregroundStyle(.white)
+                }
+                .frame(width: 40, height: 40)
+                .clipShape(.circle)
+            } else {
+                Text(friend.user.avatarInitial).font(.system(.subheadline, design: .rounded, weight: .bold)).foregroundStyle(.white)
+            }
+        }
+    }
+
+    private var sharingBody: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("\(friend.streak)")
+                    .font(.system(.title, design: .serif, weight: .regular))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("DAY STREAK")
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            if let hl = friend.highlightMetric {
+                Text(hl.value)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(1)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .overlay(
+                        Capsule().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                    )
+            }
+
+            if let program = friend.activeProgram, !program.isEmpty {
+                Text(program)
+                    .font(.caption2)
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    private var lockedBody: some View {
+        VStack(spacing: 8) {
+            Text("Private")
+                .font(.system(.caption, design: .serif).italic())
+                .foregroundStyle(PepTheme.textSecondary)
+            if let onNudge {
+                Button(action: onNudge) {
+                    Text("NUDGE")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .overlay(
+                            Capsule().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 60)
+    }
+}
+
+private struct ReactionBurst: View {
+    let emoji: StatReactionEmoji
+    @State private var offset: CGFloat = 0
+    @State private var opacity: Double = 1
+    @State private var scale: CGFloat = 0.3
+
+    var body: some View {
+        Text(emoji.rawValue)
+            .font(.system(size: 36))
+            .scaleEffect(scale)
+            .offset(y: offset)
+            .opacity(opacity)
+            .onAppear {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
+                    scale = 1.3
+                }
+                withAnimation(.easeOut(duration: 1.2)) {
+                    offset = -60
+                    opacity = 0
+                }
+                withAnimation(.easeOut(duration: 0.8).delay(0.3)) {
+                    scale = 1.0
+                }
+            }
+    }
+}
+
+struct FriendActivityRow: View {
+    let event: FriendActivityEvent
+
+    private let social = FriendSocialService.shared
+
+    private var isMilestone: Bool {
+        switch event.type {
+        case .pr, .streakMilestone, .goalHit: return true
+        default: return false
+        }
+    }
+
+    private var seenCount: Int {
+        social.simulateSeenCount(for: event.id.uuidString, seed: event.user.id.hashValue)
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Rectangle()
+                .fill(event.type.color.opacity(0.7))
+                .frame(width: 2)
+                .frame(maxHeight: .infinity)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.title)
+                    .font(.system(.subheadline, weight: .medium))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(2)
+                if let sub = event.subtitle {
+                    Text(sub)
+                        .font(.caption2)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                if isMilestone && seenCount > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "eye.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                        Text("Seen by \(seenCount) \(seenCount == 1 ? "friend" : "friends")")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                    }
+                    .padding(.top, 2)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Text(event.timestamp, style: .relative)
+                .font(.caption2)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .onAppear {
+            if isMilestone, let myId = try? AuthService.shared.currentUserId() {
+                social.markSeen(milestoneId: event.id.uuidString, friendId: myId)
+            }
+        }
+    }
+}
+
+private struct FriendStatsShimmerModifier: ViewModifier {
+    @State private var phase: CGFloat = -1
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                LinearGradient(
+                    colors: [Color.clear, PepTheme.shimmerHighlight, Color.clear],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .offset(x: phase * 200)
+                .mask(content)
+            )
+            .onAppear {
+                withAnimation(.linear(duration: 1.3).repeatForever(autoreverses: false)) {
+                    phase = 1.5
+                }
+            }
+    }
+}
+
+private extension View {
+    func shimmering() -> some View { modifier(FriendStatsShimmerModifier()) }
+}

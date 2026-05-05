@@ -8,41 +8,182 @@ struct MonthlySummaryView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            monthOverviewCard
+            editorialHeader
+            heroSummaryCard
             if programSummary != nil {
                 monthlyProgramCard
             }
+            highlightsCard
             weightTrendCard
             workoutTrendCard
+            activeMinutesCard
+            caloriesBurnedCard
             nutritionTrendCard
             stepsTrendCard
+            sleepTrendCard
             monthlyStatsGrid
         }
     }
 
-    private var monthOverviewCard: some View {
+    // MARK: - Editorial header
+
+    private var editorialHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("THE MONTH IN MOTION")
+                .font(.system(.caption2, design: .rounded, weight: .heavy))
+                .tracking(2.4)
+                .foregroundStyle(PepTheme.amber)
+            Text(monthLabel)
+                .font(.system(.title3, design: .serif, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+            if let lead = leadInsight {
+                Text(lead)
+                    .font(.system(.subheadline, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var leadInsight: String? {
+        if summary.activeDays > 0 {
+            let pct = Int(round(Double(summary.activeDays) / Double(max(summary.totalDays, 1)) * 100))
+            return "Active on \(summary.activeDays) of \(summary.totalDays) days (\(pct)%) — \(summary.totalWorkouts) workouts logged."
+        }
+        if summary.avgStepsPerDay > 0 {
+            return "Averaging \(formattedNumber(summary.avgStepsPerDay)) steps and \(summary.totalWorkouts) sessions this month."
+        }
+        return nil
+    }
+
+    // MARK: - Hero
+
+    private var heroSummaryCard: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Image(systemName: "calendar.badge.clock")
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.teal)
-                    SubheadText(text: monthLabel)
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("This month")
+                            .font(.system(.caption, design: .rounded, weight: .semibold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Text("\(summary.totalWorkouts)")
+                            .font(.system(size: 44, weight: .heavy, design: .rounded))
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .contentTransition(.numericText())
+                        Text("total workouts")
+                            .font(.system(.caption, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
                     Spacer()
-                    Text("30 days")
-                        .font(.system(.caption2, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary)
+                    activeDaysRing
                 }
 
+                Divider().overlay(PepTheme.shimmerHighlight)
+
                 HStack(spacing: 0) {
-                    overviewStat(value: "\(summary.totalWorkouts)", label: "Workouts", icon: "figure.strengthtraining.traditional", color: PepTheme.teal)
-                    overviewDivider
                     overviewStat(value: formattedNumber(summary.totalCaloriesBurned), label: "Cal Burned", icon: "flame.fill", color: .orange)
                     overviewDivider
                     overviewStat(value: "\(summary.totalExerciseMinutes / 60)h", label: "Active", icon: "timer", color: PepTheme.amber)
+                    overviewDivider
+                    overviewStat(value: formattedNumber(summary.avgStepsPerDay), label: "Avg Steps", icon: "figure.walk", color: .green)
                 }
             }
         }
+    }
+
+    private var activeDaysRing: some View {
+        let progress = summary.totalDays > 0
+            ? min(Double(summary.activeDays) / Double(summary.totalDays), 1.0)
+            : 0
+        return ZStack {
+            Circle()
+                .stroke(PepTheme.amber.opacity(0.15), lineWidth: 6)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(
+                    LinearGradient(colors: [PepTheme.amber, PepTheme.teal], startPoint: .top, endPoint: .bottom),
+                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+            VStack(spacing: 0) {
+                Text("\(summary.activeDays)")
+                    .font(.system(.title3, design: .rounded, weight: .heavy))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("of \(summary.totalDays)")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+        .frame(width: 70, height: 70)
+    }
+
+    // MARK: - Highlights strip
+
+    private var highlightsCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "sparkles")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.amber)
+                    SubheadText(text: "Highlights")
+                    Spacer()
+                }
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    if let best = summary.bestStepDay {
+                        highlightTile(
+                            icon: "trophy.fill",
+                            color: .orange,
+                            value: formattedNumber(best.steps),
+                            label: "Best step day · \(formattedDate(best.date))"
+                        )
+                    } else {
+                        highlightTile(icon: "trophy.fill", color: .orange, value: "—", label: "Best step day")
+                    }
+                    highlightTile(
+                        icon: "flame.fill",
+                        color: PepTheme.amber,
+                        value: "\(summary.bestStepStreak)",
+                        label: "Day step-goal streak"
+                    )
+                    highlightTile(
+                        icon: "figure.strengthtraining.traditional",
+                        color: PepTheme.teal,
+                        value: String(format: "%.1f/wk", Double(summary.totalWorkouts) / Double(max(summary.weeklyWorkouts.count, 1))),
+                        label: "Avg workouts/week"
+                    )
+                    highlightTile(
+                        icon: "bed.double.fill",
+                        color: PepTheme.violet,
+                        value: String(format: "%.1f hrs", summary.avgSleepHours),
+                        label: "Avg sleep"
+                    )
+                }
+            }
+        }
+    }
+
+    private func highlightTile(icon: String, color: Color, value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundStyle(color)
+            Text(value)
+                .font(.system(.headline, design: .rounded, weight: .heavy))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(color.opacity(0.06))
+        .clipShape(.rect(cornerRadius: 12))
     }
 
     private var weightTrendCard: some View {
@@ -109,11 +250,49 @@ struct MonthlySummaryView: View {
                 MiniBarChart(data: summary.weeklyWorkouts, barColor: PepTheme.teal, height: 80)
 
                 HStack {
-                    Text("Avg \(summary.totalWorkouts / max(summary.weeklyWorkouts.count, 1))/week")
+                    Text("Avg \(String(format: "%.1f", Double(summary.totalWorkouts) / Double(max(summary.weeklyWorkouts.count, 1))))/week")
                         .font(.system(.caption, weight: .medium))
                         .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                 }
+            }
+        }
+    }
+
+    private var activeMinutesCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "timer")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.amber)
+                    SubheadText(text: "Active Minutes")
+                    Spacer()
+                    Text("\(summary.totalExerciseMinutes) min")
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                        .foregroundStyle(PepTheme.amber)
+                }
+
+                MiniBarChart(data: summary.weeklyExerciseMinutes, barColor: PepTheme.amber, height: 70)
+            }
+        }
+    }
+
+    private var caloriesBurnedCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "flame.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                    SubheadText(text: "Calories Burned")
+                    Spacer()
+                    Text("\(formattedNumber(summary.totalCaloriesBurned)) kcal")
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.orange)
+                }
+
+                MiniBarChart(data: summary.weeklyCaloriesBurned, barColor: .orange, height: 70)
             }
         }
     }
@@ -166,7 +345,36 @@ struct MonthlySummaryView: View {
                         .foregroundStyle(.green)
                 }
 
-                MiniLineChart(data: summary.weeklySteps, lineColor: .green, height: 80)
+                MiniBarChart(data: summary.weeklySteps, barColor: .green, height: 80)
+
+                HStack {
+                    Text("Daily goal \(formattedNumber(summary.stepGoal))")
+                        .font(.system(.caption2, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Spacer()
+                    Text("Best streak: \(summary.bestStepStreak) days")
+                        .font(.system(.caption2, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.green)
+                }
+            }
+        }
+    }
+
+    private var sleepTrendCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "bed.double.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.violet)
+                    SubheadText(text: "Sleep Trend")
+                    Spacer()
+                    Text(String(format: "avg %.1f hrs", summary.avgSleepHours))
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                        .foregroundStyle(PepTheme.violet)
+                }
+
+                MiniLineChart(data: summary.weeklySleep, lineColor: PepTheme.violet, height: 70)
             }
         }
     }
@@ -266,6 +474,12 @@ struct MonthlySummaryView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
         return formatter.string(from: selectedMonthDate)
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
     }
 
     private var weightChangeColor: Color {

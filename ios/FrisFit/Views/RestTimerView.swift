@@ -3,7 +3,10 @@ import SwiftUI
 struct RestTimerView: View {
     let secondsRemaining: Int
     let totalSeconds: Int
+    let didFire: Bool
+    let nextExerciseName: String?
     let onSkip: () -> Void
+    let onAdjust: (Int) -> Void
 
     private var progress: Double {
         guard totalSeconds > 0 else { return 0 }
@@ -11,63 +14,104 @@ struct RestTimerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text("REST")
-                .font(.system(size: 12, weight: .bold))
-                .tracking(2)
-                .foregroundStyle(PepTheme.textSecondary)
-
+        HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .stroke(PepTheme.elevated, lineWidth: 8)
-
+                    .stroke(PepTheme.elevated, lineWidth: 4)
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(
-                        PepTheme.teal,
-                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                        didFire ? Color.green : PepTheme.teal,
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 1), value: progress)
-
-                VStack(spacing: 4) {
+                if didFire {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.green)
+                        .transition(.scale.combined(with: .opacity))
+                } else {
                     Text(formattedTime)
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundStyle(PepTheme.textPrimary)
                         .monospacedDigit()
                         .contentTransition(.numericText())
-
-                    Text("remaining")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
-            .frame(width: 180, height: 180)
+            .frame(width: 48, height: 48)
 
-            Button(action: onSkip) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(eyebrowText)
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(didFire ? .green : PepTheme.textSecondary)
+                Text(subtitleText)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            Spacer()
+
+            HStack(spacing: 6) {
+                adjustButton(label: "-15", amount: -15)
+                adjustButton(label: "+15", amount: 15)
+                Button(action: onSkip) {
                     Image(systemName: "forward.fill")
-                        .font(.system(size: 14))
-                    Text("Skip Rest")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 38, height: 36)
+                        .background(PepTheme.teal)
+                        .clipShape(Capsule())
                 }
-                .foregroundStyle(PepTheme.teal)
-                .padding(.horizontal, 28)
-                .padding(.vertical, 14)
-                .background(PepTheme.teal.opacity(0.12))
-                .clipShape(Capsule())
+                .buttonStyle(.scale)
+                .sensoryFeedback(.impact(weight: .medium), trigger: secondsRemaining == 0)
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .background(PepTheme.cardSurface)
-        .clipShape(.rect(cornerRadius: 20))
+        .clipShape(Capsule())
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(PepTheme.teal.opacity(0.15), lineWidth: 0.5)
+            Capsule()
+                .strokeBorder(
+                    didFire ? Color.green.opacity(0.4) : PepTheme.teal.opacity(0.25),
+                    lineWidth: 0.5
+                )
         )
-        .shadow(color: PepTheme.teal.opacity(0.08), radius: 20, y: 8)
-        .padding(.horizontal, 20)
+        .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+        .sensoryFeedback(.success, trigger: didFire)
+    }
+
+    private func adjustButton(label: String, amount: Int) -> some View {
+        Button { onAdjust(amount) } label: {
+            Text(label)
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(PepTheme.textPrimary)
+                .frame(width: 38, height: 36)
+                .background(PepTheme.elevated)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.scale)
+    }
+
+    private var eyebrowText: String {
+        if didFire { return "Rest Complete" }
+        if let next = nextExerciseName { return "UP NEXT" }
+        return "RESTING"
+    }
+
+    private var subtitleText: String {
+        if didFire {
+            return nextExerciseName ?? "Ready for your next set"
+        }
+        if let next = nextExerciseName {
+            return next
+        }
+        return formattedTime
     }
 
     private var formattedTime: String {

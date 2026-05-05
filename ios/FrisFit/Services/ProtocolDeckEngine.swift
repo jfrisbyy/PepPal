@@ -77,7 +77,8 @@ enum ProtocolDeckEngine {
                 icon: "syringe.fill",
                 category: .wellness,
                 isProtocolRecommended: true,
-                protocolReason: "Week \(ctx.currentWeek) \(ctx.currentPhase.rawValue) — stay on schedule"
+                protocolReason: "Week \(ctx.currentWeek) \(ctx.currentPhase.rawValue) — stay on schedule",
+            source: .protocolDeck
             ))
         }
 
@@ -88,7 +89,8 @@ enum ProtocolDeckEngine {
             actionLink: .waterIntake,
             actionTarget: 128,
             isProtocolRecommended: true,
-            protocolReason: "Hydration is critical for \(compound) absorption"
+            protocolReason: "Hydration is critical for \(compound) absorption",
+        source: .protocolDeck
         ))
 
         return tasks
@@ -134,7 +136,8 @@ enum ProtocolDeckEngine {
             icon: "list.clipboard.fill",
             category: .nutrition,
             isProtocolRecommended: true,
-            protocolReason: "Appetite suppression can mask undereating — track everything"
+            protocolReason: "Appetite suppression can mask undereating — track everything",
+        source: .protocolDeck
         ))
 
         if ctx.currentWeek >= 3 {
@@ -143,7 +146,8 @@ enum ProtocolDeckEngine {
                 icon: "figure.strengthtraining.traditional",
                 category: .fitness,
                 isProtocolRecommended: true,
-                protocolReason: "Week \(ctx.currentWeek) — resistance work preserves lean mass during fat loss"
+                protocolReason: "Week \(ctx.currentWeek) — resistance work preserves lean mass during fat loss",
+            source: .protocolDeck
             ))
         } else {
             tasks.append(DailyTask(
@@ -151,7 +155,8 @@ enum ProtocolDeckEngine {
                 icon: "figure.walk",
                 category: .fitness,
                 isProtocolRecommended: true,
-                protocolReason: "Light movement while your body adjusts to the compound"
+                protocolReason: "Light movement while your body adjusts to the compound",
+            source: .protocolDeck
             ))
         }
 
@@ -160,7 +165,8 @@ enum ProtocolDeckEngine {
             icon: "scalemass.fill",
             category: .wellness,
             isProtocolRecommended: true,
-            protocolReason: "Consistent daily weigh-ins give the best trend data"
+            protocolReason: "Consistent daily weigh-ins give the best trend data",
+        source: .protocolDeck
         ))
 
         return tasks
@@ -176,7 +182,8 @@ enum ProtocolDeckEngine {
             actionLink: .proteinGoal,
             actionTarget: 180,
             isProtocolRecommended: true,
-            protocolReason: "High protein maximizes the anabolic window your protocol creates"
+            protocolReason: "High protein maximizes the anabolic window your protocol creates",
+        source: .protocolDeck
         ))
 
         tasks.append(DailyTask(
@@ -185,7 +192,8 @@ enum ProtocolDeckEngine {
             category: .fitness,
             actionLink: .workoutCompleted,
             isProtocolRecommended: true,
-            protocolReason: "Training stimulus is required to capitalize on your protocol"
+            protocolReason: "Training stimulus is required to capitalize on your protocol",
+        source: .protocolDeck
         ))
 
         tasks.append(DailyTask(
@@ -193,7 +201,8 @@ enum ProtocolDeckEngine {
             icon: "moon.fill",
             category: .wellness,
             isProtocolRecommended: true,
-            protocolReason: "Growth happens during deep sleep — prioritize recovery"
+            protocolReason: "Growth happens during deep sleep — prioritize recovery",
+        source: .protocolDeck
         ))
 
         if ctx.currentWeek >= 4 {
@@ -202,7 +211,8 @@ enum ProtocolDeckEngine {
                 icon: "camera.fill",
                 category: .wellness,
                 isProtocolRecommended: true,
-                protocolReason: "Week \(ctx.currentWeek) — visible changes should be emerging"
+                protocolReason: "Week \(ctx.currentWeek) — visible changes should be emerging",
+            source: .protocolDeck
             ))
         }
 
@@ -217,7 +227,8 @@ enum ProtocolDeckEngine {
             icon: "heart.text.clipboard",
             category: .wellness,
             isProtocolRecommended: true,
-            protocolReason: "Tracking subjective recovery helps identify what's working"
+            protocolReason: "Tracking subjective recovery helps identify what's working",
+        source: .protocolDeck
         ))
 
         tasks.append(DailyTask(
@@ -225,7 +236,8 @@ enum ProtocolDeckEngine {
             icon: "figure.walk",
             category: .fitness,
             isProtocolRecommended: true,
-            protocolReason: "Blood flow supports healing — keep it gentle"
+            protocolReason: "Blood flow supports healing — keep it gentle",
+        source: .protocolDeck
         ))
 
         tasks.append(DailyTask(
@@ -235,7 +247,8 @@ enum ProtocolDeckEngine {
             actionLink: .proteinGoal,
             actionTarget: 120,
             isProtocolRecommended: true,
-            protocolReason: "Protein provides the raw material for tissue repair"
+            protocolReason: "Protein provides the raw material for tissue repair",
+        source: .protocolDeck
         ))
 
         tasks.append(DailyTask(
@@ -243,7 +256,8 @@ enum ProtocolDeckEngine {
             icon: "moon.fill",
             category: .wellness,
             isProtocolRecommended: true,
-            protocolReason: "Healing compounds work synergistically with deep sleep"
+            protocolReason: "Healing compounds work synergistically with deep sleep",
+        source: .protocolDeck
         ))
 
         return tasks
@@ -257,7 +271,8 @@ enum ProtocolDeckEngine {
             icon: "brain.head.profile",
             category: .wellness,
             isProtocolRecommended: true,
-            protocolReason: "Track focus and clarity to correlate with your protocol"
+            protocolReason: "Track focus and clarity to correlate with your protocol",
+        source: .protocolDeck
         ))
 
         tasks.append(DailyTask(
@@ -265,7 +280,8 @@ enum ProtocolDeckEngine {
             icon: "timer",
             category: .lifestyle,
             isProtocolRecommended: true,
-            protocolReason: "Deliberate focus sessions help measure cognitive improvements"
+            protocolReason: "Deliberate focus sessions help measure cognitive improvements",
+        source: .protocolDeck
         ))
 
         tasks.append(DailyTask(
@@ -273,7 +289,8 @@ enum ProtocolDeckEngine {
             icon: "pills.fill",
             category: .wellness,
             isProtocolRecommended: true,
-            protocolReason: "Stack synergistic supplements with your nootropic protocol"
+            protocolReason: "Stack synergistic supplements with your nootropic protocol",
+        source: .protocolDeck
         ))
 
         tasks.append(DailyTask(
@@ -281,7 +298,8 @@ enum ProtocolDeckEngine {
             icon: "moon.fill",
             category: .wellness,
             isProtocolRecommended: true,
-            protocolReason: "Cognitive function is directly tied to sleep quality"
+            protocolReason: "Cognitive function is directly tied to sleep quality",
+        source: .protocolDeck
         ))
 
         return tasks
@@ -295,7 +313,8 @@ enum ProtocolDeckEngine {
             icon: "sun.max.fill",
             category: .lifestyle,
             isProtocolRecommended: true,
-            protocolReason: "Time sun exposure 2-4 hours post-dose for best results"
+            protocolReason: "Time sun exposure 2-4 hours post-dose for best results",
+        source: .protocolDeck
         ))
 
         tasks.append(DailyTask(
@@ -303,7 +322,8 @@ enum ProtocolDeckEngine {
             icon: "face.smiling",
             category: .wellness,
             isProtocolRecommended: true,
-            protocolReason: "Protect sensitive areas while letting the compound work"
+            protocolReason: "Protect sensitive areas while letting the compound work",
+        source: .protocolDeck
         ))
 
         tasks.append(DailyTask(
@@ -313,7 +333,8 @@ enum ProtocolDeckEngine {
             actionLink: .waterIntake,
             actionTarget: 100,
             isProtocolRecommended: true,
-            protocolReason: "Sun exposure and the compound both increase dehydration risk"
+            protocolReason: "Sun exposure and the compound both increase dehydration risk",
+        source: .protocolDeck
         ))
 
         return tasks
@@ -327,7 +348,8 @@ enum ProtocolDeckEngine {
             icon: "list.clipboard.fill",
             category: .nutrition,
             isProtocolRecommended: true,
-            protocolReason: "Consistent tracking helps identify what's working"
+            protocolReason: "Consistent tracking helps identify what's working",
+        source: .protocolDeck
         ))
 
         tasks.append(DailyTask(
@@ -335,7 +357,8 @@ enum ProtocolDeckEngine {
             icon: "pills.fill",
             category: .lifestyle,
             isProtocolRecommended: true,
-            protocolReason: "Support your protocol with baseline micronutrients"
+            protocolReason: "Support your protocol with baseline micronutrients",
+        source: .protocolDeck
         ))
 
         return tasks
@@ -398,7 +421,8 @@ enum ProtocolDeckEngine {
                 icon: "exclamationmark.bubble.fill",
                 category: .wellness,
                 isProtocolRecommended: true,
-                protocolReason: "\(ctx.recentSideEffectCount) reports in 2 weeks — keep logging to spot patterns"
+                protocolReason: "\(ctx.recentSideEffectCount) reports in 2 weeks — keep logging to spot patterns",
+            source: .protocolDeck
             ))
         }
 

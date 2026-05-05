@@ -599,7 +599,7 @@ struct ClarifyItemSheet: View {
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .presentationContentInteraction(.scrolls)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { dismiss() } label: {

@@ -9,38 +9,155 @@ struct WeeklySummaryView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            weekOverviewCard
+            editorialHeader
+            heroSummaryCard
             if programName != nil {
                 weeklyProgramCard
             }
+            consistencyCard
             weightProgressCard
             exerciseChartCard
+            activeMinutesCard
+            caloriesBurnedCard
             nutritionChartCard
             stepsChartCard
+            sleepCard
             weeklyStatsGrid
         }
     }
 
-    private var weekOverviewCard: some View {
+    // MARK: - Editorial header
+
+    private var editorialHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("THE WEEK IN REVIEW")
+                .font(.system(.caption2, design: .rounded, weight: .heavy))
+                .tracking(2.4)
+                .foregroundStyle(PepTheme.teal)
+            Text(weekDateRange)
+                .font(.system(.title3, design: .serif, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+            if let lead = leadInsight {
+                Text(lead)
+                    .font(.system(.subheadline, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var leadInsight: String? {
+        if summary.totalWorkouts >= summary.workoutGoal && summary.workoutGoal > 0 {
+            return "You hit your training target — \(summary.totalWorkouts) sessions across \(summary.daysWithFood) tracked days."
+        }
+        if summary.avgSteps > 0 {
+            return "Averaging \(formattedNumber(summary.avgSteps)) steps with \(summary.totalWorkouts) sessions logged this week."
+        }
+        if summary.daysWithFood > 0 {
+            return "Tracked nutrition on \(summary.daysWithFood) of 7 days. Add HealthKit access to unlock activity trends."
+        }
+        return nil
+    }
+
+    // MARK: - Hero overview
+
+    private var heroSummaryCard: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Image(systemName: "chart.bar.xaxis")
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.teal)
-                    SubheadText(text: "This Week")
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("This week")
+                            .font(.system(.caption, design: .rounded, weight: .semibold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Text("\(summary.totalWorkouts)")
+                            .font(.system(size: 44, weight: .heavy, design: .rounded))
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .contentTransition(.numericText())
+                        Text("workouts completed")
+                            .font(.system(.caption, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
                     Spacer()
-                    Text(weekDateRange)
-                        .font(.system(.caption2, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary)
+                    workoutGoalRing
                 }
 
+                Divider().overlay(PepTheme.shimmerHighlight)
+
                 HStack(spacing: 0) {
-                    overviewStat(value: "\(summary.totalWorkouts)", label: "Workouts", icon: "figure.strengthtraining.traditional", color: PepTheme.teal)
+                    overviewStat(value: formattedNumber(summary.totalCaloriesBurned), label: "Cal Burned", icon: "flame.fill", color: .orange)
                     overviewDivider
-                    overviewStat(value: "\(summary.totalCaloriesBurned)", label: "Cal Burned", icon: "flame.fill", color: .orange)
+                    overviewStat(value: "\(summary.totalExerciseMinutes)", label: "Active Min", icon: "timer", color: PepTheme.amber)
                     overviewDivider
-                    overviewStat(value: "\(summary.totalExerciseMinutes)", label: "Minutes", icon: "timer", color: PepTheme.amber)
+                    overviewStat(value: formattedNumber(summary.totalSteps), label: "Steps", icon: "figure.walk", color: .green)
+                }
+            }
+        }
+    }
+
+    private var workoutGoalRing: some View {
+        let progress = summary.workoutGoal > 0
+            ? min(Double(summary.totalWorkouts) / Double(summary.workoutGoal), 1.0)
+            : 0
+        return ZStack {
+            Circle()
+                .stroke(PepTheme.teal.opacity(0.15), lineWidth: 6)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(
+                    LinearGradient(colors: [PepTheme.teal, PepTheme.amber], startPoint: .top, endPoint: .bottom),
+                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+            VStack(spacing: 0) {
+                Text("\(summary.totalWorkouts)")
+                    .font(.system(.title3, design: .rounded, weight: .heavy))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("of \(max(summary.workoutGoal, 1))")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+        .frame(width: 70, height: 70)
+    }
+
+    // MARK: - Consistency
+
+    private var consistencyCard: some View {
+        let dayHasData: [Bool] = summary.dailyWorkouts.enumerated().map { idx, point in
+            point.value > 0
+                || summary.dailyCalories[safe: idx]?.value ?? 0 > 0
+                || summary.dailySteps[safe: idx]?.value ?? 0 > 1000
+        }
+        let activeCount = dayHasData.filter { $0 }.count
+        return GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.teal)
+                    SubheadText(text: "Consistency")
+                    Spacer()
+                    Text("\(activeCount)/7 days")
+                        .font(.system(.caption, design: .rounded, weight: .bold))
+                        .foregroundStyle(PepTheme.teal)
+                }
+
+                HStack(spacing: 6) {
+                    ForEach(Array(zip(summary.dailyWorkouts.indices, summary.dailyWorkouts)), id: \.0) { idx, point in
+                        VStack(spacing: 6) {
+                            Circle()
+                                .fill(dayHasData[idx] ? PepTheme.teal : PepTheme.cardSurface)
+                                .frame(width: 10, height: 10)
+                                .overlay(
+                                    Circle().strokeBorder(PepTheme.teal.opacity(0.4), lineWidth: dayHasData[idx] ? 0 : 1)
+                                )
+                            Text(point.label)
+                                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                                .foregroundStyle(PepTheme.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
                 }
             }
         }
@@ -66,6 +183,10 @@ struct WeeklySummaryView: View {
                     .padding(.vertical, 4)
                     .background(weightChangeColor.opacity(0.12))
                     .clipShape(.capsule)
+                }
+
+                if summary.dailyWeight.contains(where: { $0.value > 0 }) {
+                    MiniLineChart(data: summary.dailyWeight, lineColor: weightChangeColor, height: 60)
                 }
 
                 HStack(spacing: 24) {
@@ -136,6 +257,44 @@ struct WeeklySummaryView: View {
         }
     }
 
+    private var activeMinutesCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "timer")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.amber)
+                    SubheadText(text: "Active Minutes")
+                    Spacer()
+                    Text("\(summary.totalExerciseMinutes) min total")
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                        .foregroundStyle(PepTheme.amber)
+                }
+
+                MiniBarChart(data: summary.dailyExerciseMinutes, barColor: PepTheme.amber, height: 60)
+            }
+        }
+    }
+
+    private var caloriesBurnedCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "flame.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                    SubheadText(text: "Calories Burned")
+                    Spacer()
+                    Text("\(formattedNumber(summary.totalCaloriesBurned)) kcal")
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.orange)
+                }
+
+                MiniBarChart(data: summary.dailyCaloriesBurned, barColor: .orange, height: 60)
+            }
+        }
+    }
+
     private var nutritionChartCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -151,6 +310,18 @@ struct WeeklySummaryView: View {
                 }
 
                 MiniBarChart(data: summary.dailyCalories, barColor: PepTheme.amber, height: 80)
+
+                if summary.calorieGoal > 0 {
+                    HStack {
+                        Text("Target \(formattedNumber(summary.calorieGoal)) cal/day")
+                            .font(.system(.caption2, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Spacer()
+                        Text("Tracked \(summary.daysWithFood)/7 days")
+                            .font(.system(.caption2, design: .rounded, weight: .semibold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                }
 
                 Divider().overlay(PepTheme.shimmerHighlight)
 
@@ -168,6 +339,14 @@ struct WeeklySummaryView: View {
                 }
 
                 MiniBarChart(data: summary.dailyProtein, barColor: PepTheme.violet, height: 60)
+                if summary.proteinGoal > 0 {
+                    HStack {
+                        Text("Target \(summary.proteinGoal)g")
+                            .font(.system(.caption2, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Spacer()
+                    }
+                }
             }
         }
     }
@@ -187,6 +366,45 @@ struct WeeklySummaryView: View {
                 }
 
                 MiniBarChart(data: summary.dailySteps, barColor: .green, height: 80)
+
+                let goalDays = summary.dailySteps.filter { Int($0.value) >= summary.stepGoal }.count
+                HStack {
+                    Text("Goal \(formattedNumber(summary.stepGoal))/day")
+                        .font(.system(.caption2, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Spacer()
+                    Text("\(goalDays)/7 days hit")
+                        .font(.system(.caption2, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.green)
+                }
+            }
+        }
+    }
+
+    private var sleepCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Image(systemName: "bed.double.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(PepTheme.violet)
+                    SubheadText(text: "Sleep")
+                    Spacer()
+                    Text(String(format: "avg %.1f hrs/night", summary.avgSleepHours))
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                        .foregroundStyle(PepTheme.violet)
+                }
+
+                MiniBarChart(data: summary.dailySleep, barColor: PepTheme.violet, height: 60)
+
+                if summary.daysWithSleep > 0 {
+                    HStack {
+                        Text("Tracked \(summary.daysWithSleep)/7 nights")
+                            .font(.system(.caption2, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Spacer()
+                    }
+                }
             }
         }
     }
@@ -195,7 +413,7 @@ struct WeeklySummaryView: View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
             summaryStatCard(icon: "bed.double.fill", value: String(format: "%.1f hrs", summary.avgSleepHours), label: "Avg Sleep", color: PepTheme.violet)
             summaryStatCard(icon: "figure.walk", value: formattedNumber(summary.totalSteps), label: "Total Steps", color: .green)
-            summaryStatCard(icon: "flame.fill", value: "\(summary.totalCaloriesBurned)", label: "Calories Burned", color: .orange)
+            summaryStatCard(icon: "flame.fill", value: formattedNumber(summary.totalCaloriesBurned), label: "Calories Burned", color: .orange)
             summaryStatCard(icon: "clock.fill", value: "\(summary.totalExerciseMinutes) min", label: "Active Time", color: PepTheme.amber)
         }
     }
@@ -229,12 +447,21 @@ struct WeeklySummaryView: View {
 
                             if let day = entry.programDay {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "dumbbell.fill")
+                                    Image(systemName: day.timeOfDay?.icon ?? "dumbbell.fill")
                                         .font(.system(size: 10))
                                         .foregroundStyle(entry.isToday ? PepTheme.teal : PepTheme.textPrimary.opacity(0.7))
                                     Text(day.name)
                                         .font(.system(.subheadline, weight: entry.isToday ? .semibold : .regular))
                                         .foregroundStyle(entry.isToday ? PepTheme.textPrimary : PepTheme.textPrimary.opacity(0.85))
+                                    if let tod = day.timeOfDay {
+                                        Text(tod.shortLabel)
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundStyle(PepTheme.amber)
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 1)
+                                            .background(PepTheme.amber.opacity(0.15))
+                                            .clipShape(Capsule())
+                                    }
                                 }
 
                                 Spacer()
@@ -366,5 +593,11 @@ struct WeeklySummaryView: View {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         return formatter.string(from: NSNumber(value: number)) ?? "\(number)"
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }

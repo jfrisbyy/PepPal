@@ -44,6 +44,26 @@ final class ExerciseLibraryViewModel {
         .map { $0 }
     }
 
+    /// Alternatives filtered to a specific piece of equipment the user has access to.
+    func alternatives(for exercise: Exercise, equipment: Equipment) -> [Exercise] {
+        allExercises.filter {
+            $0.id != exercise.id &&
+            $0.primaryMuscle == exercise.primaryMuscle &&
+            $0.equipment == equipment
+        }
+        .prefix(8)
+        .map { $0 }
+    }
+
+    /// Equipment options that have at least one matching-muscle alternative.
+    func availableSubstitutionEquipment(for exercise: Exercise) -> [Equipment] {
+        let targets = allExercises.filter {
+            $0.id != exercise.id && $0.primaryMuscle == exercise.primaryMuscle
+        }
+        let unique = Set(targets.map(\.equipment))
+        return Equipment.allCases.filter { unique.contains($0) }
+    }
+
     func similarExercises(for exercise: Exercise) -> [Exercise] {
         allExercises.filter {
             $0.id != exercise.id &&

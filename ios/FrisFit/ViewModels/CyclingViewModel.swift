@@ -52,6 +52,11 @@ final class CyclingViewModel {
     private var elevationSamples: [Double] = []
     private let elevationSmoothingWindow: Int = 5
     private let movingSpeedThresholdMph: Double = 1.5
+    private let autoPauseSpeedThresholdMps: Double = 0.5
+    private let autoResumeSpeedThresholdMps: Double = 1.5
+    private let autoPauseDwellSeconds: TimeInterval = 10
+    private var slowSpeedStartedAt: Date?
+    var isAutoPaused: Bool = false
     private var isCurrentlyMoving: Bool = true
     private var segmentMaxSpeed: Double = 0
     private var segmentHeartRateSum: Int = 0
@@ -165,6 +170,8 @@ final class CyclingViewModel {
     func startRide() {
         isRiding = true
         isPaused = false
+        isAutoPaused = false
+        slowSpeedStartedAt = nil
         elapsedSeconds = 0
         movingSeconds = 0
         currentDistanceMiles = 0
@@ -286,6 +293,8 @@ final class CyclingViewModel {
         if let bikeId = selectedBikeId, let idx = bikes.firstIndex(where: { $0.id == bikeId }) {
             bikes[idx].totalMiles += ride.distanceMiles
         }
+
+        Task { await CardioSessionService.shared.saveRide(ride) }
 
         gpsSignal = .none
         return ride

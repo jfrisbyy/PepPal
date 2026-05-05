@@ -48,10 +48,10 @@ final class StreakService {
         return response
     }
 
-    func logActivity(userId: String, type: ActivityType, sport: Sport? = nil, durationMinutes: Int? = nil, notes: String? = nil) async throws -> SupabaseActivityLog {
+    func logActivity(userId: String, type: ActivityType, sport: Sport? = nil, durationMinutes: Int? = nil, notes: String? = nil, at date: Date = Date()) async throws -> SupabaseActivityLog {
         let payload = CreateActivityLogPayload(
             user_id: userId,
-            activity_date: dateOnly.string(from: Date()),
+            activity_date: dateOnly.string(from: date),
             activity_type: type.rawValue,
             sport: sport?.rawValue,
             duration_minutes: durationMinutes,

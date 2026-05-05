@@ -6,6 +6,7 @@ struct DailyNutritionCard: View {
     var onLogMeal: () -> Void
     var onTapNutrition: () -> Void
     @State private var isExpanded: Bool = false
+    @State private var nutritionVM = NutritionViewModel.shared
 
     var body: some View {
         GlassCard(accent: PepTheme.amber) {
@@ -23,6 +24,9 @@ struct DailyNutritionCard: View {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
                 isExpanded.toggle()
             }
+        }
+        .onLongPressGesture(minimumDuration: 0.4) {
+            onTapNutrition()
         }
         .sensoryFeedback(.selection, trigger: isExpanded)
     }
@@ -70,6 +74,10 @@ struct DailyNutritionCard: View {
                 AIInsightStrip(content: insight, color: PepTheme.amber)
             }
 
+            if let line = MorningBriefService.shared.buildLines().nutrition {
+                BriefLineRow(line: line, icon: "fork.knife")
+            }
+
             macroGrid
 
             Divider().overlay(PepTheme.shimmerHighlight)
@@ -78,7 +86,7 @@ struct DailyNutritionCard: View {
 
             logMealButton
 
-            if !viewModel.todaysMeals.isEmpty {
+            if !recentMeals.isEmpty {
                 recentMealsSection
             }
 
@@ -279,44 +287,43 @@ struct DailyNutritionCard: View {
         .buttonStyle(.plain)
     }
 
+    private var recentMeals: [LoggedMeal] {
+        Array(nutritionVM.loggedMeals.sorted { $0.timestamp > $1.timestamp }.prefix(5))
+    }
+
     private var recentMealsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Today's Meals")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(PepTheme.textSecondary)
 
-            let meals = Array(viewModel.todaysMeals.suffix(5).reversed())
-            ForEach(meals, id: \.id) { meal in
+            ForEach(recentMeals) { meal in
                 recentMealRow(meal)
             }
         }
     }
 
-    private func recentMealRow(_ meal: SupabaseLoggedMeal) -> some View {
+    private func recentMealRow(_ meal: LoggedMeal) -> some View {
         HStack(spacing: 10) {
-            let mealTime = MealTime(rawValue: meal.meal_time)
-            Image(systemName: mealTime?.icon ?? "circle.fill")
+            Image(systemName: meal.mealTime.icon)
                 .font(.system(size: 12))
-                .foregroundStyle(mealTime?.color ?? PepTheme.textSecondary)
+                .foregroundStyle(meal.mealTime.color)
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(meal.food_name ?? "Meal")
+                Text(meal.food.name)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(1)
 
-                if let time = parseMealTime(meal.logged_at) {
-                    Text(time)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
-                }
+                Text(formatTime(meal.timestamp))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
             }
 
             Spacer()
 
-            let cal = Int(Double(meal.calories ?? 0) * meal.servings)
-            Text("\(cal) cal")
+            Text("\(meal.totalCalories) cal")
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundStyle(PepTheme.textSecondary)
         }
@@ -326,13 +333,7 @@ struct DailyNutritionCard: View {
         .clipShape(.rect(cornerRadius: 8))
     }
 
-    private func parseMealTime(_ dateStr: String?) -> String? {
-        guard let dateStr else { return nil }
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let fBasic = ISO8601DateFormatter()
-        fBasic.formatOptions = [.withInternetDateTime]
-        guard let date = f.date(from: dateStr) ?? fBasic.date(from: dateStr) else { return nil }
+    private func formatTime(_ date: Date) -> String {
         let tf = DateFormatter()
         tf.dateFormat = "h:mm a"
         return tf.string(from: date)

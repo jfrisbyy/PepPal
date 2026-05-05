@@ -10,10 +10,10 @@ struct AIInsightStrip: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(color)
-                    .padding(.top, 2)
+                Rectangle()
+                    .fill(color)
+                    .frame(width: 2)
+                    .padding(.vertical, 1)
 
                 Text(content)
                     .font(.system(size: 12, weight: .medium))

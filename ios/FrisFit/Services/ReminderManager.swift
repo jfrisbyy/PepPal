@@ -1,6 +1,36 @@
 import Foundation
 import UserNotifications
 
+nonisolated enum ReminderStyle: String, Codable, CaseIterable, Sendable {
+    case gentle
+    case firm
+    case off
+
+    var title: String {
+        switch self {
+        case .gentle: return "Gentle"
+        case .firm: return "Firm"
+        case .off: return "Off"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .gentle: return "Soft nudges. One reminder per dose, friendly tone."
+        case .firm: return "Direct alerts. Repeats if missed for 5 minutes."
+        case .off: return "No reminders. You'll log everything manually."
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .gentle: return "leaf.fill"
+        case .firm: return "bell.badge.fill"
+        case .off: return "bell.slash.fill"
+        }
+    }
+}
+
 private func _makeTime(hour: Int, minute: Int) -> Date {
     var components = DateComponents()
     components.hour = hour
@@ -20,6 +50,40 @@ final class ReminderManager {
     var weighInEnabled: Bool = false { didSet { saveToDisk(); scheduleWeighInReminder() } }
     var mealLoggingEnabled: Bool = false { didSet { saveToDisk(); scheduleMealReminders() } }
     var bloodworkEnabled: Bool = false { didSet { saveToDisk(); scheduleBloodworkReminder() } }
+    var hydrationEnabled: Bool = false { didSet { saveToDisk(); scheduleHydrationReminders() } }
+    var restDayEnabled: Bool = false { didSet { saveToDisk(); scheduleRestDayReminder() } }
+    var weeklyCheckInEnabled: Bool = false { didSet { saveToDisk(); scheduleWeeklyCheckInReminder() } }
+
+    var hydrationTimes: [Date] = [
+        _makeTime(hour: 9, minute: 0),
+        _makeTime(hour: 12, minute: 0),
+        _makeTime(hour: 15, minute: 0),
+        _makeTime(hour: 18, minute: 0)
+    ] { didSet { saveToDisk(); scheduleHydrationReminders() } }
+
+    var restDayCheckTime: Date = _makeTime(hour: 20, minute: 0) {
+        didSet { saveToDisk(); scheduleRestDayReminder() }
+    }
+
+    var weeklyCheckInDay: WeighInDay = .sunday {
+        didSet { saveToDisk(); scheduleWeeklyCheckInReminder() }
+    }
+    var weeklyCheckInTime: Date = _makeTime(hour: 10, minute: 0) {
+        didSet { saveToDisk(); scheduleWeeklyCheckInReminder() }
+    }
+
+    var reminderStyle: ReminderStyle = .gentle {
+        didSet {
+            saveToDisk()
+            doseEnabled = (reminderStyle != .off)
+        }
+    }
+    var morningBriefTime: Date = _makeTime(hour: 7, minute: 0) {
+        didSet { saveToDisk() }
+    }
+    var doseReminderTime: Date = _makeTime(hour: 6, minute: 30) {
+        didSet { saveToDisk() }
+    }
 
     var workoutTime: Date = _makeTime(hour: 18, minute: 0) {
         didSet { saveToDisk(); scheduleWorkoutReminder() }
@@ -55,6 +119,9 @@ final class ReminderManager {
     private static let weighInId = "weighin_reminder"
     private static let mealPrefix = "meal_reminder_"
     private static let bloodworkId = "bloodwork_reminder"
+    private static let hydrationPrefix = "hydration_reminder_"
+    private static let restDayId = "rest_day_reminder"
+    private static let weeklyCheckInId = "weekly_checkin_reminder"
 
     private init() {
         loadFromDisk()
@@ -121,6 +188,96 @@ final class ReminderManager {
         scheduleWeighInReminder()
         scheduleMealReminders()
         scheduleBloodworkReminder()
+        scheduleHydrationReminders()
+        scheduleRestDayReminder()
+        scheduleWeeklyCheckInReminder()
+    }
+
+    // MARK: - Hydration
+
+    func scheduleHydrationReminders() {
+        center.getPendingNotificationRequests { [weak self] requests in
+            guard let self else { return }
+            let ids = requests.filter { $0.identifier.hasPrefix(Self.hydrationPrefix) }.map(\.identifier)
+            self.center.removePendingNotificationRequests(withIdentifiers: ids)
+
+            guard self.hydrationEnabled, self.isAuthorized else { return }
+
+            for (index, time) in self.hydrationTimes.enumerated() {
+                let content = UNMutableNotificationContent()
+                content.title = "Time to hydrate"
+                content.body = "Keep your intake on track \u{2014} a glass of water now goes a long way."
+                content.sound = .default
+                content.categoryIdentifier = ReminderCategory.hydration.rawValue
+                content.userInfo = ["type": "hydration"]
+
+                let components = Calendar.current.dateComponents([.hour, .minute], from: time)
+                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+                let id = "\(Self.hydrationPrefix)\(index)"
+                let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+                self.center.add(request)
+            }
+        }
+    }
+
+    func addHydrationTime(_ time: Date) {
+        hydrationTimes.append(time)
+        hydrationTimes.sort { a, b in
+            let cal = Calendar.current
+            let ac = cal.dateComponents([.hour, .minute], from: a)
+            let bc = cal.dateComponents([.hour, .minute], from: b)
+            if ac.hour != bc.hour { return (ac.hour ?? 0) < (bc.hour ?? 0) }
+            return (ac.minute ?? 0) < (bc.minute ?? 0)
+        }
+    }
+
+    func removeHydrationTime(at index: Int) {
+        guard index >= 0 && index < hydrationTimes.count else { return }
+        hydrationTimes.remove(at: index)
+    }
+
+    func updateHydrationTime(at index: Int, to newTime: Date) {
+        guard index >= 0 && index < hydrationTimes.count else { return }
+        hydrationTimes[index] = newTime
+    }
+
+    // MARK: - Rest Day
+
+    func scheduleRestDayReminder() {
+        center.removePendingNotificationRequests(withIdentifiers: [Self.restDayId])
+        guard restDayEnabled, isAuthorized else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Didn't train today?"
+        content.body = "That's okay \u{2014} rest is part of training. Tap to log a recovery activity."
+        content.sound = .default
+        content.categoryIdentifier = ReminderCategory.restDay.rawValue
+        content.userInfo = ["type": "rest_day"]
+
+        let components = Calendar.current.dateComponents([.hour, .minute], from: restDayCheckTime)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        let request = UNNotificationRequest(identifier: Self.restDayId, content: content, trigger: trigger)
+        center.add(request)
+    }
+
+    // MARK: - Weekly Check-In
+
+    func scheduleWeeklyCheckInReminder() {
+        center.removePendingNotificationRequests(withIdentifiers: [Self.weeklyCheckInId])
+        guard weeklyCheckInEnabled, isAuthorized else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Weekly check-in"
+        content.body = "Time for your weigh-in and progress photos."
+        content.sound = .default
+        content.categoryIdentifier = ReminderCategory.weeklyCheckIn.rawValue
+        content.userInfo = ["type": "weekly_check_in"]
+
+        var components = Calendar.current.dateComponents([.hour, .minute], from: weeklyCheckInTime)
+        components.weekday = weeklyCheckInDay.rawValue
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        let request = UNNotificationRequest(identifier: Self.weeklyCheckInId, content: content, trigger: trigger)
+        center.add(request)
     }
 
     // MARK: - Dose Reminders
@@ -274,6 +431,13 @@ final class ReminderManager {
     // MARK: - Persistence
 
     private func saveToDisk() {
+        defaults.set(hydrationEnabled, forKey: "reminder_hydration_enabled")
+        defaults.set(restDayEnabled, forKey: "reminder_restday_enabled")
+        defaults.set(weeklyCheckInEnabled, forKey: "reminder_weekly_checkin_enabled")
+        defaults.set(hydrationTimes.map { $0.timeIntervalSinceReferenceDate }, forKey: "reminder_hydration_times")
+        defaults.set(restDayCheckTime.timeIntervalSinceReferenceDate, forKey: "reminder_restday_time")
+        defaults.set(weeklyCheckInDay.rawValue, forKey: "reminder_weekly_checkin_day")
+        defaults.set(weeklyCheckInTime.timeIntervalSinceReferenceDate, forKey: "reminder_weekly_checkin_time")
         defaults.set(doseEnabled, forKey: "reminder_dose_enabled")
         defaults.set(workoutEnabled, forKey: "reminder_workout_enabled")
         defaults.set(weighInEnabled, forKey: "reminder_weighin_enabled")
@@ -287,6 +451,9 @@ final class ReminderManager {
         defaults.set(dinnerTime.timeIntervalSinceReferenceDate, forKey: "reminder_dinner_time")
         defaults.set(bloodworkInterval.rawValue, forKey: "reminder_bloodwork_interval")
         defaults.set(bloodworkTime.timeIntervalSinceReferenceDate, forKey: "reminder_bloodwork_time")
+        defaults.set(reminderStyle.rawValue, forKey: "reminder_style")
+        defaults.set(morningBriefTime.timeIntervalSinceReferenceDate, forKey: "reminder_morning_brief_time")
+        defaults.set(doseReminderTime.timeIntervalSinceReferenceDate, forKey: "reminder_dose_reminder_time")
     }
 
     private func loadFromDisk() {
@@ -329,6 +496,37 @@ final class ReminderManager {
         }
         if defaults.object(forKey: "reminder_bloodwork_time") != nil {
             bloodworkTime = Date(timeIntervalSinceReferenceDate: defaults.double(forKey: "reminder_bloodwork_time"))
+        }
+        if defaults.object(forKey: "reminder_hydration_enabled") != nil {
+            hydrationEnabled = defaults.bool(forKey: "reminder_hydration_enabled")
+        }
+        if defaults.object(forKey: "reminder_restday_enabled") != nil {
+            restDayEnabled = defaults.bool(forKey: "reminder_restday_enabled")
+        }
+        if defaults.object(forKey: "reminder_weekly_checkin_enabled") != nil {
+            weeklyCheckInEnabled = defaults.bool(forKey: "reminder_weekly_checkin_enabled")
+        }
+        if let arr = defaults.array(forKey: "reminder_hydration_times") as? [Double], !arr.isEmpty {
+            hydrationTimes = arr.map { Date(timeIntervalSinceReferenceDate: $0) }
+        }
+        if defaults.object(forKey: "reminder_restday_time") != nil {
+            restDayCheckTime = Date(timeIntervalSinceReferenceDate: defaults.double(forKey: "reminder_restday_time"))
+        }
+        if defaults.object(forKey: "reminder_weekly_checkin_day") != nil {
+            weeklyCheckInDay = WeighInDay(rawValue: defaults.integer(forKey: "reminder_weekly_checkin_day")) ?? .sunday
+        }
+        if defaults.object(forKey: "reminder_weekly_checkin_time") != nil {
+            weeklyCheckInTime = Date(timeIntervalSinceReferenceDate: defaults.double(forKey: "reminder_weekly_checkin_time"))
+        }
+        if let raw = defaults.string(forKey: "reminder_style"),
+           let style = ReminderStyle(rawValue: raw) {
+            reminderStyle = style
+        }
+        if defaults.object(forKey: "reminder_morning_brief_time") != nil {
+            morningBriefTime = Date(timeIntervalSinceReferenceDate: defaults.double(forKey: "reminder_morning_brief_time"))
+        }
+        if defaults.object(forKey: "reminder_dose_reminder_time") != nil {
+            doseReminderTime = Date(timeIntervalSinceReferenceDate: defaults.double(forKey: "reminder_dose_reminder_time"))
         }
     }
 }

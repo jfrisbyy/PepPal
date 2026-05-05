@@ -16,7 +16,7 @@ struct SoccerSettingsView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Soccer Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

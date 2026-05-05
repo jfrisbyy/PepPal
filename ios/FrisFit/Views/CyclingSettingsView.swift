@@ -18,7 +18,7 @@ struct CyclingSettingsView: View {
                 bikesSection
             }
             .scrollContentBackground(.hidden)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Cycling Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -100,21 +100,54 @@ nonisolated struct BodyMeasurement: Identifiable, Sendable, Codable {
     }
 }
 
+nonisolated enum ProgressPhotoOrientation: String, CaseIterable, Sendable {
+    case front
+    case side
+    case back
+
+    var displayName: String {
+        switch self {
+        case .front: return "Front"
+        case .side: return "Side"
+        case .back: return "Back"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .front: return "figure.stand"
+        case .side: return "figure.walk"
+        case .back: return "figure.stand.dress"
+        }
+    }
+
+    static func from(_ raw: String?) -> ProgressPhotoOrientation? {
+        guard let raw = raw?.lowercased() else { return nil }
+        return ProgressPhotoOrientation.allCases.first { $0.rawValue == raw }
+    }
+}
+
 nonisolated struct ProgressPhoto: Identifiable, Sendable {
     let id: UUID
     let date: Date
     let label: String
     var photoUrl: String?
     var category: String?
+    var orientation: String?
     var supabaseId: String?
 
-    init(id: UUID = UUID(), date: Date, label: String = "", photoUrl: String? = nil, category: String? = nil, supabaseId: String? = nil) {
+    init(id: UUID = UUID(), date: Date, label: String = "", photoUrl: String? = nil, category: String? = nil, orientation: String? = nil, supabaseId: String? = nil) {
         self.id = id
         self.date = date
         self.label = label
         self.photoUrl = photoUrl
         self.category = category
+        self.orientation = orientation ?? category
         self.supabaseId = supabaseId
+    }
+
+    var orientationEnum: ProgressPhotoOrientation? {
+        ProgressPhotoOrientation.from(orientation ?? category)
     }
 }
 

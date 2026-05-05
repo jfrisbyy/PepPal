@@ -12,7 +12,7 @@ struct CircleDetailView: View {
                 tabBar
                 tabContent
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

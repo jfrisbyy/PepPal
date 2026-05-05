@@ -12,13 +12,14 @@ struct RunningSettingsView: View {
                 VStack(spacing: 20) {
                     unitsSection
                     audioCuesSection
+                    gpsAccuracySection
                     runPreferencesSection
                     shoeManagementSection
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Running Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -106,6 +107,55 @@ struct RunningSettingsView: View {
                 .font(.subheadline)
                 .foregroundStyle(PepTheme.textPrimary)
                 .tint(accentColor)
+        }
+        .padding(16)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(cardBorder())
+    }
+
+    // MARK: - GPS Accuracy
+
+    private var gpsAccuracySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader(icon: "location.fill", title: "GPS Accuracy")
+
+            VStack(spacing: 8) {
+                ForEach(GPSAccuracy.allCases) { level in
+                    let isSelected = runVM.settings.gpsAccuracy == level
+                    Button {
+                        runVM.settings.gpsAccuracy = level
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: level.icon)
+                                .font(.system(size: 14))
+                                .foregroundStyle(isSelected ? accentColor : PepTheme.textSecondary)
+                                .frame(width: 28)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(level.rawValue)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                                Text(level.description)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+
+                            Spacer()
+
+                            if isSelected {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(accentColor)
+                            }
+                        }
+                        .padding(10)
+                        .background(isSelected ? accentColor.opacity(0.08) : PepTheme.elevated)
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
         .padding(16)
         .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
@@ -304,7 +354,7 @@ struct AddShoeSheet: View {
                 Spacer()
             }
             .padding()
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Add Shoe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

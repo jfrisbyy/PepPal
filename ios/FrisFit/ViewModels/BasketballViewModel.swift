@@ -101,10 +101,6 @@ final class BasketballViewModel {
         thisWeekGames.count
     }
 
-    var totalFPEarned: Int {
-        games.reduce(0) { $0 + $1.fpEarned }
-    }
-
     var pointsTrendData: [(date: Date, points: Int)] {
         games.filter { $0.sessionType.isGame }
             .sorted { $0.date < $1.date }
@@ -188,6 +184,43 @@ final class BasketballViewModel {
 
     func savePracticePlan(_ plan: PracticePlan) {
         practicePlans.insert(plan, at: 0)
+    }
+
+    /// Ingest a generic SportSession logged from the Train page. If it's basketball,
+    /// turn it into a BasketballGame so it shows up on the basketball dashboard.
+    func ingestSportSession(_ session: SportSession) {
+        guard session.sport == .basketball else { return }
+
+        var stats = BasketballGameStats()
+        if case .basketball(let s) = session.specificStats {
+            stats.points = s.points
+            stats.assists = s.assists
+            stats.defensiveRebounds = s.rebounds
+        }
+        stats.minutesPlayed = session.durationMinutes
+
+        let sessionType: BasketballSessionType = {
+            switch session.sessionType {
+            case .game: return .pickupGame
+            case .practice: return .skillsPractice
+            case .training: return .soloShooting
+            }
+        }()
+
+        let game = BasketballGame(
+            date: session.date,
+            sessionType: sessionType,
+            stats: stats,
+            result: nil,
+            teamScore: nil,
+            opponentScore: nil,
+            durationMinutes: session.durationMinutes,
+            shotChart: [],
+            confidenceRating: session.intensity,
+            performanceRating: session.intensity,
+            notes: ""
+        )
+        games.insert(game, at: 0)
     }
 
     private func loadSampleData() {

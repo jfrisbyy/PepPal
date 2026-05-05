@@ -2,6 +2,8 @@ import SwiftUI
 
 struct TrainView: View {
     @State private var viewModel = TrainViewModel()
+    @State private var homeViewModel = HomeViewModel()
+    @State private var bodyGoalViewModel = BodyGoalViewModel()
     @State private var runVM = RunningViewModel.shared
     @State private var cyclingVM = CyclingViewModel.shared
     @State private var bbVM = BasketballViewModel.shared
@@ -21,6 +23,10 @@ struct TrainView: View {
     @State private var showLiveRun: Bool = false
     @State private var showLiveRide: Bool = false
     @State private var showBasketballGameLog: Bool = false
+    @State private var showProgressSheet: Bool = false
+    @State private var showRoutines: Bool = false
+    @State private var showRoutineEditor: Bool = false
+    @State private var routineStore = RoutineStore.shared
 
     var body: some View {
         NavigationStack {
@@ -31,6 +37,11 @@ struct TrainView: View {
                         .transition(.opacity)
                 } else {
                     VStack(spacing: 0) {
+                        inlineHeader
+                            .padding(.horizontal)
+                            .padding(.top, 4)
+                            .padding(.bottom, 8)
+
                         if viewModel.availableModes.count > 1 {
                             modeTabBar
                                 .padding(.horizontal)
@@ -111,22 +122,9 @@ struct TrainView: View {
                     }
                 }
             }
-            .background(PepTheme.background.ignoresSafeArea())
-            .navigationTitle("Train")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        viewModel.showModeSelectorSheet = true
-                    } label: {
-                        Image(systemName: viewModel.currentMode.type.icon)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(viewModel.currentMode.type.color)
-                            .frame(width: 34, height: 34)
-                            .background(viewModel.currentMode.type.color.opacity(0.12))
-                            .clipShape(Circle())
-                    }
-                }
-            }
+            .appBackground(accent: PepTheme.coral)
+            .navigationTitle("")
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $viewModel.showModeSelectorSheet) {
                 TrainModeSelectorSheet(viewModel: viewModel)
                     .presentationDetents([.medium, .large])
@@ -138,8 +136,15 @@ struct TrainView: View {
                 ProgramBuilderView(viewModel: viewModel)
             }
             .sheet(isPresented: $showProgramCreation) {
-                ProgramCreationView(viewModel: viewModel)
-                    .presentationDetents([.large])
+                ProgramCreationView(
+                    viewModel: viewModel,
+                    activeProtocol: homeViewModel.activeProtocol,
+                    bodyGoal: bodyGoalViewModel.currentGoal,
+                    currentWeight: bodyGoalViewModel.currentWeight > 0 ? bodyGoalViewModel.currentWeight : nil,
+                    targetWeight: bodyGoalViewModel.targetWeight > 0 ? bodyGoalViewModel.targetWeight : nil,
+                    totalWorkouts: viewModel.workoutHistory.count
+                )
+                .presentationDetents([.large])
             }
             .sheet(isPresented: $viewModel.showProgramManagement) {
                 ProgramManagementView(viewModel: viewModel)
@@ -283,6 +288,8 @@ struct TrainView: View {
             }
             .onAppear {
                 viewModel.loadAllData()
+                homeViewModel.loadProtocolsFromSupabase()
+                bodyGoalViewModel.loadData()
                 if isLoading {
                     Task {
                         try? await Task.sleep(for: .milliseconds(500))
@@ -293,6 +300,26 @@ struct TrainView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Inline Header (scrolls away)
+
+    private var inlineHeader: some View {
+        HStack {
+            Spacer()
+            Button {
+                viewModel.showModeSelectorSheet = true
+            } label: {
+                Image(systemName: viewModel.currentMode.type.icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(viewModel.currentMode.type.color)
+                    .frame(width: 34, height: 34)
+                    .background(viewModel.currentMode.type.color.opacity(0.12))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(height: 38)
     }
 
     // MARK: - Mode Tab Bar
@@ -333,21 +360,369 @@ struct TrainView: View {
     private var mainContent: some View {
         VStack(spacing: 20) {
             todayWorkoutSection
-            consistencyRingSection
-            weeklyInsightsSection
-            personalRecordsSection
-            weeklyVolumeSection
-            muscleRecoverySection
-            warmupSection
-            actionButtons
-            if !viewModel.templates.isEmpty {
-                templatesSection
-            }
+            routinesSection
+            SportCoachCard(sport: .main, accent: PepTheme.teal)
+            statTilesSection
+            progressStripSection
             libraryButton
             historySection
         }
         .padding(.horizontal)
         .padding(.bottom, 24)
+        .sheet(isPresented: $showProgressSheet) {
+            TrainProgressSheet(viewModel: viewModel)
+                .presentationDetents([.large])
+        }
+        .sheet(isPresented: $showRoutines) {
+            RoutinesListView(trainViewModel: viewModel)
+        }
+        .sheet(isPresented: $showRoutineEditor) {
+            RoutineEditorView()
+                .presentationDetents([.large])
+        }
+    }
+
+    // MARK: - Routines Section
+
+    private var routinesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionEyebrow("Routines", number: "02", accent: PepTheme.teal) {
+                Button {
+                    showRoutines = true
+                } label: {
+                    Text(routineStore.routines.isEmpty ? "MANAGE" : "SEE ALL")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+
+            if routineStore.routines.isEmpty {
+                routinesEmptyState
+            } else {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 12) {
+                        ForEach(routineStore.routines.prefix(6)) { routine in
+                            Button {
+                                startWorkoutFromRoutine(routine)
+                            } label: {
+                                routineCompactCard(routine)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Button {
+                            showRoutineEditor = true
+                        } label: {
+                            VStack(spacing: 8) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(PepTheme.teal)
+                                Text("New Routine")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                            }
+                            .frame(width: 150, height: 100)
+                            .background(PepTheme.teal.opacity(0.08))
+                            .clipShape(.rect(cornerRadius: 14))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .strokeBorder(style: StrokeStyle(lineWidth: 0.8, dash: [4]))
+                                    .foregroundStyle(PepTheme.teal.opacity(0.4))
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .contentMargins(.horizontal, 0)
+                .scrollIndicators(.hidden)
+            }
+        }
+    }
+
+    private var routinesEmptyState: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 12) {
+                Image(systemName: "bookmark.fill")
+                    .font(.title3)
+                    .foregroundStyle(PepTheme.teal.opacity(0.8))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Save your favorites")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("Log a workout and tap Save as Routine to reuse it with one tap.")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    showRoutineEditor = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("New Routine")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(PepTheme.teal)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(PepTheme.teal.opacity(0.12))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    showRoutines = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar.badge.clock")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("Programs")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(PepTheme.violet)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(PepTheme.violet.opacity(0.12))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    private func routineCompactCard(_ routine: Routine) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 4) {
+                ForEach(routine.muscleGroups.prefix(3), id: \.self) { muscle in
+                    Image(systemName: muscle.icon)
+                        .font(.system(size: 10))
+                        .foregroundStyle(PepTheme.teal)
+                        .frame(width: 22, height: 22)
+                        .background(PepTheme.teal.opacity(0.12))
+                        .clipShape(Circle())
+                }
+                Spacer()
+                Image(systemName: "play.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(PepTheme.teal)
+            }
+
+            Text(routine.name)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(1)
+
+            HStack(spacing: 6) {
+                Label("\(routine.exercises.count)", systemImage: "dumbbell.fill")
+                Text("·")
+                Label("\(routine.estimatedMinutes)m", systemImage: "clock")
+            }
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(PepTheme.textSecondary)
+        }
+        .padding(12)
+        .frame(width: 170, height: 100, alignment: .leading)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    private func startWorkoutFromRoutine(_ routine: Routine) {
+        let exercises: [WorkoutExercise] = routine.exercises.map { pe in
+            let exercise = ExerciseLibrary.all.first { $0.id == pe.exerciseId } ?? ExerciseLibrary.all[0]
+            return WorkoutExercise(
+                exercise: exercise,
+                targetSets: pe.targetSets,
+                previousWeight: pe.prescribedWeight,
+                previousReps: pe.targetRepsMax
+            )
+        }
+        sessionManager.startSession(name: routine.name, exercises: exercises)
+        routineStore.markPerformed(routine.id)
+    }
+
+    // MARK: - Stat Tiles (condensed)
+
+    private var statTilesSection: some View {
+        let insight = viewModel.weeklyInsight
+        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+            consistencyTile
+            statTile(icon: "figure.strengthtraining.traditional", label: "Sessions", value: "\(insight.totalSessions)", color: PepTheme.teal)
+            statTile(icon: "scalemass.fill", label: "Volume", value: viewModel.formattedVolume(insight.totalVolume), color: PepTheme.violet)
+            statTile(icon: "flame.fill", label: "Calories", value: "\(insight.totalCaloriesBurned)", color: .orange)
+        }
+    }
+
+    private var consistencyTile: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .stroke(PepTheme.elevated, lineWidth: 5)
+                    .frame(width: 44, height: 44)
+                Circle()
+                    .trim(from: 0, to: viewModel.consistencyProgress)
+                    .stroke(PepTheme.teal, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .frame(width: 44, height: 44)
+                    .rotationEffect(.degrees(-90))
+                Text("\(viewModel.workoutsCompletedThisWeek)")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(PepTheme.teal)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(viewModel.workoutsCompletedThisWeek)/\(viewModel.weeklyWorkoutGoal)")
+                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("Consistency")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 84, alignment: .leading)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    private func statTile(icon: String, label: String, value: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.4)
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
+            Text(value)
+                .font(.system(.title2, design: .serif, weight: .semibold))
+                .kerning(-0.3)
+                .foregroundStyle(PepTheme.textPrimary)
+            Spacer(minLength: 0)
+            LinearGradient(
+                colors: [color.opacity(0.5), color.opacity(0.0)],
+                startPoint: .leading, endPoint: .trailing
+            )
+            .frame(height: 0.5)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 84, alignment: .leading)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    // MARK: - Progress Strip
+
+    private var progressStripSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionEyebrow("Progress", number: "03", accent: PepTheme.teal) {
+                Button {
+                    showProgressSheet = true
+                } label: {
+                    Text("SEE ALL")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+
+            ScrollView(.horizontal) {
+                HStack(spacing: 10) {
+                    ForEach(viewModel.personalRecords.prefix(5)) { pr in
+                        progressPRCard(pr)
+                    }
+                    ForEach(viewModel.muscleRecoveryItems.prefix(4)) { item in
+                        progressRecoveryCard(item)
+                    }
+                }
+            }
+            .contentMargins(.horizontal, 0)
+            .scrollIndicators(.hidden)
+        }
+    }
+
+    private func progressPRCard(_ pr: TrainPersonalRecord) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(pr.isNew ? "NEW PR" : "PR")
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.6)
+                .foregroundStyle(PepTheme.amber)
+
+            Text(pr.exerciseName)
+                .font(.system(size: 14, weight: .semibold, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(2)
+
+            Spacer(minLength: 0)
+
+            Text("\(Int(pr.weight)) lbs × \(pr.reps)")
+                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+        }
+        .padding(12)
+        .frame(width: 140, height: 100, alignment: .leading)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(PepTheme.amber.opacity(0.25), lineWidth: 0.5)
+        )
+    }
+
+    private func progressRecoveryCard(_ item: MuscleRecoveryItem) -> some View {
+        let color: Color = switch item.status {
+        case .recovered: .green
+        case .recovering: .orange
+        case .fatigued: .red
+        }
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("RECOVERY")
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.6)
+                .foregroundStyle(color)
+
+            Text(item.muscle.rawValue)
+                .font(.system(size: 14, weight: .semibold, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(2)
+
+            Spacer(minLength: 0)
+
+            Text(item.status.rawValue)
+                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .foregroundStyle(color)
+        }
+        .padding(12)
+        .frame(width: 140, height: 100, alignment: .leading)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(color.opacity(0.25), lineWidth: 0.5)
+        )
     }
 
     // MARK: - Today's Workout
@@ -355,19 +730,15 @@ struct TrainView: View {
     private var todayWorkoutSection: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "calendar.badge.clock")
-                                .font(.caption)
-                                .foregroundStyle(PepTheme.teal)
-                            Text("TODAY'S SESSION")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(PepTheme.teal)
-                                .tracking(1.2)
-                        }
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("01 — TODAY'S SESSION")
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(2.0)
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
                         Text(viewModel.todayDayName)
-                            .font(.title3.weight(.bold))
+                            .font(.system(size: 22, weight: .semibold, design: .serif))
+                            .kerning(-0.4)
                             .foregroundStyle(PepTheme.textPrimary)
                     }
                     Spacer()
@@ -394,8 +765,8 @@ struct TrainView: View {
 
                 if viewModel.isRestDay {
                     restDayContent
-                } else if let day = viewModel.todayWorkoutDay {
-                    todayExercisesList(day)
+                } else if !viewModel.todayWorkoutDays.isEmpty {
+                    todayWorkoutsContent
                 } else {
                     noProgamContent
                 }
@@ -422,12 +793,37 @@ struct TrainView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.green.opacity(0.06))
             .clipShape(.rect(cornerRadius: 10))
+
+            secondaryActionsRow
         }
     }
 
-    private func todayExercisesList(_ day: ProgramDay) -> some View {
-        VStack(spacing: 8) {
+    private var todayWorkoutsContent: some View {
+        VStack(spacing: 14) {
+            ForEach(Array(viewModel.todayWorkoutDays.enumerated()), id: \.element.id) { idx, day in
+                todayExercisesList(day, showDivider: idx < viewModel.todayWorkoutDays.count - 1)
+            }
+        }
+    }
+
+    private func todayExercisesList(_ day: ProgramDay, showDivider: Bool = false) -> some View {
+        let isLastDay = !showDivider
+        return VStack(spacing: 8) {
             HStack {
+                if let tod = day.timeOfDay {
+                    HStack(spacing: 4) {
+                        Image(systemName: tod.icon)
+                            .font(.system(size: 10))
+                        Text(tod.label.uppercased())
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(0.8)
+                    }
+                    .foregroundStyle(PepTheme.amber)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(PepTheme.amber.opacity(0.12))
+                    .clipShape(Capsule())
+                }
                 Text(day.name)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PepTheme.textPrimary)
@@ -467,9 +863,7 @@ struct TrainView: View {
             }
 
             Button {
-                if let program = viewModel.activeProgram {
-                    startWorkoutFromProgram(program)
-                }
+                startWorkoutFromDay(day)
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "play.fill")
@@ -479,13 +873,38 @@ struct TrainView: View {
                 }
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .padding(.vertical, 14)
                 .background(PepTheme.teal)
                 .clipShape(.rect(cornerRadius: 12))
             }
             .buttonStyle(.scale)
             .padding(.top, 4)
+            .sensoryFeedback(.impact(weight: .medium), trigger: sessionManager.showActiveWorkout)
+
+            if isLastDay {
+                secondaryActionsRow
+                    .padding(.top, 2)
+            }
+
+            if showDivider {
+                Divider()
+                    .background(PepTheme.glassBorderTop)
+                    .padding(.top, 4)
+            }
         }
+    }
+
+    private func startWorkoutFromDay(_ day: ProgramDay) {
+        let exercises = day.exercises.map { pe in
+            let exercise = ExerciseLibrary.all.first { $0.id == pe.exerciseId } ?? ExerciseLibrary.all[0]
+            return WorkoutExercise(
+                exercise: exercise,
+                targetSets: pe.targetSets,
+                previousWeight: Double.random(in: 95...185),
+                previousReps: Int.random(in: 8...12)
+            )
+        }
+        sessionManager.startSession(name: day.name, exercises: exercises)
     }
 
     private var noProgamContent: some View {
@@ -504,36 +923,143 @@ struct TrainView: View {
             }
 
             Button {
-                showProgramCreation = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Build Program")
-                        .font(.system(size: 14, weight: .semibold))
-                }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 11)
-                .background(PepTheme.teal)
-                .clipShape(.rect(cornerRadius: 10))
-            }
-            .buttonStyle(.plain)
-
-            Button {
                 startEmptyWorkout()
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 11))
-                    Text("Quick Workout")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("Log a Workout")
+                        .font(.system(size: 14, weight: .bold))
+                }
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(PepTheme.teal)
+                .clipShape(.rect(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.impact(weight: .medium), trigger: sessionManager.showActiveWorkout)
+
+            Button {
+                showRoutines = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "list.bullet.rectangle.portrait")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(routineStore.routines.isEmpty ? "Browse Routines" : "Start from Routine")
                         .font(.system(size: 13, weight: .semibold))
                 }
                 .foregroundStyle(PepTheme.teal)
-                .padding(.top, 2)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(PepTheme.teal.opacity(0.12))
+                .clipShape(.rect(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(PepTheme.teal.opacity(0.3), lineWidth: 0.5)
+                )
             }
             .buttonStyle(.plain)
+
+            secondaryActionsRow
         }
+    }
+
+    // MARK: - Secondary actions (merged into hero)
+
+    private var secondaryActionsRow: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Text("OR")
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(1.8)
+                    .foregroundStyle(PepTheme.textTertiary)
+                Rectangle()
+                    .fill(PepTheme.glassBorderTop)
+                    .frame(height: 0.5)
+            }
+
+            HStack(spacing: 8) {
+                editorialQuickAction(
+                    eyebrow: "01",
+                    title: "Quick",
+                    subtitle: "Workout",
+                    icon: "bolt.fill",
+                    accent: PepTheme.teal
+                ) { startEmptyWorkout() }
+
+                editorialQuickAction(
+                    eyebrow: "02",
+                    title: "Log",
+                    subtitle: "Sport",
+                    icon: "sportscourt.fill",
+                    accent: .orange
+                ) { showSportSelector = true }
+
+                editorialQuickAction(
+                    eyebrow: "03",
+                    title: "New",
+                    subtitle: "Program",
+                    icon: "plus.rectangle.on.folder",
+                    accent: PepTheme.violet
+                ) { showProgramCreation = true }
+            }
+        }
+        .padding(.top, 6)
+    }
+
+    private func editorialQuickAction(
+        eyebrow: String,
+        title: String,
+        subtitle: String,
+        icon: String,
+        accent: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .top) {
+                    Text(eyebrow)
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(PepTheme.textTertiary)
+                    Spacer(minLength: 4)
+                    Image(systemName: icon)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(accent)
+                }
+
+                Spacer(minLength: 6)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text(subtitle)
+                        .font(.system(size: 14, weight: .regular, design: .serif))
+                        .italic()
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [accent.opacity(0.25), PepTheme.glassBorderBottom],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.5
+                    )
+            )
+        }
+        .buttonStyle(.scale)
+        .sensoryFeedback(.impact(weight: .light), trigger: sessionManager.showActiveWorkout)
     }
 
     // MARK: - Consistency Ring
@@ -944,21 +1470,46 @@ struct TrainView: View {
     // MARK: - Action Buttons
 
     private var actionButtons: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             Button {
                 startEmptyWorkout()
             } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "bolt.fill")
-                        .font(.title3)
-                    Text("Start Empty Workout")
-                        .font(.subheadline.weight(.bold))
+                HStack(alignment: .center, spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(.black.opacity(0.12))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.black)
+                    }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("QUICK · OPEN STUDIO")
+                            .font(.system(size: 9, weight: .semibold))
+                            .tracking(1.8)
+                            .foregroundStyle(.black.opacity(0.55))
+                        Text("Start a Workout")
+                            .font(.system(size: 19, weight: .semibold, design: .serif))
+                            .kerning(-0.3)
+                            .foregroundStyle(.black)
+                    }
+                    Spacer()
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.black.opacity(0.7))
                 }
-                .foregroundStyle(.black)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(PepTheme.teal)
-                .clipShape(.rect(cornerRadius: 14))
+                .background(
+                    LinearGradient(
+                        colors: [PepTheme.teal, PepTheme.teal.opacity(0.85)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .clipShape(.rect(cornerRadius: 16))
+                .shadow(color: PepTheme.teal.opacity(0.25), radius: 14, x: 0, y: 6)
             }
             .buttonStyle(.scalePrimary)
             .sensoryFeedback(.impact(weight: .medium), trigger: sessionManager.showActiveWorkout)
@@ -1139,13 +1690,12 @@ struct TrainView: View {
 
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                HeadlineText(text: "Activity History")
-                Spacer()
+            SectionEyebrow("Activity History", number: "04", accent: PepTheme.teal) {
                 Button { } label: {
-                    Text("See All")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PepTheme.teal)
+                    Text("SEE ALL")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
 
@@ -1443,16 +1993,10 @@ struct TrainView: View {
     }
 
     private func startEmptyWorkout() {
-        let sampleExercises = Array(ExerciseLibrary.all.prefix(4))
-        let exercises = sampleExercises.map {
-            WorkoutExercise(
-                exercise: $0,
-                targetSets: 3,
-                previousWeight: Double.random(in: 65...185),
-                previousReps: Int.random(in: 8...12)
-            )
-        }
-        sessionManager.startSession(name: "Quick Workout", exercises: exercises)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        let name = "\(formatter.string(from: Date())) Workout"
+        sessionManager.startSession(name: name, exercises: [])
     }
 
     private func dayAbbreviation(_ date: Date) -> String {

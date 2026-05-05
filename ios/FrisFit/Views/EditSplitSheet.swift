@@ -18,7 +18,7 @@ struct EditSplitSheet: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Edit Split")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

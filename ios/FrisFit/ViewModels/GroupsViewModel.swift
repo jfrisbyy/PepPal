@@ -44,10 +44,51 @@ final class GroupsViewModel {
         loadMockData()
     }
 
-    func sendMessage(to groupID: UUID, text: String) {
+    var uploadingAttachment: Bool = false
+
+    func sendMessage(to groupID: UUID, text: String, attachments: [DirectMessageAttachment] = []) {
         guard let index = myGroups.firstIndex(where: { $0.id == groupID }) else { return }
-        let message = GroupMessage(sender: meUser, text: text)
+        let message = GroupMessage(sender: meUser, text: text, attachments: attachments)
         myGroups[index].messages.append(message)
+    }
+
+    func sendImage(to groupID: UUID, data: Data) async {
+        let att = await uploadLocalImage(data: data)
+        sendMessage(to: groupID, text: "", attachments: [att])
+    }
+
+    func sendVideo(to groupID: UUID, data: Data, duration: Double?) async {
+        let att = await uploadLocalVideo(data: data, duration: duration)
+        sendMessage(to: groupID, text: "", attachments: [att])
+    }
+
+    func sendVoice(to groupID: UUID, data: Data, duration: Double?) async {
+        let att = await uploadLocalVoice(data: data, duration: duration)
+        sendMessage(to: groupID, text: "", attachments: [att])
+    }
+
+    private func uploadLocalImage(data: Data) async -> DirectMessageAttachment {
+        uploadingAttachment = true
+        defer { uploadingAttachment = false }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("groupimg_\(UUID().uuidString).jpg")
+        try? data.write(to: url)
+        return DirectMessageAttachment(kind: .image, url: url.absoluteString)
+    }
+
+    private func uploadLocalVideo(data: Data, duration: Double?) async -> DirectMessageAttachment {
+        uploadingAttachment = true
+        defer { uploadingAttachment = false }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("groupvid_\(UUID().uuidString).mp4")
+        try? data.write(to: url)
+        return DirectMessageAttachment(kind: .video, url: url.absoluteString, durationSeconds: duration)
+    }
+
+    private func uploadLocalVoice(data: Data, duration: Double?) async -> DirectMessageAttachment {
+        uploadingAttachment = true
+        defer { uploadingAttachment = false }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("groupvoice_\(UUID().uuidString).m4a")
+        try? data.write(to: url)
+        return DirectMessageAttachment(kind: .voice, url: url.absoluteString, durationSeconds: duration)
     }
 
     func toggleMessageLike(groupID: UUID, messageID: UUID) {
@@ -93,6 +134,45 @@ final class GroupsViewModel {
         }
     }
 
+    func updateStatsConfig(groupID: UUID, config: GroupStatsConfig) {
+        guard let index = myGroups.firstIndex(where: { $0.id == groupID }) else { return }
+        myGroups[index].statsConfig = config
+    }
+
+    func toggleStatsEnabled(groupID: UUID) {
+        guard let index = myGroups.firstIndex(where: { $0.id == groupID }) else { return }
+        myGroups[index].statsConfig.isEnabled.toggle()
+        if myGroups[index].statsConfig.isEnabled && myGroups[index].statsConfig.enabledMetrics.isEmpty {
+            myGroups[index].statsConfig.enabledMetrics = [.steps, .workouts]
+        }
+    }
+
+    func toggleStatsMetric(groupID: UUID, metric: GroupStatMetric) {
+        guard let index = myGroups.firstIndex(where: { $0.id == groupID }) else { return }
+        if myGroups[index].statsConfig.enabledMetrics.contains(metric) {
+            myGroups[index].statsConfig.enabledMetrics.remove(metric)
+        } else {
+            myGroups[index].statsConfig.enabledMetrics.insert(metric)
+        }
+    }
+
+    func setStatsPeriod(groupID: UUID, period: GroupStatsPeriod) {
+        guard let index = myGroups.firstIndex(where: { $0.id == groupID }) else { return }
+        myGroups[index].statsConfig.period = period
+    }
+
+    func toggleMyStatsSharing(groupID: UUID) {
+        guard let gIndex = myGroups.firstIndex(where: { $0.id == groupID }),
+              let mIndex = myGroups[gIndex].members.firstIndex(where: { $0.user.username == "me" }) else { return }
+        myGroups[gIndex].members[mIndex].isSharingStats.toggle()
+    }
+
+    func isCurrentUserAdmin(groupID: UUID) -> Bool {
+        guard let group = myGroups.first(where: { $0.id == groupID }),
+              let member = group.members.first(where: { $0.user.username == "me" }) else { return false }
+        return member.role == .owner || member.role == .admin
+    }
+
     func leaveGroup(_ groupID: UUID) {
         guard let group = myGroups.first(where: { $0.id == groupID }) else { return }
         myGroups.removeAll { $0.id == groupID }
@@ -121,6 +201,17 @@ final class GroupsViewModel {
         myGroups.first { $0.id == id }
     }
 
+    private func mockStats(steps: Double, workouts: Double, miles: Double, active: Double, calories: Double, streak: Double) -> GroupMemberStats {
+        GroupMemberStats(values: [
+            .steps: steps,
+            .workouts: workouts,
+            .runMiles: miles,
+            .activeMinutes: active,
+            .calories: calories,
+            .streak: streak,
+        ])
+    }
+
     private func loadMockData() {
         let now = Date()
 
@@ -134,10 +225,10 @@ final class GroupsViewModel {
                 iconName: "sunrise.fill",
                 memberCount: 8,
                 members: [
-                    GroupMember(id: UUID(), user: meUser, role: .owner, joinedAt: now.addingTimeInterval(-604800)),
-                    GroupMember(id: UUID(), user: sampleUsers[0], role: .admin, joinedAt: now.addingTimeInterval(-518400)),
-                    GroupMember(id: UUID(), user: sampleUsers[1], role: .member, joinedAt: now.addingTimeInterval(-432000)),
-                    GroupMember(id: UUID(), user: sampleUsers[3], role: .member, joinedAt: now.addingTimeInterval(-345600)),
+                    GroupMember(id: UUID(), user: meUser, role: .owner, joinedAt: now.addingTimeInterval(-604800), stats: mockStats(steps: 48230, workouts: 5, miles: 12.4, active: 312, calories: 3420, streak: 12)),
+                    GroupMember(id: UUID(), user: sampleUsers[0], role: .admin, joinedAt: now.addingTimeInterval(-518400), stats: mockStats(steps: 62410, workouts: 6, miles: 18.2, active: 410, calories: 4180, streak: 14)),
+                    GroupMember(id: UUID(), user: sampleUsers[1], role: .member, joinedAt: now.addingTimeInterval(-432000), stats: mockStats(steps: 38120, workouts: 4, miles: 8.6, active: 240, calories: 2890, streak: 21)),
+                    GroupMember(id: UUID(), user: sampleUsers[3], role: .member, joinedAt: now.addingTimeInterval(-345600), stats: mockStats(steps: 71240, workouts: 7, miles: 22.1, active: 480, calories: 5120, streak: 45)),
                 ],
                 messages: [
                     GroupMessage(sender: sampleUsers[0], text: "5AM squad checking in! Hit a new squat PR today 🏋️", timestamp: now.addingTimeInterval(-7200), likeCount: 4),
@@ -147,7 +238,8 @@ final class GroupsViewModel {
                     GroupMessage(sender: sampleUsers[1], text: "Tomorrow we're doing pull day right? Who's in?", timestamp: now.addingTimeInterval(-1800)),
                 ],
                 createdAt: now.addingTimeInterval(-604800),
-                creatorID: myID
+                creatorID: myID,
+                statsConfig: GroupStatsConfig(isEnabled: true, enabledMetrics: [.workouts, .activeMinutes, .streak], period: .week)
             ),
             FitGroup(
                 id: UUID(),
@@ -158,10 +250,10 @@ final class GroupsViewModel {
                 iconName: "figure.run",
                 memberCount: 124,
                 members: [
-                    GroupMember(id: UUID(), user: meUser, role: .member, joinedAt: now.addingTimeInterval(-259200)),
-                    GroupMember(id: UUID(), user: sampleUsers[2], role: .owner, joinedAt: now.addingTimeInterval(-2592000)),
-                    GroupMember(id: UUID(), user: sampleUsers[4], role: .admin, joinedAt: now.addingTimeInterval(-1728000)),
-                    GroupMember(id: UUID(), user: sampleUsers[5], role: .member, joinedAt: now.addingTimeInterval(-864000)),
+                    GroupMember(id: UUID(), user: meUser, role: .member, joinedAt: now.addingTimeInterval(-259200), stats: mockStats(steps: 52310, workouts: 3, miles: 16.8, active: 280, calories: 3120, streak: 12)),
+                    GroupMember(id: UUID(), user: sampleUsers[2], role: .owner, joinedAt: now.addingTimeInterval(-2592000), stats: mockStats(steps: 89420, workouts: 5, miles: 34.2, active: 620, calories: 6240, streak: 87)),
+                    GroupMember(id: UUID(), user: sampleUsers[4], role: .admin, joinedAt: now.addingTimeInterval(-1728000), stats: mockStats(steps: 64210, workouts: 4, miles: 24.6, active: 410, calories: 4380, streak: 28)),
+                    GroupMember(id: UUID(), user: sampleUsers[5], role: .member, joinedAt: now.addingTimeInterval(-864000), stats: mockStats(steps: 71820, workouts: 4, miles: 28.9, active: 510, calories: 4920, streak: 33)),
                 ],
                 messages: [
                     GroupMessage(sender: sampleUsers[2], text: "Saturday morning run at Central Park, 7AM. Meet at the Bethesda Fountain. All paces welcome!", timestamp: now.addingTimeInterval(-14400), likeCount: 18),
@@ -170,7 +262,8 @@ final class GroupsViewModel {
                     GroupMessage(sender: sampleUsers[2], text: "Brooklyn Half registration is open btw — who's signing up? 🏃", timestamp: now.addingTimeInterval(-3600), likeCount: 8),
                 ],
                 createdAt: now.addingTimeInterval(-2592000),
-                creatorID: sampleUsers[2].id
+                creatorID: sampleUsers[2].id,
+                statsConfig: GroupStatsConfig(isEnabled: true, enabledMetrics: [.runMiles, .steps, .activeMinutes], period: .week)
             ),
             FitGroup(
                 id: UUID(),
@@ -181,10 +274,10 @@ final class GroupsViewModel {
                 iconName: "checkmark.shield.fill",
                 memberCount: 4,
                 members: [
-                    GroupMember(id: UUID(), user: meUser, role: .member, joinedAt: now.addingTimeInterval(-172800)),
-                    GroupMember(id: UUID(), user: sampleUsers[1], role: .owner, joinedAt: now.addingTimeInterval(-604800)),
-                    GroupMember(id: UUID(), user: sampleUsers[3], role: .member, joinedAt: now.addingTimeInterval(-518400)),
-                    GroupMember(id: UUID(), user: sampleUsers[5], role: .member, joinedAt: now.addingTimeInterval(-432000)),
+                    GroupMember(id: UUID(), user: meUser, role: .member, joinedAt: now.addingTimeInterval(-172800), stats: mockStats(steps: 48230, workouts: 5, miles: 12.4, active: 312, calories: 3420, streak: 12)),
+                    GroupMember(id: UUID(), user: sampleUsers[1], role: .owner, joinedAt: now.addingTimeInterval(-604800), stats: mockStats(steps: 38120, workouts: 4, miles: 8.6, active: 240, calories: 2890, streak: 21)),
+                    GroupMember(id: UUID(), user: sampleUsers[3], role: .member, joinedAt: now.addingTimeInterval(-518400), stats: mockStats(steps: 71240, workouts: 7, miles: 22.1, active: 480, calories: 5120, streak: 45)),
+                    GroupMember(id: UUID(), user: sampleUsers[5], role: .member, joinedAt: now.addingTimeInterval(-432000), stats: mockStats(steps: 49810, workouts: 5, miles: 14.2, active: 320, calories: 3580, streak: 33)),
                 ],
                 messages: [
                     GroupMessage(sender: sampleUsers[1], text: "Day 21 check-in ✅ Upper body + 30 min cardio done", timestamp: now.addingTimeInterval(-28800), likeCount: 3),
@@ -193,7 +286,8 @@ final class GroupsViewModel {
                     GroupMessage(sender: sampleUsers[1], text: "Everyone on track this week! Let's keep it going 🔥", timestamp: now.addingTimeInterval(-7200), likeCount: 4),
                 ],
                 createdAt: now.addingTimeInterval(-604800),
-                creatorID: sampleUsers[1].id
+                creatorID: sampleUsers[1].id,
+                statsConfig: GroupStatsConfig(isEnabled: false, enabledMetrics: [.workouts, .streak], period: .week)
             ),
         ]
 

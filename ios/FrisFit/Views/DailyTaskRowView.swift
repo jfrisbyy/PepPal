@@ -1,0 +1,157 @@
+import SwiftUI
+
+struct DailyTaskRowView: View {
+    let task: DailyTask
+    let showReason: Bool
+    let onToggle: () -> Void
+    let onToggleReason: () -> Void
+
+    @State private var localToggleTrigger: Int = 0
+    @State private var showLinkedInfo: Bool = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button {
+                if task.actionLink != .none {
+                    showLinkedInfo = true
+                    return
+                }
+                if task.isProtocolRecommended && !task.protocolReason.isEmpty {
+                    onToggleReason()
+                }
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                    onToggle()
+                    localToggleTrigger += 1
+                }
+            } label: {
+                rowContent
+            }
+            .sensoryFeedback(.impact(weight: .light), trigger: localToggleTrigger)
+
+            if showReason && task.isProtocolRecommended && !task.protocolReason.isEmpty {
+                reasonRow
+            }
+        }
+        .confirmationDialog(linkedDialogTitle, isPresented: $showLinkedInfo, titleVisibility: .visible) {
+            let quick = task.actionLink.quickAction
+            if quick != .none {
+                Button {
+                    NotificationCenter.default.post(name: .linkedTaskQuickAction, object: nil, userInfo: ["action": quick.label])
+                } label: {
+                    Text(quick.label)
+                }
+            }
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(task.actionLink.autoCompleteMessage)
+        }
+    }
+
+    private var linkedDialogTitle: String {
+        task.isCompleted ? "\(task.name) — Completed" : task.name
+    }
+
+    private var rowContent: some View {
+        HStack(alignment: .top, spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(task.isCompleted ? PepTheme.teal : PepTheme.textSecondary.opacity(0.3), lineWidth: 1.5)
+                    .frame(width: 20, height: 20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(task.isCompleted ? PepTheme.teal : Color.clear)
+                    )
+
+                if task.isCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(PepTheme.invertedText)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+
+            Image(systemName: task.icon)
+                .font(.system(size: 12))
+                .foregroundStyle(task.isCompleted ? PepTheme.teal.opacity(0.5) : PepTheme.textSecondary)
+                .frame(width: 18)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(task.name)
+                    .font(.system(.subheadline, weight: task.isCompleted ? .medium : .semibold))
+                    .foregroundStyle(task.isCompleted ? PepTheme.textSecondary.opacity(0.5) : PepTheme.textPrimary)
+                    .strikethrough(task.isCompleted, color: PepTheme.textSecondary.opacity(0.3))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if task.actionLink != .none && !task.goalDescription.isEmpty {
+                    Text(task.goalDescription)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(PepTheme.teal.opacity(0.7))
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .trailing, spacing: 4) {
+                if task.source.isSynthetic {
+                    sourceBadge
+                } else if task.isProtocolRecommended {
+                    Image(systemName: "pill.fill")
+                        .font(.system(size: 8))
+                        .foregroundStyle(PepTheme.teal.opacity(0.5))
+                }
+
+                if task.actionLink != .none {
+                    Image(systemName: "link")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(PepTheme.teal.opacity(0.5))
+                }
+            }
+            .padding(.top, 2)
+        }
+        .padding(.vertical, 7)
+        .padding(.horizontal, 8)
+        .background(
+            task.isCompleted
+                ? PepTheme.teal.opacity(0.04)
+                : (task.isProtocolRecommended ? PepTheme.teal.opacity(0.02) : Color.clear)
+        )
+        .clipShape(.rect(cornerRadius: 8))
+    }
+
+    private var sourceBadge: some View {
+        HStack(spacing: 3) {
+            Image(systemName: task.source.icon)
+                .font(.system(size: 7, weight: .bold))
+            Text(task.source.label.uppercased())
+                .font(.system(size: 8, weight: .heavy))
+                .tracking(0.4)
+        }
+        .foregroundStyle(task.source.color)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background(task.source.color.opacity(0.12))
+        .clipShape(.capsule)
+    }
+
+    private var reasonRow: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(PepTheme.teal.opacity(0.6))
+            Text(task.protocolReason)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+                .lineSpacing(1)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .padding(.leading, 38)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PepTheme.teal.opacity(0.03))
+        .clipShape(.rect(cornerRadius: 6))
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+}

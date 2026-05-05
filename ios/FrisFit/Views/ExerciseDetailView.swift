@@ -1,8 +1,11 @@
 import SwiftUI
+import AVKit
 
 struct ExerciseDetailView: View {
     let exercise: Exercise
     let viewModel: ExerciseLibraryViewModel
+    @State private var selectedSubEquipment: Equipment? = nil
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         ScrollView {
@@ -11,67 +14,244 @@ struct ExerciseDetailView: View {
                 contentSection
             }
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationBarTitleDisplayMode(.inline)
         
     }
 
     private var headerSection: some View {
-        VStack(spacing: 16) {
-            Image(systemName: exercise.primaryMuscle.icon)
-                .font(.system(size: 44))
-                .foregroundStyle(PepTheme.teal)
-                .frame(width: 88, height: 88)
-                .background(PepTheme.teal.opacity(0.12))
-                .clipShape(Circle())
+        VStack(alignment: .leading, spacing: 14) {
+            Text("EXERCISE REFERENCE")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(2.0)
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.85))
 
             Text(exercise.name)
-                .font(.title2.weight(.bold))
+                .font(.system(size: 34, weight: .semibold, design: .serif))
+                .kerning(-0.4)
                 .foregroundStyle(PepTheme.textPrimary)
-                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 12) {
-                DifficultyBadge(difficulty: exercise.difficulty)
-
-                Label(exercise.exerciseType.rawValue, systemImage: exercise.exerciseType == .compound ? "arrow.triangle.branch" : "scope")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(PepTheme.elevated)
-                    .clipShape(Capsule())
-
-                Label(exercise.trackingType.label, systemImage: "chart.bar.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(PepTheme.elevated)
-                    .clipShape(Capsule())
-            }
+            metaStrip
+                .padding(.top, 4)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 18)
+        .padding(.bottom, 18)
+        .padding(.horizontal, 18)
+    }
+
+    private var metaStrip: some View {
+        HStack(spacing: 0) {
+            metaItem(label: "Level", value: exercise.difficulty.rawValue)
+            metaDivider
+            metaItem(label: "Type", value: exercise.exerciseType.rawValue)
+            metaDivider
+            metaItem(label: "Tracking", value: exercise.trackingType.label)
+        }
+        .padding(.vertical, 12)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(PepTheme.textSecondary.opacity(0.2))
+                .frame(height: 0.5)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(PepTheme.textSecondary.opacity(0.2))
+                .frame(height: 0.5)
+        }
+    }
+
+    private func metaItem(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.4)
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.75))
+            Text(value)
+                .font(.system(size: 13, weight: .medium, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var metaDivider: some View {
+        Rectangle()
+            .fill(PepTheme.textSecondary.opacity(0.2))
+            .frame(width: 0.5, height: 28)
     }
 
     private var contentSection: some View {
         VStack(spacing: 16) {
+            videoPlayerCard
+            if !exercise.formCues.isEmpty {
+                formCuesCard
+            }
+            videoDemoCard
             musclesCard
             equipmentCard
             instructionsCard
             commonMistakesCard
             proTipsCard
+            substitutionSection
             alternativesSection
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 32)
     }
 
+    @ViewBuilder
+    private var videoPlayerCard: some View {
+        if let url = exercise.videoPlaybackURL {
+            LoopingVideoPlayer(url: url)
+                .aspectRatio(16/9, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .clipShape(.rect(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(PepTheme.glassBorderTop.opacity(0.5), lineWidth: 0.5)
+                )
+        }
+    }
+
+    private var formCuesCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                SectionEyebrow("Form Cues", number: "01", accent: PepTheme.teal)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(Array(exercise.formCues.enumerated()), id: \.offset) { index, cue in
+                        HStack(alignment: .firstTextBaseline, spacing: 14) {
+                            Text(String(format: "%02d", index + 1))
+                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                                .frame(width: 22, alignment: .leading)
+                            Text(cue)
+                                .font(.system(size: 14, design: .serif))
+                                .lineSpacing(2)
+                                .foregroundStyle(PepTheme.textPrimary.opacity(0.92))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var videoDemoCard: some View {
+        Button {
+            openURL(exercise.demoSearchURL)
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.red.opacity(0.85), Color.red.opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 56, height: 56)
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Watch Form Demo")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("Video tutorials on YouTube")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PepTheme.teal)
+            }
+            .padding(14)
+            .background(PepTheme.cardSurface)
+            .clipShape(.rect(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(PepTheme.glassBorderTop.opacity(0.5), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var substitutionSection: some View {
+        let equipment = viewModel.availableSubstitutionEquipment(for: exercise)
+        return Group {
+            if equipment.count > 1 {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 8) {
+                        HeadlineText(text: "Substitute by Equipment")
+                    }
+                    .padding(.top, 8)
+
+                    Text("Don't have \(exercise.equipment.rawValue.lowercased())? Pick what you have.")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(equipment, id: \.self) { eq in
+                                let isSelected = selectedSubEquipment == eq
+                                Button {
+                                    withAnimation(.spring(duration: 0.25)) {
+                                        selectedSubEquipment = isSelected ? nil : eq
+                                    }
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: eq.icon)
+                                            .font(.system(size: 12))
+                                        Text(eq.rawValue)
+                                            .font(.system(size: 12, weight: .semibold))
+                                    }
+                                    .foregroundStyle(isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(isSelected ? AnyShapeStyle(PepTheme.teal) : AnyShapeStyle(PepTheme.elevated))
+                                    .clipShape(Capsule())
+                                }
+                            }
+                        }
+                    }
+                    .contentMargins(.horizontal, 0)
+
+                    if let eq = selectedSubEquipment {
+                        let subs = viewModel.alternatives(for: exercise, equipment: eq)
+                        if subs.isEmpty {
+                            Text("No matches found")
+                                .font(.caption)
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .padding(.vertical, 8)
+                        } else {
+                            VStack(spacing: 8) {
+                                ForEach(subs) { sub in
+                                    NavigationLink(value: sub) {
+                                        AlternativeRow(exercise: sub)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var musclesCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 14) {
-                HeadlineText(text: "Target Muscles")
+                SectionEyebrow("Target Muscles", number: "02", accent: PepTheme.teal)
 
                 HStack(spacing: 12) {
                     MuscleTag(muscle: exercise.primaryMuscle, isPrimary: true)
@@ -85,57 +265,52 @@ struct ExerciseDetailView: View {
 
     private var equipmentCard: some View {
         GlassCard {
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    SubheadText(text: "Equipment")
-                    HStack(spacing: 8) {
-                        Image(systemName: exercise.equipment.icon)
-                            .foregroundStyle(PepTheme.teal)
-                        Text(exercise.equipment.rawValue)
-                            .font(.body.weight(.medium))
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-                }
-
-                Spacer()
-
-                VStack(alignment: .leading, spacing: 4) {
-                    SubheadText(text: "Movement")
-                    Text(exercise.movementPattern.rawValue)
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(PepTheme.textPrimary)
-                }
-
-                Spacer()
-
-                VStack(alignment: .leading, spacing: 4) {
-                    SubheadText(text: "Rest")
-                    Text("\(exercise.defaultRestSeconds)s")
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(PepTheme.teal)
-                }
+            HStack(spacing: 0) {
+                detailColumn(label: "Equipment", value: exercise.equipment.rawValue)
+                Rectangle()
+                    .fill(PepTheme.textSecondary.opacity(0.2))
+                    .frame(width: 0.5, height: 32)
+                detailColumn(label: "Movement", value: exercise.movementPattern.rawValue)
+                Rectangle()
+                    .fill(PepTheme.textSecondary.opacity(0.2))
+                    .frame(width: 0.5, height: 32)
+                detailColumn(label: "Rest", value: "\(exercise.defaultRestSeconds)s")
             }
         }
+    }
+
+    private func detailColumn(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.4)
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.75))
+            Text(value)
+                .font(.system(size: 14, weight: .medium, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 4)
     }
 
     private var instructionsCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 14) {
-                HeadlineText(text: "Instructions")
+                SectionEyebrow("Instructions", number: "03", accent: PepTheme.teal)
 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 14) {
                     ForEach(Array(exercise.instructions.enumerated()), id: \.offset) { index, step in
-                        HStack(alignment: .top, spacing: 12) {
-                            Text("\(index + 1)")
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundStyle(PepTheme.invertedText)
-                                .frame(width: 24, height: 24)
-                                .background(PepTheme.teal)
-                                .clipShape(Circle())
-
+                        HStack(alignment: .firstTextBaseline, spacing: 14) {
+                            Text(String(format: "%02d", index + 1))
+                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                                .frame(width: 22, alignment: .leading)
                             Text(step)
-                                .font(.subheadline)
-                                .foregroundStyle(PepTheme.textPrimary)
+                                .font(.system(size: 15, design: .serif))
+                                .lineSpacing(3)
+                                .foregroundStyle(PepTheme.textPrimary.opacity(0.92))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -147,22 +322,19 @@ struct ExerciseDetailView: View {
     private var commonMistakesCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                    HeadlineText(text: "Common Mistakes")
-                }
+                SectionEyebrow("Common Mistakes", number: "04", accent: PepTheme.teal)
 
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 12) {
                     ForEach(exercise.commonMistakes, id: \.self) { mistake in
-                        HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.red.opacity(0.7))
-                                .padding(.top, 1)
+                        HStack(alignment: .firstTextBaseline, spacing: 14) {
+                            Rectangle()
+                                .fill(PepTheme.textSecondary.opacity(0.5))
+                                .frame(width: 8, height: 1)
+                                .offset(y: -4)
                             Text(mistake)
-                                .font(.subheadline)
-                                .foregroundStyle(PepTheme.textPrimary)
+                                .font(.system(size: 14))
+                                .lineSpacing(2)
+                                .foregroundStyle(PepTheme.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -172,45 +344,27 @@ struct ExerciseDetailView: View {
     }
 
     private var proTipsCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                Image(systemName: "sparkles")
-                    .foregroundStyle(PepTheme.violet)
-                HeadlineText(text: "Finn's Pro Tips", color: PepTheme.violet)
-            }
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                SectionEyebrow("Tips", number: "05", accent: PepTheme.teal)
 
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(exercise.proTips, id: \.self) { tip in
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: "lightbulb.fill")
-                            .font(.system(size: 13))
-                            .foregroundStyle(PepTheme.violet.opacity(0.8))
-                            .padding(.top, 2)
-                        Text(tip)
-                            .font(.subheadline)
-                            .foregroundStyle(PepTheme.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(exercise.proTips, id: \.self) { tip in
+                        HStack(alignment: .firstTextBaseline, spacing: 14) {
+                            Rectangle()
+                                .fill(PepTheme.textSecondary.opacity(0.5))
+                                .frame(width: 8, height: 1)
+                                .offset(y: -4)
+                            Text(tip)
+                                .font(.system(size: 14))
+                                .lineSpacing(2)
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
             }
         }
-        .padding(16)
-        .background(
-            PepTheme.violet.opacity(0.08)
-                .overlay(PepTheme.cardSurface.opacity(0.6))
-        )
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [PepTheme.violet.opacity(0.2), PepTheme.violet.opacity(0.05)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.5
-                )
-        )
     }
 
     private var alternativesSection: some View {

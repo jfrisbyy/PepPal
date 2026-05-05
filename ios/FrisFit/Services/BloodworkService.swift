@@ -87,6 +87,24 @@ final class BloodworkService {
             .single()
             .execute()
             .value
+
+        let entryDate = date
+        let entryNotes = notes
+        let entryPhotoString = photoUrl
+        await MainActor.run {
+            var attachments: [URL] = []
+            if let p = entryPhotoString, let u = URL(string: p) { attachments.append(u) }
+            let event = JourneyEvent(
+                userId: UUID(uuidString: userId) ?? UUID(),
+                lane: .bloodwork,
+                timestamp: entryDate,
+                title: "Bloodwork draw",
+                description: entryNotes,
+                sourceType: .bloodwork,
+                attachments: attachments
+            )
+            Task { await JourneyEventService.shared.add(event) }
+        }
         return created
     }
 

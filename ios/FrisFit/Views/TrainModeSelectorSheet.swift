@@ -16,7 +16,7 @@ struct TrainModeSelectorSheet: View {
                 .padding(.top, 8)
                 .padding(.bottom, 32)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Training Modes")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

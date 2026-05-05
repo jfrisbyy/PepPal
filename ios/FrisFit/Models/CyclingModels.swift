@@ -140,7 +140,6 @@ nonisolated struct CompletedRide: Identifiable, Sendable {
     let bikeId: UUID?
     let temperature: Double?
     let notes: String
-    let fpEarned: Int
     let isIndoor: Bool
 
     var distanceKm: Double { distanceMiles * 1.60934 }
@@ -202,18 +201,6 @@ nonisolated struct CompletedRide: Identifiable, Sendable {
         self.temperature = temperature
         self.notes = notes
         self.isIndoor = isIndoor
-
-        let baseFP = distanceMiles * 80
-        let elevationBonus = totalElevationGain / 100 * 25
-        let intensityMultiplier: Double
-        switch rideType {
-        case .hillClimb: intensityMultiplier = 1.4
-        case .interval, .tempo: intensityMultiplier = 1.3
-        case .endurance: intensityMultiplier = 1.15
-        case .gravel: intensityMultiplier = 1.2
-        default: intensityMultiplier = 1.0
-        }
-        self.fpEarned = Int((baseFP + elevationBonus) * intensityMultiplier)
     }
 }
 

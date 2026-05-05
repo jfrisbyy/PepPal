@@ -19,7 +19,7 @@ struct TennisWorkoutBuilderView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Tennis Sessions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

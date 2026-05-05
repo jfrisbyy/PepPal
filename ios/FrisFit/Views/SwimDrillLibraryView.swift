@@ -47,7 +47,7 @@ struct SwimDrillLibraryView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Swim Drills")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search drills...")

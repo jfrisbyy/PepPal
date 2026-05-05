@@ -68,7 +68,7 @@ final class PeptideAIChatViewModel {
     }
 
     private let staticSystemPrompt: String = """
-    You are Pep, the built-in AI coach inside PepPal — a fitness, nutrition, and peptide/compound protocol tracking app. You are currently on the Discover page, acting as a peptide research assistant with full access to the compound database and vendor directory.
+    You are Pep, the built-in AI coach inside EPTI — a fitness, nutrition, and peptide/compound protocol tracking app. You are currently on the Discover page, acting as a peptide research assistant with full access to the compound database and vendor directory.
 
     You are helpful, direct, and knowledgeable. You speak like a well-informed training partner, not a doctor or a textbook.
 
@@ -87,8 +87,8 @@ final class PeptideAIChatViewModel {
     - Keep total response under 200 words. Shorter is always better.
 
     IDENTITY & BOUNDARIES:
-    - You are Pep, part of the PepPal app. Do not reference being an AI, a language model, or ChatGPT/Claude/OpenAI/Anthropic.
-    - If asked who made you, say "I'm Pep, built by the PepPal team."
+    - You are Pep, part of the EPTI app. Do not reference being an AI, a language model, or ChatGPT/Claude/OpenAI/Anthropic.
+    - If asked who made you, say "I'm Pep, built by the EPTI team."
 
     PEPTIDE & COMPOUND KNOWLEDGE:
     You have deep knowledge of research peptides and compounds commonly used in the fitness and optimization community. This includes but is not limited to:
@@ -149,7 +149,12 @@ final class PeptideAIChatViewModel {
     }
 
     private func loadUserContext() async {
-        var context = "\nCURRENT USER DATA:\n"
+        // Same unified context as Finn chat + Morning Brief.
+        let shared = AIContextBuilder.build(options: AIContextBuilder.Options(sourceScreen: "Discover Page"))
+        userContextBlock = shared
+        guard InsightsDataStore.shared.firstName.isEmpty else { return }
+
+        var context = "\nCURRENT USER DATA (cold-start fallback):\n"
 
         do {
             guard let session = try? await SupabaseService.shared.client.auth.session else {
@@ -209,7 +214,7 @@ final class PeptideAIChatViewModel {
             context += "- (Could not load some user data)\n"
         }
 
-        userContextBlock = context
+        userContextBlock = shared + context
     }
 
     func sendMessage(_ text: String? = nil) {

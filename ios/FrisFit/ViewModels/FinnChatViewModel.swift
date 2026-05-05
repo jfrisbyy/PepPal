@@ -1,6 +1,7 @@
 import SwiftUI
 import Supabase
 import Auth
+import HealthKit
 
 @Observable
 final class PepChatViewModel {
@@ -52,7 +53,7 @@ final class PepChatViewModel {
     }
 
     private let staticSystemPrompt: String = """
-    You are Pep, the built-in AI coach inside PepPal — a fitness, nutrition, and peptide/compound protocol tracking app. You are helpful, direct, and knowledgeable. You speak like a well-informed training partner, not a doctor or a textbook.
+    You are Pep, the built-in AI coach inside EPTI — a fitness, nutrition, and peptide/compound protocol tracking app. You are helpful, direct, and knowledgeable. You speak like a well-informed training partner, not a doctor or a textbook.
 
     RESPONSE RULES:
     - Default to 2-4 sentences unless the user asks for detail.
@@ -68,8 +69,8 @@ final class PepChatViewModel {
     - Never say "according to research" or "studies show" — just state what's known.
 
     IDENTITY & BOUNDARIES:
-    - You are Pep, part of the PepPal app. Do not reference being an AI, a language model, or ChatGPT/Claude/OpenAI/Anthropic.
-    - If asked who made you, say "I'm Pep, built by the PepPal team."
+    - You are Pep, part of the EPTI app. Do not reference being an AI, a language model, or ChatGPT/Claude/OpenAI/Anthropic.
+    - If asked who made you, say "I'm Pep, built by the EPTI team."
     - You help with: training, nutrition, body composition, peptides, compounds, supplements, protocols, bloodwork interpretation (general education only), goal setting, and app navigation.
     - You do NOT: diagnose medical conditions, prescribe medications, recommend specific vendors/sources for compounds, provide dosages for controlled substances (anabolic steroids, growth hormone, insulin), give legal advice, or replace a doctor.
     - If a question crosses into medical diagnosis or prescription territory, say something like: "that's outside what i can help with — talk to your prescribing physician or a qualified healthcare provider."
@@ -107,7 +108,7 @@ final class PepChatViewModel {
     - Can help set macro targets based on goals and body weight (e.g., 1g protein per lb bodyweight for muscle retention during a cut).
     - Understand meal timing, pre/post workout nutrition, and how it relates to their protocol (e.g., fasting requirements for certain peptides).
     - Can help interpret their Daily Energy card data and suggest adjustments.
-    - Note: PepPal tracks actual activity rather than using TDEE multipliers, so calorie recommendations should be based on BMR + their tracked activity calories.
+    - Note: EPTI tracks actual activity rather than using TDEE multipliers, so calorie recommendations should be based on BMR + their tracked activity calories.
 
     BLOODWORK KNOWLEDGE:
     - Can explain what common biomarkers mean: CBC, CMP, lipid panel, liver enzymes (AST/ALT), kidney markers (BUN/creatinine), hormones (testosterone, estradiol, TSH, IGF-1, prolactin), HbA1c, fasting glucose, inflammatory markers (CRP, ESR).
@@ -168,7 +169,29 @@ final class PepChatViewModel {
                 content: "i just put together your plan — what do you want to dig into?"
             ))
             conversationHistory.append(["role": "system", "content": "The user tapped \"Chat about this\" on their Today's Plan card. Here is the plan you generated for them today:\n\n\(planContext)\n\nThe user wants to continue the conversation about this plan. Reference it naturally. Do NOT repeat the plan back to them — they just read it. Answer their follow-up directly."])
-        } else {
+        }
+        Task {
+            await loadHistoryAndContext()
+        }
+    }
+
+    private func loadHistoryAndContext() async {
+        await loadUserContext()
+        let history = (try? await ChatPersistenceService.shared.fetchRecent(limit: 60)) ?? []
+
+        if !history.isEmpty {
+            if planContext == nil {
+                messages = history
+            } else {
+                messages.insert(contentsOf: history, at: 0)
+            }
+            for m in history {
+                conversationHistory.append([
+                    "role": m.role == .user ? "user" : "assistant",
+                    "content": m.content
+                ])
+            }
+        } else if planContext == nil {
             messages.append(PepMessage(
                 role: .pep,
                 content: "what's good — i'm pep, your coach inside peppal"
@@ -182,17 +205,23 @@ final class PepChatViewModel {
                 content: "what can i help you with?"
             ))
         }
-        Task {
-            await loadUserContext()
-        }
     }
 
     private func loadUserContext() async {
-        var context = "\nCURRENT USER DATA:\n"
+        // Primary path: read from the shared InsightsDataStore snapshot.
+        let shared = AIContextBuilder.build(options: AIContextBuilder.Options(sourceScreen: sourceScreen))
+        userContextBlock = shared
+
+        // If the store looks empty (HomeView hasn't synced yet), fall back to
+        // fetching the minimum profile info so the first chat in a cold start
+        // still feels personalized.
+        guard InsightsDataStore.shared.firstName.isEmpty else { return }
+
+        var context = "\nCURRENT USER DATA (cold-start fallback):\n"
 
         do {
             guard let session = try? await SupabaseService.shared.client.auth.session else {
-                userContextBlock = context + "- User not signed in\n"
+                userContextBlock = shared + context + "- User not signed in\n"
                 return
             }
             let userId = session.user.id.uuidString.lowercased()
@@ -337,13 +366,48 @@ final class PepChatViewModel {
                 context += "- Recent Bloodwork: None logged\n"
             }
 
+            let hk = HealthKitService.shared
+            if hk.isAvailable && hk.isAuthorized {
+                context += "\nAPPLE HEALTH (today, live):\n"
+                context += "- Steps: \(hk.steps)\n"
+                context += "- Active calories: \(Int(hk.activeCalories)) kcal | Resting: \(Int(hk.restingCalories)) kcal\n"
+                context += "- Exercise minutes: \(Int(hk.exerciseMinutes)) | Flights: \(hk.flightsClimbed)\n"
+                context += "- Distance: \(String(format: "%.2f", hk.distanceMiles)) mi\n"
+                context += "- Sleep last night: \(String(format: "%.1f", hk.sleepHours))h\n"
+                if let hrv = hk.hrv { context += "- HRV (SDNN): \(Int(hrv)) ms\n" }
+                if let rhr = hk.restingHeartRate { context += "- Resting HR: \(Int(rhr)) bpm\n" }
+                if let rr = hk.respiratoryRate { context += "- Respiratory rate: \(String(format: "%.1f", rr))\n" }
+                if let o2 = hk.oxygenSaturation { context += "- SpO2: \(String(format: "%.1f", o2))%\n" }
+                if let vo2 = hk.vo2Max { context += "- VO2 max: \(String(format: "%.1f", vo2))\n" }
+                if let r = hk.recoveryScore { context += "- Recovery score: \(r)/100\n" }
+                if let bf = hk.bodyFatPercentage { context += "- Body fat: \(String(format: "%.1f", bf))%\n" }
+                if let lbm = hk.leanBodyMass { context += "- Lean body mass: \(String(format: "%.1f", lbm)) lb\n" }
+                if let waist = hk.waistCircumference { context += "- Waist: \(String(format: "%.1f", waist)) in\n" }
+                if let bmi = hk.bmi { context += "- BMI: \(String(format: "%.1f", bmi))\n" }
+                if let g = hk.bloodGlucose { context += "- Blood glucose: \(Int(g)) mg/dL\n" }
+                if let sys = hk.bloodPressureSystolic, let dia = hk.bloodPressureDiastolic {
+                    context += "- BP: \(Int(sys))/\(Int(dia)) mmHg\n"
+                }
+                if hk.mindfulMinutesToday > 0 { context += "- Mindful minutes: \(Int(hk.mindfulMinutesToday))\n" }
+                if !hk.workoutsToday.isEmpty {
+                    let summaries = hk.workoutsToday.prefix(5).map { w -> String in
+                        let mins = Int(w.duration / 60)
+                        let kcal = w.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0
+                        return "\(w.workoutActivityType.displayName) \(mins)min \(Int(kcal))kcal"
+                    }
+                    context += "- HealthKit workouts today: \(summaries.joined(separator: "; "))\n"
+                }
+            } else {
+                context += "\nApple Health: not connected or not authorized\n"
+            }
+
             context += "- Opened from: \(sourceScreen)\n"
 
         } catch {
             context += "- (Could not load some user data)\n"
         }
 
-        userContextBlock = context
+        userContextBlock = shared + context
     }
 
     private var fullSystemPrompt: String {
@@ -368,8 +432,16 @@ final class PepChatViewModel {
         conversationHistory.append(["role": "user", "content": text])
 
         Task {
+            await ChatPersistenceService.shared.save(role: .user, content: text)
             await generateAIResponse()
         }
+    }
+
+    func submitTranscribedText(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        inputText = trimmed
+        sendMessage()
     }
 
     private func generateAIResponse() async {
@@ -411,6 +483,7 @@ final class PepChatViewModel {
             let responseText = extractTextFromResponse(data)
 
             conversationHistory.append(["role": "assistant", "content": responseText])
+            await ChatPersistenceService.shared.save(role: .pep, content: responseText)
 
             let chunks = splitIntoChunks(responseText)
             for (index, chunk) in chunks.enumerated() {
@@ -502,6 +575,9 @@ final class PepChatViewModel {
             PepMessage(role: .pep, content: "fresh start — what do you want to know?")
         ]
         conversationHistory = []
+        Task {
+            await ChatPersistenceService.shared.clearAll()
+        }
     }
 }
 

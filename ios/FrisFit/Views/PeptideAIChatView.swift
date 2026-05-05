@@ -18,6 +18,10 @@ struct PeptideAIChatView: View {
         VStack(spacing: 0) {
             chatHeader
 
+            MedicalDisclaimerBanner(compact: true)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 14) {
@@ -60,7 +64,7 @@ struct PeptideAIChatView: View {
 
             inputBar
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
     }
 
     private var chatHeader: some View {
@@ -82,7 +86,7 @@ struct PeptideAIChatView: View {
             }
 
             VStack(alignment: .leading, spacing: 1) {
-                Text("PepPal AI")
+                Text("EPTI AI")
                     .font(.system(.subheadline, weight: .bold))
                     .foregroundStyle(PepTheme.textPrimary)
 

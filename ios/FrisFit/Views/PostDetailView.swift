@@ -22,6 +22,7 @@ struct PostDetailView: View {
     @State private var commentToDelete: PostComment?
     @State private var showCommentReportAlert: Bool = false
     @FocusState private var isCommentFocused: Bool
+    @State private var selectedHashtag: String?
 
     private var currentUserId: String? {
         try? AuthService.shared.currentUserId()
@@ -49,6 +50,9 @@ struct PostDetailView: View {
         .background(PepTheme.background)
         .navigationTitle("Post")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: Binding(get: { selectedHashtag.map(HashtagDestination.init) }, set: { selectedHashtag = $0?.tag })) { dest in
+            HashtagFeedView(tag: dest.tag)
+        }
         .fullScreenCover(item: $selectedPhotoURL) { urlString in
             PhotoViewerOverlay(urlString: urlString) {
                 selectedPhotoURL = nil
@@ -96,11 +100,13 @@ struct PostDetailView: View {
                 .padding(.horizontal)
 
             if !post.textContent.isEmpty {
-                Text(post.textContent)
-                    .font(.system(.body))
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal)
+                RichText(
+                    text: post.textContent,
+                    font: .body,
+                    onHashtag: { tag in selectedHashtag = tag }
+                )
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal)
             }
 
             if !post.photoMedia.isEmpty {

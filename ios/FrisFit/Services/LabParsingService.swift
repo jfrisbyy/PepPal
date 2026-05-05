@@ -80,12 +80,16 @@ final class LabParsingService {
 
         let jsonData = try JSONSerialization.data(withJSONObject: body)
 
-        var request = URLRequest(url: URL(string: openRouterURL)!)
+        guard let requestURL = URL(string: openRouterURL) else {
+            print("CRITICAL: Invalid OpenRouter URL in LabParsingService: \(openRouterURL)")
+            throw LabParsingError.apiError(0)
+        }
+        var request = URLRequest(url: requestURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue(Bundle.main.bundleIdentifier ?? "com.peppal.app", forHTTPHeaderField: "HTTP-Referer")
-        request.setValue("PepPal", forHTTPHeaderField: "X-Title")
+        request.setValue("EPTI", forHTTPHeaderField: "X-Title")
         request.httpBody = jsonData
         request.timeoutInterval = 30
 

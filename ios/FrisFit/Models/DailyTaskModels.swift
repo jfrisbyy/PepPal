@@ -283,6 +283,112 @@ nonisolated enum TaskActionLink: String, CaseIterable, Identifiable, Sendable, C
     }
 }
 
+nonisolated enum LinkedTaskQuickAction: Sendable {
+    case logMeal
+    case logActivity
+    case startWorkout
+    case viewSteps
+    case none
+
+    var label: String {
+        switch self {
+        case .logMeal: return "Log a Meal"
+        case .logActivity: return "Log Activity"
+        case .startWorkout: return "Start Workout"
+        case .viewSteps: return "View Steps"
+        case .none: return ""
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .logMeal: return "fork.knife"
+        case .logActivity: return "figure.run"
+        case .startWorkout: return "dumbbell.fill"
+        case .viewSteps: return "figure.walk"
+        case .none: return ""
+        }
+    }
+}
+
+extension TaskActionLink {
+    var quickAction: LinkedTaskQuickAction {
+        switch self {
+        case .proteinGoal, .calorieGoal, .carbGoal, .fatGoal, .fiberGoal, .sugarGoal, .waterIntake:
+            return .logMeal
+        case .workoutCompleted:
+            return .startWorkout
+        case .stepCounter:
+            return .viewSteps
+        case .runningSession, .cyclingSession, .swimmingSession, .basketballSession,
+             .soccerSession, .tennisSession, .footballSession, .yogaSession:
+            return .logActivity
+        case .none:
+            return .none
+        }
+    }
+
+    var autoCompleteMessage: String {
+        switch self {
+        case .proteinGoal: return "This task auto-completes when you hit your protein target. Log a meal to get closer."
+        case .calorieGoal: return "This task auto-completes when you reach your calorie target. Log a meal to update progress."
+        case .carbGoal: return "This task auto-completes when you hit your carb target. Log a meal to update progress."
+        case .fatGoal: return "This task auto-completes when you hit your fat target. Log a meal to update progress."
+        case .fiberGoal: return "This task auto-completes when you hit your fiber target. Log a meal to update progress."
+        case .sugarGoal: return "This task auto-completes when you stay under your sugar limit. Log meals to track it."
+        case .waterIntake: return "This task auto-completes when you hit your water goal."
+        case .workoutCompleted: return "This task auto-completes after you finish today's workout."
+        case .stepCounter: return "This task auto-completes when you hit your step goal. Steps are tracked automatically via Apple Health."
+        case .runningSession, .cyclingSession, .swimmingSession, .basketballSession,
+             .soccerSession, .tennisSession, .footballSession, .yogaSession:
+            return "This task auto-completes after you log a matching activity."
+        case .none: return ""
+        }
+    }
+}
+
+nonisolated enum TaskSource: String, Sendable, Codable {
+    case user
+    case scheduled
+    case typical
+    case aiSuggested
+    case protocolDeck
+
+    var label: String {
+        switch self {
+        case .user: return "You"
+        case .scheduled: return "Scheduled"
+        case .typical: return "Goal"
+        case .aiSuggested: return "AI"
+        case .protocolDeck: return "Protocol"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .user: return "person.fill"
+        case .scheduled: return "calendar"
+        case .typical: return "target"
+        case .aiSuggested: return "sparkles"
+        case .protocolDeck: return "pill.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .user: return PepTheme.textSecondary
+        case .scheduled: return PepTheme.blue
+        case .typical: return PepTheme.amber
+        case .aiSuggested: return PepTheme.violet
+        case .protocolDeck: return PepTheme.teal
+        }
+    }
+
+    var isSynthetic: Bool {
+        self != .user
+    }
+}
+
 struct DailyTask: Identifiable, Sendable {
     let id: UUID
     var name: String
@@ -299,6 +405,10 @@ struct DailyTask: Identifiable, Sendable {
     var isUserCreated: Bool
     var isProtocolRecommended: Bool
     var protocolReason: String
+    var source: TaskSource
+    var aiUrgency: DeckUrgency?
+    var aiEvidence: [EvidencePoint]
+    var aiSuggestionId: String?
 
     init(
         id: UUID = UUID(),
@@ -315,7 +425,11 @@ struct DailyTask: Identifiable, Sendable {
         goalDescription: String = "",
         isUserCreated: Bool = false,
         isProtocolRecommended: Bool = false,
-        protocolReason: String = ""
+        protocolReason: String = "",
+        source: TaskSource = .user,
+        aiUrgency: DeckUrgency? = nil,
+        aiEvidence: [EvidencePoint] = [],
+        aiSuggestionId: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -332,6 +446,10 @@ struct DailyTask: Identifiable, Sendable {
         self.isUserCreated = isUserCreated
         self.isProtocolRecommended = isProtocolRecommended
         self.protocolReason = protocolReason
+        self.source = source
+        self.aiUrgency = aiUrgency
+        self.aiEvidence = aiEvidence
+        self.aiSuggestionId = aiSuggestionId
     }
 
     func isScheduledForToday() -> Bool {

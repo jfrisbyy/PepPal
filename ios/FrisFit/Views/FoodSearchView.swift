@@ -19,7 +19,7 @@ struct FoodSearchView: View {
                     foodList
                 }
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Add Food")
             .navigationBarTitleDisplayMode(.inline)
             
@@ -250,7 +250,7 @@ struct FoodDetailSheet: View {
                 .sensoryFeedback(.impact(weight: .medium), trigger: servings)
             }
             .padding(20)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
         }
     }
 
@@ -339,7 +339,7 @@ struct QuickAddSheet: View {
                 Spacer()
             }
             .padding(20)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
         }
     }
 

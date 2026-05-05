@@ -111,7 +111,7 @@ struct LogSideEffectSheet: View {
                 .padding(.bottom, 32)
             }
             .scrollIndicators(.hidden)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Log Side Effect")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

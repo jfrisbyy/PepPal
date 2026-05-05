@@ -19,7 +19,7 @@ struct SoccerWorkoutBuilderView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Training Sessions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -12,10 +12,6 @@ final class SportSessionViewModel {
     var runningStats = RunningStats()
     var swimmingStats = SwimmingStats()
 
-    var estimatedFP: Int {
-        SportSession.calculateFP(durationMinutes: durationMinutes, intensity: intensity)
-    }
-
     func reset() {
         sessionType = .practice
         durationMinutes = 60

@@ -453,7 +453,7 @@ struct NutritionResultView: View {
                 Spacer()
             }
             .padding(20)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

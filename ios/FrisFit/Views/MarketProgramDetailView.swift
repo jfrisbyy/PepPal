@@ -28,7 +28,7 @@ struct MarketProgramDetailView: View {
 
             bottomButton
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationBarTitleDisplayMode(.inline)
         
     }

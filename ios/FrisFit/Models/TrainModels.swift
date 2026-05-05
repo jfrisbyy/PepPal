@@ -34,6 +34,10 @@ nonisolated struct ProgramExercise: Identifiable, Sendable, Codable {
     var targetRepsMin: Int
     var targetRepsMax: Int
     var restSeconds: Int
+    var progressionScheme: ProgressionScheme?
+    var progressionIncrement: Double?
+    var progressionTargetRPE: Double?
+    var prescribedWeight: Double?
 
     init(exercise: Exercise, targetSets: Int = 3, targetRepsMin: Int = 8, targetRepsMax: Int = 12, restSeconds: Int = 90) {
         self.id = UUID()
@@ -45,6 +49,33 @@ nonisolated struct ProgramExercise: Identifiable, Sendable, Codable {
         self.targetRepsMin = targetRepsMin
         self.targetRepsMax = targetRepsMax
         self.restSeconds = exercise.defaultRestSeconds
+        self.progressionScheme = nil
+        self.progressionIncrement = nil
+        self.progressionTargetRPE = nil
+        self.prescribedWeight = nil
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, exerciseId, exerciseName, primaryMuscle, equipment
+        case targetSets, targetRepsMin, targetRepsMax, restSeconds
+        case progressionScheme, progressionIncrement, progressionTargetRPE, prescribedWeight
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decode(UUID.self, forKey: .id)
+        self.exerciseId = try c.decode(String.self, forKey: .exerciseId)
+        self.exerciseName = try c.decode(String.self, forKey: .exerciseName)
+        self.primaryMuscle = try c.decode(MuscleGroup.self, forKey: .primaryMuscle)
+        self.equipment = try c.decode(Equipment.self, forKey: .equipment)
+        self.targetSets = try c.decode(Int.self, forKey: .targetSets)
+        self.targetRepsMin = try c.decode(Int.self, forKey: .targetRepsMin)
+        self.targetRepsMax = try c.decode(Int.self, forKey: .targetRepsMax)
+        self.restSeconds = try c.decode(Int.self, forKey: .restSeconds)
+        self.progressionScheme = try c.decodeIfPresent(ProgressionScheme.self, forKey: .progressionScheme)
+        self.progressionIncrement = try c.decodeIfPresent(Double.self, forKey: .progressionIncrement)
+        self.progressionTargetRPE = try c.decodeIfPresent(Double.self, forKey: .progressionTargetRPE)
+        self.prescribedWeight = try c.decodeIfPresent(Double.self, forKey: .prescribedWeight)
     }
 }
 
@@ -52,11 +83,96 @@ nonisolated struct ProgramDay: Identifiable, Sendable, Codable {
     let id: UUID
     var name: String
     var exercises: [ProgramExercise]
+    var scheduledWeekday: Int?
+    var timeOfDay: ProgramTimeOfDay?
 
-    init(name: String = "", exercises: [ProgramExercise] = []) {
+    init(name: String = "", exercises: [ProgramExercise] = [], scheduledWeekday: Int? = nil, timeOfDay: ProgramTimeOfDay? = nil) {
         self.id = UUID()
         self.name = name
         self.exercises = exercises
+        self.scheduledWeekday = scheduledWeekday
+        self.timeOfDay = timeOfDay
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, exercises, scheduledWeekday, timeOfDay
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decode(UUID.self, forKey: .id)
+        self.name = try c.decode(String.self, forKey: .name)
+        self.exercises = try c.decode([ProgramExercise].self, forKey: .exercises)
+        self.scheduledWeekday = try c.decodeIfPresent(Int.self, forKey: .scheduledWeekday)
+        self.timeOfDay = try c.decodeIfPresent(ProgramTimeOfDay.self, forKey: .timeOfDay)
+    }
+}
+
+nonisolated enum ProgramTimeOfDay: String, CaseIterable, Sendable, Codable, Identifiable {
+    case morning, afternoon, evening
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .morning: "Morning"
+        case .afternoon: "Afternoon"
+        case .evening: "Evening"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .morning: "AM"
+        case .afternoon: "PM"
+        case .evening: "Eve"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .morning: "sunrise.fill"
+        case .afternoon: "sun.max.fill"
+        case .evening: "moon.stars.fill"
+        }
+    }
+
+    var sortOrder: Int {
+        switch self {
+        case .morning: 0
+        case .afternoon: 1
+        case .evening: 2
+        }
+    }
+}
+
+nonisolated enum ProgramWeekday: Int, CaseIterable, Sendable, Codable, Identifiable {
+    case monday = 0, tuesday, wednesday, thursday, friday, saturday, sunday
+
+    var id: Int { rawValue }
+
+    var shortLabel: String {
+        switch self {
+        case .monday: "Mon"
+        case .tuesday: "Tue"
+        case .wednesday: "Wed"
+        case .thursday: "Thu"
+        case .friday: "Fri"
+        case .saturday: "Sat"
+        case .sunday: "Sun"
+        }
+    }
+
+    var singleLetter: String {
+        switch self {
+        case .monday: "M"
+        case .tuesday: "T"
+        case .wednesday: "W"
+        case .thursday: "T"
+        case .friday: "F"
+        case .saturday: "S"
+        case .sunday: "S"
+        }
     }
 }
 
@@ -104,15 +220,14 @@ nonisolated struct WorkoutHistoryEntry: Identifiable, Sendable {
     let date: Date
     let durationMinutes: Int
     let totalVolume: Int
-    let fpEarned: Int
 
-    init(name: String, date: Date, durationMinutes: Int, totalVolume: Int, fpEarned: Int) {
+    init(name: String, date: Date, durationMinutes: Int, totalVolume: Int, fpEarned: Int = 0) {
         self.id = UUID()
         self.name = name
         self.date = date
         self.durationMinutes = durationMinutes
         self.totalVolume = totalVolume
-        self.fpEarned = fpEarned
+        _ = fpEarned
     }
 }
 
@@ -121,10 +236,20 @@ nonisolated struct CombinedHistoryItem: Identifiable, Sendable {
     let name: String
     let date: Date
     let durationMinutes: Int
-    let fpEarned: Int
     let totalVolume: Int
     let sportSession: SportSession?
     let exercises: [WorkoutHistoryExerciseDetail]
+
+    init(id: UUID, name: String, date: Date, durationMinutes: Int, fpEarned: Int = 0, totalVolume: Int, sportSession: SportSession?, exercises: [WorkoutHistoryExerciseDetail]) {
+        self.id = id
+        self.name = name
+        self.date = date
+        self.durationMinutes = durationMinutes
+        _ = fpEarned
+        self.totalVolume = totalVolume
+        self.sportSession = sportSession
+        self.exercises = exercises
+    }
 
     var isSportSession: Bool { sportSession != nil }
 }
@@ -173,8 +298,15 @@ nonisolated struct TrainingInsight: Identifiable, Sendable {
     let totalSessions: Int
     let totalVolume: Int
     let avgDuration: Int
-    let totalFP: Int
     let totalCaloriesBurned: Int
+
+    init(totalSessions: Int, totalVolume: Int, avgDuration: Int, totalFP: Int = 0, totalCaloriesBurned: Int) {
+        self.totalSessions = totalSessions
+        self.totalVolume = totalVolume
+        self.avgDuration = avgDuration
+        _ = totalFP
+        self.totalCaloriesBurned = totalCaloriesBurned
+    }
 }
 
 nonisolated struct WarmupExercise: Identifiable, Sendable {
@@ -183,6 +315,15 @@ nonisolated struct WarmupExercise: Identifiable, Sendable {
     let icon: String
     let durationOrReps: String
     let type: WarmupType
+}
+
+nonisolated struct ProgressionNotice: Identifiable, Sendable {
+    let id = UUID()
+    let exerciseName: String
+    let previousWeight: Double
+    let nextWeight: Double
+    let delta: Double
+    let note: String
 }
 
 nonisolated enum WarmupType: String, Sendable {

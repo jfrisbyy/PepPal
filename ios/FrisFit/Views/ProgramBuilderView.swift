@@ -15,19 +15,13 @@ struct ProgramBuilderView: View {
 
                     ProgramScheduleStep(viewModel: viewModel)
                         .tag(1)
-
-                    ProgramReviewStep(viewModel: viewModel, onComplete: {
-                        viewModel.createProgram()
-                        dismiss()
-                    })
-                    .tag(2)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.easeInOut(duration: 0.3), value: viewModel.currentBuilderStep)
 
                 bottomBar
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("New Program")
             .navigationBarTitleDisplayMode(.inline)
             
@@ -44,7 +38,7 @@ struct ProgramBuilderView: View {
 
     private var stepIndicator: some View {
         HStack(spacing: 8) {
-            ForEach(0..<3) { step in
+            ForEach(0..<2) { step in
                 Capsule()
                     .fill(step <= viewModel.currentBuilderStep ? PepTheme.teal : PepTheme.elevated)
                     .frame(height: 3)
@@ -75,14 +69,16 @@ struct ProgramBuilderView: View {
             Button {
                 if viewModel.currentBuilderStep == 0 {
                     viewModel.initializeDays()
-                }
-                if viewModel.currentBuilderStep < 2 {
                     withAnimation { viewModel.currentBuilderStep += 1 }
+                } else {
+                    viewModel.createProgram()
+                    dismiss()
+                    NotificationCenter.default.post(name: .switchToHomeTab, object: nil)
                 }
             } label: {
-                Text(viewModel.currentBuilderStep == 2 ? "Start Program" : "Continue")
+                Text(viewModel.currentBuilderStep == 1 ? "Start Program" : "Continue")
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(viewModel.currentBuilderStep == 2 ? .black : .black)
+                    .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(nextButtonEnabled ? PepTheme.teal : PepTheme.teal.opacity(0.3))

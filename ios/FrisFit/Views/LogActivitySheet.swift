@@ -1,8 +1,9 @@
 import SwiftUI
+import HealthKit
 
 struct LogActivitySheet: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedActivity: String = "Walking"
+    @State private var selectedActivity: String = UserDefaults.standard.string(forKey: "logActivity.lastSport") ?? "Walking"
     @State private var durationMinutes: String = "30"
     @State private var intensity: Int = 5
     @State private var notes: String = ""
@@ -10,6 +11,8 @@ struct LogActivitySheet: View {
     @State private var estimatedCalories: Int = 0
     @State private var manualCalorieOverride: String = ""
     @State private var isOverrideActive: Bool = false
+    @State private var matchedWatchWorkout: HKWorkout? = nil
+    @State private var watchWorkoutCalories: Int = 0
 
     private let activities = [
         "Walking", "Hiking", "Running", "Cycling", "Swimming",
@@ -32,7 +35,11 @@ struct LogActivitySheet: View {
                 VStack(spacing: 20) {
                     activityPicker
                     durationSection
-                    intensitySection
+                    if matchedWatchWorkout != nil {
+                        watchMatchBanner
+                    } else {
+                        intensitySection
+                    }
                     calorieEstimate
                     calorieOverrideSection
                     notesSection
@@ -40,7 +47,7 @@ struct LogActivitySheet: View {
                 .padding()
                 .padding(.bottom, 40)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Log Activity")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -64,10 +71,18 @@ struct LogActivitySheet: View {
                     .disabled(isSaving || (Int(durationMinutes) ?? 0) <= 0)
                 }
             }
-            .onChange(of: selectedActivity) { _, _ in updateCalorieEstimate() }
+            .onChange(of: selectedActivity) { _, newValue in
+                loadRemembered(for: newValue)
+                Task { await tryMatchWatchWorkout() }
+                updateCalorieEstimate()
+            }
             .onChange(of: durationMinutes) { _, _ in updateCalorieEstimate() }
             .onChange(of: intensity) { _, _ in updateCalorieEstimate() }
-            .onAppear { updateCalorieEstimate() }
+            .onAppear {
+                loadRemembered(for: selectedActivity)
+                Task { await tryMatchWatchWorkout() }
+                updateCalorieEstimate()
+            }
         }
     }
 
@@ -175,6 +190,30 @@ struct LogActivitySheet: View {
                 }
             }
         }
+    }
+
+    private var watchMatchBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "applewatch")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.green)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Synced from Apple Watch")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("Using real heart rate data from your session.")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(.green.opacity(0.08))
+        .clipShape(.rect(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(.green.opacity(0.25), lineWidth: 0.5)
+        )
     }
 
     private var calorieEstimate: some View {
@@ -327,6 +366,10 @@ struct LogActivitySheet: View {
             estimatedCalories = 0
             return
         }
+        if matchedWatchWorkout != nil, watchWorkoutCalories > 0 {
+            estimatedCalories = watchWorkoutCalories
+            return
+        }
         let cachedLbs = UserDefaults.standard.double(forKey: "cachedWeightLbs")
         let weightKg = cachedLbs > 0 ? cachedLbs * 0.453592 : 79.4
         estimatedCalories = METCalculator.caloriesBurned(
@@ -336,6 +379,55 @@ struct LogActivitySheet: View {
             weightKg: weightKg,
             intensity: intensity
         )
+    }
+
+    private func loadRemembered(for activity: String) {
+        let key = "logActivity.remembered.\(activity.lowercased())"
+        if let data = UserDefaults.standard.dictionary(forKey: key) {
+            if let dur = data["duration"] as? Int {
+                durationMinutes = "\(dur)"
+            }
+            if let inten = data["intensity"] as? Int {
+                intensity = inten
+            }
+        }
+    }
+
+    private func remember(activity: String, duration: Int, intensity: Int) {
+        UserDefaults.standard.set(activity, forKey: "logActivity.lastSport")
+        let key = "logActivity.remembered.\(activity.lowercased())"
+        UserDefaults.standard.set(["duration": duration, "intensity": intensity], forKey: key)
+    }
+
+    private func tryMatchWatchWorkout() async {
+        let hk = HealthKitService.shared
+        guard hk.isHealthKitEnabled, hk.isAuthorized else {
+            matchedWatchWorkout = nil
+            watchWorkoutCalories = 0
+            return
+        }
+        let workouts = await hk.fetchWorkouts(for: Date())
+        let normalizedSelected = ActivityReconciliation.normalize(selectedActivity)
+        let cutoff = Date().addingTimeInterval(-3 * 60 * 60)
+        let match = workouts.first { w in
+            guard w.endDate >= cutoff else { return false }
+            let sport = ActivityReconciliation.sportName(for: w.workoutActivityType)
+            return ActivityReconciliation.sportsMatch(
+                ActivityReconciliation.normalize(sport),
+                normalizedSelected
+            )
+        }
+        matchedWatchWorkout = match
+        if let match {
+            let dur = Int(match.duration / 60)
+            if dur > 0 { durationMinutes = "\(dur)" }
+            if let stats = match.statistics(for: HKQuantityType(.activeEnergyBurned)),
+               let sum = stats.sumQuantity() {
+                watchWorkoutCalories = Int(sum.doubleValue(for: .kilocalorie()))
+            }
+        } else {
+            watchWorkoutCalories = 0
+        }
     }
 
     private func saveActivity() {
@@ -348,15 +440,18 @@ struct LogActivitySheet: View {
                 let noteStr: String? = notes.isEmpty ? nil : notes
                 try await ActivityLogService.shared.logActivity(
                     userId: userId,
-                    activityType: "manual",
+                    activityType: "workout",
                     sport: selectedActivity,
                     durationMinutes: mins,
                     caloriesBurned: finalCalories,
                     metValue: nil as Double?,
                     notes: noteStr
                 )
+                remember(activity: selectedActivity, duration: mins, intensity: intensity)
+                NotificationCenter.default.post(name: .supabaseDataChanged, object: nil, userInfo: ["source": "activity"])
                 dismiss()
             } catch {
+                print("[LogActivity] ERROR: \(error)")
                 isSaving = false
             }
         }

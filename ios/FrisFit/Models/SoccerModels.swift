@@ -155,7 +155,6 @@ nonisolated struct SoccerMatch: Identifiable, Sendable {
     let performanceRating: Int
     let confidenceRating: Int
     let notes: String
-    let fpEarned: Int
 
     init(
         date: Date = Date(),
@@ -188,30 +187,6 @@ nonisolated struct SoccerMatch: Identifiable, Sendable {
         self.performanceRating = performanceRating
         self.confidenceRating = confidenceRating
         self.notes = notes
-
-        if sessionType.isGame {
-            let statScore = Double(stats.goals) * 6.0 + Double(stats.assists) * 4.0 +
-                Double(stats.keyPasses) * 1.5 + Double(stats.tacklesWon) * 2.0 +
-                Double(stats.interceptions) * 1.5 - Double(stats.foulsCommitted) * 0.5
-            let durationBonus = Double(durationMinutes) * 1.5
-            let resultMultiplier: Double
-            switch result {
-            case .win: resultMultiplier = 1.3
-            case .draw: resultMultiplier = 1.1
-            default: resultMultiplier = 1.0
-            }
-            self.fpEarned = Int((statScore + durationBonus) * resultMultiplier)
-        } else {
-            let baseFP = Double(durationMinutes) * 2.5
-            let typeMultiplier: Double
-            switch sessionType {
-            case .soloTraining: typeMultiplier = 1.1
-            case .teamPractice: typeMultiplier = 1.2
-            case .conditioning: typeMultiplier = 1.3
-            default: typeMultiplier = 1.0
-            }
-            self.fpEarned = Int(baseFP * typeMultiplier)
-        }
     }
 }
 

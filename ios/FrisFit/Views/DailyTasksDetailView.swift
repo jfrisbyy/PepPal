@@ -54,7 +54,7 @@ struct DailyTasksDetailView: View {
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Daily Deck")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

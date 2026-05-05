@@ -9,11 +9,21 @@ struct FeedPostCard: View {
     var onTap: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
     var onReport: (() -> Void)? = nil
+    var onEdit: (() -> Void)? = nil
+    var onBlock: (() -> Void)? = nil
+    var onMute: (() -> Void)? = nil
+    var onOpenMention: ((String) -> Void)? = nil
+    var onOpenHashtag: ((String) -> Void)? = nil
+    var onAppear: (() -> Void)? = nil
+    var onUserTap: ((SocialUser) -> Void)? = nil
 
     @State private var likeBounce: Int = 0
+    @State private var revealFiltered: Bool = false
+    @State private var moderation = LocalModerationStore.shared
     @State private var repostBounce: Int = 0
     @State private var showDeleteConfirm: Bool = false
-    @State private var showReportConfirm: Bool = false
+    @State private var showReportSheet: Bool = false
+    @State private var showBlockConfirm: Bool = false
     private var audioPlayer: AudioPlayerService { AudioPlayerService.shared }
     private let likeManager = LikeManager.shared
 
@@ -34,16 +44,23 @@ struct FeedPostCard: View {
                 actionBar
             }
         }
+        .onAppear { onAppear?() }
     }
 
     private var contentArea: some View {
         VStack(alignment: .leading, spacing: 12) {
             userHeader
             if !post.textContent.isEmpty {
-                Text(post.textContent)
-                    .font(.system(.body))
-                    .foregroundStyle(PepTheme.textPrimary)
+                if let matched = moderation.matchedKeyword(in: post.textContent), !revealFiltered {
+                    filteredBanner(keyword: matched)
+                } else {
+                    RichText(
+                        text: post.textContent,
+                        onMention: { handle in onOpenMention?(handle) },
+                        onHashtag: { tag in onOpenHashtag?(tag) }
+                    )
                     .fixedSize(horizontal: false, vertical: true)
+                }
             }
             if !post.photoMedia.isEmpty {
                 photoGridSection
@@ -66,43 +83,78 @@ struct FeedPostCard: View {
 
     private var userHeader: some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(post.user.avatarColor.opacity(0.2))
-                .frame(width: 42, height: 42)
-                .overlay {
-                    Text(post.user.avatarInitial)
-                        .font(.system(.headline, design: .rounded, weight: .bold))
-                        .foregroundStyle(post.user.avatarColor)
-                }
+            Button {
+                onUserTap?(post.user)
+            } label: {
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(post.user.avatarColor.opacity(0.2))
+                        .frame(width: 42, height: 42)
+                        .overlay {
+                            Text(post.user.avatarInitial)
+                                .font(.system(.headline, design: .rounded, weight: .bold))
+                                .foregroundStyle(post.user.avatarColor)
+                        }
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(post.user.name)
-                        .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("@\(post.user.username)")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(post.user.name)
+                                .font(.system(.subheadline, weight: .semibold))
+                                .foregroundStyle(PepTheme.textPrimary)
+                            Text("@\(post.user.username)")
+                                .font(.caption)
+                                .foregroundStyle(PepTheme.textSecondary)
+                        }
+                        HStack(spacing: 4) {
+                            Text(post.timestamp.formattedPostDate())
+                                .font(.caption2)
+                                .foregroundStyle(PepTheme.textSecondary)
+                            if post.editedAt != nil {
+                                Text("· edited")
+                                    .font(.caption2)
+                                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                            }
+                        }
+                    }
                 }
-                Text(post.timestamp.formattedPostDate())
-                    .font(.caption2)
-                    .foregroundStyle(PepTheme.textSecondary)
+                .contentShape(.rect)
             }
+            .buttonStyle(.plain)
 
             Spacer()
 
             Menu {
                 if isOwnPost {
+                    Button {
+                        onEdit?()
+                    } label: {
+                        Label("Edit Post", systemImage: "pencil")
+                    }
                     Button(role: .destructive) {
                         showDeleteConfirm = true
                     } label: {
                         Label("Delete Post", systemImage: "trash")
                     }
                 }
-                Button {
-                    showReportConfirm = true
-                } label: {
-                    Label("Report", systemImage: "flag")
+                if !isOwnPost {
+                    Button {
+                        showReportSheet = true
+                    } label: {
+                        Label("Report Post", systemImage: "flag")
+                    }
+                    Button {
+                        withAnimation(.spring(response: 0.3)) {
+                            moderation.muteUser(post.user.id.uuidString)
+                        }
+                        onMute?()
+                    } label: {
+                        Label("Mute @\(post.user.username)", systemImage: "speaker.slash.fill")
+                    }
+                    Button(role: .destructive) {
+                        showBlockConfirm = true
+                    } label: {
+                        Label("Block @\(post.user.username)", systemImage: "hand.raised.fill")
+                    }
                 }
                 Button {
                     UIPasteboard.general.string = post.textContent
@@ -123,13 +175,16 @@ struct FeedPostCard: View {
             } message: {
                 Text("This action cannot be undone.")
             }
-            .alert("Report Post?", isPresented: $showReportConfirm) {
+            .alert("Block @\(post.user.username)?", isPresented: $showBlockConfirm) {
                 Button("Cancel", role: .cancel) {}
-                Button("Report", role: .destructive) {
-                    onReport?()
+                Button("Block", role: .destructive) {
+                    onBlock?()
                 }
             } message: {
-                Text("This post will be flagged for review.")
+                Text("You won't see their posts, comments, or messages. They won't be notified.")
+            }
+            .sheet(isPresented: $showReportSheet) {
+                ReportContentSheet(targetType: "post", targetId: post.supabaseId ?? post.id.uuidString.lowercased())
             }
         }
     }
@@ -393,6 +448,29 @@ struct FeedPostCard: View {
             }
             .buttonStyle(.scale)
         }
+    }
+
+    @ViewBuilder
+    private func filteredBanner(keyword: String) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3)) { revealFiltered = true }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "shield.lefthalf.filled")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("Hidden by your filter (\"\(keyword)\") · tap to show")
+                    .font(.caption)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                Spacer()
+            }
+            .foregroundStyle(PepTheme.textSecondary)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(PepTheme.elevated)
+            .clipShape(.rect(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
     }
 
     private func formatVolume(_ volume: Int) -> String {

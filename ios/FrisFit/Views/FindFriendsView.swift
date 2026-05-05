@@ -28,7 +28,7 @@ struct FindFriendsView: View {
                 }
             }
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Find Friends")
         .navigationBarTitleDisplayMode(.inline)
         

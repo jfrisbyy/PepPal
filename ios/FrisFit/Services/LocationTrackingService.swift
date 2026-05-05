@@ -93,6 +93,20 @@ final class LocationTrackingService: NSObject, CLLocationManagerDelegate {
         manager.activityType = type
     }
 
+    func setAccuracy(_ accuracy: GPSAccuracy) {
+        switch accuracy {
+        case .best:
+            manager.desiredAccuracy = kCLLocationAccuracyBest
+            manager.distanceFilter = 5
+        case .balanced:
+            manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+            manager.distanceFilter = 10
+        case .batterySaver:
+            manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+            manager.distanceFilter = 25
+        }
+    }
+
     func startTracking(activityType: CLActivityType = .fitness, onUpdate: @escaping (CLLocation) -> Void) {
         onLocationUpdate = onUpdate
         isTracking = true

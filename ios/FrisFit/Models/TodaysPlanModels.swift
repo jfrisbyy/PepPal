@@ -3,6 +3,49 @@ import SwiftUI
 nonisolated struct TodaysPlanResponse: Codable, Sendable {
     let summary: String
     let modules: [TodaysPlanModule]
+    let actionItems: [PlanActionItem]
+    let narrative: BriefNarrative?
+
+    init(summary: String, modules: [TodaysPlanModule], actionItems: [PlanActionItem] = [], narrative: BriefNarrative? = nil) {
+        self.summary = summary
+        self.modules = modules
+        self.actionItems = actionItems
+        self.narrative = narrative
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case summary, modules, actionItems, narrative
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.summary = try c.decode(String.self, forKey: .summary)
+        self.modules = try c.decode([TodaysPlanModule].self, forKey: .modules)
+        self.actionItems = (try? c.decodeIfPresent([PlanActionItem].self, forKey: .actionItems)) ?? []
+        self.narrative = try? c.decodeIfPresent(BriefNarrative.self, forKey: .narrative)
+    }
+}
+
+nonisolated struct BriefNarrative: Codable, Sendable {
+    let greeting: String
+    let headline: String
+    let body: String
+    let watchFor: String?
+}
+
+nonisolated struct PlanActionItem: Codable, Sendable, Identifiable {
+    var id: String { stableId }
+    let title: String
+    let icon: String?
+    let category: String?
+    let reason: String?
+
+    var stableId: String {
+        let raw = (title + (category ?? "")).lowercased()
+        var hasher = Hasher()
+        hasher.combine(raw)
+        return "ai-\(hasher.finalize())"
+    }
 }
 
 nonisolated struct TodaysPlanModule: Codable, Sendable, Identifiable {
@@ -57,6 +100,7 @@ nonisolated struct ContextBundle: Sendable {
     let sideEffectsContext: SideEffectsContext?
     let bloodworkContext: BloodworkContext?
     let supplementsContext: SupplementsContext?
+    let healthContext: HealthContext?
 
     var contentHash: String {
         var parts: [String] = []
@@ -85,6 +129,9 @@ nonisolated struct ContextBundle: Sendable {
         }
         if let s = supplementsContext {
             parts.append("sup:\(s.totalActive):\(s.loggedToday)")
+        }
+        if let h = healthContext {
+            parts.append("hk:\(h.steps):\(Int(h.activeCalories)):\(Int(h.sleepHours * 10)):\(h.hrv.map { Int($0) } ?? -1):\(h.restingHeartRate.map { Int($0) } ?? -1):\(h.recoveryScore ?? -1):\(h.workoutCount)")
         }
         let combined = parts.joined(separator: "|")
         var hasher = Hasher()
@@ -261,6 +308,38 @@ nonisolated struct ContextBundle: Sendable {
             sections.append(supStr)
         }
 
+        if let h = healthContext {
+            var hs = "APPLE HEALTH (today, live from HealthKit):\n"
+            hs += "Steps: \(h.steps)\n"
+            hs += "Active calories: \(Int(h.activeCalories)) kcal\n"
+            hs += "Resting calories: \(Int(h.restingCalories)) kcal\n"
+            hs += "Distance: \(String(format: "%.2f", h.distanceMiles)) mi\n"
+            hs += "Exercise minutes: \(Int(h.exerciseMinutes))\n"
+            hs += "Flights climbed: \(h.flightsClimbed)\n"
+            hs += "Workouts logged today: \(h.workoutCount)"
+            if !h.workoutSummaries.isEmpty {
+                hs += " (\(h.workoutSummaries.joined(separator: ", ")))"
+            }
+            hs += "\nSleep last night: \(String(format: "%.1f", h.sleepHours))h\n"
+            if let hrv = h.hrv { hs += "HRV (SDNN): \(Int(hrv)) ms\n" }
+            if let rhr = h.restingHeartRate { hs += "Resting HR: \(Int(rhr)) bpm\n" }
+            if let rr = h.respiratoryRate { hs += "Respiratory rate: \(String(format: "%.1f", rr)) br/min\n" }
+            if let o2 = h.oxygenSaturation { hs += "SpO2: \(String(format: "%.1f", o2))%\n" }
+            if let vo2 = h.vo2Max { hs += "VO2 max: \(String(format: "%.1f", vo2)) ml/kg/min\n" }
+            if let r = h.recoveryScore { hs += "Recovery score (composite): \(r)/100\n" }
+            if let bf = h.bodyFatPercentage { hs += "Body fat: \(String(format: "%.1f", bf))%\n" }
+            if let lbm = h.leanBodyMass { hs += "Lean body mass: \(String(format: "%.1f", lbm)) lb\n" }
+            if let waist = h.waistCircumference { hs += "Waist: \(String(format: "%.1f", waist)) in\n" }
+            if let bmi = h.bmi { hs += "BMI: \(String(format: "%.1f", bmi))\n" }
+            if let g = h.bloodGlucose { hs += "Latest blood glucose: \(Int(g)) mg/dL\n" }
+            if let sys = h.bloodPressureSystolic, let dia = h.bloodPressureDiastolic {
+                hs += "Latest BP: \(Int(sys))/\(Int(dia)) mmHg\n"
+            }
+            if h.mindfulMinutesToday > 0 { hs += "Mindful minutes today: \(Int(h.mindfulMinutesToday))\n" }
+            if h.dietaryWater > 0 { hs += "Water logged (HK): \(Int(h.dietaryWater)) mL\n" }
+            sections.append(hs.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+
         return sections.joined(separator: "\n\n")
     }
 }
@@ -384,4 +463,31 @@ nonisolated struct SupplementsContext: Sendable {
     let supplements: [String]
     let totalActive: Int
     let loggedToday: Int
+}
+
+nonisolated struct HealthContext: Sendable {
+    let steps: Int
+    let activeCalories: Double
+    let restingCalories: Double
+    let distanceMiles: Double
+    let exerciseMinutes: Double
+    let flightsClimbed: Int
+    let sleepHours: Double
+    let hrv: Double?
+    let restingHeartRate: Double?
+    let respiratoryRate: Double?
+    let oxygenSaturation: Double?
+    let vo2Max: Double?
+    let recoveryScore: Int?
+    let bodyFatPercentage: Double?
+    let leanBodyMass: Double?
+    let waistCircumference: Double?
+    let bmi: Double?
+    let bloodGlucose: Double?
+    let bloodPressureSystolic: Double?
+    let bloodPressureDiastolic: Double?
+    let mindfulMinutesToday: Double
+    let dietaryWater: Double
+    let workoutCount: Int
+    let workoutSummaries: [String]
 }

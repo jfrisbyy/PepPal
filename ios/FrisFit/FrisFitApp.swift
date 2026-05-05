@@ -1,13 +1,39 @@
 import SwiftUI
 
 @main
-struct PepPalApp: App {
+struct EPTIApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var appearanceManager = AppearanceManager.shared
+
+    init() {
+        print("APP_INIT: EPTIApp init starting")
+        print("APP_INIT: Supabase URL configured: \(!Config.EXPO_PUBLIC_SUPABASE_URL.isEmpty)")
+        print("APP_INIT: Supabase Key configured: \(!Config.EXPO_PUBLIC_SUPABASE_ANON_KEY.isEmpty)")
+        print("APP_INIT: OpenRouter Key configured: \(!Config.EXPO_PUBLIC_OPENROUTER_API_KEY.isEmpty)")
+        print("APP_INIT: Triggering SupabaseService.shared init")
+        _ = SupabaseService.shared
+        print("APP_INIT: SupabaseService.shared initialized successfully")
+        print("APP_INIT: Triggering AuthService.shared init")
+        _ = AuthService.shared
+        print("APP_INIT: AuthService.shared initialized successfully")
+        PreferencesSyncService.shared.start()
+        print("APP_INIT: PreferencesSyncService started")
+        Task { @MainActor in
+            _ = await CorrelationEngine.shared.run()
+        }
+        print("APP_INIT: EPTIApp init complete")
+    }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(appearanceManager.colorScheme)
+                .onOpenURL { url in
+                    DeepLinkRouter.shared.handle(url: url)
+                }
+                .onAppear {
+                    print("APP_INIT: ContentView appeared")
+                }
         }
     }
 }

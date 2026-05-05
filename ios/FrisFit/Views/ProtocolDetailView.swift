@@ -2,16 +2,31 @@ import SwiftUI
 
 struct ProtocolDetailView: View {
     @State private var viewModel: ProtocolDetailViewModel
+    @State private var unitStore = UnitPreferenceStore.shared
+    @State private var focusedCompoundName: String
     @Environment(\.dismiss) private var dismiss
 
-    init(protocolData: PeptideProtocol) {
+    init(protocolData: PeptideProtocol, initialCompoundName: String? = nil) {
         _viewModel = State(initialValue: ProtocolDetailViewModel(protocolData: protocolData))
+        let resolved = initialCompoundName
+            ?? protocolData.compounds.first?.compoundName
+            ?? ""
+        _focusedCompoundName = State(initialValue: resolved)
     }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 protocolHeader
+                if !viewModel.protocolData.compounds.isEmpty {
+                    ProtocolPharmacologyHero(
+                        protocolData: viewModel.protocolData,
+                        focusedCompoundName: $focusedCompoundName
+                    )
+                }
+                MedicalDisclaimerBanner(compact: true)
+                proactiveInsightsSection
+                interactionsSection
                 nextDoseAction
                 cycleTimelineSection
                 doseLogSection
@@ -38,6 +53,8 @@ struct ProtocolDetailView: View {
                     tanningTrackingSection
                 }
 
+                supplySection
+                sideEffectTrendSection
                 batchInfoSection
                 supplementStackSection
                 notesSection
@@ -46,7 +63,7 @@ struct ProtocolDetailView: View {
             .padding(.bottom, 80)
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle(viewModel.protocolData.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -54,6 +71,28 @@ struct ProtocolDetailView: View {
                 Menu {
                     Button { viewModel.showReconCalculator = true } label: {
                         Label("Reconstitution Calculator", systemImage: "function")
+                    }
+
+                    Button { viewModel.showCostSheet = true } label: {
+                        Label("Cost Tracking", systemImage: "dollarsign.circle")
+                    }
+
+                    Button { viewModel.exportCSV() } label: {
+                        Label("Export CSV", systemImage: "square.and.arrow.up")
+                    }
+
+                    Menu {
+                        ForEach(viewModel.protocolData.compounds, id: \.compoundName) { compound in
+                            Picker(compound.compoundName, selection: Binding(
+                                get: { unitStore.effectiveUnit(for: compound.compoundName) },
+                                set: { unitStore.setUnit($0, for: compound.compoundName) }
+                            )) {
+                                Text("mcg").tag(CompoundUnit.mcg)
+                                Text("mg").tag(CompoundUnit.mg)
+                            }
+                        }
+                    } label: {
+                        Label("Display Units", systemImage: "ruler")
                     }
 
                     if viewModel.protocolData.isActive {
@@ -125,141 +164,215 @@ struct ProtocolDetailView: View {
         .sheet(isPresented: $viewModel.showReconCalculator) {
             ReconstitutionCalculatorView()
         }
+        .sheet(isPresented: $viewModel.showSkipDoseSheet) {
+            SkipDoseSheet(viewModel: viewModel)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $viewModel.showCostSheet) {
+            CostTrackingSheet(protocolData: viewModel.protocolData)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $viewModel.showShareSheet) {
+            if let url = viewModel.exportURL {
+                ShareSheet(items: [url])
+            }
+        }
+        .sheet(item: $viewModel.editingDose) { dose in
+            EditDoseSheet(viewModel: viewModel, dose: dose)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
         .onAppear {
             viewModel.refreshFromSupabase()
         }
     }
 
-    // MARK: - Protocol Header
+    private var proactiveInsightsSection: some View {
+        Group {
+            if !viewModel.proactiveInsights.isEmpty {
+                ProactiveInsightsBanner(insights: viewModel.proactiveInsights)
+            }
+        }
+    }
+
+    private var interactionsSection: some View {
+        Group {
+            if !viewModel.drugInteractions.isEmpty {
+                CollapsibleEditorialSection(
+                    eyebrow: "Compound Interactions",
+                    meta: "Watch",
+                    storageKey: "protocol.interactions"
+                ) {
+                    InteractionWarningsView(interactions: viewModel.drugInteractions)
+                }
+            }
+        }
+    }
+
+    // MARK: - Protocol Header (editorial)
 
     private var protocolHeader: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [viewModel.protocolData.goal.color.opacity(0.3), viewModel.protocolData.goal.color.opacity(0.1)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 56, height: 56)
-
-                    Image(systemName: viewModel.protocolData.goal.icon)
-                        .font(.title2)
-                        .foregroundStyle(viewModel.protocolData.goal.color)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(viewModel.protocolData.name)
-                        .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-
-                    HStack(spacing: 8) {
-                        Text(viewModel.protocolData.goal.rawValue)
-                            .font(.system(.caption, weight: .semibold))
-                            .foregroundStyle(viewModel.protocolData.goal.color)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(viewModel.protocolData.goal.color.opacity(0.12))
-                            .clipShape(.capsule)
-
-                        Text("Day \(viewModel.protocolData.currentDay)")
-                            .font(.system(.caption, design: .rounded, weight: .bold))
-                            .foregroundStyle(PepTheme.teal)
-                    }
-                }
-
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(viewModel.protocolData.goal.rawValue.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(2.0)
+                    .foregroundStyle(viewModel.protocolData.goal.color.opacity(0.9))
+                Text("—")
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.45))
+                Text("DAY \(viewModel.protocolData.currentDay)")
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(PepTheme.textSecondary)
                 Spacer()
             }
 
-            HStack(spacing: 12) {
-                headerStat(label: "Phase", value: viewModel.protocolData.currentPhase.rawValue, color: viewModel.protocolData.currentPhase.color)
-                headerStat(label: "Days Left", value: "\(viewModel.daysRemainingInPhase)", color: PepTheme.amber)
-                headerStat(label: "Compounds", value: "\(viewModel.protocolData.compounds.count)", color: PepTheme.teal)
-                headerStat(label: "Doses Logged", value: "\(viewModel.protocolData.doseLog.count)", color: PepTheme.blue)
+            Text(viewModel.protocolData.name)
+                .font(.system(.title2, design: .serif, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(2)
+
+            LinearGradient(
+                colors: [
+                    PepTheme.textPrimary.opacity(0.18),
+                    PepTheme.textPrimary.opacity(0.0)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(height: 0.5)
+
+            HStack(alignment: .center, spacing: 14) {
+                adherenceRing
+                Spacer()
+                headerStat(label: "Phase", value: viewModel.protocolData.currentPhase.rawValue.uppercased())
+                headerDivider
+                headerStat(label: "Days Left", value: "\(viewModel.daysRemainingInPhase)", isNumeric: true)
+                headerDivider
+                headerStat(label: "Compounds", value: "\(viewModel.protocolData.compounds.count)", isNumeric: true)
+                headerDivider
+                headerStat(label: "Doses", value: "\(viewModel.protocolData.doseLog.filter { !$0.wasSkipped }.count)", isNumeric: true)
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(
-                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    lineWidth: 0.5
-                )
-        )
-        .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 4)
+        .padding(.vertical, 6)
     }
 
-    private func headerStat(label: String, value: String, color: Color) -> some View {
-        VStack(spacing: 4) {
+    private var headerDivider: some View {
+        Rectangle()
+            .fill(PepTheme.textPrimary.opacity(0.08))
+            .frame(width: 0.5, height: 28)
+    }
+
+    private func headerStat(label: String, value: String, isNumeric: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
             Text(value)
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundStyle(color)
+                .font(
+                    isNumeric
+                        ? .system(.title3, design: .serif, weight: .semibold)
+                        : .system(size: 11, weight: .semibold)
+                )
+                .tracking(isNumeric ? 0 : 1.4)
+                .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-            Text(label)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.85))
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(PepTheme.elevated.opacity(0.5))
-        .clipShape(.rect(cornerRadius: 10))
+        .frame(minWidth: 0)
     }
 
     // MARK: - Next Dose Action
 
     private var nextDoseAction: some View {
         Group {
-            if let nextDose = viewModel.protocolData.nextDose {
-                Button { viewModel.showLogDoseSheet = true } label: {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            Circle()
-                                .fill(PepTheme.teal.opacity(0.15))
-                                .frame(width: 48, height: 48)
-                            Image(systemName: "syringe.fill")
-                                .font(.title3)
-                                .foregroundStyle(PepTheme.teal)
-                        }
+            if let nextDose = viewModel.smartNextDose ?? viewModel.protocolData.nextDose {
+                HStack(spacing: 10) {
+                    Button { viewModel.showLogDoseSheet = true } label: {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(PepTheme.teal.opacity(0.15))
+                                    .frame(width: 48, height: 48)
+                                Image(systemName: "syringe.fill")
+                                    .font(.title3)
+                                    .foregroundStyle(PepTheme.teal)
+                            }
 
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Log Next Dose")
-                                .font(.system(.headline, weight: .bold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                            Text("\(CompoundUnitHelper.displayDoseShort(nextDose.doseMcg, for: nextDose.compoundName)) \(nextDose.compoundName)")
-                                .font(.system(.subheadline, weight: .medium))
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Log Next Dose")
+                                    .font(.system(.headline, weight: .bold))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                                Text("\(CompoundUnitHelper.displayDoseShort(nextDose.doseMcg, for: nextDose.compoundName)) \(nextDose.compoundName)")
+                                    .font(.system(.subheadline, weight: .medium))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(16)
+                        .background(
+                            LinearGradient(
+                                colors: [PepTheme.teal.opacity(0.08), PepTheme.teal.opacity(0.03)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                            .overlay(PepTheme.cardSurface.opacity(0.85))
+                        )
+                        .clipShape(.rect(cornerRadius: 16))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .strokeBorder(PepTheme.teal.opacity(0.2), lineWidth: 0.5)
+                        )
+                    }
+                    .buttonStyle(.scale)
+                    .sensoryFeedback(.impact(weight: .medium), trigger: viewModel.showLogDoseSheet)
+
+                    Button { viewModel.showSkipDoseSheet = true } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: "forward.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(PepTheme.amber)
+                            Text("Skip")
+                                .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(PepTheme.textSecondary)
                         }
-
-                        Spacer()
-
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(PepTheme.teal)
-                    }
-                    .padding(16)
-                    .background(
-                        LinearGradient(
-                            colors: [PepTheme.teal.opacity(0.08), PepTheme.teal.opacity(0.03)],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                        .frame(width: 60, height: 80)
+                        .background(PepTheme.cardSurface)
+                        .clipShape(.rect(cornerRadius: 16))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .strokeBorder(PepTheme.amber.opacity(0.2), lineWidth: 0.5)
                         )
-                        .overlay(PepTheme.cardSurface.opacity(0.85))
-                    )
-                    .clipShape(.rect(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .strokeBorder(PepTheme.teal.opacity(0.2), lineWidth: 0.5)
-                    )
+                    }
+                    .buttonStyle(.scale)
                 }
-                .buttonStyle(.scale)
-                .sensoryFeedback(.impact(weight: .medium), trigger: viewModel.showLogDoseSheet)
             }
+        }
+    }
+
+    private var adherenceRing: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                Circle()
+                    .stroke(PepTheme.elevated, lineWidth: 5)
+                    .frame(width: 52, height: 52)
+                Circle()
+                    .trim(from: 0, to: viewModel.overallAdherence)
+                    .stroke(viewModel.adherenceColor, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .frame(width: 52, height: 52)
+                    .rotationEffect(.degrees(-90))
+                Text("\(Int(viewModel.overallAdherence * 100))%")
+                    .font(.system(.caption, design: .rounded, weight: .bold))
+                    .foregroundStyle(viewModel.adherenceColor)
+            }
+            Text("Adherence")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
         }
     }
 
@@ -268,12 +381,9 @@ struct ProtocolDetailView: View {
     private var cycleTimelineSection: some View {
         Group {
             if viewModel.protocolData.hasPhases || viewModel.protocolData.totalWeeks != nil {
-                CollapsibleSection(
-                    title: "Cycle Timeline",
-                    icon: "calendar.badge.clock",
-                    iconColor: PepTheme.blue,
-                    isExpanded: viewModel.isSectionExpanded("timeline"),
-                    toggle: { viewModel.toggleSection("timeline") }
+                CollapsibleEditorialSection(
+                    eyebrow: "Cycle Timeline",
+                    storageKey: "protocol.timeline"
                 ) {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(spacing: 4) {
@@ -379,18 +489,20 @@ struct ProtocolDetailView: View {
     // MARK: - Dose Log Section
 
     private var doseLogSection: some View {
-        CollapsibleSection(
-            title: "Dose History",
-            icon: "list.bullet.clipboard",
-            iconColor: PepTheme.teal,
-            isExpanded: viewModel.isSectionExpanded("doseLog"),
-            toggle: { viewModel.toggleSection("doseLog") },
-            trailing: {
+        CollapsibleEditorialSection(
+            eyebrow: "Dose History",
+            storageKey: "protocol.doseLog",
+            trailingAction: {
                 Button { viewModel.showLogDoseSheet = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(PepTheme.teal)
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .frame(width: 22, height: 22)
+                        .overlay(
+                            Circle().strokeBorder(PepTheme.textPrimary.opacity(0.25), lineWidth: 0.5)
+                        )
                 }
+                .buttonStyle(.plain)
             }
         ) {
             if viewModel.sortedDoseLog.isEmpty {
@@ -410,7 +522,12 @@ struct ProtocolDetailView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(viewModel.sortedDoseLog.prefix(10).enumerated()), id: \.element.id) { index, dose in
-                        doseLogRow(dose)
+                        Button {
+                            viewModel.editingDose = dose
+                        } label: {
+                            doseLogRow(dose)
+                        }
+                        .buttonStyle(.plain)
                         if index < min(viewModel.sortedDoseLog.count, 10) - 1 {
                             Divider().overlay(PepTheme.separatorColor).padding(.leading, 40)
                         }
@@ -461,12 +578,9 @@ struct ProtocolDetailView: View {
     // MARK: - Injection Site Rotation
 
     private var injectionSiteSection: some View {
-        CollapsibleSection(
-            title: "Injection Site Rotation",
-            icon: "figure.stand",
-            iconColor: PepTheme.blue,
-            isExpanded: viewModel.isSectionExpanded("sites"),
-            toggle: { viewModel.toggleSection("sites") }
+        CollapsibleEditorialSection(
+            eyebrow: "Injection Site Rotation",
+            storageKey: "protocol.sites"
         ) {
             VStack(spacing: 14) {
                 InjectionBodyMapView(viewModel: viewModel)
@@ -504,12 +618,10 @@ struct ProtocolDetailView: View {
     // MARK: - Reconstitution Section
 
     private var reconstitutionSection: some View {
-        CollapsibleSection(
-            title: "Reconstitution Calculator",
-            icon: "function",
-            iconColor: .orange,
-            isExpanded: viewModel.isSectionExpanded("recon"),
-            toggle: { viewModel.toggleSection("recon") }
+        CollapsibleEditorialSection(
+            eyebrow: "Reconstitution Calculator",
+            storageKey: "protocol.recon",
+            defaultExpanded: false
         ) {
             VStack(spacing: 12) {
                 reconInput(label: "Vial Size", placeholder: "5", unit: "mg", text: $viewModel.reconPeptideMg, icon: "pill.fill", color: PepTheme.teal)
@@ -574,18 +686,20 @@ struct ProtocolDetailView: View {
     // MARK: - Side Effect Section
 
     private var sideEffectSection: some View {
-        CollapsibleSection(
-            title: "Side Effects",
-            icon: "exclamationmark.triangle",
-            iconColor: PepTheme.amber,
-            isExpanded: viewModel.isSectionExpanded("sideEffects"),
-            toggle: { viewModel.toggleSection("sideEffects") },
-            trailing: {
+        CollapsibleEditorialSection(
+            eyebrow: "Side Effects",
+            storageKey: "protocol.sideEffects",
+            trailingAction: {
                 Button { viewModel.showSideEffectSheet = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(PepTheme.amber)
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .frame(width: 22, height: 22)
+                        .overlay(
+                            Circle().strokeBorder(PepTheme.textPrimary.opacity(0.25), lineWidth: 0.5)
+                        )
                 }
+                .buttonStyle(.plain)
             }
         ) {
             if viewModel.protocolData.sideEffectLog.isEmpty {
@@ -658,15 +772,13 @@ struct ProtocolDetailView: View {
     // MARK: - Titration Section (Weight Loss)
 
     private var titrationSection: some View {
-        CollapsibleSection(
-            title: "Titration Schedule",
-            icon: "chart.line.uptrend.xyaxis",
-            iconColor: .green,
-            isExpanded: viewModel.isSectionExpanded("titration"),
-            toggle: { viewModel.toggleSection("titration") }
+        CollapsibleEditorialSection(
+            eyebrow: "Titration Schedule",
+            storageKey: "protocol.titration"
         ) {
             VStack(spacing: 0) {
                 ForEach(Array(viewModel.titrationSteps.enumerated()), id: \.element.id) { index, step in
+                    Button { viewModel.toggleTitrationStep(step) } label: {
                     HStack(spacing: 14) {
                         ZStack {
                             Circle()
@@ -699,6 +811,9 @@ struct ProtocolDetailView: View {
                             .foregroundStyle(step.isCompleted ? .green : PepTheme.textSecondary)
                     }
                     .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.impact(weight: .light), trigger: step.isCompleted)
 
                     if index < viewModel.titrationSteps.count - 1 {
                         HStack(spacing: 0) {
@@ -710,6 +825,8 @@ struct ProtocolDetailView: View {
                         }
                     }
                 }
+                .onTapGesture {}
+                .contentShape(.rect)
             }
         }
     }
@@ -717,12 +834,9 @@ struct ProtocolDetailView: View {
     // MARK: - Weight Loss Tracking
 
     private var weightLossTrackingSection: some View {
-        CollapsibleSection(
-            title: "Weight Loss Tracking",
-            icon: "scalemass.fill",
-            iconColor: .green,
-            isExpanded: viewModel.isSectionExpanded("weightLoss"),
-            toggle: { viewModel.toggleSection("weightLoss") }
+        CollapsibleEditorialSection(
+            eyebrow: "Weight Loss Tracking",
+            storageKey: "protocol.weightLoss"
         ) {
             VStack(spacing: 14) {
                 DailyRatingRow(label: "Appetite", icon: "fork.knife", category: "appetite", viewModel: viewModel)
@@ -735,12 +849,9 @@ struct ProtocolDetailView: View {
     // MARK: - Healing Tracking
 
     private var healingTrackingSection: some View {
-        CollapsibleSection(
-            title: "Recovery Tracking",
-            icon: "cross.case.fill",
-            iconColor: PepTheme.blue,
-            isExpanded: viewModel.isSectionExpanded("healing"),
-            toggle: { viewModel.toggleSection("healing") }
+        CollapsibleEditorialSection(
+            eyebrow: "Recovery Tracking",
+            storageKey: "protocol.healing"
         ) {
             VStack(spacing: 14) {
                 DailyRatingRow(label: "Pain Level", icon: "bolt.fill", category: "pain", viewModel: viewModel)
@@ -775,12 +886,9 @@ struct ProtocolDetailView: View {
     // MARK: - Muscle Growth Tracking
 
     private var muscleGrowthTrackingSection: some View {
-        CollapsibleSection(
-            title: "Muscle & GH Tracking",
-            icon: "figure.strengthtraining.traditional",
-            iconColor: PepTheme.teal,
-            isExpanded: viewModel.isSectionExpanded("muscle"),
-            toggle: { viewModel.toggleSection("muscle") }
+        CollapsibleEditorialSection(
+            eyebrow: "Muscle & GH Tracking",
+            storageKey: "protocol.muscle"
         ) {
             VStack(spacing: 14) {
                 DailyRatingRow(label: "Sleep Quality", icon: "moon.fill", category: "sleepQuality", viewModel: viewModel)
@@ -804,12 +912,9 @@ struct ProtocolDetailView: View {
     // MARK: - Cognitive Tracking
 
     private var cognitiveTrackingSection: some View {
-        CollapsibleSection(
-            title: "Cognitive Tracking",
-            icon: "brain.head.profile",
-            iconColor: PepTheme.violet,
-            isExpanded: viewModel.isSectionExpanded("cognitive"),
-            toggle: { viewModel.toggleSection("cognitive") }
+        CollapsibleEditorialSection(
+            eyebrow: "Cognitive Tracking",
+            storageKey: "protocol.cognitive"
         ) {
             VStack(spacing: 14) {
                 DailyRatingRow(label: "Focus", icon: "scope", category: "focus", viewModel: viewModel)
@@ -824,12 +929,9 @@ struct ProtocolDetailView: View {
     // MARK: - Tanning Tracking
 
     private var tanningTrackingSection: some View {
-        CollapsibleSection(
-            title: "Tanning & Cosmetic",
-            icon: "sun.max.fill",
-            iconColor: .orange,
-            isExpanded: viewModel.isSectionExpanded("tanning"),
-            toggle: { viewModel.toggleSection("tanning") }
+        CollapsibleEditorialSection(
+            eyebrow: "Tanning & Cosmetic",
+            storageKey: "protocol.tanning"
         ) {
             VStack(spacing: 14) {
                 DailyRatingRow(label: "Nausea", icon: "stomach", category: "tanNausea", viewModel: viewModel)
@@ -851,15 +953,91 @@ struct ProtocolDetailView: View {
         }
     }
 
+    // MARK: - Supply & Side Effect Trend
+
+    private var supplySection: some View {
+        CollapsibleEditorialSection(
+            eyebrow: "Supply Tracker",
+            storageKey: "protocol.supply"
+        ) {
+            VStack(spacing: 10) {
+                ForEach(viewModel.protocolData.compounds) { compound in
+                    let s = viewModel.supplyEstimate(for: compound)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(compound.compoundName)
+                                .font(.system(.subheadline, weight: .bold))
+                                .foregroundStyle(PepTheme.textPrimary)
+                            Spacer()
+                            if let days = s.daysUntilExpiration {
+                                HStack(spacing: 4) {
+                                    Image(systemName: days < 30 ? "exclamationmark.triangle.fill" : "clock")
+                                        .font(.system(size: 10))
+                                    Text(days < 0 ? "Expired" : "\(days)d left")
+                                        .font(.system(.caption2, design: .rounded, weight: .bold))
+                                }
+                                .foregroundStyle(days < 30 ? .red : PepTheme.textSecondary)
+                            }
+                        }
+
+                        if let mg = s.mgRemaining, let vial = s.vialSizeMg, vial > 0 {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(String(format: "%.2f mg remaining", mg))
+                                        .font(.system(.caption, design: .rounded, weight: .semibold))
+                                        .foregroundStyle(PepTheme.textPrimary)
+                                    Spacer()
+                                    if let doses = s.dosesRemaining {
+                                        Text("~\(doses) doses left")
+                                            .font(.system(.caption, weight: .semibold))
+                                            .foregroundStyle(doses < 3 ? .red : PepTheme.teal)
+                                    }
+                                }
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        RoundedRectangle(cornerRadius: 3).fill(PepTheme.elevated).frame(height: 6)
+                                        RoundedRectangle(cornerRadius: 3)
+                                            .fill(mg / vial < 0.2 ? Color.red : PepTheme.teal)
+                                            .frame(width: geo.size.width * CGFloat(max(0, min(1, mg / vial))), height: 6)
+                                    }
+                                }
+                                .frame(height: 6)
+                            }
+                        } else {
+                            Text("Set vial size in compound info to track supply")
+                                .font(.caption2)
+                                .foregroundStyle(PepTheme.textSecondary)
+                        }
+                    }
+                    .padding(12)
+                    .background(PepTheme.elevated.opacity(0.5))
+                    .clipShape(.rect(cornerRadius: 12))
+                }
+            }
+        }
+    }
+
+    private var sideEffectTrendSection: some View {
+        Group {
+            if viewModel.sideEffectTrend.count >= 2 {
+                CollapsibleEditorialSection(
+                    eyebrow: "Side Effect Trend",
+                    storageKey: "protocol.sideEffectTrend"
+                ) {
+                    SideEffectTrendChart(points: viewModel.sideEffectTrend)
+                        .frame(height: 140)
+                }
+            }
+        }
+    }
+
     // MARK: - Batch Info
 
     private var batchInfoSection: some View {
-        CollapsibleSection(
-            title: "Batch & Source Info",
-            icon: "shippingbox.fill",
-            iconColor: PepTheme.textSecondary,
-            isExpanded: viewModel.isSectionExpanded("batch"),
-            toggle: { viewModel.toggleSection("batch") }
+        CollapsibleEditorialSection(
+            eyebrow: "Batch & Source",
+            storageKey: "protocol.batch",
+            defaultExpanded: false
         ) {
             VStack(spacing: 10) {
                 ForEach(viewModel.protocolData.compounds) { compound in
@@ -898,18 +1076,20 @@ struct ProtocolDetailView: View {
     // MARK: - Supplement Stack
 
     private var supplementStackSection: some View {
-        CollapsibleSection(
-            title: "Supplement Stack",
-            icon: "leaf.fill",
-            iconColor: .green,
-            isExpanded: viewModel.isSectionExpanded("supplements"),
-            toggle: { viewModel.toggleSection("supplements") },
-            trailing: {
+        CollapsibleEditorialSection(
+            eyebrow: "Supplement Stack",
+            storageKey: "protocol.supplements",
+            trailingAction: {
                 Button { viewModel.showAddSupplementSheet = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.green)
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .frame(width: 22, height: 22)
+                        .overlay(
+                            Circle().strokeBorder(PepTheme.textPrimary.opacity(0.25), lineWidth: 0.5)
+                        )
                 }
+                .buttonStyle(.plain)
             }
         ) {
             if viewModel.protocolData.supplements.isEmpty {
@@ -955,18 +1135,20 @@ struct ProtocolDetailView: View {
     // MARK: - Notes
 
     private var notesSection: some View {
-        CollapsibleSection(
-            title: "Notes",
-            icon: "note.text",
-            iconColor: PepTheme.violet,
-            isExpanded: viewModel.isSectionExpanded("notes"),
-            toggle: { viewModel.toggleSection("notes") },
-            trailing: {
+        CollapsibleEditorialSection(
+            eyebrow: "Notes",
+            storageKey: "protocol.notes",
+            trailingAction: {
                 Button { viewModel.showAddNoteSheet = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(PepTheme.violet)
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .frame(width: 22, height: 22)
+                        .overlay(
+                            Circle().strokeBorder(PepTheme.textPrimary.opacity(0.25), lineWidth: 0.5)
+                        )
                 }
+                .buttonStyle(.plain)
             }
         ) {
             if viewModel.notes.isEmpty {

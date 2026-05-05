@@ -122,11 +122,20 @@ struct BodyGoalSectionView: View {
             }
             .buttonStyle(.scale)
             .sensoryFeedback(.selection, trigger: viewModel.isExpanded)
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.4).onEnded { _ in
+                    viewModel.showFullDetail = true
+                }
+            )
 
             if viewModel.isExpanded {
                 VStack(spacing: 8) {
                     if let insight = aiInsight {
                         AIInsightStrip(content: insight, color: .green)
+                            .padding(.horizontal, 2)
+                    }
+                    if let line = MorningBriefService.shared.buildLines().bodyGoal {
+                        BriefLineRow(line: line, icon: "scalemass.fill")
                             .padding(.horizontal, 2)
                     }
                     expandedContent
@@ -369,7 +378,7 @@ struct WeighInSheet: View {
             Spacer()
         }
         .padding(.horizontal, 20)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .onAppear { weightFocused = true }
     }
 }
@@ -437,7 +446,7 @@ struct MeasurementSheet: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
     }
 
     private func measurementField(label: String, value: Binding<String>, icon: String) -> some View {
@@ -567,7 +576,7 @@ struct GoalPickerSheet: View {
         }
         .scrollIndicators(.hidden)
         .presentationContentInteraction(.scrolls)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .onAppear {
             selectedGoal = viewModel.currentGoal
             showDetails = true

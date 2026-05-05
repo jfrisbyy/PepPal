@@ -76,7 +76,7 @@ struct AddSupplementSheet: View {
             .padding(.horizontal)
             .padding(.top, 12)
             .padding(.bottom, 24)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Add Supplement")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

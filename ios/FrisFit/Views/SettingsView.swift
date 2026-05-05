@@ -1,4 +1,6 @@
 import SwiftUI
+import HealthKit
+import UIKit
 
 struct SettingsView: View {
     @Bindable var viewModel: ProfileViewModel
@@ -7,24 +9,35 @@ struct SettingsView: View {
     @State private var appearanceManager = AppearanceManager.shared
     @State private var healthKit = HealthKitService.shared
     @State private var reminderManager = ReminderManager.shared
+    @State private var peptideAccess = PeptideAccessManager.shared
+    @State private var showHealthSettingsAlert: Bool = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 unitsSection
+                personalizationSection
+                aiMemorySection
                 timerSection
                 healthKitSection
+                compoundAccessSection
                 healthRemindersSection
                 activityRemindersSection
                 socialNotificationsSection
+                moderationSection
+                privacyDataSection
                 streakSection
                 appearanceSection
+                aboutSection
                 accountSection
+                #if DEBUG
+                DeveloperSettingsView()
+                #endif
             }
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
         
@@ -33,6 +46,16 @@ struct SettingsView: View {
             Button("Delete", role: .destructive) { }
         } message: {
             Text("This will permanently delete your account and all data. This action cannot be undone.")
+        }
+        .alert("Apple Health Access", isPresented: $showHealthSettingsAlert) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Allow EPTI to read your health data in Settings → Privacy & Security → Health → EPTI.")
         }
         .alert("Log Out", isPresented: $showLogOutConfirm) {
             Button("Cancel", role: .cancel) { }
@@ -43,6 +66,60 @@ struct SettingsView: View {
             }
         } message: {
             Text("Are you sure you want to log out?")
+        }
+    }
+
+    private var personalizationSection: some View {
+        SettingsCard(title: "Personalization") {
+            NavigationLink {
+                PersonalizationSettingsView()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.body)
+                        .foregroundStyle(PepTheme.teal)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Persona track & profile")
+                            .font(.body)
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("Switch tracks or re-run About You / Goals")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+        }
+    }
+
+    private var aiMemorySection: some View {
+        SettingsCard(title: "Intelligence") {
+            NavigationLink {
+                AIMemoryView()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "brain")
+                        .font(.body)
+                        .foregroundStyle(PepTheme.violet)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AI Memory")
+                            .font(.body)
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("See what the app has learned about you")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
         }
     }
 
@@ -146,6 +223,21 @@ struct SettingsView: View {
                         ReminderTimePicker(label: "Time", icon: "clock", time: $reminderManager.weighInTime)
                     }
                 }
+
+                NotificationDivider()
+
+                ReminderToggleRow(
+                    category: .weeklyCheckIn,
+                    isEnabled: $reminderManager.weeklyCheckInEnabled,
+                    onToggle: { enabled in
+                        if enabled { requestPermissionIfNeeded() }
+                    }
+                ) {
+                    VStack(spacing: 8) {
+                        ReminderDayPicker(label: "Day", day: $reminderManager.weeklyCheckInDay)
+                        ReminderTimePicker(label: "Time", icon: "clock", time: $reminderManager.weeklyCheckInTime)
+                    }
+                }
             }
         }
     }
@@ -178,8 +270,98 @@ struct SettingsView: View {
                         ReminderTimePicker(label: "Dinner", icon: "moon", time: $reminderManager.dinnerTime)
                     }
                 }
+
+                NotificationDivider()
+
+                ReminderToggleRow(
+                    category: .hydration,
+                    isEnabled: $reminderManager.hydrationEnabled,
+                    onToggle: { enabled in
+                        if enabled { requestPermissionIfNeeded() }
+                    }
+                ) {
+                    HydrationTimesEditor(reminderManager: reminderManager)
+                }
+
+                NotificationDivider()
+
+                ReminderToggleRow(
+                    category: .restDay,
+                    isEnabled: $reminderManager.restDayEnabled,
+                    onToggle: { enabled in
+                        if enabled { requestPermissionIfNeeded() }
+                    }
+                ) {
+                    ReminderTimePicker(label: "Check Time", icon: "clock", time: $reminderManager.restDayCheckTime)
+                }
             }
         }
+    }
+
+    private var moderationSection: some View {
+        SettingsCard(title: "Moderation & Privacy") {
+            NavigationLink {
+                ModerationSettingsView()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "shield.lefthalf.filled")
+                        .font(.body)
+                        .foregroundStyle(PepTheme.teal)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Muted users, tags, keywords")
+                            .font(.body)
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text(moderationSummary)
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+        }
+    }
+
+    private var privacyDataSection: some View {
+        SettingsCard(title: "Privacy & Your Data") {
+            NavigationLink {
+                PrivacyDataView()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "hand.raised.fill")
+                        .font(.body)
+                        .foregroundStyle(PepTheme.teal)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Your data, your control")
+                            .font(.body)
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("Export your data, delete your account, review policies")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+        }
+    }
+
+    private var moderationSummary: String {
+        let m = LocalModerationStore.shared
+        let users = m.mutedUserIds.count
+        let tags = m.mutedTags.count
+        let keywords = m.keywordFilters.count
+        if users == 0 && tags == 0 && keywords == 0 {
+            return "Manage your filters and blocks"
+        }
+        return "\(users) user\(users == 1 ? "" : "s"), \(tags) tag\(tags == 1 ? "" : "s"), \(keywords) keyword\(keywords == 1 ? "" : "s")"
     }
 
     private var socialNotificationsSection: some View {
@@ -240,6 +422,8 @@ struct SettingsView: View {
         }
     }
 
+    @State private var showStreakInfoFromSettings: Bool = false
+
     private var streakSection: some View {
         SettingsCard(title: "Streak") {
             VStack(spacing: 12) {
@@ -248,25 +432,25 @@ struct SettingsView: View {
                         Text("Streak Freeze")
                             .font(.body)
                             .foregroundStyle(PepTheme.textPrimary)
-                        Text("Allows 1 missed day per week without breaking your streak")
+                        Text("Auto-applies once per rolling 7 days when you miss")
                             .font(.caption)
                             .foregroundStyle(PepTheme.textSecondary)
                     }
                     Spacer()
-                    if viewModel.streakManager.streakData.streakFreezeUsedThisWeek {
-                        Text("Used")
-                            .font(.system(.caption, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(PepTheme.elevated)
-                            .clipShape(.rect(cornerRadius: 6))
+                    if let days = viewModel.streakManager.freezeAvailableInDays {
+                        HStack(spacing: 4) {
+                            Image(systemName: "hourglass").font(.caption)
+                            Text("\(days)d").font(.system(.caption, weight: .medium))
+                        }
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(PepTheme.elevated)
+                        .clipShape(.rect(cornerRadius: 6))
                     } else {
                         HStack(spacing: 4) {
-                            Image(systemName: "snowflake")
-                                .font(.caption)
-                            Text("Available")
-                                .font(.system(.caption, weight: .medium))
+                            Image(systemName: "snowflake").font(.caption)
+                            Text("Ready").font(.system(.caption, weight: .medium))
                         }
                         .foregroundStyle(PepTheme.teal)
                         .padding(.horizontal, 10)
@@ -297,6 +481,91 @@ struct SettingsView: View {
                         .font(.system(.body, design: .rounded, weight: .semibold))
                         .foregroundStyle(PepTheme.textSecondary)
                 }
+
+                if viewModel.streakManager.streakState == .paused, let hours = viewModel.streakManager.pausedHoursRemaining {
+                    Divider().overlay(PepTheme.glassBorderTop)
+                    HStack(spacing: 8) {
+                        Image(systemName: "pause.circle.fill").foregroundStyle(PepTheme.amber)
+                        Text("Paused — \(hours)h to save it")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Spacer()
+                    }
+                }
+
+                Divider().overlay(PepTheme.glassBorderTop)
+
+                Button {
+                    showStreakInfoFromSettings = true
+                } label: {
+                    HStack {
+                        Label("How streaks work", systemImage: "info.circle")
+                            .font(.body)
+                            .foregroundStyle(PepTheme.teal)
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(PepTheme.textSecondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .sheet(isPresented: $showStreakInfoFromSettings) {
+            StreakInfoSheet().presentationDetents([.medium, .large])
+        }
+    }
+
+    private var compoundAccessSection: some View {
+        SettingsCard(title: "Compound Surfaces") {
+            VStack(alignment: .leading, spacing: 12) {
+                if peptideAccess.biologicalSex == .female {
+                    Toggle(isOn: Binding(
+                        get: { peptideAccess.isPregnantOrNursing },
+                        set: { peptideAccess.setPregnancyState($0) }
+                    )) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "heart.fill")
+                                .font(.body)
+                                .foregroundStyle(PepTheme.amber)
+                                .frame(width: 24)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Pregnant or nursing")
+                                    .font(.body)
+                                    .foregroundStyle(PepTheme.textPrimary)
+                                Text("While on, compound tracking surfaces stay locked.")
+                                    .font(.caption)
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                    .tint(PepTheme.teal)
+
+                    Divider().overlay(PepTheme.glassBorderTop)
+                }
+
+                HStack(spacing: 10) {
+                    Image(systemName: peptideAccess.canAccessCompoundSurfaces ? "lock.open.fill" : "lock.fill")
+                        .font(.body)
+                        .foregroundStyle(peptideAccess.canAccessCompoundSurfaces ? .green : PepTheme.amber)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(peptideAccess.canAccessCompoundSurfaces ? "Compound surfaces unlocked" : (peptideAccess.lockReason?.title ?? "Compound surfaces locked"))
+                            .font(.system(.subheadline, weight: .semibold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        if let reason = peptideAccess.lockReason {
+                            Text(reason.message)
+                                .font(.caption)
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text("Vial scanner, protocols, dose logging and reconstitution are available.")
+                                .font(.caption)
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
             }
         }
     }
@@ -306,7 +575,23 @@ struct SettingsView: View {
             VStack(spacing: 12) {
                 Toggle(isOn: Binding(
                     get: { healthKit.isHealthKitEnabled },
-                    set: { healthKit.isHealthKitEnabled = $0 }
+                    set: { newValue in
+                        if newValue {
+                            guard HKHealthStore.isHealthDataAvailable() else {
+                                healthKit.isAvailable = false
+                                return
+                            }
+                            healthKit.isHealthKitEnabled = true
+                            Task {
+                                let didShowPrompt = await healthKit.requestAuthorizationInteractively()
+                                if !didShowPrompt && !healthKit.isAuthorized {
+                                    showHealthSettingsAlert = true
+                                }
+                            }
+                        } else {
+                            healthKit.isHealthKitEnabled = false
+                        }
+                    }
                 )) {
                     HStack(spacing: 10) {
                         Image(systemName: "heart.fill")
@@ -411,6 +696,78 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private var aboutSection: some View {
+        SettingsCard(title: "About") {
+            VStack(spacing: 0) {
+                Link(destination: URL(string: "https://peppalapp.com/terms")!) {
+                    aboutRow(icon: "doc.text.fill", title: "Terms of Service")
+                }
+                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
+                Link(destination: URL(string: "https://peppalapp.com/privacy")!) {
+                    aboutRow(icon: "hand.raised.fill", title: "Privacy Policy")
+                }
+                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
+                Link(destination: URL(string: "https://peppalapp.com/support")!) {
+                    aboutRow(icon: "questionmark.circle.fill", title: "Support")
+                }
+                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
+                NavigationLink {
+                    MedicalDisclaimerDetailView()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.shield.fill")
+                            .font(.body)
+                            .foregroundStyle(PepTheme.amber)
+                            .frame(width: 24)
+                        Text("Medical Disclaimer")
+                            .font(.body)
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                }
+                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
+                HStack(spacing: 12) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.body)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .frame(width: 24)
+                    Text("Version")
+                        .font(.body)
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Spacer()
+                    Text(appVersion)
+                        .font(.system(.subheadline, design: .rounded, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+        }
+    }
+
+    private func aboutRow(icon: String, title: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundStyle(PepTheme.textPrimary)
+                .frame(width: 24)
+            Text(title)
+                .font(.body)
+                .foregroundStyle(PepTheme.textPrimary)
+            Spacer()
+            Image(systemName: "arrow.up.right.square")
+                .font(.caption)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+    }
+
+    private var appVersion: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "\(v) (\(b))"
     }
 
     private var accountSection: some View {

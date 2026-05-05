@@ -24,6 +24,20 @@ struct AIBuildProgramView: View {
     @State private var errorMessage: String? = nil
     @State private var expandedDayId: UUID? = nil
     @State private var hasAutoFilled: Bool = false
+    @State private var expandedExerciseId: UUID? = nil
+    @State private var showExercisePicker: Bool = false
+    @State private var pickerDayId: UUID? = nil
+    @State private var swapTarget: AISwapTarget? = nil
+    @State private var renameDayId: UUID? = nil
+    @State private var renameDayText: String = ""
+    @State private var showRenameDay: Bool = false
+    @State private var showRenameProgram: Bool = false
+    @State private var renameProgramText: String = ""
+
+    struct AISwapTarget: Equatable {
+        let dayId: UUID
+        let exerciseIndex: Int
+    }
 
     private let goals = ["Hypertrophy (Muscle Growth)", "Strength", "Recomp (Lose Fat + Build Muscle)", "General Fitness", "Athletic Performance", "Powerlifting", "Muscle Preservation (Deficit)", "Maintenance (Minimal Volume)"]
     private let equipmentOptions = ["Barbell", "Dumbbell", "Cable", "Machine", "Bodyweight", "Kettlebell", "Band"]
@@ -69,7 +83,7 @@ struct AIBuildProgramView: View {
                     bottomBar
                 }
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle(preSelectedSuggestion != nil ? "Smart Program Builder" : "AI Program Builder")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -480,9 +494,9 @@ struct AIBuildProgramView: View {
 
                         if includePeptideContext {
                             HStack(spacing: 8) {
-                                Image(systemName: "sparkles")
+                                Image(systemName: "checkmark.circle.fill")
                                     .font(.system(size: 11))
-                                    .foregroundStyle(PepTheme.violet)
+                                    .foregroundStyle(PepTheme.violet.opacity(0.7))
                                 Text("The AI will factor in your active protocol, phase, and compounds to customize the program.")
                                     .font(.system(size: 11))
                                     .foregroundStyle(PepTheme.textSecondary)
@@ -637,124 +651,285 @@ struct AIBuildProgramView: View {
     private var resultView: some View {
         ScrollView {
             if let program = generatedProgram {
-                VStack(spacing: 20) {
-                    VStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 36))
-                            .foregroundStyle(.green)
+                VStack(spacing: 16) {
+                    resultHeader(program: program)
+                    weeklyScheduleOverview(program: program)
 
-                        Text(program.name)
-                            .font(.title2.weight(.bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-
-                        Text("\(program.days.count) days · \(program.days.reduce(0) { $0 + $1.exercises.count }) exercises")
-                            .font(.subheadline)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                    .padding(.top, 16)
-
-                    ForEach(Array(program.days.enumerated()), id: \.element.id) { index, day in
-                        aiResultDayCard(day, dayIndex: index)
+                    ForEach(Array(program.days.enumerated()), id: \.element.id) { index, _ in
+                        editableDayCard(dayIndex: index)
                     }
 
-                    VStack(spacing: 10) {
-                        Button {
-                            viewModel.activateTemplateProgram(program, startDayOffset: 0)
-                            dismiss()
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "play.fill")
-                                    .font(.system(size: 14))
-                                Text("Start This Program")
-                                    .font(.headline)
-                            }
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(PepTheme.teal)
-                            .clipShape(.rect(cornerRadius: 14))
-                        }
-                        .buttonStyle(.scalePrimary)
-
-                        Button {
-                            generatedProgram = nil
-                            isGenerating = false
-                            errorMessage = nil
-                        } label: {
-                            Text("Regenerate")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(PepTheme.violet)
-                        }
-                    }
+                    actionButtons
                 }
                 .padding(.horizontal)
+                .padding(.top, 12)
                 .padding(.bottom, 32)
+            }
+        }
+        .sheet(isPresented: $showExercisePicker) {
+            exercisePickerSheet
+        }
+        .alert("Rename Day", isPresented: $showRenameDay) {
+            TextField("Day name", text: $renameDayText)
+            Button("Cancel", role: .cancel) { }
+            Button("Save") {
+                let trimmed = renameDayText.trimmingCharacters(in: .whitespaces)
+                guard !trimmed.isEmpty, let dayId = renameDayId,
+                      var prog = generatedProgram,
+                      let idx = prog.days.firstIndex(where: { $0.id == dayId }) else { return }
+                prog.days[idx].name = trimmed
+                generatedProgram = prog
+            }
+        }
+        .alert("Rename Program", isPresented: $showRenameProgram) {
+            TextField("Program name", text: $renameProgramText)
+            Button("Cancel", role: .cancel) { }
+            Button("Save") {
+                let trimmed = renameProgramText.trimmingCharacters(in: .whitespaces)
+                guard !trimmed.isEmpty, var prog = generatedProgram else { return }
+                prog.name = trimmed
+                generatedProgram = prog
             }
         }
     }
 
-    private func aiResultDayCard(_ day: ProgramDay, dayIndex: Int) -> some View {
+    private func resultHeader(program: TrainingProgram) -> some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.green)
+                Text("Program Generated")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.green)
+                    .tracking(0.8)
+            }
+
+            Button {
+                renameProgramText = program.name
+                showRenameProgram = true
+            } label: {
+                HStack(spacing: 6) {
+                    Text(program.name)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .multilineTextAlignment(.center)
+                    Image(systemName: "pencil")
+                        .font(.system(size: 11))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 14) {
+                statPill(value: "\(program.days.count)", label: "Days", icon: "calendar")
+                statPill(value: "\(program.days.reduce(0) { $0 + $1.exercises.count })", label: "Exercises", icon: "dumbbell")
+                let scheduled = program.days.filter { $0.scheduledWeekday != nil }.count
+                statPill(value: "\(scheduled)/\(program.days.count)", label: "Scheduled", icon: "checkmark.circle")
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    private func statPill(value: String, label: String, icon: String) -> some View {
+        VStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundStyle(PepTheme.violet.opacity(0.7))
+            Text(value)
+                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(PepTheme.elevated.opacity(0.5))
+        .clipShape(.rect(cornerRadius: 10))
+    }
+
+    private func weeklyScheduleOverview(program: TrainingProgram) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "calendar.badge.clock")
+                    .font(.system(size: 12))
+                    .foregroundStyle(PepTheme.violet)
+                Text("WEEKLY SCHEDULE")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .tracking(1)
+                Spacer()
+            }
+
+            HStack(spacing: 4) {
+                ForEach(ProgramWeekday.allCases) { weekday in
+                    let dayAtWeekday = program.days.first { $0.scheduledWeekday == weekday.rawValue }
+                    VStack(spacing: 4) {
+                        Text(weekday.singleLetter)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(dayAtWeekday != nil ? PepTheme.violet : PepTheme.textSecondary)
+                        Circle()
+                            .fill(dayAtWeekday != nil ? PepTheme.violet : PepTheme.elevated)
+                            .frame(width: 6, height: 6)
+                        Text(dayAtWeekday?.name ?? "Rest")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(dayAtWeekday != nil ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.6))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(dayAtWeekday != nil ? PepTheme.violet.opacity(0.08) : Color.clear)
+                    .clipShape(.rect(cornerRadius: 8))
+                }
+            }
+
+            let unscheduled = program.days.filter { $0.scheduledWeekday == nil }.count
+            if unscheduled > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(PepTheme.amber)
+                    Text("\(unscheduled) workout\(unscheduled == 1 ? "" : "s") not yet scheduled")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(PepTheme.amber)
+                    Spacer()
+                }
+                .padding(8)
+                .background(PepTheme.amber.opacity(0.08))
+                .clipShape(.rect(cornerRadius: 8))
+            }
+        }
+        .padding(14)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    private func editableDayCard(dayIndex: Int) -> some View {
+        guard let prog = generatedProgram, dayIndex < prog.days.count else {
+            return AnyView(EmptyView())
+        }
+        let day = prog.days[dayIndex]
         let isExpanded = expandedDayId == day.id
 
-        return Button {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
-                expandedDayId = isExpanded ? nil : day.id
-            }
-        } label: {
+        return AnyView(
             VStack(spacing: 0) {
-                HStack(spacing: 12) {
-                    Text("\(dayIndex + 1)")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(PepTheme.violet)
-                        .frame(width: 28, height: 28)
-                        .background(PepTheme.violet.opacity(0.12))
-                        .clipShape(Circle())
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(day.name)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text("\(day.exercises.count) exercises")
-                            .font(.system(size: 11))
-                            .foregroundStyle(PepTheme.textSecondary)
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                        expandedDayId = isExpanded ? nil : day.id
                     }
+                } label: {
+                    HStack(spacing: 12) {
+                        Text("\(dayIndex + 1)")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundStyle(PepTheme.violet)
+                            .frame(width: 28, height: 28)
+                            .background(PepTheme.violet.opacity(0.12))
+                            .clipShape(Circle())
 
-                    Spacer()
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(day.name)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(PepTheme.textPrimary)
+                                .lineLimit(2)
+                            HStack(spacing: 6) {
+                                Text("\(day.exercises.count) exercises")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                if let wd = day.scheduledWeekday, let weekday = ProgramWeekday(rawValue: wd) {
+                                    Text("·")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(PepTheme.textSecondary)
+                                    HStack(spacing: 2) {
+                                        Image(systemName: "calendar")
+                                            .font(.system(size: 9))
+                                        Text(weekday.shortLabel)
+                                            .font(.system(size: 11, weight: .semibold))
+                                    }
+                                    .foregroundStyle(PepTheme.violet)
+                                }
+                            }
+                        }
 
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        Spacer()
+
+                        Menu {
+                            Button {
+                                renameDayId = day.id
+                                renameDayText = day.name
+                                showRenameDay = true
+                            } label: {
+                                Label("Rename Day", systemImage: "pencil")
+                            }
+                            Button {
+                                pickerDayId = day.id
+                                swapTarget = nil
+                                showExercisePicker = true
+                            } label: {
+                                Label("Add Exercise", systemImage: "plus")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .frame(width: 28, height: 28)
+                                .background(PepTheme.elevated)
+                                .clipShape(Circle())
+                        }
+
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                    }
+                    .padding(14)
+                    .contentShape(Rectangle())
                 }
-                .padding(14)
+                .buttonStyle(.plain)
 
                 if isExpanded {
-                    VStack(spacing: 6) {
-                        ForEach(day.exercises) { exercise in
-                            HStack(spacing: 10) {
-                                Image(systemName: exercise.primaryMuscle.icon)
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(PepTheme.violet.opacity(0.6))
-                                    .frame(width: 24, height: 24)
-                                    .background(PepTheme.violet.opacity(0.08))
-                                    .clipShape(Circle())
+                    VStack(spacing: 12) {
+                        weekdayPicker(dayIndex: dayIndex)
 
-                                Text(exercise.exerciseName)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(PepTheme.textPrimary)
-                                    .lineLimit(1)
-
-                                Spacer()
-
-                                Text("\(exercise.targetSets)×\(exercise.targetRepsMin)-\(exercise.targetRepsMax)")
-                                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                                    .foregroundStyle(PepTheme.textSecondary)
+                        VStack(spacing: 8) {
+                            ForEach(Array(day.exercises.enumerated()), id: \.element.id) { exIdx, exercise in
+                                editableExerciseRow(dayIndex: dayIndex, exerciseIndex: exIdx, exercise: exercise)
                             }
-                            .padding(.vertical, 2)
+                        }
+
+                        Button {
+                            pickerDayId = day.id
+                            swapTarget = nil
+                            showExercisePicker = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 13))
+                                Text("Add Exercise")
+                                    .font(.system(size: 13, weight: .semibold))
+                            }
+                            .foregroundStyle(PepTheme.violet)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(PepTheme.violet.opacity(0.08))
+                            .clipShape(.rect(cornerRadius: 10))
                         }
                     }
                     .padding(.horizontal, 14)
-                    .padding(.bottom, 12)
+                    .padding(.bottom, 14)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
@@ -762,18 +937,343 @@ struct AIBuildProgramView: View {
             .clipShape(.rect(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
-                    )
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
+        )
+    }
+
+    private func weekdayPicker(dayIndex: Int) -> some View {
+        guard let prog = generatedProgram, dayIndex < prog.days.count else {
+            return AnyView(EmptyView())
         }
-        .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: isExpanded)
+        let selected = prog.days[dayIndex].scheduledWeekday
+
+        return AnyView(
+            VStack(alignment: .leading, spacing: 8) {
+                Text("SCHEDULED ON")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                    .tracking(0.8)
+                HStack(spacing: 5) {
+                    ForEach(ProgramWeekday.allCases) { weekday in
+                        let isSelected = selected == weekday.rawValue
+                        let sharedCount = prog.days.enumerated().filter { i, d in
+                            i != dayIndex && d.scheduledWeekday == weekday.rawValue
+                        }.count
+                        Button {
+                            withAnimation(.spring(duration: 0.2)) {
+                                setWeekday(weekday.rawValue, forDayAt: dayIndex)
+                            }
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Text(weekday.singleLetter)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(isSelected ? .black : PepTheme.textPrimary)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 34)
+                                    .background(isSelected ? PepTheme.violet : PepTheme.elevated)
+                                    .clipShape(.rect(cornerRadius: 8))
+                                if sharedCount > 0 {
+                                    Circle()
+                                        .fill(PepTheme.amber)
+                                        .frame(width: 6, height: 6)
+                                        .offset(x: -3, y: 3)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        )
+    }
+
+    private func editableExerciseRow(dayIndex: Int, exerciseIndex: Int, exercise: ProgramExercise) -> some View {
+        let isExpanded = expandedExerciseId == exercise.id
+
+        return VStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.3)) {
+                    expandedExerciseId = isExpanded ? nil : exercise.id
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: exercise.primaryMuscle.icon)
+                        .font(.system(size: 11))
+                        .foregroundStyle(PepTheme.violet.opacity(0.7))
+                        .frame(width: 26, height: 26)
+                        .background(PepTheme.violet.opacity(0.1))
+                        .clipShape(.rect(cornerRadius: 7))
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(exercise.exerciseName)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                        Text("\(exercise.targetSets) × \(exercise.targetRepsMin)-\(exercise.targetRepsMax) · \(exercise.restSeconds)s rest")
+                            .font(.system(size: 10))
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+
+                    Spacer(minLength: 6)
+
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .padding(10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(spacing: 10) {
+                    HStack(spacing: 8) {
+                        exerciseStepper(label: "Sets", value: exercise.targetSets, range: 1...10) { new in
+                            updateExercise(dayIndex: dayIndex, exerciseIndex: exerciseIndex) { $0.targetSets = new }
+                        }
+                        exerciseStepper(label: "Min", value: exercise.targetRepsMin, range: 1...50) { new in
+                            updateExercise(dayIndex: dayIndex, exerciseIndex: exerciseIndex) {
+                                $0.targetRepsMin = new
+                                if $0.targetRepsMax < new { $0.targetRepsMax = new }
+                            }
+                        }
+                        exerciseStepper(label: "Max", value: exercise.targetRepsMax, range: 1...50) { new in
+                            updateExercise(dayIndex: dayIndex, exerciseIndex: exerciseIndex) {
+                                $0.targetRepsMax = new
+                                if $0.targetRepsMin > new { $0.targetRepsMin = new }
+                            }
+                        }
+                    }
+
+                    HStack {
+                        Text("Rest")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Spacer()
+                        HStack(spacing: 6) {
+                            Button {
+                                updateExercise(dayIndex: dayIndex, exerciseIndex: exerciseIndex) {
+                                    if $0.restSeconds > 15 { $0.restSeconds -= 15 }
+                                }
+                            } label: {
+                                Image(systemName: "minus")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                    .frame(width: 26, height: 26)
+                                    .background(PepTheme.elevated)
+                                    .clipShape(Circle())
+                            }
+                            Text("\(exercise.restSeconds)s")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundStyle(PepTheme.textPrimary)
+                                .frame(width: 44)
+                            Button {
+                                updateExercise(dayIndex: dayIndex, exerciseIndex: exerciseIndex) {
+                                    if $0.restSeconds < 300 { $0.restSeconds += 15 }
+                                }
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                    .frame(width: 26, height: 26)
+                                    .background(PepTheme.elevated)
+                                    .clipShape(Circle())
+                            }
+                        }
+                    }
+
+                    HStack(spacing: 8) {
+                        Button {
+                            guard let prog = generatedProgram else { return }
+                            let dayId = prog.days[dayIndex].id
+                            pickerDayId = dayId
+                            swapTarget = AISwapTarget(dayId: dayId, exerciseIndex: exerciseIndex)
+                            showExercisePicker = true
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "arrow.triangle.swap")
+                                    .font(.system(size: 10))
+                                Text("Swap")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundStyle(PepTheme.violet)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(PepTheme.violet.opacity(0.1))
+                            .clipShape(.rect(cornerRadius: 8))
+                        }
+
+                        Button {
+                            withAnimation(.spring(response: 0.3)) {
+                                removeExercise(dayIndex: dayIndex, exerciseIndex: exerciseIndex)
+                            }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 10))
+                                Text("Remove")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundStyle(.red.opacity(0.9))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(Color.red.opacity(0.08))
+                            .clipShape(.rect(cornerRadius: 8))
+                        }
+                    }
+                }
+                .padding(10)
+                .background(PepTheme.elevated.opacity(0.4))
+            }
+        }
+        .background(PepTheme.elevated.opacity(0.25))
+        .clipShape(.rect(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(PepTheme.glassBorderTop.opacity(0.5), lineWidth: 0.5)
+        )
+    }
+
+    private func exerciseStepper(label: String, value: Int, range: ClosedRange<Int>, onChange: @escaping (Int) -> Void) -> some View {
+        VStack(spacing: 4) {
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+            HStack(spacing: 2) {
+                Button {
+                    if value > range.lowerBound { onChange(value - 1) }
+                } label: {
+                    Image(systemName: "minus")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .frame(width: 22, height: 22)
+                        .background(PepTheme.elevated)
+                        .clipShape(Circle())
+                }
+                Text("\(value)")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .frame(minWidth: 24)
+                Button {
+                    if value < range.upperBound { onChange(value + 1) }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .frame(width: 22, height: 22)
+                        .background(PepTheme.elevated)
+                        .clipShape(Circle())
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 8))
+    }
+
+    private var exercisePickerSheet: some View {
+        ExercisePickerView(swapSource: currentSwapSource) { selected in
+            applyPickerSelection(selected)
+        }
+    }
+
+    private var currentSwapSource: Exercise? {
+        guard let target = swapTarget,
+              let prog = generatedProgram,
+              let dIdx = prog.days.firstIndex(where: { $0.id == target.dayId }),
+              target.exerciseIndex < prog.days[dIdx].exercises.count else { return nil }
+        let pe = prog.days[dIdx].exercises[target.exerciseIndex]
+        return ExerciseLibrary.all.first { $0.id == pe.exerciseId }
+    }
+
+    private func applyPickerSelection(_ exercises: [Exercise]) {
+        guard var prog = generatedProgram else { return }
+        if let target = swapTarget,
+           let dIdx = prog.days.firstIndex(where: { $0.id == target.dayId }),
+           let first = exercises.first,
+           target.exerciseIndex < prog.days[dIdx].exercises.count {
+            let old = prog.days[dIdx].exercises[target.exerciseIndex]
+            prog.days[dIdx].exercises[target.exerciseIndex] = ProgramExercise(
+                exercise: first,
+                targetSets: old.targetSets,
+                targetRepsMin: old.targetRepsMin,
+                targetRepsMax: old.targetRepsMax,
+                restSeconds: old.restSeconds
+            )
+        } else if let dayId = pickerDayId,
+                  let dIdx = prog.days.firstIndex(where: { $0.id == dayId }) {
+            for ex in exercises {
+                prog.days[dIdx].exercises.append(ProgramExercise(exercise: ex))
+            }
+        }
+        generatedProgram = prog
+        swapTarget = nil
+        pickerDayId = nil
+    }
+
+    private func setWeekday(_ weekday: Int, forDayAt index: Int) {
+        guard var prog = generatedProgram, index < prog.days.count else { return }
+        if prog.days[index].scheduledWeekday == weekday {
+            prog.days[index].scheduledWeekday = nil
+        } else {
+            prog.days[index].scheduledWeekday = weekday
+        }
+        generatedProgram = prog
+    }
+
+    private func updateExercise(dayIndex: Int, exerciseIndex: Int, _ mutate: (inout ProgramExercise) -> Void) {
+        guard var prog = generatedProgram, dayIndex < prog.days.count,
+              exerciseIndex < prog.days[dayIndex].exercises.count else { return }
+        mutate(&prog.days[dayIndex].exercises[exerciseIndex])
+        generatedProgram = prog
+    }
+
+    private func removeExercise(dayIndex: Int, exerciseIndex: Int) {
+        guard var prog = generatedProgram, dayIndex < prog.days.count,
+              exerciseIndex < prog.days[dayIndex].exercises.count else { return }
+        prog.days[dayIndex].exercises.remove(at: exerciseIndex)
+        generatedProgram = prog
+    }
+
+    private var actionButtons: some View {
+        VStack(spacing: 10) {
+            Button {
+                guard let program = generatedProgram else { return }
+                viewModel.activateTemplateProgram(program, startDayOffset: 0)
+                dismiss()
+                NotificationCenter.default.post(name: .switchToHomeTab, object: nil)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 14))
+                    Text("Start This Program")
+                        .font(.headline)
+                }
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(PepTheme.teal)
+                .clipShape(.rect(cornerRadius: 14))
+            }
+            .buttonStyle(.scalePrimary)
+
+            Button {
+                generatedProgram = nil
+                isGenerating = false
+                errorMessage = nil
+                expandedDayId = nil
+                expandedExerciseId = nil
+            } label: {
+                Text("Regenerate")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PepTheme.violet)
+                    .padding(.vertical, 8)
+            }
+        }
+        .padding(.top, 4)
     }
 
     // MARK: - Bottom Bar
@@ -802,10 +1302,6 @@ struct AIBuildProgramView: View {
                 }
             } label: {
                 HStack(spacing: 8) {
-                    if currentStep == 3 {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 13))
-                    }
                     Text(currentStep == 3 ? "Generate Program" : "Continue")
                         .font(.subheadline.weight(.bold))
                 }

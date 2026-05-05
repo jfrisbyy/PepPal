@@ -41,7 +41,7 @@ struct ProtocolJourneyView: View {
             .padding(.bottom, 80)
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Protocol Journey")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
@@ -421,7 +421,7 @@ struct ProtocolJourneyView: View {
         }
     }
 
-    private func weekSection(_ week: JourneyWeek) -> some View {
+    private func weekSection(_ week: ProtocolJourneyWeek) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             weekHeader(week)
                 .padding(.bottom, 8)
@@ -583,7 +583,7 @@ struct ProtocolJourneyView: View {
 
     // MARK: - Week Header & Events
 
-    private func weekHeader(_ week: JourneyWeek) -> some View {
+    private func weekHeader(_ week: ProtocolJourneyWeek) -> some View {
         HStack(spacing: 10) {
             ZStack {
                 Circle()
@@ -630,11 +630,11 @@ struct ProtocolJourneyView: View {
         }
     }
 
-    private func eventTypeDots(_ events: [JourneyEvent]) -> some View {
+    private func eventTypeDots(_ events: [ProtocolJourneyEvent]) -> some View {
         let types = Array(Set(events.map(\.type.rawValue)))
         return HStack(spacing: 3) {
             ForEach(types.prefix(5), id: \.self) { typeRaw in
-                if let type = JourneyEventType(rawValue: typeRaw) {
+                if let type = ProtocolJourneyEventType(rawValue: typeRaw) {
                     Circle()
                         .fill(type.color)
                         .frame(width: 6, height: 6)
@@ -643,7 +643,7 @@ struct ProtocolJourneyView: View {
         }
     }
 
-    private func timelineEventRow(_ event: JourneyEvent, isLast: Bool) -> some View {
+    private func timelineEventRow(_ event: ProtocolJourneyEvent, isLast: Bool) -> some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(spacing: 0) {
                 Circle()

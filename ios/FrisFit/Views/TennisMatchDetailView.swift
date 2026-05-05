@@ -19,7 +19,7 @@ struct TennisMatchDetailView: View {
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle(match.sessionType.isMatch ? "Match Detail" : "Session Detail")
         .navigationBarTitleDisplayMode(.inline)
     }

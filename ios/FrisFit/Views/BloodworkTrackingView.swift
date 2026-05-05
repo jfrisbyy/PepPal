@@ -1,4 +1,6 @@
 import SwiftUI
+import Supabase
+import Auth
 
 @Observable
 final class BloodworkTrackingViewModel {
@@ -6,8 +8,44 @@ final class BloodworkTrackingViewModel {
     var isLoading: Bool = true
     var showAddEntry: Bool = false
     var errorMessage: String?
+    var userAge: Int?
+    var userSex: BiologicalSex?
 
     private let service = BloodworkService.shared
+
+    func personalizedRange(for biomarker: Biomarker) -> PersonalizedRange {
+        BloodworkRangeService.range(for: biomarker, age: userAge, sex: userSex)
+    }
+
+    func status(for result: BiomarkerResult) -> BiomarkerStatus {
+        BloodworkRangeService.status(result.value, range: personalizedRange(for: result.biomarker))
+    }
+
+    func trend(for biomarker: Biomarker) -> BiomarkerTrend? {
+        let values: [(date: Date, value: Double)] = entries.compactMap { entry in
+            guard let r = entry.results.first(where: { $0.biomarker == biomarker }) else { return nil }
+            return (entry.date, r.value)
+        }
+        return BloodworkRangeService.trend(values: values, range: personalizedRange(for: biomarker))
+    }
+
+    func loadUserContext() async {
+        guard let session = try? await SupabaseService.shared.client.auth.session else { return }
+        let userId = session.user.id.uuidString.lowercased()
+        if let profile = try? await ProfileService.shared.fetchProfile(userId: userId) {
+            if let sexStr = profile.biological_sex {
+                userSex = BiologicalSex(rawValue: sexStr)
+            }
+            if let dobStr = profile.date_of_birth {
+                let f = DateFormatter()
+                f.dateFormat = "yyyy-MM-dd"
+                f.locale = Locale(identifier: "en_US_POSIX")
+                if let dob = f.date(from: dobStr) {
+                    userAge = Calendar.current.dateComponents([.year], from: dob, to: Date()).year
+                }
+            }
+        }
+    }
 
     func loadEntries() async {
         isLoading = true
@@ -61,7 +99,7 @@ struct BloodworkTrackingView: View {
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(viewModel.entries) { entry in
-                        BloodworkEntryCard(entry: entry) {
+                        BloodworkEntryCard(entry: entry, viewModel: viewModel) {
                             Task { await viewModel.deleteEntry(entry) }
                         }
                     }
@@ -71,7 +109,7 @@ struct BloodworkTrackingView: View {
             }
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Bloodwork Tracking")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -82,7 +120,10 @@ struct BloodworkTrackingView: View {
                 }
             }
         }
-        .task { await viewModel.loadEntries() }
+        .task {
+            await viewModel.loadUserContext()
+            await viewModel.loadEntries()
+        }
         .refreshable { await viewModel.loadEntries() }
         .sheet(isPresented: $viewModel.showAddEntry) {
             AddBloodworkEntrySheet(viewModel: viewModel)
@@ -124,6 +165,7 @@ struct BloodworkTrackingView: View {
 
 private struct BloodworkEntryCard: View {
     let entry: BloodworkEntry
+    let viewModel: BloodworkTrackingViewModel
     let onDelete: () -> Void
     @State private var showDeleteConfirm: Bool = false
 
@@ -175,15 +217,34 @@ private struct BloodworkEntryCard: View {
                                         .foregroundStyle(PepTheme.textSecondary)
                                 }
                                 ForEach(results) { result in
-                                    HStack {
-                                        Text(result.biomarker.rawValue)
-                                            .font(.caption)
-                                            .foregroundStyle(PepTheme.textPrimary)
-                                        Spacer()
-                                        Text("\(result.value, specifier: "%.1f") \(result.biomarker.unit)")
-                                            .font(.system(.caption, design: .rounded, weight: .semibold))
-                                            .foregroundStyle(result.status.color)
+                                    let status = viewModel.status(for: result)
+                                    let trend = viewModel.trend(for: result.biomarker)
+                                    NavigationLink {
+                                        BiomarkerDetailView(
+                                            biomarker: result.biomarker,
+                                            entries: viewModel.entries,
+                                            personalizedRange: viewModel.personalizedRange(for: result.biomarker)
+                                        )
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Text(result.biomarker.rawValue)
+                                                .font(.caption)
+                                                .foregroundStyle(PepTheme.textPrimary)
+                                            if let trend {
+                                                Image(systemName: trend.icon)
+                                                    .font(.system(size: 9, weight: .bold))
+                                                    .foregroundStyle(trend == .stable ? PepTheme.textSecondary : (trend == .rising ? .red : PepTheme.blue))
+                                            }
+                                            Spacer()
+                                            Text("\(result.value, specifier: "%.1f") \(result.biomarker.unit)")
+                                                .font(.system(.caption, design: .rounded, weight: .semibold))
+                                                .foregroundStyle(status.color)
+                                            Image(systemName: "chevron.right")
+                                                .font(.system(size: 9, weight: .semibold))
+                                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                                        }
                                     }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -207,7 +268,7 @@ private struct BloodworkEntryCard: View {
     }
 
     private var statusBadge: some View {
-        let outOfRange = entry.results.filter { !$0.isInRange }.count
+        let outOfRange = entry.results.filter { viewModel.status(for: $0) != .normal }.count
         return Group {
             if outOfRange > 0 {
                 HStack(spacing: 4) {
@@ -278,7 +339,7 @@ private struct AddBloodworkEntrySheet: View {
                 .padding(.bottom, 32)
             }
             .scrollIndicators(.hidden)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Add Lab Results")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -1,8 +1,11 @@
 import SwiftUI
+import PhotosUI
 
 struct AddNoteSheet: View {
     @Bindable var viewModel: ProtocolDetailViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var photoItem: PhotosPickerItem?
+    @State private var attachedImage: UIImage?
 
     var body: some View {
         NavigationStack {
@@ -26,6 +29,61 @@ struct AddNoteSheet: View {
                         .padding(12)
                         .background(PepTheme.elevated)
                         .clipShape(.rect(cornerRadius: 12))
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Attachment")
+                            .font(.system(.caption, weight: .semibold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Spacer()
+                        if attachedImage != nil {
+                            Button {
+                                attachedImage = nil
+                                photoItem = nil
+                            } label: {
+                                Text("Remove")
+                                    .font(.system(.caption2, weight: .semibold))
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                    }
+
+                    if let image = attachedImage {
+                        Color(PepTheme.elevated)
+                            .frame(height: 160)
+                            .overlay {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .allowsHitTesting(false)
+                            }
+                            .clipShape(.rect(cornerRadius: 12))
+                    } else {
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "photo.on.rectangle.angled")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(PepTheme.violet)
+                                Text("Attach photo (injection site, side effect, etc.)")
+                                    .font(.subheadline)
+                                    .foregroundStyle(PepTheme.textSecondary)
+                                Spacer()
+                            }
+                            .padding(12)
+                            .background(PepTheme.elevated)
+                            .clipShape(.rect(cornerRadius: 12))
+                        }
+                    }
+                }
+                .onChange(of: photoItem) { _, newItem in
+                    guard let newItem else { return }
+                    Task {
+                        if let data = try? await newItem.loadTransferable(type: Data.self),
+                           let image = UIImage(data: data) {
+                            attachedImage = image
+                        }
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -57,7 +115,8 @@ struct AddNoteSheet: View {
                 Spacer()
 
                 Button {
-                    viewModel.addNote()
+                    viewModel.addNote(withImage: attachedImage)
+                    dismiss()
                 } label: {
                     Text("Save Note")
                         .font(.system(.body, weight: .bold))
@@ -72,7 +131,7 @@ struct AddNoteSheet: View {
             .padding(.horizontal)
             .padding(.top, 12)
             .padding(.bottom, 24)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Add Note")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

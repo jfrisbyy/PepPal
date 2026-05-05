@@ -6,6 +6,11 @@ nonisolated enum FeedFilter: String, CaseIterable, Sendable {
     case tags = "Tags"
 }
 
+nonisolated enum CommunityMode: String, CaseIterable, Sendable {
+    case feed = "Feed"
+    case friends = "Friends"
+}
+
 nonisolated enum FeedTag: String, CaseIterable, Identifiable, Sendable {
     case bpc157 = "BPC-157"
     case tb500 = "TB-500"
@@ -139,8 +144,16 @@ nonisolated struct WorkoutLogAttachment: Sendable {
     let duration: Int
     let exerciseCount: Int
     let totalVolume: Int
-    let fpEarned: Int
     let date: Date
+
+    init(workoutName: String, duration: Int, exerciseCount: Int, totalVolume: Int, fpEarned: Int = 0, date: Date) {
+        self.workoutName = workoutName
+        self.duration = duration
+        self.exerciseCount = exerciseCount
+        self.totalVolume = totalVolume
+        _ = fpEarned
+        self.date = date
+    }
 }
 
 nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
@@ -155,7 +168,7 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
     let id: UUID
     let user: SocialUser
     let timestamp: Date
-    let textContent: String
+    var textContent: String
     let media: [FeedMediaItem]
     var likeCount: Int
     var isLiked: Bool
@@ -164,9 +177,10 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
     var repostCount: Int
     var isReposted: Bool
 
-    let tags: [FeedTag]
+    var tags: [FeedTag]
     let isFollowing: Bool
     let supabaseId: String?
+    var editedAt: Date?
 
     init(
         id: UUID = UUID(),
@@ -182,7 +196,8 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
         isReposted: Bool = false,
         tags: [FeedTag] = [],
         isFollowing: Bool = false,
-        supabaseId: String? = nil
+        supabaseId: String? = nil,
+        editedAt: Date? = nil
     ) {
         self.id = id
         self.user = user
@@ -198,6 +213,7 @@ nonisolated struct FeedPost: Identifiable, Hashable, Sendable {
         self.tags = tags
         self.isFollowing = isFollowing
         self.supabaseId = supabaseId
+        self.editedAt = editedAt
     }
 
     var hasMedia: Bool { !media.isEmpty }

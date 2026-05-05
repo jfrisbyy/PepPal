@@ -20,7 +20,7 @@ struct CyclingWorkoutBuilderView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Ride Workouts")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

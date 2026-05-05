@@ -16,63 +16,37 @@ struct VendorDetailView: View {
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationBarTitleDisplayMode(.inline)
     }
 
     private var heroHeader: some View {
-        VStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: vendor.isVerified
-                                ? [PepTheme.teal.opacity(0.25), PepTheme.teal.opacity(0.05)]
-                                : [PepTheme.elevated, PepTheme.elevated.opacity(0.5)],
-                            center: .center,
-                            startRadius: 10,
-                            endRadius: 50
-                        )
-                    )
-                    .frame(width: 88, height: 88)
+        VStack(alignment: .leading, spacing: 12) {
+            Text(vendor.isVerified ? "VERIFIED VENDOR" : "VENDOR")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(1.6)
+                .foregroundStyle(vendor.isVerified ? PepTheme.teal : PepTheme.textSecondary)
 
-                Image(systemName: vendor.isVerified ? "checkmark.shield.fill" : "building.2.fill")
-                    .font(.system(size: 38, weight: .medium))
-                    .foregroundStyle(vendor.isVerified ? PepTheme.teal : PepTheme.textSecondary)
-                    .symbolRenderingMode(.hierarchical)
+            HStack(spacing: 8) {
+                Text(vendor.name)
+                    .font(.system(size: 30, weight: .semibold, design: .serif))
+                    .kerning(-0.5)
+                    .foregroundStyle(PepTheme.textPrimary)
+                if vendor.isVerified {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(PepTheme.teal)
+                }
             }
 
-            VStack(spacing: 6) {
-                HStack(spacing: 6) {
-                    Text(vendor.name)
-                        .font(.system(.title2, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-
-                    if vendor.isVerified {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 18))
-                            .foregroundStyle(PepTheme.teal)
-                    }
-                }
-
-                if vendor.isVerified {
-                    HStack(spacing: 5) {
-                        Image(systemName: "shield.checkered")
-                            .font(.system(size: 10))
-                        Text("Verified — COAs and third-party lab results submitted")
-                            .font(.system(.caption2, weight: .medium))
-                    }
-                    .foregroundStyle(PepTheme.teal)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(PepTheme.teal.opacity(0.1))
-                    .clipShape(.capsule)
-                    .overlay(
-                        Capsule().strokeBorder(PepTheme.teal.opacity(0.15), lineWidth: 0.5)
-                    )
-                }
+            if vendor.isVerified {
+                Text("COAs and third-party lab results submitted.")
+                    .font(.system(.subheadline, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 8)
     }
 
@@ -80,83 +54,66 @@ struct VendorDetailView: View {
         HStack(spacing: 0) {
             vendorStat(
                 value: String(format: "%.1f", vendor.rating),
-                label: "Rating",
-                icon: "star.fill",
-                iconColor: .yellow
+                label: "Rating"
             )
-
             statDivider
-
             vendorStat(
                 value: "\(vendor.reviewCount)",
-                label: "Reviews",
-                icon: "text.bubble.fill",
-                iconColor: PepTheme.blue
+                label: "Reviews"
             )
-
             statDivider
-
             vendorStat(
                 value: "\(vendor.compoundsCarried.count)",
-                label: "Compounds",
-                icon: "pill.fill",
-                iconColor: PepTheme.teal
+                label: "Compounds"
             )
         }
         .padding(.vertical, 14)
-        .background(.ultraThinMaterial)
-        .clipShape(.rect(cornerRadius: 16))
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+            Rectangle()
+                .fill(PepTheme.textPrimary.opacity(0.12))
+                .frame(height: 0.5),
+            alignment: .top
+        )
+        .overlay(
+            Rectangle()
+                .fill(PepTheme.textPrimary.opacity(0.12))
+                .frame(height: 0.5),
+            alignment: .bottom
         )
     }
 
-    private func vendorStat(value: String, label: String, icon: String, iconColor: Color) -> some View {
-        VStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 12))
-                .foregroundStyle(iconColor)
+    private func vendorStat(value: String, label: String) -> some View {
+        VStack(spacing: 4) {
             Text(value)
-                .font(.system(.headline, design: .rounded, weight: .bold))
+                .font(.system(size: 22, weight: .semibold, design: .serif))
                 .foregroundStyle(PepTheme.textPrimary)
-            Text(label)
-                .font(.system(.caption2, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .heavy))
+                .tracking(1.3)
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.85))
         }
         .frame(maxWidth: .infinity)
     }
 
     private var statDivider: some View {
         Rectangle()
-            .fill(PepTheme.separatorColor)
-            .frame(width: 1, height: 36)
+            .fill(PepTheme.textPrimary.opacity(0.12))
+            .frame(width: 0.5, height: 36)
     }
 
     private var compoundsSection: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 7) {
-                    Image(systemName: "pill.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(PepTheme.teal)
-                    Text("Compounds Carried")
-                        .font(.system(.subheadline, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Spacer()
+            VStack(alignment: .leading, spacing: 14) {
+                SectionEyebrow("Compounds Carried", number: "01", accent: PepTheme.teal) {
                     Text("\(vendor.compoundsCarried.count)")
-                        .font(.system(.caption, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.teal)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(PepTheme.teal.opacity(0.1))
-                        .clipShape(.capsule)
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                 }
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 8)], spacing: 8) {
                     ForEach(vendor.compoundsCarried, id: \.self) { name in
                         let compoundColor = compoundAccentColor(for: name)
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {
                             Circle()
                                 .fill(compoundColor)
                                 .frame(width: 5, height: 5)
@@ -166,11 +123,9 @@ struct VendorDetailView: View {
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 7)
-                        .frame(maxWidth: .infinity)
-                        .background(compoundColor.opacity(0.08))
-                        .clipShape(.capsule)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay(
-                            Capsule().strokeBorder(compoundColor.opacity(0.12), lineWidth: 0.5)
+                            Capsule().strokeBorder(PepTheme.textPrimary.opacity(0.12), lineWidth: 0.5)
                         )
                     }
                 }
@@ -179,16 +134,9 @@ struct VendorDetailView: View {
     }
 
     private var reviewsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 7) {
-                Image(systemName: "text.bubble.fill")
-                    .font(.system(size: 13))
-                    .foregroundStyle(PepTheme.blue)
-                Text("Reviews")
-                    .font(.system(.subheadline, weight: .bold))
-                    .foregroundStyle(PepTheme.textPrimary)
-            }
-            .padding(.horizontal, 4)
+        VStack(alignment: .leading, spacing: 12) {
+            SectionEyebrow("Reviews", number: "02", accent: PepTheme.blue)
+                .padding(.horizontal, 4)
 
             if vendor.reviews.isEmpty {
                 GlassCard {
@@ -216,11 +164,11 @@ struct VendorDetailView: View {
                                 HStack(spacing: 8) {
                                     ZStack {
                                         Circle()
-                                            .fill(PepTheme.teal.opacity(0.15))
+                                            .strokeBorder(PepTheme.textPrimary.opacity(0.18), lineWidth: 0.5)
                                             .frame(width: 32, height: 32)
                                         Text(String(review.userName.prefix(1)).uppercased())
                                             .font(.system(.caption, weight: .bold))
-                                            .foregroundStyle(PepTheme.teal)
+                                            .foregroundStyle(PepTheme.textPrimary)
                                     }
                                     Text(review.userName)
                                         .font(.system(.subheadline, weight: .semibold))
@@ -258,22 +206,16 @@ struct VendorDetailView: View {
             }
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "globe")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("Visit Website")
-                    .font(.system(.body, weight: .bold))
+                Text("VISIT WEBSITE")
+                    .font(.system(size: 11, weight: .heavy))
+                    .tracking(1.6)
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 11, weight: .bold))
             }
             .foregroundStyle(PepTheme.invertedText)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 15)
-            .background(
-                LinearGradient(
-                    colors: [PepTheme.teal, PepTheme.teal.opacity(0.85)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ),
-                in: .rect(cornerRadius: 14)
-            )
+            .padding(.vertical, 16)
+            .background(PepTheme.textPrimary, in: .rect(cornerRadius: 14))
         }
         .buttonStyle(.scale)
     }

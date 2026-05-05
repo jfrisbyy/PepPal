@@ -176,6 +176,9 @@ final class BodyGoalsService {
                 .single()
                 .execute()
                 .value
+            await MainActor.run {
+                NotificationCenter.default.post(name: .supabaseDataChanged, object: nil, userInfo: ["source": "bodyGoal"])
+            }
             return result
         }
     }
@@ -220,6 +223,20 @@ final class BodyGoalsService {
             .execute()
             .value
 
+        let weightValue = result.weight
+        let weightNote = result.note ?? ""
+        let weightDate = parseDate(result.logged_at)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .supabaseDataChanged, object: nil, userInfo: ["source": "weight"])
+            JourneyEventService.shared.autoAdd(
+                lane: .body,
+                timestamp: weightDate,
+                title: String(format: "%.1f lbs", weightValue),
+                description: weightNote.isEmpty ? nil : weightNote,
+                sourceType: .manual,
+                payload: JourneyEventPayload(weightLbs: weightValue, note: weightNote.isEmpty ? nil : weightNote)
+            )
+        }
         return WeightEntry(
             id: UUID(uuidString: result.id ?? "") ?? UUID(),
             weight: result.weight,
@@ -289,6 +306,9 @@ final class BodyGoalsService {
             .execute()
             .value
 
+        await MainActor.run {
+            NotificationCenter.default.post(name: .supabaseDataChanged, object: nil, userInfo: ["source": "measurement"])
+        }
         return BodyMeasurement(
             id: UUID(uuidString: result.id ?? "") ?? UUID(),
             date: parseDate(result.measured_at),

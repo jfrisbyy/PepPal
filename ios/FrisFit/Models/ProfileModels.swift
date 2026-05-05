@@ -22,9 +22,9 @@ nonisolated struct UserProfile: Sendable {
     let initials: String
     let bio: String
     let avatarUrl: String?
+    let bannerUrl: String?
     let avatarColor: Color
     let activeProgram: String?
-    let totalFP: Int
     let currentStreak: Int
     let totalWorkouts: Int
     let memberSince: Date
@@ -37,6 +37,7 @@ nonisolated struct UserProfile: Sendable {
     let dateOfBirth: Date?
     let biologicalSex: BiologicalSex?
     let heightCm: Double?
+    var isPrivate: Bool
 
     init(
         id: UUID = UUID(),
@@ -45,6 +46,7 @@ nonisolated struct UserProfile: Sendable {
         initials: String,
         bio: String = "",
         avatarUrl: String? = nil,
+        bannerUrl: String? = nil,
         avatarColor: Color = Color(red: 0, green: 229/255, blue: 255/255),
         activeProgram: String? = nil,
         totalFP: Int = 0,
@@ -59,7 +61,8 @@ nonisolated struct UserProfile: Sendable {
         isCurrentUser: Bool = false,
         dateOfBirth: Date? = nil,
         biologicalSex: BiologicalSex? = nil,
-        heightCm: Double? = nil
+        heightCm: Double? = nil,
+        isPrivate: Bool = false
     ) {
         self.id = id
         self.displayName = displayName
@@ -67,9 +70,10 @@ nonisolated struct UserProfile: Sendable {
         self.initials = initials
         self.bio = bio
         self.avatarUrl = avatarUrl
+        self.bannerUrl = bannerUrl
         self.avatarColor = avatarColor
         self.activeProgram = activeProgram
-        self.totalFP = totalFP
+        _ = totalFP
         self.currentStreak = currentStreak
         self.totalWorkouts = totalWorkouts
         self.memberSince = memberSince
@@ -82,6 +86,7 @@ nonisolated struct UserProfile: Sendable {
         self.dateOfBirth = dateOfBirth
         self.biologicalSex = biologicalSex
         self.heightCm = heightCm
+        self.isPrivate = isPrivate
     }
 
     var isBiometricProfileComplete: Bool {
@@ -133,7 +138,6 @@ nonisolated struct WorkoutPostAttachment: Sendable {
     let workoutName: String
     let duration: Int
     let exerciseCount: Int
-    let fpEarned: Int
 }
 
 nonisolated struct WeeklyVolume: Identifiable, Sendable {
@@ -181,8 +185,17 @@ nonisolated struct WorkoutHistoryDetail: Identifiable, Sendable {
     let durationMinutes: Int
     let totalVolume: Int
     let caloriesBurned: Int
-    let fpEarned: Int
     let exercises: [WorkoutHistoryExerciseDetail]
+
+    init(name: String, date: Date, durationMinutes: Int, totalVolume: Int, caloriesBurned: Int, fpEarned: Int = 0, exercises: [WorkoutHistoryExerciseDetail]) {
+        self.name = name
+        self.date = date
+        self.durationMinutes = durationMinutes
+        self.totalVolume = totalVolume
+        self.caloriesBurned = caloriesBurned
+        _ = fpEarned
+        self.exercises = exercises
+    }
 }
 
 nonisolated struct WorkoutHistoryExerciseDetail: Identifiable, Sendable {

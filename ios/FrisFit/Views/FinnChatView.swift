@@ -6,6 +6,8 @@ struct PepChatView: View {
     @State private var viewModel: PepChatViewModel
     @FocusState private var isInputFocused: Bool
     @State private var showQuickActions: Bool = false
+    @State private var recorder = WhisperRecorder()
+    @State private var showMicPermissionAlert: Bool = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -17,6 +19,10 @@ struct PepChatView: View {
     var body: some View {
         VStack(spacing: 0) {
             pepNavBar
+
+            MedicalDisclaimerBanner(compact: true)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
 
             ScrollViewReader { proxy in
                 ScrollView {
@@ -74,7 +80,7 @@ struct PepChatView: View {
 
             pepInputBar
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
     }
 
     private var pepNavBar: some View {
@@ -174,12 +180,15 @@ struct PepChatView: View {
 
                     if viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Button {
+                            handleMicTap()
                         } label: {
-                            Image(systemName: "mic.fill")
+                            Image(systemName: recorder.isRecording ? "stop.circle.fill" : (recorder.isTranscribing ? "waveform" : "mic.fill"))
                                 .font(.system(size: 16))
-                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                                .foregroundStyle(recorder.isRecording ? .red : PepTheme.textSecondary.opacity(0.6))
+                                .symbolEffect(.pulse, isActive: recorder.isRecording || recorder.isTranscribing)
                         }
                         .padding(.trailing, 10)
+                        .disabled(recorder.isTranscribing)
                     }
                 }
                 .background(PepTheme.elevated)
@@ -206,6 +215,17 @@ struct PepChatView: View {
                 quickActionsRow
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+
+            if recorder.isRecording {
+                recordingIndicator
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: recorder.isRecording)
+        .alert("Microphone Access", isPresented: $showMicPermissionAlert) {
+            Button("OK") {}
+        } message: {
+            Text("Enable microphone access in Settings to use voice input.")
         }
         .background(
             PepTheme.cardSurface
@@ -234,6 +254,44 @@ struct PepChatView: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
+    }
+
+    private var recordingIndicator: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(.red)
+                .frame(width: 8, height: 8)
+                .symbolEffect(.pulse, options: .repeating)
+            Text("Listening… tap stop when done")
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 10)
+    }
+
+    private func handleMicTap() {
+        if recorder.isRecording {
+            Task {
+                if let text = await recorder.stopRecordingAndTranscribe(), !text.isEmpty {
+                    viewModel.submitTranscribedText(text)
+                }
+            }
+        } else {
+            Task {
+                let granted = await recorder.requestPermission()
+                guard granted else {
+                    showMicPermissionAlert = true
+                    return
+                }
+                do {
+                    try recorder.startRecording()
+                } catch {
+                    recorder.errorMessage = error.localizedDescription
+                }
+            }
+        }
     }
 
     private func shouldShowTimestamp(at index: Int) -> Bool {

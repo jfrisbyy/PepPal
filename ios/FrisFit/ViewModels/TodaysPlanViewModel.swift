@@ -12,6 +12,23 @@ final class TodaysPlanViewModel {
     private let cacheHashKey = "todaysPlanHash"
     private let cacheDateKey = "todaysPlanCacheTimestamp"
 
+    private var scopedDebounceTasks: [String: Task<Void, Never>] = [:]
+    private var dirtyDomains: Set<String> = []
+    private var lastHolisticDate: Date?
+    private var lastSignalSnapshot: SignalSnapshot?
+
+    private struct SignalSnapshot: Equatable {
+        let proteinGoalHit: Bool
+        let calorieGoalHit: Bool
+        let calorieBudgetBlown: Bool
+        let workoutCompletedToday: Bool
+        let hasAnyLogToday: Bool
+        let doseLoggedToday: Bool
+    }
+
+    private static let scopedDebounceSeconds: UInt64 = 45
+    private static let holisticMaxStaleSeconds: TimeInterval = 4 * 60 * 60
+
     var hasPlan: Bool { planResponse != nil }
 
     var summary: String {
@@ -91,6 +108,185 @@ final class TodaysPlanViewModel {
         )
     }
 
+    private static func domain(forSource source: String) -> String? {
+        switch source {
+        case "meal", "meal_delete": return "nutrition"
+        case "workout", "activity": return "training"
+        case "weight", "measurement", "bodyGoal": return "body"
+        case "dose", "sideEffect": return "protocol"
+        case "bloodwork": return "bloodwork"
+        default: return nil
+        }
+    }
+
+    private func computeSignals(_ context: ContextBundle) -> SignalSnapshot {
+        let proteinHit: Bool = {
+            guard let n = context.nutritionToday, n.proteinTarget > 0 else { return false }
+            return n.proteinConsumed >= n.proteinTarget
+        }()
+        let calorieHit: Bool = {
+            guard let n = context.nutritionToday, n.caloriesTarget > 0 else { return false }
+            return n.caloriesConsumed >= Int(Double(n.caloriesTarget) * 0.95)
+        }()
+        let calorieBlown: Bool = {
+            guard let n = context.nutritionToday, n.caloriesTarget > 0 else { return false }
+            return n.caloriesConsumed > Int(Double(n.caloriesTarget) * 1.1)
+        }()
+        let workoutDone = context.trainingContext?.completedToday ?? false
+        let hasLog = (context.nutritionToday?.mealsLogged ?? 0) > 0 ||
+            (context.trainingContext?.completedToday ?? false) ||
+            (context.protocolContext?.doseLoggedToday ?? false)
+        let doseLogged = context.protocolContext?.doseLoggedToday ?? false
+        return SignalSnapshot(
+            proteinGoalHit: proteinHit,
+            calorieGoalHit: calorieHit,
+            calorieBudgetBlown: calorieBlown,
+            workoutCompletedToday: workoutDone,
+            hasAnyLogToday: hasLog,
+            doseLoggedToday: doseLogged
+        )
+    }
+
+    private func shouldTriggerHolistic(_ newSignals: SignalSnapshot) -> Bool {
+        guard let previous = lastSignalSnapshot else {
+            return newSignals.hasAnyLogToday
+        }
+        if newSignals.proteinGoalHit != previous.proteinGoalHit { return true }
+        if newSignals.calorieGoalHit != previous.calorieGoalHit { return true }
+        if newSignals.calorieBudgetBlown != previous.calorieBudgetBlown { return true }
+        if newSignals.workoutCompletedToday != previous.workoutCompletedToday { return true }
+        if newSignals.doseLoggedToday != previous.doseLoggedToday { return true }
+        if newSignals.hasAnyLogToday && !previous.hasAnyLogToday { return true }
+        if let last = lastHolisticDate, Date().timeIntervalSince(last) > Self.holisticMaxStaleSeconds, newSignals.hasAnyLogToday {
+            return true
+        }
+        return false
+    }
+
+    func handleDataChange(
+        source: String,
+        firstName: String,
+        activeProtocol: PeptideProtocol?,
+        nutrition: NutritionSnapshot,
+        nutritionTarget: MacroTarget,
+        loggedMeals: [LoggedMeal],
+        recentDailyMeals: [[LoggedMeal]] = [],
+        bodyGoalVM: BodyGoalViewModel,
+        todaysPlan: WorkoutPlan,
+        activeProgram: TrainingProgram?,
+        bloodworkEntries: [BloodworkEntry],
+        streakDays: Int,
+        workoutsThisWeek: Int,
+        workoutHistory: [WorkoutHistoryDetail] = [],
+        muscleRecoveryItems: [MuscleRecoveryItem] = [],
+        weeklyMuscleVolumes: [WeeklyMuscleVolume] = [],
+        personalRecords: [TrainPersonalRecord] = []
+    ) {
+        let context = TodaysPlanService.shared.assembleContext(
+            firstName: firstName,
+            activeProtocol: activeProtocol,
+            nutrition: nutrition,
+            nutritionTarget: nutritionTarget,
+            loggedMeals: loggedMeals,
+            recentDailyMeals: recentDailyMeals,
+            bodyGoalVM: bodyGoalVM,
+            todaysPlan: todaysPlan,
+            activeProgram: activeProgram,
+            bloodworkEntries: bloodworkEntries,
+            streakDays: streakDays,
+            workoutsThisWeek: workoutsThisWeek,
+            workoutHistory: workoutHistory,
+            muscleRecoveryItems: muscleRecoveryItems,
+            weeklyMuscleVolumes: weeklyMuscleVolumes,
+            personalRecords: personalRecords
+        )
+
+        let signals = computeSignals(context)
+
+        if shouldTriggerHolistic(signals) {
+            lastSignalSnapshot = signals
+            scopedDebounceTasks.values.forEach { $0.cancel() }
+            scopedDebounceTasks.removeAll()
+            dirtyDomains.removeAll()
+            runHolisticRefresh(context: context)
+            return
+        }
+        lastSignalSnapshot = signals
+
+        guard let domain = Self.domain(forSource: source) else { return }
+        dirtyDomains.insert(domain)
+        scheduleScopedRefresh(domain: domain, context: context)
+    }
+
+    private func scheduleScopedRefresh(domain: String, context: ContextBundle) {
+        scopedDebounceTasks[domain]?.cancel()
+        let task = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(Self.scopedDebounceSeconds))
+            guard !Task.isCancelled, let self else { return }
+            await self.performScopedRefresh(domain: domain, context: context)
+        }
+        scopedDebounceTasks[domain] = task
+    }
+
+    @MainActor
+    private func performScopedRefresh(domain: String, context: ContextBundle) async {
+        guard hasPlan else {
+            runHolisticRefresh(context: context)
+            return
+        }
+        isBackgroundRefreshing = true
+        defer { isBackgroundRefreshing = false }
+        do {
+            let module = try await TodaysPlanService.shared.generateModule(domain: domain, context: context)
+            guard var plan = planResponse else { return }
+            var modules = plan.modules
+            if let idx = modules.firstIndex(where: { $0.type == domain }) {
+                modules[idx] = module
+            } else {
+                modules.append(module)
+            }
+            plan = TodaysPlanResponse(summary: plan.summary, modules: modules)
+            withAnimation(.easeInOut(duration: 0.3)) {
+                planResponse = plan
+            }
+            cachePlan(plan, hash: context.contentHash)
+            dirtyDomains.remove(domain)
+            scopedDebounceTasks.removeValue(forKey: domain)
+        } catch {
+            print("[TodaysPlan] Scoped \(domain) refresh failed: \(error)")
+        }
+    }
+
+    private func runHolisticRefresh(context: ContextBundle) {
+        let currentHash = context.contentHash
+        if let cached = cachedHash, cached == currentHash, hasPlan {
+            lastHolisticDate = Date()
+            return
+        }
+        if hasPlan {
+            isBackgroundRefreshing = true
+        } else {
+            isLoading = true
+        }
+        errorMessage = nil
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let response = try await TodaysPlanService.shared.generatePlan(context: context)
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    self.planResponse = response
+                }
+                self.lastFetchDate = Date()
+                self.lastHolisticDate = Date()
+                self.cachePlan(response, hash: currentHash)
+            } catch {
+                print("[TodaysPlan] Holistic refresh error: \(error)")
+            }
+            self.isLoading = false
+            self.isBackgroundRefreshing = false
+        }
+    }
+
     func fetchPlanIfNeeded(
         firstName: String,
         activeProtocol: PeptideProtocol?,
@@ -160,6 +356,8 @@ final class TodaysPlanViewModel {
                     planResponse = response
                 }
                 lastFetchDate = Date()
+                lastHolisticDate = Date()
+                lastSignalSnapshot = computeSignals(context)
                 cachePlan(response, hash: currentHash)
             } catch {
                 print("[TodaysPlan] Error: \(error)")

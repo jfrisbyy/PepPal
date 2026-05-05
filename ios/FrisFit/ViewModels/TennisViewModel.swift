@@ -89,8 +89,6 @@ final class TennisViewModel {
 
     var thisWeekSessions: Int { thisWeekMatches.count }
 
-    var totalFPEarned: Int { matches.reduce(0) { $0 + $1.fpEarned } }
-
     var formData: [(date: Date, rating: Int)] {
         gameMatches
             .sorted { $0.date < $1.date }

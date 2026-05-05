@@ -1,6 +1,6 @@
 import SwiftUI
 
-nonisolated enum JourneyEventType: String, Sendable {
+nonisolated enum ProtocolJourneyEventType: String, Sendable {
     case dose
     case weight
     case bloodwork
@@ -37,16 +37,16 @@ nonisolated enum JourneyEventType: String, Sendable {
     }
 }
 
-nonisolated struct JourneyEvent: Identifiable, Sendable {
+nonisolated struct ProtocolJourneyEvent: Identifiable, Sendable {
     let id: UUID
-    let type: JourneyEventType
+    let type: ProtocolJourneyEventType
     let date: Date
     let title: String
     let subtitle: String
     let detail: String?
     let week: Int
 
-    init(type: JourneyEventType, date: Date, title: String, subtitle: String, detail: String? = nil, week: Int) {
+    init(type: ProtocolJourneyEventType, date: Date, title: String, subtitle: String, detail: String? = nil, week: Int) {
         self.id = UUID()
         self.type = type
         self.date = date
@@ -72,10 +72,10 @@ nonisolated struct WeeklySummary: Sendable {
     let weightChange: Double?
 }
 
-nonisolated struct JourneyWeek: Identifiable, Sendable {
+nonisolated struct ProtocolJourneyWeek: Identifiable, Sendable {
     let id: Int
     let weekNumber: Int
-    let events: [JourneyEvent]
+    let events: [ProtocolJourneyEvent]
     let startDate: Date
     let endDate: Date
     let isCurrentWeek: Bool
@@ -112,12 +112,12 @@ final class ProtocolJourneyViewModel {
         self.protocolData = protocolData
     }
 
-    var allEvents: [JourneyEvent] {
-        var events: [JourneyEvent] = []
+    var allEvents: [ProtocolJourneyEvent] {
+        var events: [ProtocolJourneyEvent] = []
 
         for dose in protocolData.doseLog {
             let week = weekNumber(for: dose.timestamp)
-            events.append(JourneyEvent(
+            events.append(ProtocolJourneyEvent(
                 type: .dose,
                 date: dose.timestamp,
                 title: dose.compoundName,
@@ -130,7 +130,7 @@ final class ProtocolJourneyViewModel {
         for entry in weightEntries {
             let week = weekNumber(for: entry.date)
             let changeText = weightChangeText(for: entry)
-            events.append(JourneyEvent(
+            events.append(ProtocolJourneyEvent(
                 type: .weight,
                 date: entry.date,
                 title: String(format: "%.1f lbs", entry.weight),
@@ -146,7 +146,7 @@ final class ProtocolJourneyViewModel {
             let subtitle = abnormalCount > 0
                 ? "\(entry.results.count) markers · \(abnormalCount) flagged"
                 : "\(entry.results.count) markers · All normal"
-            events.append(JourneyEvent(
+            events.append(ProtocolJourneyEvent(
                 type: .bloodwork,
                 date: entry.date,
                 title: "Lab Results",
@@ -158,7 +158,7 @@ final class ProtocolJourneyViewModel {
 
         for photo in progressPhotos {
             let week = weekNumber(for: photo.date)
-            events.append(JourneyEvent(
+            events.append(ProtocolJourneyEvent(
                 type: .photo,
                 date: photo.date,
                 title: "Progress Photo",
@@ -176,7 +176,7 @@ final class ProtocolJourneyViewModel {
             case 3: severityLabel = "Significant"
             default: severityLabel = "Severe"
             }
-            events.append(JourneyEvent(
+            events.append(ProtocolJourneyEvent(
                 type: .sideEffect,
                 date: effect.timestamp,
                 title: effect.effect,
@@ -196,7 +196,7 @@ final class ProtocolJourneyViewModel {
             let durationText = duration > 0 ? "\(duration) min" : ""
             let calText = cals > 0 ? "\(cals) cal" : ""
             let parts = [durationText, calText].filter { !$0.isEmpty }
-            events.append(JourneyEvent(
+            events.append(ProtocolJourneyEvent(
                 type: .workout,
                 date: date,
                 title: workout.name,
@@ -209,19 +209,19 @@ final class ProtocolJourneyViewModel {
         return events.sorted { $0.date > $1.date }
     }
 
-    var journeyWeeks: [JourneyWeek] {
+    var journeyWeeks: [ProtocolJourneyWeek] {
         let currentWeek = protocolData.currentWeek
         let totalWeeks = max(currentWeek, protocolData.effectiveTotalWeeks)
         let events = allEvents
 
-        var weeks: [JourneyWeek] = []
+        var weeks: [ProtocolJourneyWeek] = []
         for w in (1...totalWeeks).reversed() {
             let weekEvents = events.filter { $0.week == w }
             let weekStart = calendar.date(byAdding: .day, value: (w - 1) * 7, to: protocolData.startDate) ?? protocolData.startDate
             let weekEnd = calendar.date(byAdding: .day, value: 6, to: weekStart) ?? weekStart
             let summary = buildWeeklySummary(week: w, events: weekEvents, weekStart: weekStart, weekEnd: weekEnd)
 
-            weeks.append(JourneyWeek(
+            weeks.append(ProtocolJourneyWeek(
                 id: w,
                 weekNumber: w,
                 events: weekEvents,
@@ -366,7 +366,7 @@ final class ProtocolJourneyViewModel {
         } catch {}
     }
 
-    private func buildWeeklySummary(week: Int, events: [JourneyEvent], weekStart: Date, weekEnd: Date) -> WeeklySummary {
+    private func buildWeeklySummary(week: Int, events: [ProtocolJourneyEvent], weekStart: Date, weekEnd: Date) -> WeeklySummary {
         let weekWorkouts = workouts.filter { workout in
             let date = parseDate(workout.completed_at ?? workout.created_at)
             return weekNumber(for: date) == week

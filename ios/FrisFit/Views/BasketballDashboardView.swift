@@ -8,6 +8,7 @@ struct BasketballDashboardView: View {
         VStack(spacing: 16) {
             quickStatsHeader
             sessionTypeSelector
+            SportCoachCard(sport: .basketball, accent: accentColor)
             recentGamesList
             shootingBreakdownCard
             pointsTrendCard
@@ -23,74 +24,70 @@ struct BasketballDashboardView: View {
     // MARK: - Quick Stats Header
 
     private var quickStatsHeader: some View {
-        GlassCard {
-            VStack(spacing: 14) {
-                HStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                RadialGradient(
-                                    colors: [accentColor.opacity(0.3), accentColor.opacity(0.05)],
-                                    center: .center, startRadius: 0, endRadius: 32
-                                )
-                            )
-                            .frame(width: 56, height: 56)
-                        Image(systemName: "basketball.fill")
-                            .font(.system(size: 24))
-                            .foregroundStyle(accentColor)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Basketball")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text("\(bbVM.thisWeekSessions) session\(bbVM.thisWeekSessions == 1 ? "" : "s") this week · \(bbVM.totalWins)W-\(bbVM.totalLosses)L")
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-
+        PepSportCard(accent: accentColor) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("BASKETBALL")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(2.0)
+                        .foregroundStyle(accentColor.opacity(0.9))
                     Spacer()
-
                     if bbVM.totalGamesPlayed > 0 {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(String(format: "%.0f%%", bbVM.winPercentage))
-                                .font(.system(.title2, design: .rounded, weight: .bold))
-                                .foregroundStyle(bbVM.winPercentage >= 50 ? .green : .orange)
-                            Text("Win %")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(PepTheme.textSecondary)
-                        }
+                        Text("WIN \(String(format: "%.0f%%", bbVM.winPercentage))")
+                            .font(.system(size: 10, weight: .medium))
+                            .tracking(1.4)
+                            .foregroundStyle(PepTheme.textTertiary)
                     }
                 }
 
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
-                    quickStat(value: String(format: "%.1f", bbVM.averagePoints), label: "PPG", icon: "target")
-                    quickStat(value: String(format: "%.1f", bbVM.averageRebounds), label: "RPG", icon: "arrow.up.and.down")
-                    quickStat(value: String(format: "%.1f", bbVM.averageAssists), label: "APG", icon: "arrow.turn.up.right")
-                    quickStat(value: "\(bbVM.seasonHighPoints)", label: "High", icon: "flame.fill")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("On the Court")
+                        .font(.system(size: 22, weight: .semibold, design: .serif))
+                        .kerning(-0.4)
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("\(bbVM.thisWeekSessions) session\(bbVM.thisWeekSessions == 1 ? "" : "s") this week  ·  \(bbVM.totalWins)W–\(bbVM.totalLosses)L")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+
+                LinearGradient(
+                    colors: [PepTheme.textPrimary.opacity(0.16), PepTheme.textPrimary.opacity(0)],
+                    startPoint: .leading, endPoint: .trailing
+                )
+                .frame(height: 0.5)
+
+                HStack(spacing: 0) {
+                    quickStat(value: String(format: "%.1f", bbVM.averagePoints), label: "PPG")
+                    quickStatDivider
+                    quickStat(value: String(format: "%.1f", bbVM.averageRebounds), label: "RPG")
+                    quickStatDivider
+                    quickStat(value: String(format: "%.1f", bbVM.averageAssists), label: "APG")
+                    quickStatDivider
+                    quickStat(value: "\(bbVM.seasonHighPoints)", label: "HIGH")
                 }
             }
         }
     }
 
-    private func quickStat(value: String, label: String, icon: String) -> some View {
-        VStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 10))
-                .foregroundStyle(accentColor.opacity(0.7))
+    private var quickStatDivider: some View {
+        Rectangle()
+            .fill(PepTheme.shimmerHighlight)
+            .frame(width: 0.5, height: 28)
+    }
+
+    private func quickStat(value: String, label: String) -> some View {
+        VStack(spacing: 4) {
             Text(value)
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .font(.system(.title3, design: .serif, weight: .semibold))
                 .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
-                .font(.system(size: 9, weight: .medium))
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
                 .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(PepTheme.elevated.opacity(0.5))
-        .clipShape(.rect(cornerRadius: 10))
     }
 
     // MARK: - Session Type Selector

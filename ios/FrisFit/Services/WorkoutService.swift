@@ -158,6 +158,24 @@ final class WorkoutService {
             .single()
             .execute()
             .value
+
+        let pinTitle = name
+        let pinDuration = durationMinutes
+        let pinCals = caloriesBurned
+        let pinType = workoutType
+        await MainActor.run {
+            let parts = [
+                pinDuration.map { "\($0) min" } ?? "",
+                pinCals.map { "\($0) cal" } ?? ""
+            ].filter { !$0.isEmpty }
+            JourneyEventService.shared.autoAdd(
+                lane: .training,
+                timestamp: now,
+                title: pinTitle,
+                description: parts.isEmpty ? pinType : parts.joined(separator: " · "),
+                sourceType: .workout
+            )
+        }
         return created
     }
 
@@ -168,7 +186,7 @@ final class WorkoutService {
         durationMinutes: Int?,
         caloriesBurned: Int?,
         totalVolume: Int,
-        fpEarned: Int,
+        fpEarned: Int = 0,
         exercises: [WorkoutHistoryExerciseDetail]
     ) async throws -> SupabaseWorkout {
         let exerciseJSON = exercises.map { ex in
@@ -209,8 +227,7 @@ final class WorkoutService {
             sport: session.sport.rawValue,
             durationMinutes: session.durationMinutes,
             caloriesBurned: nil,
-            notes: notesString,
-            fpEarned: session.fpEarned
+            notes: notesString
         )
     }
 

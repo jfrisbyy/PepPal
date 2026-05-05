@@ -18,6 +18,7 @@ struct UserProfileView: View {
     @State private var showDeleteConfirm: Bool = false
     @State private var showReportConfirm: Bool = false
     @State private var pendingDeletePost: UserPost?
+    @State private var selectedHashtag: String?
     @Environment(\.dismiss) private var dismiss
 
     private let messagingService = MessagingService.shared
@@ -26,7 +27,6 @@ struct UserProfileView: View {
 
     enum UserProfileTab: String, CaseIterable {
         case posts = "Posts"
-        case market = "Market"
         case about = "About"
     }
 
@@ -47,10 +47,13 @@ struct UserProfileView: View {
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: FollowListDestination.self) { destination in
             FollowListView(destination: destination, profileViewModel: viewModel)
+        }
+        .navigationDestination(item: Binding(get: { selectedHashtag.map(HashtagDestination.init) }, set: { selectedHashtag = $0?.tag })) { dest in
+            HashtagFeedView(tag: dest.tag)
         }
         .alert("Delete Post?", isPresented: $showDeleteConfirm) {
             Button("Cancel", role: .cancel) { pendingDeletePost = nil }
@@ -152,14 +155,18 @@ struct UserProfileView: View {
         ZStack(alignment: .bottomLeading) {
             LinearGradient(
                 colors: [
-                    user.avatarColor.opacity(0.3),
-                    PepTheme.violet.opacity(0.1),
+                    user.avatarColor.opacity(0.18),
                     PepTheme.background
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             .frame(height: 120)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(PepTheme.separatorColor)
+                    .frame(height: 0.5)
+            }
 
             Circle()
                 .fill(PepTheme.background)
@@ -280,15 +287,11 @@ struct UserProfileView: View {
             }
 
             if let program = user.activeProgramName {
-                HStack(spacing: 4) {
-                    Image(systemName: "figure.run")
-                        .font(.caption2)
-                        .foregroundStyle(PepTheme.teal)
-                    Text("Running \(program)")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.teal)
-                }
-                .padding(.top, 4)
+                Text("RUNNING — \(program.uppercased())")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.4)
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .padding(.top, 6)
             }
 
             HStack(spacing: 20) {
@@ -344,40 +347,38 @@ struct UserProfileView: View {
         case .none:
             EmptyView()
         case .pending:
-            HStack(spacing: 6) {
-                Image(systemName: "clock.fill")
-                    .font(.caption2)
-                Text("Friend request sent")
-                    .font(.caption)
-            }
-            .foregroundStyle(PepTheme.amber)
-            .padding(.top, 4)
+            Text("REQUEST PENDING")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.4)
+                .foregroundStyle(PepTheme.amber.opacity(0.9))
+                .padding(.top, 6)
         case .accepted:
-            HStack(spacing: 6) {
-                Image(systemName: "person.2.fill")
-                    .font(.caption2)
-                Text("Friends")
-                    .font(.caption)
-            }
-            .foregroundStyle(PepTheme.teal)
-            .padding(.top, 4)
+            Text("FRIENDS")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.4)
+                .foregroundStyle(PepTheme.textSecondary)
+                .padding(.top, 6)
         }
     }
 
     private var quickStats: some View {
-        HStack(spacing: 0) {
-            ProfileQuickStat(value: "\(user.streak)", label: "Day Streak", icon: "flame.fill", color: PepTheme.amber)
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text("\(user.streak)")
+                .font(.system(size: 34, weight: .light, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text("DAY STREAK")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.6)
+                .foregroundStyle(PepTheme.textSecondary)
+            Spacer()
         }
         .padding(.vertical, 14)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(
-                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    lineWidth: 0.5
-                )
-        )
+        .overlay(alignment: .top) {
+            Rectangle().fill(PepTheme.separatorColor).frame(height: 0.5)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(PepTheme.separatorColor).frame(height: 0.5)
+        }
     }
 
     private var tabSection: some View {
@@ -412,8 +413,6 @@ struct UserProfileView: View {
             switch selectedTab {
             case .posts:
                 postsContent
-            case .market:
-                marketContent
             case .about:
                 aboutContent
             }
@@ -505,10 +504,12 @@ struct UserProfileView: View {
                 }
 
                 if !post.content.isEmpty {
-                    Text(post.content)
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .lineSpacing(3)
+                    RichText(
+                        text: post.content,
+                        font: .subheadline,
+                        onHashtag: { tag in selectedHashtag = tag }
+                    )
+                    .lineSpacing(3)
                 }
 
                 if !post.mediaUrls.isEmpty {
@@ -578,48 +579,36 @@ struct UserProfileView: View {
         .padding(.vertical, 12)
     }
 
-    private var marketContent: some View {
-        VStack(spacing: 12) {
-            emptyState(icon: "bag", title: "No Market Items", message: "\(user.name) hasn't published any programs yet.")
-        }
-        .padding(.top, 12)
-    }
-
     private var aboutContent: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
+            SectionEyebrow("About", number: "01", accent: PepTheme.teal)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+
             if let program = user.activeProgramName {
-                aboutRow(icon: "figure.run", label: "Active Program", value: program)
+                aboutRow(label: "Active Program", value: program)
             }
-            aboutRow(icon: "flame.fill", label: "Current Streak", value: "\(user.streak) days")
+            aboutRow(label: "Current Streak", value: "\(user.streak) days")
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
     }
 
-    private func aboutRow(icon: String, label: String, value: String) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: icon)
-                .font(.body)
-                .foregroundStyle(PepTheme.teal)
-                .frame(width: 28)
-            Text(label)
-                .font(.subheadline)
+    private func aboutRow(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.4)
                 .foregroundStyle(PepTheme.textSecondary)
             Spacer()
             Text(value)
-                .font(.system(.subheadline, weight: .semibold))
+                .font(.system(.subheadline, weight: .medium))
                 .foregroundStyle(PepTheme.textPrimary)
         }
-        .padding(14)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(
-                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    lineWidth: 0.5
-                )
-        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(PepTheme.separatorColor).frame(height: 0.5)
+        }
     }
 
     private func feedPostFromUserPost(_ post: UserPost) -> FeedPost {
@@ -631,8 +620,7 @@ struct UserProfileView: View {
             avatarColor: user.avatarColor,
             avatarURL: user.avatarURL,
             activeProgramName: user.activeProgramName,
-            streak: user.streak,
-            totalFP: user.totalFP
+            streak: user.streak
         )
         let mediaItems: [FeedMediaItem] = post.mediaUrls.map { url in
             FeedMediaItem(type: .photo, imageURL: url)

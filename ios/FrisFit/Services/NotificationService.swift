@@ -47,8 +47,8 @@ final class NotificationService {
         guard preferences.enabledTypes.contains(.workoutReminder) else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "Time to Train 💪"
-        content.body = "Your muscles are waiting. Let's crush today's workout!"
+        content.title = "Training Window Open"
+        content.body = "Your session is ready when you are."
         content.sound = .default
         content.categoryIdentifier = NotificationType.workoutReminder.rawValue
 
@@ -69,8 +69,8 @@ final class NotificationService {
         guard preferences.enabledTypes.contains(.streakWarning) else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "Don't Break Your Streak! 🔥"
-        content.body = "You're on a \(currentStreak)-day streak. Log any activity today to keep it going!"
+        content.title = "Streak at Risk"
+        content.body = "You're on a \(currentStreak)-day streak. Log any activity today to keep it going."
         content.sound = .default
         content.categoryIdentifier = NotificationType.streakWarning.rawValue
 
@@ -92,8 +92,8 @@ final class NotificationService {
         guard preferences.enabledTypes.contains(.streakMilestone) else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "Streak Milestone! 🏆"
-        content.body = "Incredible! You've hit a \(days)-day streak. You're unstoppable!"
+        content.title = "Streak Milestone Reached"
+        content.body = "You've hit a \(days)-day streak. Quietly impressive."
         content.sound = .default
         content.categoryIdentifier = NotificationType.streakMilestone.rawValue
 
@@ -128,8 +128,8 @@ final class NotificationService {
         guard preferences.enabledTypes.contains(.friendLike) else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "New Like ❤️"
-        content.body = "\(fromFriend) liked your post!"
+        content.title = "New Reaction"
+        content.body = "\(fromFriend) reacted to your post."
         content.sound = .default
         content.categoryIdentifier = NotificationType.friendLike.rawValue
 
@@ -142,12 +142,14 @@ final class NotificationService {
         UNUserNotificationCenter.current().add(request)
     }
 
-    func scheduleWeeklyProgressNotification(fpEarned: Int, targetFP: Int) {
+    func scheduleWeeklyProgressNotification(fpEarned: Int = 0, targetFP: Int = 0) {
         guard preferences.enabledTypes.contains(.weeklyProgress) else { return }
+        _ = fpEarned
+        _ = targetFP
 
         let content = UNMutableNotificationContent()
-        content.title = "Weekly Progress Update 📊"
-        content.body = "You earned \(fpEarned) FP this week (\(Int(Double(fpEarned) / Double(targetFP) * 100))% of your goal). Keep pushing!"
+        content.title = "Your Week in Review"
+        content.body = "Your weekly recap is ready."
         content.sound = .default
         content.categoryIdentifier = NotificationType.weeklyProgress.rawValue
 
@@ -177,7 +179,7 @@ final class NotificationService {
         ]
 
         let content = UNMutableNotificationContent()
-        content.title = "Finn's Recovery Tip 🧘"
+        content.title = "A Note from Finn"
         content.body = tips.randomElement() ?? tips[0]
         content.sound = .default
         content.categoryIdentifier = NotificationType.restDayRecovery.rawValue

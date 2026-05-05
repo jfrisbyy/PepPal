@@ -126,7 +126,6 @@ nonisolated struct TennisMatch: Identifiable, Sendable {
     let performanceRating: Int
     let confidenceRating: Int
     let notes: String
-    let fpEarned: Int
 
     init(
         date: Date = Date(),
@@ -153,25 +152,6 @@ nonisolated struct TennisMatch: Identifiable, Sendable {
         self.performanceRating = performanceRating
         self.confidenceRating = confidenceRating
         self.notes = notes
-
-        if sessionType.isMatch {
-            let statScore = Double(stats.aces) * 3.0 + Double(stats.winners) * 2.0 -
-                Double(stats.doubleFaults) * 1.5 - Double(stats.unforcedErrors) * 0.5 +
-                Double(stats.breakPointsConverted) * 4.0
-            let durationBonus = Double(durationMinutes) * 1.8
-            let resultMultiplier: Double = result == .win ? 1.3 : 1.0
-            self.fpEarned = max(Int((statScore + durationBonus) * resultMultiplier), Int(Double(durationMinutes) * 2.0))
-        } else {
-            let baseFP = Double(durationMinutes) * 2.5
-            let typeMultiplier: Double
-            switch sessionType {
-            case .hittingSession: typeMultiplier = 1.1
-            case .ballMachine: typeMultiplier = 1.15
-            case .cardioConditioning: typeMultiplier = 1.3
-            default: typeMultiplier = 1.0
-            }
-            self.fpEarned = Int(baseFP * typeMultiplier)
-        }
     }
 
     var scoreDisplay: String {

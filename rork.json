@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "PepPal",
+      "name": "EPTI",
       "path": "ios",
       "framework": "swift",
       "capabilities": [

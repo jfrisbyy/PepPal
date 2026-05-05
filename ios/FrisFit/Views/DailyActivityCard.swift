@@ -6,6 +6,9 @@ struct DailyActivityCard: View {
     var onLogActivity: () -> Void
     @State private var isExpanded: Bool = false
 
+    private let stepsColor = Color(red: 0.38, green: 0.82, blue: 0.55)
+    private let exerciseColor = Color.orange
+
     var body: some View {
         GlassCard(accent: .orange) {
             VStack(alignment: .leading, spacing: 0) {
@@ -29,8 +32,10 @@ struct DailyActivityCard: View {
         }
     }
 
+    // MARK: - Collapsed
+
     private var collapsedContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "flame.fill")
@@ -50,18 +55,139 @@ struct DailyActivityCard: View {
             if viewModel.isLoading {
                 HStack {
                     Spacer()
-                    ProgressView()
-                        .tint(PepTheme.teal)
+                    ProgressView().tint(PepTheme.teal)
                     Spacer()
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 24)
             } else {
-                caloriesBurnedHeader
-                energyBalanceBar
-                balanceStatusRow
+                ringAndContext
+                balanceBar
             }
         }
     }
+
+    private var ringAndContext: some View {
+        HStack(alignment: .center, spacing: 18) {
+            SegmentedMoveRing(
+                stepsCalories: viewModel.stepsCalories,
+                exerciseCalories: viewModel.exerciseCalories,
+                goal: viewModel.activeGoal,
+                stepsColor: stepsColor,
+                exerciseColor: exerciseColor
+            )
+            .frame(width: 108, height: 108)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 5) {
+                    Image(systemName: viewModel.isActiveGoalMet ? "checkmark.circle.fill" : "target")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(viewModel.isActiveGoalMet ? .green : PepTheme.textSecondary)
+                    Text("Goal \(viewModel.activeGoal) active")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                }
+
+                HStack(spacing: 5) {
+                    legendDot(stepsColor)
+                    Text("Steps")
+                        .font(.system(size: 11))
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Text(formattedSteps(viewModel.stepsToday))
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    if viewModel.stepsCalories > 0 {
+                        Text("· \(viewModel.stepsCalories) cal")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                    }
+                }
+
+                HStack(spacing: 5) {
+                    legendDot(exerciseColor)
+                    Text("Exercise")
+                        .font(.system(size: 11))
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Text("\(viewModel.exerciseCalories)")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(PepTheme.textPrimary)
+                }
+
+                Text("+\(viewModel.restingBurn) resting")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                    .padding(.top, 2)
+
+                if let needed = viewModel.additionalActiveCaloriesNeeded {
+                    Text("Need \(needed) more to hit deficit")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.orange.opacity(0.9))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                } else if let headroom = viewModel.additionalFoodAllowed,
+                          viewModel.targetBalanceDelta ?? 0 < 0 {
+                    Text("\(headroom) cal headroom to eat")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.green.opacity(0.9))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func legendDot(_ color: Color) -> some View {
+        Circle().fill(color).frame(width: 6, height: 6)
+    }
+
+    private var balanceBar: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            GeometryReader { geo in
+                let width = geo.size.width
+                let intakeRatio = viewModel.totalBurn > 0
+                    ? min(Double(viewModel.caloriesConsumed) / Double(viewModel.totalBurn), 1.5)
+                    : 0
+                let intakeWidth = width * intakeRatio
+
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(PepTheme.elevated)
+                        .frame(width: width, height: 4)
+
+                    Capsule()
+                        .fill(viewModel.isGoalAligned ? Color.green.opacity(0.85) : Color.orange.opacity(0.85))
+                        .frame(width: max(intakeWidth, 4), height: 4)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: intakeWidth)
+
+                    if viewModel.totalBurn > 0, intakeRatio < 1.5 {
+                        Circle()
+                            .fill(PepTheme.textPrimary.opacity(0.35))
+                            .frame(width: 5, height: 5)
+                            .offset(x: width - 3)
+                    }
+                }
+            }
+            .frame(height: 6)
+
+            HStack(spacing: 6) {
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 9))
+                Text("\(viewModel.caloriesConsumed) eaten")
+                    .font(.system(size: 10, weight: .medium))
+                Text("·")
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                Text(viewModel.balanceLabel)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(viewModel.isGoalAligned ? .green : .orange)
+                Spacer()
+            }
+            .foregroundStyle(PepTheme.textSecondary)
+        }
+        .padding(.top, 4)
+    }
+
+    // MARK: - Expanded
 
     private var expandedContent: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -72,31 +198,27 @@ struct DailyActivityCard: View {
                 AIInsightStrip(content: insight, color: .orange)
             }
 
-            HStack(spacing: 0) {
-                activityStat(
-                    icon: "bolt.heart.fill",
-                    label: "Resting",
-                    value: "\(viewModel.restingBurn)",
-                    color: PepTheme.violet
-                )
-                activityStatDivider
-                activityStat(
-                    icon: "figure.run",
-                    label: "Exercise",
-                    value: "\(viewModel.effectiveActivityCalories)",
-                    color: .orange
-                )
-                activityStatDivider
-                activityStat(
-                    icon: "flame.fill",
-                    label: "Total Burn",
-                    value: "\(viewModel.totalBurn)",
-                    color: Color(red: 1, green: 0.35, blue: 0.35)
-                )
+            if let line = MorningBriefService.shared.buildLines().training {
+                BriefLineRow(line: line, icon: "figure.strengthtraining.traditional")
             }
 
-            if viewModel.healthKitCalories > 0 {
-                healthKitBadge
+            breakdownTiles
+
+            if viewModel.tefCalories > 0 {
+                HStack(spacing: 6) {
+                    Text("~\(viewModel.tefCalories) cal digestion (TEF)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                    Spacer()
+                }
+            }
+
+            if let hint = goalHint {
+                goalHintCard(hint)
+            }
+
+            if let source = viewModel.activitySourceDescription {
+                sourceAttributionRow(source)
             }
 
             logActivityButton
@@ -105,25 +227,127 @@ struct DailyActivityCard: View {
                 weeklyTrendSection
             }
 
-            if !viewModel.todaysActivities.isEmpty {
+            if !viewModel.unifiedActivities.isEmpty {
                 recentActivitiesSection
             }
         }
     }
 
-    private var healthKitBadge: some View {
+    private var breakdownTiles: some View {
+        HStack(spacing: 8) {
+            stepsBreakdownTile
+            breakdownTile(
+                icon: "figure.run",
+                label: "Exercise",
+                value: viewModel.exerciseCalories,
+                color: exerciseColor,
+                dimmed: false
+            )
+            breakdownTile(
+                icon: "bolt.heart.fill",
+                label: "Resting",
+                value: viewModel.restingBurn,
+                color: PepTheme.violet,
+                dimmed: false
+            )
+        }
+    }
+
+    private var stepsBreakdownTile: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 5) {
+                Image(systemName: "figure.walk")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(stepsColor)
+                Text("Steps")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            Text(formattedSteps(viewModel.stepsToday))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text(viewModel.stepsCalories > 0 ? "\(viewModel.stepsCalories) cal" : "steps")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(stepsColor.opacity(viewModel.hasWatchData ? 0.08 : 0.04))
+        .clipShape(.rect(cornerRadius: 10))
+        .opacity(viewModel.hasWatchData ? 1 : 0.6)
+    }
+
+    private func formattedSteps(_ steps: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = ","
+        return formatter.string(from: NSNumber(value: steps)) ?? "\(steps)"
+    }
+
+    private func breakdownTile(icon: String, label: String, value: Int, color: Color, dimmed: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(color)
+                Text(label)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            Text("\(value)")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text("cal")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(color.opacity(dimmed ? 0.04 : 0.08))
+        .clipShape(.rect(cornerRadius: 10))
+        .opacity(dimmed ? 0.6 : 1)
+    }
+
+    private var goalHint: String? {
+        if let needed = viewModel.additionalActiveCaloriesNeeded {
+            let foodToReduce = needed
+            return "To hit your deficit: burn \(needed) more active or eat \(foodToReduce) less."
+        }
+        if let headroom = viewModel.additionalFoodAllowed,
+           viewModel.targetBalanceDelta ?? 0 < 0 {
+            return "You've earned \(headroom) cal of headroom — on track for your deficit."
+        }
+        return nil
+    }
+
+    private func goalHintCard(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "target")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.orange)
+                .padding(.top, 1)
+            Text(text)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+        }
+        .padding(10)
+        .background(Color.orange.opacity(0.08))
+        .clipShape(.rect(cornerRadius: 10))
+    }
+
+    private func sourceAttributionRow(_ text: String) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: "applewatch")
+            Image(systemName: viewModel.hasWatchData ? "applewatch" : "square.and.pencil")
                 .font(.system(size: 11))
-                .foregroundStyle(.green)
-            Text("Apple Watch active calories: \(viewModel.healthKitCalories) cal")
+                .foregroundStyle(viewModel.hasWatchData ? .green : PepTheme.textSecondary)
+            Text(text)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(PepTheme.textSecondary)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(.green.opacity(0.08))
-        .clipShape(.rect(cornerRadius: 8))
     }
 
     private var weeklyTrendSection: some View {
@@ -174,36 +398,40 @@ struct DailyActivityCard: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(PepTheme.textSecondary)
 
-            ForEach(Array(viewModel.todaysActivities.prefix(5).enumerated()), id: \.element.id) { _, activity in
-                recentActivityRow(activity)
+            ForEach(viewModel.unifiedActivities.prefix(5)) { activity in
+                unifiedActivityRow(activity)
             }
         }
     }
 
-    private func recentActivityRow(_ activity: EnergyActivityLog) -> some View {
+    private func unifiedActivityRow(_ activity: UnifiedActivity) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: activityIcon(for: activity.activity_type))
+            Image(systemName: activityIcon(forSport: activity.sport))
                 .font(.system(size: 12))
                 .foregroundStyle(.orange)
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(activity.sport ?? activity.activity_type.capitalized)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .lineLimit(1)
-
-                if let dur = activity.duration_minutes {
-                    Text("\(dur) min")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                HStack(spacing: 5) {
+                    Text(activity.sport)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .lineLimit(1)
+                    if activity.source == .appleWatch {
+                        Image(systemName: "applewatch")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.green)
+                    }
                 }
+                Text("\(activity.durationMinutes) min")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
             }
 
             Spacer()
 
-            if let cal = activity.calories_burned {
-                Text("\(cal) cal")
+            if activity.calories > 0 {
+                Text("\(activity.calories) cal")
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundStyle(PepTheme.textSecondary)
             }
@@ -214,115 +442,88 @@ struct DailyActivityCard: View {
         .clipShape(.rect(cornerRadius: 8))
     }
 
-    private func activityIcon(for type: String) -> String {
-        switch type.lowercased() {
-        case "workout", "strength": return "figure.strengthtraining.traditional"
-        case "cardio", "running": return "figure.run"
+    private func activityIcon(forSport sport: String) -> String {
+        switch sport.lowercased() {
         case "walking": return "figure.walk"
+        case "running": return "figure.run"
         case "cycling": return "figure.outdoor.cycle"
         case "swimming": return "figure.pool.swim"
+        case "hiking": return "figure.hiking"
+        case "yoga": return "figure.yoga"
+        case "hiit": return "bolt.heart.fill"
+        case "rowing": return "figure.rowing"
+        case "elliptical": return "figure.elliptical"
+        case "jump rope": return "figure.jumprope"
+        case "stair climbing": return "figure.stairs"
+        case "boxing": return "figure.boxing"
+        case "martial arts": return "figure.martial.arts"
+        case "pilates": return "figure.pilates"
+        case "rock climbing": return "figure.climbing"
+        case "basketball": return "basketball.fill"
+        case "soccer": return "soccerball"
+        case "tennis": return "tennis.racket"
+        case "football": return "football.fill"
+        case "baseball": return "baseball.fill"
+        case "dancing": return "figure.dance"
+        case "stretching": return "figure.flexibility"
+        case "strength": return "figure.strengthtraining.traditional"
+        case "cardio": return "figure.mixed.cardio"
         default: return "flame.fill"
         }
     }
+}
 
-    private var caloriesBurnedHeader: some View {
-        HStack(alignment: .firstTextBaseline) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("\(viewModel.totalBurn)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+// MARK: - Segmented Move Ring
+
+private struct SegmentedMoveRing: View {
+    let stepsCalories: Int
+    let exerciseCalories: Int
+    let goal: Int
+    let stepsColor: Color
+    let exerciseColor: Color
+
+    private var total: Int { stepsCalories + exerciseCalories }
+
+    private var stepsFraction: Double {
+        guard goal > 0 else { return 0 }
+        return min(Double(stepsCalories) / Double(goal), 1.0)
+    }
+
+    private var exerciseFraction: Double {
+        guard goal > 0 else { return 0 }
+        let remaining = max(0, 1.0 - stepsFraction)
+        let raw = Double(exerciseCalories) / Double(goal)
+        return min(raw, remaining)
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(PepTheme.elevated, lineWidth: 12)
+
+            Circle()
+                .trim(from: 0, to: stepsFraction)
+                .stroke(stepsColor, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.spring(response: 0.7, dampingFraction: 0.85), value: stepsFraction)
+
+            Circle()
+                .trim(from: stepsFraction, to: stepsFraction + exerciseFraction)
+                .stroke(exerciseColor, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.spring(response: 0.7, dampingFraction: 0.85), value: exerciseFraction)
+
+            VStack(spacing: 0) {
+                Text("\(total)")
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(PepTheme.textPrimary)
-                Text("cal burned")
-                    .font(.system(size: 12, weight: .medium))
+                    .contentTransition(.numericText())
+                Text("active")
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(PepTheme.textSecondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
             }
-            Spacer()
-            if viewModel.activityCount > 0 {
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 11))
-                    Text("\(viewModel.activityCount) \(viewModel.activityCount == 1 ? "activity" : "activities")")
-                        .font(.system(size: 11, weight: .semibold))
-                }
-                .foregroundStyle(PepTheme.teal)
-            }
-        }
-    }
-
-    private var activityStatDivider: some View {
-        Rectangle()
-            .fill(PepTheme.shimmerHighlight)
-            .frame(width: 1, height: 40)
-    }
-
-    private func activityStat(icon: String, label: String, value: String, color: Color) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 13))
-                .foregroundStyle(color)
-            Text(value)
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(PepTheme.textPrimary)
-            Text(label)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var energyBalanceBar: some View {
-        GeometryReader { geo in
-            let width = geo.size.width
-            let intakeRatio = viewModel.totalBurn > 0 ? min(Double(viewModel.caloriesConsumed) / Double(viewModel.totalBurn), 1.5) : 0
-            let intakeWidth = width * intakeRatio
-
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(PepTheme.elevated)
-                    .frame(width: width, height: 10)
-
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(
-                        LinearGradient(
-                            colors: viewModel.isGoalAligned
-                                ? [.green.opacity(0.8), .green]
-                                : [.orange.opacity(0.8), .orange],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: max(intakeWidth, 4), height: 10)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: intakeWidth)
-
-                if viewModel.totalBurn > 0 {
-                    Rectangle()
-                        .fill(PepTheme.textPrimary.opacity(0.5))
-                        .frame(width: 2, height: 16)
-                        .offset(x: width - 1)
-                }
-            }
-        }
-        .frame(height: 16)
-        .padding(.top, 2)
-    }
-
-    private var balanceStatusRow: some View {
-        HStack(spacing: 8) {
-            HStack(spacing: 5) {
-                Circle()
-                    .fill(viewModel.isGoalAligned ? .green : .orange)
-                    .frame(width: 6, height: 6)
-                Text(viewModel.balanceLabel)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(viewModel.isGoalAligned ? .green : .orange)
-            }
-            Spacer()
-            HStack(spacing: 4) {
-                Image(systemName: "fork.knife")
-                    .font(.system(size: 10))
-                Text("\(viewModel.caloriesConsumed) eaten")
-                    .font(.system(size: 11, weight: .medium))
-            }
-            .foregroundStyle(PepTheme.textSecondary)
         }
     }
 }

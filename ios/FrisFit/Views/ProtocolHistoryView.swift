@@ -55,6 +55,22 @@ struct ProtocolHistoryView: View {
     @State private var viewModel = ProtocolHistoryViewModel()
 
     var body: some View {
+        if PeptideAccessManager.shared.shouldShowTrackAEmptyState {
+            TrackAEmptyStateView(
+                surface: .protocolHistory,
+                icon: "calendar.badge.clock",
+                title: "Past cycles, all in one place",
+                blurb: "A protocol is a structured plan for using a peptide — what, how much, how often, how long. Tracking it lets you see what worked, what didn't, and how your body responded over time."
+            )
+            .navigationTitle("Protocol History")
+            .navigationBarTitleDisplayMode(.inline)
+        } else {
+            historyBody
+        }
+    }
+
+    @ViewBuilder
+    private var historyBody: some View {
         ScrollView {
             VStack(spacing: 16) {
                 filterPicker
@@ -83,7 +99,7 @@ struct ProtocolHistoryView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Protocol History")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.loadProtocols() }

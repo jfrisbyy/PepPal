@@ -2,10 +2,14 @@ import SwiftUI
 
 struct WorkoutSummaryView: View {
     let summary: WorkoutSummary
+    var exercises: [WorkoutExercise] = []
+    var sourceProgramId: UUID? = nil
     let onDone: () -> Void
 
     @State private var showStats: Bool = false
     @State private var showPRs: Bool = false
+    @State private var showSaveAsRoutine: Bool = false
+    @State private var didSaveRoutine: Bool = false
 
     var body: some View {
         ScrollView {
@@ -40,6 +44,30 @@ struct WorkoutSummaryView: View {
                 Spacer().frame(height: 8)
 
                 VStack(spacing: 12) {
+                    if canSaveAsRoutine {
+                        Button {
+                            showSaveAsRoutine = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: didSaveRoutine ? "checkmark.circle.fill" : "bookmark.fill")
+                                    .font(.subheadline.weight(.semibold))
+                                Text(didSaveRoutine ? "Saved as Routine" : "Save as Routine")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .foregroundStyle(didSaveRoutine ? .green : PepTheme.amber)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background((didSaveRoutine ? Color.green : PepTheme.amber).opacity(0.12))
+                            .clipShape(.rect(cornerRadius: 14))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .strokeBorder((didSaveRoutine ? Color.green : PepTheme.amber).opacity(0.3), lineWidth: 0.5)
+                            )
+                        }
+                        .buttonStyle(.scale)
+                        .disabled(didSaveRoutine)
+                    }
+
                     Button {
                     } label: {
                         HStack(spacing: 8) {
@@ -76,13 +104,36 @@ struct WorkoutSummaryView: View {
             .padding(.horizontal)
             .padding(.bottom, 40)
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .onAppear {
             animateIn()
             WorkoutState.shared.isWorkoutActive = false
             WorkoutState.shared.workoutProgress = 0
         }
         .sensoryFeedback(.success, trigger: showStats)
+        .sheet(isPresented: $showSaveAsRoutine) {
+            SaveAsRoutineSheet(
+                defaultName: defaultRoutineName,
+                exercises: exercises
+            ) {
+                didSaveRoutine = true
+            }
+            .presentationDetents([.large])
+        }
+    }
+
+    private var canSaveAsRoutine: Bool {
+        guard sourceProgramId == nil else { return false }
+        return exercises.contains { ex in ex.sets.contains { $0.isCompleted } }
+    }
+
+    private var defaultRoutineName: String {
+        if !summary.workoutName.isEmpty && summary.workoutName != "Workout" {
+            return summary.workoutName
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        return "\(formatter.string(from: Date())) Workout"
     }
 
     private var statsGrid: some View {

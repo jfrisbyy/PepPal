@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import AVKit
 
 struct GroupDetailView: View {
     @Bindable var viewModel: GroupsViewModel
@@ -6,6 +8,10 @@ struct GroupDetailView: View {
     @State private var messageText: String = ""
     @State private var showGroupInfo: Bool = false
     @FocusState private var isInputFocused: Bool
+    @State private var selectedMedia: PhotosPickerItem?
+    @State private var voiceRecorder = DMVoiceRecorder()
+    @State private var expandedAttachment: DirectMessageAttachment?
+    @State private var selectedSection: GroupDetailSection = .chat
 
     private var group: FitGroup? {
         viewModel.group(for: groupID)
@@ -13,10 +19,16 @@ struct GroupDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            messagesScrollView
-            inputBar
+            sectionTabBar
+            switch selectedSection {
+            case .chat:
+                messagesScrollView
+                inputBar
+            case .stats:
+                GroupStatsView(viewModel: viewModel, groupID: groupID)
+            }
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -52,6 +64,63 @@ struct GroupDetailView: View {
         .sheet(isPresented: $showGroupInfo) {
             if let group {
                 GroupInfoSheet(group: group, viewModel: viewModel)
+            }
+        }
+        .fullScreenCover(item: $expandedAttachment) { att in
+            AttachmentPreviewView(attachment: att)
+        }
+        .onChange(of: selectedMedia) { _, newItem in
+            guard let item = newItem else { return }
+            Task {
+                await handlePickedMedia(item)
+                selectedMedia = nil
+            }
+        }
+    }
+
+    private var sectionTabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(GroupDetailSection.allCases, id: \.self) { section in
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        selectedSection = section
+                    }
+                } label: {
+                    VStack(spacing: 6) {
+                        Text(section.title.uppercased())
+                            .font(.system(size: 11, weight: .semibold))
+                            .tracking(1.6)
+                            .foregroundStyle(selectedSection == section ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.75))
+                        Rectangle()
+                            .fill(selectedSection == section ? PepTheme.textPrimary : Color.clear)
+                            .frame(height: 1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 24)
+        .background(
+            VStack(spacing: 0) {
+                Spacer()
+                Rectangle()
+                    .fill(PepTheme.separatorColor)
+                    .frame(height: 0.6)
+            }
+        )
+    }
+
+    private func handlePickedMedia(_ item: PhotosPickerItem) async {
+        if let data = try? await item.loadTransferable(type: Data.self) {
+            let types = item.supportedContentTypes
+            let isVideo = types.contains { $0.conforms(to: .movie) || $0.conforms(to: .video) || $0.conforms(to: .mpeg4Movie) || $0.conforms(to: .quickTimeMovie) }
+            if isVideo {
+                await viewModel.sendVideo(to: groupID, data: data, duration: nil)
+            } else if let image = UIImage(data: data), let jpeg = image.jpegData(compressionQuality: 0.85) {
+                await viewModel.sendImage(to: groupID, data: jpeg)
             }
         }
     }
@@ -153,26 +222,32 @@ struct GroupDetailView: View {
                         .padding(.leading, 4)
                 }
 
-                Text(message.text)
-                    .font(.subheadline)
-                    .foregroundStyle(isFromMe ? .white : PepTheme.textPrimary)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(
-                        isFromMe
-                            ? AnyShapeStyle(LinearGradient(
-                                colors: [PepTheme.teal, PepTheme.teal.opacity(0.85)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ))
-                            : AnyShapeStyle(PepTheme.elevated)
-                    )
-                    .clipShape(.rect(
-                        topLeadingRadius: isFromMe ? 18 : 6,
-                        bottomLeadingRadius: 18,
-                        bottomTrailingRadius: isFromMe ? 6 : 18,
-                        topTrailingRadius: 18
-                    ))
+                ForEach(message.attachments) { att in
+                    groupAttachmentView(att, isFromMe: isFromMe)
+                }
+
+                if !message.text.isEmpty {
+                    Text(message.text)
+                        .font(.subheadline)
+                        .foregroundStyle(isFromMe ? .white : PepTheme.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(
+                            isFromMe
+                                ? AnyShapeStyle(LinearGradient(
+                                    colors: [PepTheme.teal, PepTheme.teal.opacity(0.85)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ))
+                                : AnyShapeStyle(PepTheme.elevated)
+                        )
+                        .clipShape(.rect(
+                            topLeadingRadius: isFromMe ? 18 : 6,
+                            bottomLeadingRadius: 18,
+                            bottomTrailingRadius: isFromMe ? 6 : 18,
+                            topTrailingRadius: 18
+                        ))
+                }
 
                 HStack(spacing: 8) {
                     Text(formatTime(message.timestamp))
@@ -220,8 +295,103 @@ struct GroupDetailView: View {
         }
     }
 
+    @ViewBuilder
+    private func groupAttachmentView(_ att: DirectMessageAttachment, isFromMe: Bool) -> some View {
+        switch att.kind {
+        case .voice:
+            VoiceMessagePlayer(attachment: att, isFromMe: isFromMe)
+        case .image, .video:
+            Button {
+                expandedAttachment = att
+            } label: {
+                Color(.secondarySystemBackground)
+                    .frame(width: 200, height: 240)
+                    .overlay {
+                        switch att.kind {
+                        case .image:
+                            AsyncImage(url: URL(string: att.url)) { phase in
+                                if let image = phase.image {
+                                    image.resizable().aspectRatio(contentMode: .fill)
+                                } else if phase.error != nil {
+                                    Image(systemName: "photo").foregroundStyle(.secondary)
+                                } else {
+                                    ProgressView()
+                                }
+                            }
+                            .allowsHitTesting(false)
+                        case .video:
+                            ZStack {
+                                Color.black
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(.white)
+                            }
+                            .allowsHitTesting(false)
+                        case .voice:
+                            EmptyView()
+                        }
+                    }
+                    .clipShape(.rect(cornerRadius: 14))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
     private var inputBar: some View {
+        if voiceRecorder.isRecording {
+            voiceRecordingBar
+        } else {
+            textInputBar
+        }
+    }
+
+    private var voiceRecordingBar: some View {
+        HStack(spacing: 12) {
+            Button {
+                voiceRecorder.cancel()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            HStack(spacing: 10) {
+                Circle().fill(.red).frame(width: 10, height: 10)
+                Text(formatVoiceDuration(voiceRecorder.duration))
+                    .font(.system(.subheadline, design: .monospaced, weight: .medium))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Spacer()
+                Text("Recording…").font(.caption).foregroundStyle(PepTheme.textSecondary)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(PepTheme.elevated).clipShape(.capsule)
+            Button {
+                if let (data, duration) = voiceRecorder.finish() {
+                    Task { await viewModel.sendVoice(to: groupID, data: data, duration: duration) }
+                }
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(PepTheme.teal)
+            }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .background(
+            PepTheme.cardSurface
+                .shadow(color: .black.opacity(0.05), radius: 8, y: -2)
+                .ignoresSafeArea(edges: .bottom)
+        )
+    }
+
+    private var textInputBar: some View {
         HStack(spacing: 10) {
+            PhotosPicker(selection: $selectedMedia, matching: .any(of: [.images, .videos])) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(viewModel.uploadingAttachment ? PepTheme.textSecondary : PepTheme.teal)
+            }
+            .disabled(viewModel.uploadingAttachment)
+
             TextField("Message...", text: $messageText, axis: .vertical)
                 .font(.subheadline)
                 .lineLimit(1...5)
@@ -231,15 +401,25 @@ struct GroupDetailView: View {
                 .background(PepTheme.elevated)
                 .clipShape(.capsule)
 
-            Button {
-                sendMessage()
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? PepTheme.textSecondary.opacity(0.3) : PepTheme.teal)
+            if messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Button {
+                    voiceRecorder.start()
+                } label: {
+                    Image(systemName: "mic.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(PepTheme.teal)
+                }
+                .disabled(viewModel.uploadingAttachment)
+            } else {
+                Button {
+                    sendMessage()
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(PepTheme.teal)
+                }
+                .sensoryFeedback(.impact(weight: .light), trigger: group?.messages.count ?? 0)
             }
-            .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .sensoryFeedback(.impact(weight: .light), trigger: group?.messages.count ?? 0)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -285,6 +465,18 @@ struct GroupDetailView: View {
 private struct GroupMessageGroup {
     let date: Date
     let messages: [GroupMessage]
+}
+
+nonisolated enum GroupDetailSection: String, CaseIterable, Sendable {
+    case chat
+    case stats
+
+    var title: String {
+        switch self {
+        case .chat: return "Chat"
+        case .stats: return "Stats"
+        }
+    }
 }
 
 struct GroupInfoSheet: View {
@@ -393,7 +585,7 @@ struct GroupInfoSheet: View {
                 }
                 .padding(.bottom, 20)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Group Info")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -24,7 +24,7 @@ struct WorkoutHistoryView: View {
                 .padding(.bottom, 32)
             }
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Workout History")
         .navigationBarTitleDisplayMode(.large)
         

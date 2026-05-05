@@ -35,8 +35,9 @@ struct ProgramCreationView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(alignment: .leading, spacing: 28) {
                     headerSection
+                        .padding(.horizontal)
 
                     if !smartSuggestions.isEmpty {
                         forYouSection
@@ -46,12 +47,14 @@ struct ProgramCreationView: View {
 
                     if hasUserContext {
                         userContextPill
+                            .padding(.horizontal)
                     }
                 }
-                .padding(.bottom, 32)
+                .padding(.top, 8)
+                .padding(.bottom, 40)
             }
-            .background(PepTheme.background.ignoresSafeArea())
-            .navigationTitle("Create Program")
+            .appBackground()
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -84,49 +87,70 @@ struct ProgramCreationView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        VStack(spacing: 6) {
-            if hasUserContext {
-                HStack(spacing: 6) {
-                    Image(systemName: "brain.head.profile")
-                        .font(.system(size: 10))
-                        .foregroundStyle(PepTheme.violet)
-                    Text("Personalized for you")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(PepTheme.violet)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Text((hasUserContext ? "Personalized" : "New Program").uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(2.0)
+                    .foregroundStyle(hasUserContext ? PepTheme.violet : PepTheme.textSecondary.opacity(0.85))
+
+                if hasUserContext {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(PepTheme.violet.opacity(0.85))
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(PepTheme.violet.opacity(0.1))
-                .clipShape(Capsule())
+
+                Spacer(minLength: 8)
+
+                Text("VOL · 01")
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(1.4)
+                    .foregroundStyle(PepTheme.textTertiary)
             }
 
-            Text(hasUserContext ? "Your Program" : "Start Your Program")
-                .font(.title2.weight(.bold))
+            Text(hasUserContext ? "Crafted for You." : "Build Your Program.")
+                .font(.system(size: 38, weight: .semibold, design: .serif))
+                .kerning(-0.8)
                 .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
 
             Text(hasUserContext
-                ? "Smart suggestions based on your stack, goals & training history"
-                : "Choose how you want to build your training program")
-                .font(.subheadline)
+                ? "Smart suggestions tuned to your stack, goals, and training history."
+                : "Three pathways. One studio. Choose how you want to author your training.")
+                .font(.system(size: 15, design: .serif))
+                .italic()
                 .foregroundStyle(PepTheme.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+                .lineSpacing(2)
+                .padding(.top, 2)
+
+            LinearGradient(
+                colors: [
+                    PepTheme.textPrimary.opacity(0.2),
+                    PepTheme.textPrimary.opacity(0.0)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(height: 0.5)
+            .padding(.top, 8)
         }
-        .padding(.top, 16)
+        .padding(.top, 8)
     }
 
     // MARK: - For You Section
 
     private var forYouSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(PepTheme.violet)
-                Text("Recommended for You")
-                    .font(.system(size: 13, weight: .bold))
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("01 — RECOMMENDED")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(2.0)
+                    .foregroundStyle(PepTheme.violet.opacity(0.9))
+                Text("Tailored to Your Stack")
+                    .font(.system(size: 22, weight: .semibold, design: .serif))
+                    .kerning(-0.4)
                     .foregroundStyle(PepTheme.textPrimary)
-                    .textCase(.uppercase)
             }
             .padding(.horizontal)
 
@@ -146,13 +170,8 @@ struct ProgramCreationView: View {
         let isExpanded = expandedSuggestionId == suggestion.id
 
         return Button {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
-                if isExpanded {
-                    expandedSuggestionId = nil
-                } else {
-                    expandedSuggestionId = suggestion.id
-                }
-            }
+            showAIBuilderWithSuggestion = suggestion
+            showAIBuilder = true
         } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 10) {
@@ -191,36 +210,28 @@ struct ProgramCreationView: View {
                         .clipShape(Capsule())
                 }
 
-                if isExpanded {
-                    Text(suggestion.description)
-                        .font(.system(size: 12))
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .lineSpacing(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                Text(suggestion.description)
+                    .font(.system(size: 11))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .lineSpacing(2)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                    Button {
-                        showAIBuilderWithSuggestion = suggestion
-                        showAIBuilder = true
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 11))
-                            Text("Build This Program")
-                                .font(.system(size: 12, weight: .bold))
-                        }
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(suggestion.gradient[0])
-                        .clipShape(.rect(cornerRadius: 10))
-                    }
-                    .buttonStyle(.plain)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                HStack(spacing: 6) {
+                    Text("Build This Program")
+                        .font(.system(size: 11, weight: .bold))
+                    Spacer()
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 10, weight: .bold))
                 }
+                .foregroundStyle(.black)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(suggestion.gradient[0])
+                .clipShape(.rect(cornerRadius: 8))
             }
             .padding(14)
-            .frame(width: isExpanded ? 280 : 220, alignment: .leading)
+            .frame(width: 240, alignment: .leading)
             .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
             .clipShape(.rect(cornerRadius: 14))
             .overlay(
@@ -228,19 +239,19 @@ struct ProgramCreationView: View {
                     .strokeBorder(
                         LinearGradient(
                             colors: [
-                                isExpanded ? suggestion.gradient[0].opacity(0.3) : PepTheme.glassBorderTop,
+                                suggestion.gradient[0].opacity(0.2),
                                 PepTheme.glassBorderBottom
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: isExpanded ? 1 : 0.5
+                        lineWidth: 0.5
                     )
             )
-            .animation(.spring(response: 0.35, dampingFraction: 0.82), value: isExpanded)
         }
         .buttonStyle(.plain)
-        .sensoryFeedback(.impact(weight: .light), trigger: expandedSuggestionId)
+        .sensoryFeedback(.impact(weight: .light), trigger: showAIBuilder)
+        .onAppear { _ = isExpanded }
         .opacity(appearAnimated ? 1 : 0)
         .offset(y: appearAnimated ? 0 : 12)
         .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(Double(index) * 0.08), value: appearAnimated)
@@ -249,19 +260,18 @@ struct ProgramCreationView: View {
     // MARK: - Build Options
 
     private var buildOptionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if !smartSuggestions.isEmpty {
-                HStack(spacing: 6) {
-                    Image(systemName: "hammer.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(PepTheme.textSecondary)
-                    Text("Or Build Your Own")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .textCase(.uppercase)
-                }
-                .padding(.horizontal)
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(smartSuggestions.isEmpty ? "01 — PATHWAYS" : "02 — AUTHOR")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(2.0)
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.85))
+                Text(smartSuggestions.isEmpty ? "Choose Your Pathway" : "Or Build Your Own")
+                    .font(.system(size: 22, weight: .semibold, design: .serif))
+                    .kerning(-0.4)
+                    .foregroundStyle(PepTheme.textPrimary)
             }
+            .padding(.horizontal)
 
             VStack(spacing: 12) {
                 pathCard(
@@ -309,11 +319,11 @@ struct ProgramCreationView: View {
     // MARK: - User Context Pill
 
     private var userContextPill: some View {
-        VStack(spacing: 6) {
-            Rectangle()
-                .fill(PepTheme.glassBorderTop)
-                .frame(height: 0.5)
-                .padding(.horizontal)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("CONTEXT")
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.8)
+                .foregroundStyle(PepTheme.textTertiary)
 
             HStack(spacing: 12) {
                 if let proto = activeProtocol {
@@ -348,11 +358,22 @@ struct ProgramCreationView: View {
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(PepTheme.elevated)
-            .clipShape(Capsule())
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.5
+                    )
+            )
         }
-        .padding(.top, 4)
     }
 
     // MARK: - Path Card

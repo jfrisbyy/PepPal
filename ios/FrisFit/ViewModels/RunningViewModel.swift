@@ -50,7 +50,11 @@ final class RunningViewModel {
     private var elevationSamples: [Double] = []
     private let elevationSmoothingWindow: Int = 5
     private var autoPausedAt: Date?
-    private let autoPauseSpeedThreshold: Double = 0.3
+    private var slowSpeedStartedAt: Date?
+    private let autoPauseSpeedThresholdMps: Double = 0.5
+    private let autoResumeSpeedThresholdMps: Double = 1.5
+    private let autoPauseDwellSeconds: TimeInterval = 10
+    var isAutoPaused: Bool = false
     private let healthKit = HealthKitService.shared
     private var workoutStartDate: Date?
 
@@ -189,6 +193,8 @@ final class RunningViewModel {
         lastAltitude = nil
         elevationSamples = []
         autoPausedAt = nil
+        slowSpeedStartedAt = nil
+        isAutoPaused = false
         gpsSignal = .none
 
         workoutStartDate = Date()
@@ -207,6 +213,7 @@ final class RunningViewModel {
             if !locationService.hasLocationPermission {
                 locationService.requestPermission()
             }
+            locationService.setAccuracy(settings.gpsAccuracy)
             locationService.startTracking(activityType: .fitness) { [weak self] location in
                 Task { @MainActor in
                     self?.handleLocationUpdate(location)
@@ -284,6 +291,8 @@ final class RunningViewModel {
             shoes[idx].totalMiles += run.distanceMiles
         }
 
+        Task { await CardioSessionService.shared.saveRun(run) }
+
         gpsSignal = .none
         return run
     }
@@ -295,11 +304,38 @@ final class RunningViewModel {
 
         gpsSignal = GPSSignalQuality.from(accuracy: location.horizontalAccuracy)
 
-        let speedMph = LocationTrackingService.speedInMph(metersPerSecond: location.speed)
+        let speedMps = max(location.speed, 0)
 
         if settings.autoPause {
-            if speedMph < autoPauseSpeedThreshold && lastLocation != nil {
-                return
+            if isAutoPaused {
+                if speedMps > autoResumeSpeedThresholdMps {
+                    isAutoPaused = false
+                    autoPausedAt = nil
+                    slowSpeedStartedAt = nil
+                } else {
+                    routePoints.append(RouteCoordinate(
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude,
+                        elevation: location.altitude,
+                        pace: 0,
+                        timestamp: Date()
+                    ))
+                    lastLocation = location
+                    return
+                }
+            } else if speedMps < autoPauseSpeedThresholdMps {
+                if let start = slowSpeedStartedAt {
+                    if Date().timeIntervalSince(start) >= autoPauseDwellSeconds {
+                        isAutoPaused = true
+                        autoPausedAt = Date()
+                        lastLocation = location
+                        return
+                    }
+                } else {
+                    slowSpeedStartedAt = Date()
+                }
+            } else {
+                slowSpeedStartedAt = nil
             }
         }
 
@@ -396,6 +432,7 @@ final class RunningViewModel {
 
     private func tick() {
         guard !isPaused else { return }
+        if isAutoPaused { return }
         elapsedSeconds += 1
 
         if isTreadmillMode {

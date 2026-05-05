@@ -31,7 +31,7 @@ struct SoccerDrillLibraryView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Soccer Drills")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search drills")

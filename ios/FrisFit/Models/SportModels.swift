@@ -128,7 +128,6 @@ nonisolated struct SportSession: Identifiable, Sendable {
     let sessionType: SportSessionType
     let durationMinutes: Int
     let intensity: Int
-    let fpEarned: Int
     let date: Date
     let specificStats: SportSpecificStats
     let customSportName: String?
@@ -142,13 +141,6 @@ nonisolated struct SportSession: Identifiable, Sendable {
         self.date = date
         self.specificStats = specificStats
         self.customSportName = customSportName
-        self.fpEarned = SportSession.calculateFP(durationMinutes: durationMinutes, intensity: intensity)
-    }
-
-    static func calculateFP(durationMinutes: Int, intensity: Int) -> Int {
-        let baseFP = Double(durationMinutes) * 2.5
-        let intensityMultiplier = 0.5 + (Double(intensity) / 10.0) * 1.0
-        return Int(baseFP * intensityMultiplier)
     }
 
     var displayName: String {

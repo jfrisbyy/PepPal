@@ -9,6 +9,7 @@ struct CyclingDashboardView: View {
         VStack(spacing: 16) {
             quickStatsHeader
             startRideCard
+            SportCoachCard(sport: .cycling, accent: accentColor)
             weeklyDistanceChart
             recentRidesList
             elevationProfileCard

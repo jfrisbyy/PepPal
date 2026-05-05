@@ -3,11 +3,13 @@ import SwiftUI
 enum FollowListDestination: Hashable {
     case followers(userId: String, username: String)
     case following(userId: String, username: String)
+    case friends(userId: String, username: String)
 
     var title: String {
         switch self {
         case .followers(_, let username): "\(username)'s Followers"
         case .following(_, let username): "\(username) Following"
+        case .friends(_, let username): "\(username)'s Friends"
         }
     }
 
@@ -15,13 +17,39 @@ enum FollowListDestination: Hashable {
         switch self {
         case .followers(let id, _): id
         case .following(let id, _): id
+        case .friends(let id, _): id
         }
     }
 
-    var isFollowers: Bool {
+    var navTitle: String {
         switch self {
-        case .followers: true
-        case .following: false
+        case .followers: "Followers"
+        case .following: "Following"
+        case .friends: "Friends"
+        }
+    }
+
+    var emptyIcon: String {
+        switch self {
+        case .followers: "person.2"
+        case .following: "person.badge.plus"
+        case .friends: "person.2.circle"
+        }
+    }
+
+    var emptyTitle: String {
+        switch self {
+        case .followers: "No Followers Yet"
+        case .following: "Not Following Anyone"
+        case .friends: "No Friends Yet"
+        }
+    }
+
+    var emptyMessage: String {
+        switch self {
+        case .followers: "When people follow this account, they'll show up here."
+        case .following: "When this account follows people, they'll show up here."
+        case .friends: "Friends are mutual followers. Follow people back to make them friends."
         }
     }
 }
@@ -49,13 +77,13 @@ struct FollowListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if users.isEmpty {
                 VStack(spacing: 12) {
-                    Image(systemName: destination.isFollowers ? "person.2" : "person.badge.plus")
+                    Image(systemName: destination.emptyIcon)
                         .font(.system(size: 40))
                         .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                    Text(destination.isFollowers ? "No Followers Yet" : "Not Following Anyone")
+                    Text(destination.emptyTitle)
                         .font(.system(.headline, weight: .semibold))
                         .foregroundStyle(PepTheme.textSecondary)
-                    Text(destination.isFollowers ? "When people follow this account, they'll show up here." : "When this account follows people, they'll show up here.")
+                    Text(destination.emptyMessage)
                         .font(.subheadline)
                         .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                         .multilineTextAlignment(.center)
@@ -77,8 +105,8 @@ struct FollowListView: View {
                 .scrollIndicators(.hidden)
             }
         }
-        .background(PepTheme.background.ignoresSafeArea())
-        .navigationTitle(destination.isFollowers ? "Followers" : "Following")
+        .appBackground()
+        .navigationTitle(destination.navTitle)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await loadUsers()
@@ -136,14 +164,28 @@ struct FollowListView: View {
         isLoading = true
         do {
             let userIds: [String]
-            if destination.isFollowers {
+            switch destination {
+            case .followers:
                 userIds = try await messagingService.fetchFollowers(userId: destination.userId)
-            } else {
+            case .following:
                 userIds = try await messagingService.fetchFollowing(userId: destination.userId)
+            case .friends:
+                async let followers = messagingService.fetchFollowers(userId: destination.userId)
+                async let following = messagingService.fetchFollowing(userId: destination.userId)
+                let (f, g) = try await (followers, following)
+                let followersSet = Set(f.map { $0.lowercased() })
+                userIds = g.filter { followersSet.contains($0.lowercased()) }
             }
 
             let profiles = try await messagingService.fetchProfilesByIds(userIds)
-            users = profiles.map { SocialService.shared.socialUserFromAuthor($0) }
+            var resolved = profiles.map { SocialService.shared.socialUserFromAuthor($0) }
+
+            if case .friends = destination {
+                let existing = Set(resolved.map { $0.id })
+                let mocks = MockFriendsService.shared.friends.filter { !existing.contains($0.id) }
+                resolved.append(contentsOf: mocks)
+            }
+            users = resolved
         } catch {
             users = []
         }

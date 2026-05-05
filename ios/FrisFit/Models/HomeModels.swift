@@ -61,9 +61,16 @@ nonisolated struct FriendActivity: Identifiable, Sendable {
     let id = UUID()
     let friendName: String
     let workoutName: String
-    let fpEarned: Int
     let timeAgo: String
     let liked: Bool
+
+    init(friendName: String, workoutName: String, fpEarned: Int = 0, timeAgo: String, liked: Bool) {
+        self.friendName = friendName
+        self.workoutName = workoutName
+        _ = fpEarned
+        self.timeAgo = timeAgo
+        self.liked = liked
+    }
 }
 
 nonisolated struct QuickStats: Sendable {

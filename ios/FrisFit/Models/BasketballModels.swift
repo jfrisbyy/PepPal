@@ -154,7 +154,6 @@ nonisolated struct BasketballGame: Identifiable, Sendable {
     let confidenceRating: Int
     let performanceRating: Int
     let notes: String
-    let fpEarned: Int
 
     init(
         date: Date = Date(),
@@ -181,24 +180,6 @@ nonisolated struct BasketballGame: Identifiable, Sendable {
         self.confidenceRating = confidenceRating
         self.performanceRating = performanceRating
         self.notes = notes
-
-        if sessionType.isGame {
-            let statScore = Double(stats.points) + Double(stats.totalRebounds) * 1.2 +
-                Double(stats.assists) * 1.5 - Double(stats.turnovers) * 0.8
-            let durationBonus = Double(durationMinutes) * 2.0
-            let intensityMultiplier: Double = result == .win ? 1.2 : 1.0
-            self.fpEarned = Int((statScore + durationBonus) * intensityMultiplier)
-        } else {
-            let baseFP = Double(durationMinutes) * 2.5
-            let typeMultiplier: Double
-            switch sessionType {
-            case .soloShooting: typeMultiplier = 1.1
-            case .skillsPractice: typeMultiplier = 1.2
-            case .conditioning: typeMultiplier = 1.3
-            default: typeMultiplier = 1.0
-            }
-            self.fpEarned = Int(baseFP * typeMultiplier)
-        }
     }
 }
 

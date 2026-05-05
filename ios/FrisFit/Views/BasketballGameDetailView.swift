@@ -24,7 +24,7 @@ struct BasketballGameDetailView: View {
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Game Detail")
         .navigationBarTitleDisplayMode(.inline)
     }

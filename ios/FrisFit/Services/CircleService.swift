@@ -178,6 +178,40 @@ final class CircleService {
             .execute()
     }
 
+    func searchCircles(query: String, userId: String, limit: Int = 20) async throws -> [FitCircle] {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return [] }
+        let escaped = q.replacingOccurrences(of: ",", with: "")
+        let circles: [SupabaseCircle] = try await supabase
+            .from("circles")
+            .select()
+            .or("name.ilike.%\(escaped)%,description.ilike.%\(escaped)%")
+            .limit(limit * 2)
+            .execute()
+            .value
+
+        let myMemberships: [SupabaseCircleMember] = (try? await supabase
+            .from("circle_members")
+            .select("id, circle_id, user_id, role, joined_at")
+            .eq("user_id", value: userId)
+            .execute()
+            .value) ?? []
+        let myCircleIds = Set(myMemberships.map { $0.circle_id })
+
+        let visible = circles.filter { circle in
+            guard let cid = circle.id else { return false }
+            return !(circle.is_private ?? false) || myCircleIds.contains(cid)
+        }.prefix(limit)
+
+        var results: [FitCircle] = []
+        for c in visible {
+            guard let cid = c.id else { continue }
+            let members = (try? await fetchMembers(circleId: cid)) ?? []
+            results.append(toFitCircle(c, members: members))
+        }
+        return results
+    }
+
     func joinByInviteCode(code: String, userId: String) async throws -> SupabaseCircle? {
         let circles: [SupabaseCircle] = try await supabase
             .from("circles")
@@ -207,7 +241,7 @@ final class CircleService {
                 user: user,
                 role: role,
                 joinedAt: joinedAt,
-                totalPoints: user.totalFP,
+                totalPoints: 0,
                 weeklyPoints: 0,
                 goalStreak: user.streak,
                 longestStreak: user.streak

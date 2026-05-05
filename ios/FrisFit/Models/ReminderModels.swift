@@ -6,6 +6,9 @@ nonisolated enum ReminderCategory: String, CaseIterable, Sendable {
     case weighIn = "weigh_in"
     case workout = "workout"
     case mealLogging = "meal_logging"
+    case hydration = "hydration"
+    case restDay = "rest_day"
+    case weeklyCheckIn = "weekly_check_in"
 
     var title: String {
         switch self {
@@ -14,6 +17,9 @@ nonisolated enum ReminderCategory: String, CaseIterable, Sendable {
         case .weighIn: return "Weigh-In Reminder"
         case .workout: return "Workout Reminder"
         case .mealLogging: return "Meal Logging Nudge"
+        case .hydration: return "Hydration Nudges"
+        case .restDay: return "Rest Day Reminders"
+        case .weeklyCheckIn: return "Weekly Check-In"
         }
     }
 
@@ -24,6 +30,9 @@ nonisolated enum ReminderCategory: String, CaseIterable, Sendable {
         case .weighIn: return "Weekly reminder to log your weight"
         case .workout: return "Daily nudge to hit the gym"
         case .mealLogging: return "Reminders to log meals throughout the day"
+        case .hydration: return "Stay hydrated with nudges at your chosen times"
+        case .restDay: return "Nudge if you miss a planned workout"
+        case .weeklyCheckIn: return "Weekly weigh-in + progress photo reminder"
         }
     }
 
@@ -34,6 +43,9 @@ nonisolated enum ReminderCategory: String, CaseIterable, Sendable {
         case .weighIn: return "scalemass.fill"
         case .workout: return "figure.run"
         case .mealLogging: return "fork.knife"
+        case .hydration: return "drop.halffull"
+        case .restDay: return "bed.double.fill"
+        case .weeklyCheckIn: return "calendar.badge.checkmark"
         }
     }
 
@@ -44,13 +56,16 @@ nonisolated enum ReminderCategory: String, CaseIterable, Sendable {
         case .weighIn: return .blue
         case .workout: return .amber
         case .mealLogging: return .violet
+        case .hydration: return .blue
+        case .restDay: return .violet
+        case .weeklyCheckIn: return .teal
         }
     }
 
     var isHealthReminder: Bool {
         switch self {
-        case .dose, .bloodwork, .weighIn: return true
-        case .workout, .mealLogging: return false
+        case .dose, .bloodwork, .weighIn, .weeklyCheckIn: return true
+        case .workout, .mealLogging, .hydration, .restDay: return false
         }
     }
 

@@ -32,7 +32,7 @@ struct TennisLiveScorerView: View {
 
                 bottomBar
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Live Match")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -4,7 +4,20 @@ struct ExercisePickerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ExerciseLibraryViewModel()
     @State private var selectedExercises: [Exercise] = []
+    var swapSource: Exercise? = nil
     let onDone: ([Exercise]) -> Void
+
+    init(swapSource: Exercise? = nil, onDone: @escaping ([Exercise]) -> Void) {
+        self.swapSource = swapSource
+        self.onDone = onDone
+        if let source = swapSource {
+            _viewModel = State(initialValue: {
+                let vm = ExerciseLibraryViewModel()
+                vm.selectedMuscleGroup = source.primaryMuscle
+                return vm
+            }())
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -16,14 +29,14 @@ struct ExercisePickerView: View {
                     }
                     .padding(.bottom, selectedExercises.isEmpty ? 0 : 80)
                 }
-                .background(PepTheme.background.ignoresSafeArea())
+                .appBackground()
 
                 if !selectedExercises.isEmpty {
                     selectionBar
                 }
             }
             .searchable(text: $viewModel.searchText, prompt: "Search exercises...")
-            .navigationTitle("Add Exercises")
+            .navigationTitle(swapSource == nil ? "Add Exercises" : "Swap Exercise")
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
@@ -65,8 +78,38 @@ struct ExercisePickerView: View {
         .padding(.vertical, 12)
     }
 
+    private var suggestedSection: some View {
+        Group {
+            if let source = swapSource, viewModel.searchText.isEmpty {
+                let suggestions = viewModel.alternatives(for: source).isEmpty
+                    ? viewModel.similarExercises(for: source)
+                    : viewModel.alternatives(for: source)
+                if !suggestions.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(spacing: 8) {
+                            Text("SUGGESTED FOR \(source.name.uppercased())")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .tracking(1.2)
+                                .lineLimit(1)
+                            Spacer()
+                        }
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
+
+                        ForEach(suggestions) { exercise in
+                            pickerRow(exercise)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var exerciseList: some View {
         LazyVStack(spacing: 0) {
+            suggestedSection
+
             let grouped = Dictionary(grouping: viewModel.filteredExercises) { $0.primaryMuscle }
             let sortedKeys = MuscleGroup.allCases.filter { grouped[$0] != nil }
 

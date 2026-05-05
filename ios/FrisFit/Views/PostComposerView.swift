@@ -6,6 +6,7 @@ struct PostComposerView: View {
     @State private var viewModel = PostComposerViewModel()
     @State private var isPosting: Bool = false
     @State private var postError: String?
+    @State private var suggestions = MentionHashtagSuggestionController()
     let socialViewModel: SocialViewModel
 
     var body: some View {
@@ -20,6 +21,14 @@ struct PostComposerView: View {
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
+
+                if suggestions.isActive {
+                    MentionHashtagSuggestionView(
+                        controller: suggestions,
+                        onPickMention: { s in suggestions.insertMention(s, into: &viewModel.textContent) },
+                        onPickHashtag: { s in suggestions.insertHashtag(s, into: &viewModel.textContent) }
+                    )
+                }
 
                 Divider().overlay(PepTheme.separatorColor)
                 attachmentBar
@@ -131,13 +140,16 @@ struct PostComposerView: View {
     }
 
     private var textEditor: some View {
-        TextField("What's on your mind?", text: $viewModel.textContent, axis: .vertical)
+        TextField("What's on your mind? Use @ to mention, # for tags", text: $viewModel.textContent, axis: .vertical)
             .font(.system(.body))
             .foregroundStyle(PepTheme.textPrimary)
             .lineLimit(1...20)
             .padding(.horizontal, 16)
             .padding(.top, 12)
             .padding(.bottom, 8)
+            .onChange(of: viewModel.textContent) { _, newValue in
+                suggestions.handleTextChange(newValue, caret: newValue.count)
+            }
     }
 
     @ViewBuilder

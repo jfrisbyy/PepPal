@@ -14,6 +14,32 @@ nonisolated struct CreateFollowPayload: Codable, Sendable {
     let following_id: String
 }
 
+nonisolated struct SupabaseFollowRequest: Codable, Sendable {
+    let id: String?
+    let requester_id: String
+    let target_id: String
+    let status: String?
+    let created_at: String?
+}
+
+nonisolated struct SupabaseFollowRequestWithProfile: Codable, Sendable {
+    let id: String
+    let requester_id: String
+    let target_id: String
+    let status: String?
+    let created_at: String?
+    let profiles: SupabasePostAuthor?
+}
+
+nonisolated struct CreateFollowRequestPayload: Codable, Sendable {
+    let requester_id: String
+    let target_id: String
+}
+
+nonisolated struct UpdateFollowRequestPayload: Codable, Sendable {
+    let status: String
+}
+
 nonisolated struct SupabaseFriendRequest: Codable, Sendable {
     let id: String?
     let sender_id: String
@@ -72,6 +98,8 @@ nonisolated struct SupabaseDirectMessage: Codable, Sendable {
     let sender_id: String
     let text_content: String?
     let is_read: Bool?
+    let read_at: String?
+    let attachments: [DirectMessageAttachment]?
     let created_at: String?
 }
 
@@ -81,6 +109,8 @@ nonisolated struct SupabaseDirectMessageWithProfile: Codable, Sendable {
     let sender_id: String
     let text_content: String?
     let is_read: Bool?
+    let read_at: String?
+    let attachments: [DirectMessageAttachment]?
     let created_at: String?
     let profiles: SupabasePostAuthor?
 }
@@ -89,10 +119,12 @@ nonisolated struct CreateDirectMessagePayload: Codable, Sendable {
     let conversation_id: String
     let sender_id: String
     let text_content: String
+    let attachments: [DirectMessageAttachment]?
 }
 
 nonisolated struct MarkReadPayload: Codable, Sendable {
     let is_read: Bool
+    let read_at: String?
 }
 
 nonisolated struct SupabaseNotification: Codable, Sendable {
@@ -178,6 +210,30 @@ final class MessagingService {
     // MARK: - Follows
 
     func followUser(followerId: String, followingId: String) async throws {
+        let target: SupabaseProfile = try await supabase
+            .from("profiles")
+            .select()
+            .eq("id", value: followingId)
+            .single()
+            .execute()
+            .value
+
+        if target.is_private == true {
+            let payload = CreateFollowRequestPayload(requester_id: followerId, target_id: followingId)
+            try await supabase
+                .from("follow_requests")
+                .insert(payload)
+                .execute()
+
+            try await createNotification(
+                userId: followingId,
+                type: "follow_request",
+                title: "Follow Request",
+                body: "Someone requested to follow you."
+            )
+            return
+        }
+
         let payload = CreateFollowPayload(follower_id: followerId, following_id: followingId)
         try await supabase
             .from("follows")
@@ -190,6 +246,60 @@ final class MessagingService {
             title: "New Follower",
             body: "Someone started following you!"
         )
+    }
+
+    func fetchPendingFollowRequests(userId: String) async throws -> [SupabaseFollowRequestWithProfile] {
+        let response: [SupabaseFollowRequestWithProfile] = try await supabase
+            .from("follow_requests")
+            .select("*, profiles!follow_requests_requester_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .eq("target_id", value: userId)
+            .eq("status", value: "pending")
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+        return response
+    }
+
+    func fetchSentFollowRequests(userId: String) async throws -> [SupabaseFollowRequest] {
+        let response: [SupabaseFollowRequest] = try await supabase
+            .from("follow_requests")
+            .select()
+            .eq("requester_id", value: userId)
+            .eq("status", value: "pending")
+            .execute()
+            .value
+        return response
+    }
+
+    func approveFollowRequest(requestId: String, requesterId: String, targetId: String) async throws {
+        let payload = UpdateFollowRequestPayload(status: "approved")
+        try await supabase
+            .from("follow_requests")
+            .update(payload)
+            .eq("id", value: requestId)
+            .execute()
+
+        let follow = CreateFollowPayload(follower_id: requesterId, following_id: targetId)
+        try await supabase
+            .from("follows")
+            .insert(follow)
+            .execute()
+
+        try await createNotification(
+            userId: requesterId,
+            type: "follow_approved",
+            title: "Follow Request Approved",
+            body: "You can now see their posts."
+        )
+    }
+
+    func denyFollowRequest(requestId: String) async throws {
+        let payload = UpdateFollowRequestPayload(status: "denied")
+        try await supabase
+            .from("follow_requests")
+            .update(payload)
+            .eq("id", value: requestId)
+            .execute()
     }
 
     func unfollowUser(followerId: String, followingId: String) async throws {
@@ -259,7 +369,7 @@ final class MessagingService {
     }
 
     func rejectFriendRequest(requestId: String) async throws {
-        let payload = UpdateFriendRequestPayload(status: "rejected")
+        let payload = UpdateFriendRequestPayload(status: "declined")
         try await supabase
             .from("friend_requests")
             .update(payload)
@@ -452,11 +562,23 @@ final class MessagingService {
         return response
     }
 
-    func sendMessage(conversationId: String, senderId: String, text: String) async throws -> SupabaseDirectMessage {
+    func sendMessage(conversationId: String, senderId: String, text: String, attachments: [DirectMessageAttachment] = []) async throws -> SupabaseDirectMessage {
+        if let otherId = try? await otherParticipantId(conversationId: conversationId, selfUserId: senderId) {
+            let blocked = (try? await ModerationService.shared.isBlocked(blockerId: otherId, blockedId: senderId)) ?? false
+            if blocked {
+                throw NSError(domain: "MessagingService", code: 403, userInfo: [NSLocalizedDescriptionKey: "You cannot message this user."])
+            }
+            let iBlocked = (try? await ModerationService.shared.isBlocked(blockerId: senderId, blockedId: otherId)) ?? false
+            if iBlocked {
+                throw NSError(domain: "MessagingService", code: 403, userInfo: [NSLocalizedDescriptionKey: "Unblock this user to message them."])
+            }
+        }
+
         let payload = CreateDirectMessagePayload(
             conversation_id: conversationId,
             sender_id: senderId,
-            text_content: text
+            text_content: text,
+            attachments: attachments.isEmpty ? nil : attachments
         )
         let message: SupabaseDirectMessage = try await supabase
             .from("direct_messages")
@@ -487,7 +609,8 @@ final class MessagingService {
     }
 
     func markMessagesAsRead(conversationId: String, userId: String) async throws {
-        let payload = MarkReadPayload(is_read: true)
+        let nowISO = ISO8601DateFormatter().string(from: Date())
+        let payload = MarkReadPayload(is_read: true, read_at: nowISO)
         try await supabase
             .from("direct_messages")
             .update(payload)
@@ -497,22 +620,105 @@ final class MessagingService {
             .execute()
     }
 
+    func markSingleMessageRead(messageId: String) async throws {
+        let nowISO = ISO8601DateFormatter().string(from: Date())
+        let payload = MarkReadPayload(is_read: true, read_at: nowISO)
+        try await supabase
+            .from("direct_messages")
+            .update(payload)
+            .eq("id", value: messageId)
+            .eq("is_read", value: false)
+            .execute()
+    }
+
+    private func otherParticipantId(conversationId: String, selfUserId: String) async throws -> String? {
+        let others: [SupabaseConversationParticipant] = try await supabase
+            .from("conversation_participants")
+            .select()
+            .eq("conversation_id", value: conversationId)
+            .neq("user_id", value: selfUserId)
+            .execute()
+            .value
+        return others.first?.user_id
+    }
+
+    // MARK: - DM Media Upload
+
+    func uploadDMImage(data: Data, conversationId: String) async throws -> DirectMessageAttachment {
+        let name = "\(conversationId)/\(Int(Date().timeIntervalSince1970))_\(UUID().uuidString).jpg"
+        try await supabase.storage
+            .from("dm-media")
+            .upload(name, data: data, options: FileOptions(cacheControl: "3600", contentType: "image/jpeg", upsert: false))
+        let signed = try await supabase.storage.from("dm-media").createSignedURL(path: name, expiresIn: 60 * 60 * 24 * 365)
+        return DirectMessageAttachment(kind: .image, url: signed.absoluteString)
+    }
+
+    func uploadDMVideo(data: Data, conversationId: String, durationSeconds: Double?) async throws -> DirectMessageAttachment {
+        let name = "\(conversationId)/\(Int(Date().timeIntervalSince1970))_\(UUID().uuidString).mp4"
+        try await supabase.storage
+            .from("dm-media")
+            .upload(name, data: data, options: FileOptions(cacheControl: "3600", contentType: "video/mp4", upsert: false))
+        let signed = try await supabase.storage.from("dm-media").createSignedURL(path: name, expiresIn: 60 * 60 * 24 * 365)
+        return DirectMessageAttachment(kind: .video, url: signed.absoluteString, durationSeconds: durationSeconds)
+    }
+
+    func uploadDMVoice(data: Data, conversationId: String, durationSeconds: Double?) async throws -> DirectMessageAttachment {
+        let name = "\(conversationId)/\(Int(Date().timeIntervalSince1970))_\(UUID().uuidString).m4a"
+        try await supabase.storage
+            .from("dm-media")
+            .upload(name, data: data, options: FileOptions(cacheControl: "3600", contentType: "audio/m4a", upsert: false))
+        let signed = try await supabase.storage.from("dm-media").createSignedURL(path: name, expiresIn: 60 * 60 * 24 * 365)
+        return DirectMessageAttachment(kind: .voice, url: signed.absoluteString, durationSeconds: durationSeconds)
+    }
+
+    func fetchProfile(userId: String) async throws -> SupabasePostAuthor {
+        return try await supabase
+            .from("profiles")
+            .select("id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak")
+            .eq("id", value: userId)
+            .single()
+            .execute()
+            .value
+    }
+
+    func fetchTestUserProfiles(excluding userId: String) async throws -> [SupabasePostAuthor] {
+        let response: [SupabasePostAuthor] = try await supabase
+            .from("profiles")
+            .select("id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak")
+            .eq("is_test_user", value: true)
+            .neq("id", value: userId)
+            .execute()
+            .value
+        return response
+    }
+
     func fetchProfilesByIds(_ ids: [String]) async throws -> [SupabasePostAuthor] {
         guard !ids.isEmpty else { return [] }
-        var results: [SupabasePostAuthor] = []
-        for uid in ids {
-            do {
-                let profile: SupabasePostAuthor = try await supabase
+        let unique = Array(Set(ids))
+        do {
+            let response: [SupabasePostAuthor] = try await supabase
+                .from("profiles")
+                .select("id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak")
+                .in("id", values: unique)
+                .execute()
+                .value
+            let byId = Dictionary(uniqueKeysWithValues: response.map { ($0.id.lowercased(), $0) })
+            return ids.compactMap { byId[$0.lowercased()] }
+        } catch {
+            var results: [SupabasePostAuthor] = []
+            for uid in unique {
+                if let profile: SupabasePostAuthor = try? await supabase
                     .from("profiles")
                     .select("id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak")
                     .eq("id", value: uid)
                     .single()
                     .execute()
-                    .value
-                results.append(profile)
-            } catch {}
+                    .value {
+                    results.append(profile)
+                }
+            }
+            return results
         }
-        return results
     }
 
     // MARK: - User Search

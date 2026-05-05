@@ -11,7 +11,14 @@ struct EditProfileView: View {
     @State private var activeProgram: String = ""
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var avatarImageData: Data?
+    @State private var pendingCropImage: UIImage?
     @State private var isUploading: Bool = false
+
+    @State private var selectedBannerPhoto: PhotosPickerItem?
+    @State private var pendingBannerCropImage: UIImage?
+    @State private var bannerStore = ProfileBannerStore.shared
+    @State private var pendingBannerData: Data?
+    @State private var bannerRemoved: Bool = false
 
     @State private var dateOfBirth: Date = Calendar.current.date(byAdding: .year, value: -25, to: Date()) ?? Date()
     @State private var hasDOB: Bool = false
@@ -21,19 +28,22 @@ struct EditProfileView: View {
     @State private var hasHeight: Bool = false
     @State private var useMetricHeight: Bool = false
     @State private var heightCmText: String = ""
+    @State private var isPrivate: Bool = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
+                    bannerSection
                     avatarSection
                     fieldsSection
+                    privacySection
                     biometricSection
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 20)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -68,6 +78,7 @@ struct EditProfileView: View {
                     hasDOB = true
                 }
                 biologicalSex = viewModel.profile.biologicalSex
+                isPrivate = viewModel.profile.isPrivate
                 if let h = viewModel.profile.heightCm {
                     hasHeight = true
                     let totalInches = h / 2.54
@@ -79,10 +90,142 @@ struct EditProfileView: View {
             .onChange(of: selectedPhoto) { _, newValue in
                 guard let newValue else { return }
                 Task {
-                    if let data = try? await newValue.loadTransferable(type: Data.self) {
-                        avatarImageData = data
+                    if let data = try? await newValue.loadTransferable(type: Data.self),
+                       let image = UIImage(data: data) {
+                        pendingCropImage = image
                     }
                 }
+            }
+            .onChange(of: selectedBannerPhoto) { _, newValue in
+                guard let newValue else { return }
+                Task {
+                    if let data = try? await newValue.loadTransferable(type: Data.self),
+                       let image = UIImage(data: data) {
+                        pendingBannerCropImage = image
+                    }
+                }
+            }
+            .fullScreenCover(item: Binding(
+                get: { pendingBannerCropImage.map { CropImageWrapper(image: $0) } },
+                set: { newValue in pendingBannerCropImage = newValue?.image }
+            )) { wrapper in
+                BannerCropSheet(
+                    sourceImage: wrapper.image,
+                    onSave: { data in
+                        bannerStore.setBanner(data)
+                        pendingBannerData = data
+                        bannerRemoved = false
+                        pendingBannerCropImage = nil
+                        selectedBannerPhoto = nil
+                    },
+                    onCancel: {
+                        pendingBannerCropImage = nil
+                        selectedBannerPhoto = nil
+                    }
+                )
+            }
+            .fullScreenCover(item: Binding(
+                get: { pendingCropImage.map { CropImageWrapper(image: $0) } },
+                set: { newValue in pendingCropImage = newValue?.image }
+            )) { wrapper in
+                AvatarCropSheet(
+                    sourceImage: wrapper.image,
+                    onSave: { data in
+                        avatarImageData = data
+                        pendingCropImage = nil
+                        selectedPhoto = nil
+                    },
+                    onCancel: {
+                        pendingCropImage = nil
+                        selectedPhoto = nil
+                    }
+                )
+            }
+        }
+    }
+
+    private struct CropImageWrapper: Identifiable {
+        let id = UUID()
+        let image: UIImage
+    }
+
+    private var bannerSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("PROFILE HEADER")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .tracking(0.8)
+                Spacer()
+                if bannerStore.bannerImage != nil || pendingBannerData != nil {
+                    Button(role: .destructive) {
+                        bannerStore.setBanner(nil)
+                        pendingBannerData = nil
+                        bannerRemoved = true
+                    } label: {
+                        Text("Remove")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+
+            ZStack(alignment: .bottomTrailing) {
+                Group {
+                    if let image = bannerStore.bannerImage {
+                        Color(.secondarySystemBackground)
+                            .frame(height: 130)
+                            .overlay {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .allowsHitTesting(false)
+                            }
+                            .clipped()
+                    } else {
+                        LinearGradient(
+                            colors: [
+                                PepTheme.teal.opacity(0.35),
+                                PepTheme.violet.opacity(0.25),
+                                PepTheme.background
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .frame(height: 130)
+                        .overlay {
+                            VStack(spacing: 6) {
+                                Image(systemName: "photo.on.rectangle.angled")
+                                    .font(.system(size: 24))
+                                Text("Add a header image")
+                                    .font(.system(.caption, weight: .semibold))
+                            }
+                            .foregroundStyle(.white.opacity(0.85))
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .clipShape(.rect(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                )
+
+                PhotosPicker(selection: $selectedBannerPhoto, matching: .images) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(bannerStore.bannerImage == nil ? "Add" : "Change")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(PepTheme.teal)
+                    .clipShape(.capsule)
+                    .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 2)
+                }
+                .padding(10)
             }
         }
     }
@@ -174,6 +317,40 @@ struct EditProfileView: View {
                     )
             }
         }
+    }
+
+    private var privacySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PepTheme.teal)
+                Text("Privacy")
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+
+            Toggle(isOn: $isPrivate) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Private Account")
+                        .font(.system(.subheadline, weight: .medium))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text(isPrivate
+                         ? "Only approved followers can see your posts and profile."
+                         : "Anyone can see your posts and profile.")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+            .tint(PepTheme.teal)
+        }
+        .padding(16)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
     }
 
     private var biometricSection: some View {
@@ -384,6 +561,18 @@ struct EditProfileView: View {
             isUploading = false
         }
 
+        if let bannerData = pendingBannerData {
+            isUploading = true
+            _ = await viewModel.uploadBanner(imageData: bannerData)
+            isUploading = false
+            pendingBannerData = nil
+        } else if bannerRemoved {
+            isUploading = true
+            await viewModel.removeBanner()
+            isUploading = false
+            bannerRemoved = false
+        }
+
         let program = activeProgram.trimmingCharacters(in: .whitespaces).isEmpty ? nil : activeProgram.trimmingCharacters(in: .whitespaces)
         await viewModel.saveProfileEdits(
             displayName: displayName.trimmingCharacters(in: .whitespaces),
@@ -393,7 +582,8 @@ struct EditProfileView: View {
             avatarColor: nil,
             dateOfBirth: hasDOB ? dateOfBirth : viewModel.profile.dateOfBirth,
             biologicalSex: biologicalSex ?? viewModel.profile.biologicalSex,
-            heightCm: computedHeightCm ?? viewModel.profile.heightCm
+            heightCm: computedHeightCm ?? viewModel.profile.heightCm,
+            isPrivate: isPrivate
         )
         dismiss()
     }

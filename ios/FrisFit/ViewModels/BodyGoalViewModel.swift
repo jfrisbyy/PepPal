@@ -203,6 +203,8 @@ final class BodyGoalViewModel {
             do {
                 let entry = try await BodyGoalsService.shared.logWeight(weight: weight, note: newWeighInNote)
                 weightEntries.append(entry)
+                StreakManager.shared.logActivity(type: .weight)
+                await HealthKitService.shared.saveBodyMass(pounds: weight, date: entry.date)
                 weightEntries.sort { $0.date < $1.date }
                 UserDefaults.standard.set(weight, forKey: "cachedWeightLbs")
 

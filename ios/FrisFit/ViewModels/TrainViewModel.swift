@@ -18,6 +18,20 @@ final class TrainViewModel {
     private static let programKey = "savedActiveProgram"
     private static let allProgramsKey = "savedAllPrograms"
     private static let programStartDayKey = "programStartDayOffset"
+    private static let multiActiveKey = "multiActiveProgramsEnabled"
+
+    var multiActiveEnabled: Bool = UserDefaults.standard.bool(forKey: "multiActiveProgramsEnabled") {
+        didSet { UserDefaults.standard.set(multiActiveEnabled, forKey: Self.multiActiveKey) }
+    }
+
+    var activePrograms: [TrainingProgram] {
+        savedPrograms.filter { $0.isActive }
+    }
+
+    var programSupabaseIds: [UUID: String] = [:]
+    private var programsLoadedFromSupabase: Bool = false
+    private var loadedForUserId: String? = nil
+    private var authObserver: NSObjectProtocol?
 
     var programName: String = ""
     var programType: ProgramType = .recurringSplit
@@ -40,6 +54,8 @@ final class TrainViewModel {
 
     var weeklyWorkoutGoal: Int = 5
 
+    var progressionNotices: [ProgressionNotice] = []
+
     var workoutsCompletedThisWeek: Int {
         let cal = Calendar.current
         let weekStart = cal.date(byAdding: .day, value: -7, to: Date()) ?? Date()
@@ -51,10 +67,10 @@ final class TrainViewModel {
     var combinedHistory: [CombinedHistoryItem] {
         var items: [CombinedHistoryItem] = []
         for entry in workoutHistory {
-            items.append(CombinedHistoryItem(id: entry.id, name: entry.name, date: entry.date, durationMinutes: entry.durationMinutes, fpEarned: entry.fpEarned, totalVolume: entry.totalVolume, sportSession: nil, exercises: entry.exercises))
+            items.append(CombinedHistoryItem(id: entry.id, name: entry.name, date: entry.date, durationMinutes: entry.durationMinutes, totalVolume: entry.totalVolume, sportSession: nil, exercises: entry.exercises))
         }
         for session in sportSessions {
-            items.append(CombinedHistoryItem(id: session.id, name: session.displayName, date: session.date, durationMinutes: session.durationMinutes, fpEarned: session.fpEarned, totalVolume: 0, sportSession: session, exercises: []))
+            items.append(CombinedHistoryItem(id: session.id, name: session.displayName, date: session.date, durationMinutes: session.durationMinutes, totalVolume: 0, sportSession: session, exercises: []))
         }
         return items.sorted { $0.date > $1.date }
     }
@@ -66,30 +82,34 @@ final class TrainViewModel {
     }
 
     var todayWorkoutDay: ProgramDay? {
-        guard let program = activeProgram else { return nil }
-        let dayIndex = todayProgramDayIndex
-        guard dayIndex < program.days.count else { return nil }
-        return program.days[dayIndex]
+        todayWorkoutDays.first
+    }
+
+    var todayWorkoutDays: [ProgramDay] {
+        guard let program = activeProgram else { return [] }
+        let weekday = currentMondayBasedWeekday()
+        if program.days.contains(where: { $0.scheduledWeekday != nil }) {
+            let matches = program.days.filter { $0.scheduledWeekday == weekday }
+            return matches.sorted { ($0.timeOfDay?.sortOrder ?? 0) < ($1.timeOfDay?.sortOrder ?? 0) }
+        }
+        let startOffset = UserDefaults.standard.integer(forKey: Self.programStartDayKey)
+        let adjusted = (weekday - startOffset + 7) % 7
+        guard adjusted < program.days.count else { return [] }
+        return [program.days[adjusted]]
     }
 
     var isRestDay: Bool {
-        guard let program = activeProgram else { return false }
-        return todayProgramDayIndex >= program.days.count
+        guard activeProgram != nil else { return false }
+        return todayWorkoutDay == nil
     }
 
-    private var todayProgramDayIndex: Int {
-        let startOffset = UserDefaults.standard.integer(forKey: Self.programStartDayKey)
+    private func currentMondayBasedWeekday() -> Int {
         let dayOfWeek = Calendar.current.component(.weekday, from: Date())
-        let mondayBased = (dayOfWeek + 5) % 7
-        let adjusted = (mondayBased - startOffset + 7) % 7
-        return adjusted
+        return (dayOfWeek + 5) % 7
     }
 
     var todayScheduledDayName: String? {
-        guard let program = activeProgram else { return nil }
-        let idx = todayProgramDayIndex
-        guard idx < program.days.count else { return nil }
-        return program.days[idx].name
+        todayWorkoutDay?.name
     }
 
     var muscleRecoveryItems: [MuscleRecoveryItem] {
@@ -166,7 +186,6 @@ final class TrainViewModel {
         let sessions = thisWeek.count + sportSessions.filter { $0.date >= weekStart }.count
         let vol = thisWeek.reduce(0) { $0 + $1.totalVolume }
         let dur = thisWeek.isEmpty ? 0 : thisWeek.reduce(0) { $0 + $1.durationMinutes } / max(thisWeek.count, 1)
-        let fp = thisWeek.reduce(0) { $0 + $1.fpEarned } + sportSessions.filter { $0.date >= weekStart }.reduce(0) { $0 + $1.fpEarned }
         let cal_burn = thisWeek.reduce(0) { $0 + $1.caloriesBurned }
         let sportCalBurn = sportSessions.filter { $0.date >= weekStart }.reduce(0) { acc, session in
             let weightKg = latestWeightKg()
@@ -178,7 +197,7 @@ final class TrainViewModel {
                 intensity: session.intensity
             )
         }
-        return TrainingInsight(totalSessions: sessions, totalVolume: vol, avgDuration: dur, totalFP: fp, totalCaloriesBurned: cal_burn + sportCalBurn)
+        return TrainingInsight(totalSessions: sessions, totalVolume: vol, avgDuration: dur, totalCaloriesBurned: cal_burn + sportCalBurn)
     }
 
     var warmupExercises: [WarmupExercise] {
@@ -224,14 +243,236 @@ final class TrainViewModel {
 
     // MARK: - Data Loading
 
+    init() {
+        NotificationCenter.default.addObserver(
+            forName: .workoutCompletedForProgression,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            Task { @MainActor in
+                self?.handleWorkoutCompleted(note: note)
+            }
+        }
+        authObserver = NotificationCenter.default.addObserver(
+            forName: .authUserChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            Task { @MainActor in
+                let newUserId = note.userInfo?["userId"] as? String
+                self?.handleAuthUserChanged(newUserId: newUserId)
+            }
+        }
+    }
+
+    private func handleAuthUserChanged(newUserId: String?) {
+        if newUserId == nil {
+            // Signed out — wipe all local program state so the next account starts clean.
+            savedPrograms = []
+            activeProgram = nil
+            programSupabaseIds = [:]
+            programsLoadedFromSupabase = false
+            loadedForUserId = nil
+            UserDefaults.standard.removeObject(forKey: Self.programKey)
+            UserDefaults.standard.removeObject(forKey: Self.allProgramsKey)
+            UserDefaults.standard.removeObject(forKey: Self.programStartDayKey)
+            return
+        }
+        if newUserId != loadedForUserId {
+            // Different user signed in — clear cached state and re-fetch from Supabase.
+            savedPrograms = []
+            activeProgram = nil
+            programSupabaseIds = [:]
+            programsLoadedFromSupabase = false
+            UserDefaults.standard.removeObject(forKey: Self.programKey)
+            UserDefaults.standard.removeObject(forKey: Self.allProgramsKey)
+            UserDefaults.standard.removeObject(forKey: Self.programStartDayKey)
+            loadProgramsFromSupabase()
+        }
+    }
+
+    private func handleWorkoutCompleted(note: Notification) {
+        guard let info = note.userInfo,
+              let programId = info["programId"] as? UUID,
+              let dayId = info["dayId"] as? UUID,
+              let results = info["results"] as? [[String: Any]],
+              let pIdx = savedPrograms.firstIndex(where: { $0.id == programId }),
+              let dIdx = savedPrograms[pIdx].days.firstIndex(where: { $0.id == dayId }) else { return }
+
+        var program = savedPrograms[pIdx]
+        var notices: [ProgressionNotice] = []
+
+        for (exIdx, pe) in program.days[dIdx].exercises.enumerated() {
+            guard let result = results.first(where: { ($0["exerciseId"] as? String) == pe.exerciseId }),
+                  let weight = result["weight"] as? Double,
+                  let reps = result["reps"] as? Int,
+                  let hitAll = result["allSetsCompleted"] as? Bool,
+                  weight > 0, reps > 0 else { continue }
+            guard let scheme = pe.progressionScheme, scheme != .none else { continue }
+            let increment = pe.progressionIncrement ?? 5
+            let suggestion = ProgressionEngine.suggestNext(
+                scheme: scheme,
+                lastWeight: weight,
+                lastReps: reps,
+                targetRepsLow: pe.targetRepsMin,
+                targetRepsHigh: pe.targetRepsMax,
+                incrementLbs: increment,
+                hitAllSets: hitAll,
+                lastRPE: nil,
+                targetRPE: pe.progressionTargetRPE ?? 8
+            )
+            let delta = suggestion.suggestedWeight - weight
+            program.days[dIdx].exercises[exIdx].prescribedWeight = suggestion.suggestedWeight
+            notices.append(ProgressionNotice(
+                exerciseName: pe.exerciseName,
+                previousWeight: weight,
+                nextWeight: suggestion.suggestedWeight,
+                delta: delta,
+                note: suggestion.note
+            ))
+        }
+
+        guard !notices.isEmpty else { return }
+        savedPrograms[pIdx] = program
+        if activeProgram?.id == program.id {
+            activeProgram = program
+            saveProgram()
+        }
+        saveAllPrograms()
+        persistProgramToSupabase(program)
+        progressionNotices = notices
+    }
+
     func loadAllData() {
         loadSavedModes()
         loadSavedProgram()
         loadDataFromSupabase()
+        loadProgramsFromSupabase()
     }
 
-    func loadDataFromSupabase() {
-        guard AuthService.shared.authState == .signedIn, !dataLoaded else { return }
+    func loadProgramsFromSupabase() {
+        guard !programsLoadedFromSupabase else { return }
+        programsLoadedFromSupabase = true
+        Task {
+            var attempts = 0
+            while AuthService.shared.authState == .loading && attempts < 40 {
+                try? await Task.sleep(for: .milliseconds(250))
+                attempts += 1
+            }
+            guard AuthService.shared.authState == .signedIn else {
+                programsLoadedFromSupabase = false
+                return
+            }
+            let currentUid = (try? AuthService.shared.currentUserId()) ?? ""
+            // If local cache belongs to a different user, drop it before fetching.
+            if let prior = loadedForUserId, prior != currentUid {
+                savedPrograms = []
+                activeProgram = nil
+                programSupabaseIds = [:]
+                UserDefaults.standard.removeObject(forKey: Self.programKey)
+                UserDefaults.standard.removeObject(forKey: Self.allProgramsKey)
+            }
+            do {
+                let results = try await TrainingProgramService.shared.fetchPrograms()
+                var idMap: [UUID: String] = [:]
+                var programs: [TrainingProgram] = []
+                var activeStartOffset: Int? = nil
+                for entry in results {
+                    idMap[entry.program.id] = entry.supabaseId
+                    programs.append(entry.program)
+                    if entry.program.isActive {
+                        activeStartOffset = entry.startDayOffset
+                    }
+                }
+                savedPrograms = programs
+                programSupabaseIds = idMap
+                activeProgram = programs.first { $0.isActive }
+                loadedForUserId = currentUid
+                if let offset = activeStartOffset {
+                    UserDefaults.standard.set(offset, forKey: Self.programStartDayKey)
+                } else {
+                    UserDefaults.standard.removeObject(forKey: Self.programStartDayKey)
+                }
+                if let data = try? JSONEncoder().encode(savedPrograms) {
+                    UserDefaults.standard.set(data, forKey: Self.allProgramsKey)
+                } else {
+                    UserDefaults.standard.removeObject(forKey: Self.allProgramsKey)
+                }
+                if let program = activeProgram, let data = try? JSONEncoder().encode(program) {
+                    UserDefaults.standard.set(data, forKey: Self.programKey)
+                } else {
+                    UserDefaults.standard.removeObject(forKey: Self.programKey)
+                }
+                NotificationCenter.default.post(name: .activeProgramsChanged, object: nil)
+            } catch {
+                print("[TrainVM] Failed to load programs from Supabase: \(error)")
+                programsLoadedFromSupabase = false
+                await MainActor.run {
+                    DebugBanner.shared.log(.error, "Program load failed", "\(error.localizedDescription)\n\nRaw: \(error)")
+                }
+            }
+        }
+    }
+
+    private func persistProgramToSupabase(_ program: TrainingProgram, startDayOffset: Int? = nil) {
+        let offset = startDayOffset ?? UserDefaults.standard.integer(forKey: Self.programStartDayKey)
+        Task {
+            var attempts = 0
+            while AuthService.shared.authState == .loading && attempts < 40 {
+                try? await Task.sleep(for: .milliseconds(250))
+                attempts += 1
+            }
+            guard AuthService.shared.authState == .signedIn else {
+                print("[TrainVM] Skipping program persist — not signed in (state=\(AuthService.shared.authState))")
+                await MainActor.run {
+                    DebugBanner.shared.log(.error, "Program not saved", "You must be signed in to sync programs to Supabase.")
+                }
+                return
+            }
+            do {
+                if let sid = programSupabaseIds[program.id] {
+                    try await TrainingProgramService.shared.updateProgram(id: sid, program: program, startDayOffset: offset)
+                    if program.isActive {
+                        try? await TrainingProgramService.shared.deactivateAll(exceptId: sid)
+                    }
+                    print("[TrainVM] Updated program '\(program.name)' in Supabase: \(sid)")
+                    await MainActor.run {
+                        DebugBanner.shared.log(.success, "Program synced", "Updated '\(program.name)' in Supabase.")
+                    }
+                } else {
+                    let sid = try await TrainingProgramService.shared.createProgram(program, startDayOffset: offset)
+                    programSupabaseIds[program.id] = sid
+                    if program.isActive {
+                        try? await TrainingProgramService.shared.deactivateAll(exceptId: sid)
+                    }
+                    print("[TrainVM] Created program '\(program.name)' in Supabase: \(sid)")
+                    await MainActor.run {
+                        DebugBanner.shared.log(.success, "Program saved", "Created '\(program.name)' in Supabase (id: \(sid.prefix(8))…).")
+                    }
+                }
+            } catch {
+                print("[TrainVM] Failed to persist program '\(program.name)': \(error)")
+                await MainActor.run {
+                    DebugBanner.shared.log(.error, "Program save failed", "\(error.localizedDescription)\n\nRaw: \(error)")
+                }
+            }
+        }
+    }
+
+    private func deleteProgramFromSupabase(_ programId: UUID) {
+        guard let sid = programSupabaseIds[programId] else { return }
+        programSupabaseIds.removeValue(forKey: programId)
+        Task {
+            try? await TrainingProgramService.shared.deleteProgram(id: sid)
+        }
+    }
+
+    func loadDataFromSupabase(force: Bool = false) {
+        guard AuthService.shared.authState == .signedIn else {
+            print("[TrainVM] loadDataFromSupabase skipped — user not signed in")
+            return
+        }
+        if !force && dataLoaded { return }
         dataLoaded = true
         Task {
             do {
@@ -253,8 +494,9 @@ final class TrainViewModel {
                 workoutHistory = history
                 sportSessions = sports
                 computePersonalRecords()
+                print("[TrainVM] Loaded \(history.count) workouts and \(sports.count) sport sessions from Supabase")
             } catch {
-                print("[TrainVM] Failed to load workouts from Supabase: \(error)")
+                print("[TrainVM] ERROR loading workouts from Supabase: \(error.localizedDescription) — \(error)")
             }
         }
     }
@@ -294,12 +536,14 @@ final class TrainViewModel {
         Task {
             do {
                 let userId = try AuthService.shared.currentUserId()
-                _ = try await WorkoutService.shared.createWorkout(
+                let created = try await WorkoutService.shared.createWorkout(
                     userId: userId, name: name, workoutType: type,
                     durationMinutes: durationMinutes, caloriesBurned: caloriesBurned, notes: notes
                 )
+                print("[TrainVM] Workout saved to Supabase: \(created.id ?? "nil")")
+                loadDataFromSupabase(force: true)
             } catch {
-                print("[TrainVM] Failed to save workout: \(error)")
+                print("[TrainVM] ERROR saving workout: \(error.localizedDescription) — \(error)")
             }
         }
     }
@@ -310,25 +554,26 @@ final class TrainViewModel {
         durationMinutes: Int?,
         caloriesBurned: Int?,
         totalVolume: Int,
-        fpEarned: Int,
+        fpEarned: Int = 0,
         exercises: [WorkoutHistoryExerciseDetail]
     ) {
         guard AuthService.shared.authState == .signedIn else { return }
         Task {
             do {
                 let userId = try AuthService.shared.currentUserId()
-                _ = try await WorkoutService.shared.createWorkoutWithDetails(
+                let created = try await WorkoutService.shared.createWorkoutWithDetails(
                     userId: userId,
                     name: name,
                     type: type,
                     durationMinutes: durationMinutes,
                     caloriesBurned: caloriesBurned,
                     totalVolume: totalVolume,
-                    fpEarned: fpEarned,
                     exercises: exercises
                 )
+                print("[TrainVM] Workout with details saved to Supabase: \(created.id ?? "nil") — \(exercises.count) exercises")
+                loadDataFromSupabase(force: true)
             } catch {
-                print("[TrainVM] Failed to save workout details: \(error)")
+                print("[TrainVM] ERROR saving workout details: \(error.localizedDescription) — \(error)")
             }
         }
     }
@@ -336,11 +581,17 @@ final class TrainViewModel {
     func addWorkoutToHistory(_ detail: WorkoutHistoryDetail) {
         workoutHistory.insert(detail, at: 0)
         computePersonalRecords()
+        Task { @MainActor in _ = await CorrelationEngine.shared.run() }
     }
 
     func addSportSession(_ session: SportSession) {
         sportSessions.insert(session, at: 0)
-        guard AuthService.shared.authState == .signedIn else { return }
+        BasketballViewModel.shared.ingestSportSession(session)
+        guard AuthService.shared.authState == .signedIn else {
+            NotificationCenter.default.post(name: .supabaseDataChanged, object: nil, userInfo: ["source": "sportSession"])
+            StreakManager.shared.logActivity(type: .sportSession, sport: session.sport, durationMinutes: session.durationMinutes)
+            return
+        }
         let weightKg = latestWeightKg()
         let calories = METCalculator.caloriesBurned(
             sport: session.sport.rawValue,
@@ -352,17 +603,20 @@ final class TrainViewModel {
         Task {
             do {
                 let userId = try AuthService.shared.currentUserId()
-                _ = try await WorkoutService.shared.createSportSession(userId: userId, session: session)
+                let created = try await WorkoutService.shared.createSportSession(userId: userId, session: session)
                 try await ActivityLogService.shared.logActivity(
                     userId: userId,
-                    activityType: "sport",
+                    activityType: "sportSession",
                     sport: session.sport.rawValue,
                     durationMinutes: session.durationMinutes,
                     caloriesBurned: calories,
                     metValue: nil
                 )
+                print("[TrainVM] Sport session saved to Supabase: \(created.id ?? "nil")")
+                NotificationCenter.default.post(name: .supabaseDataChanged, object: nil, userInfo: ["source": "sportSession"])
+                loadDataFromSupabase(force: true)
             } catch {
-                print("[TrainVM] Failed to save sport session: \(error)")
+                print("[TrainVM] ERROR saving sport session: \(error.localizedDescription) — \(error)")
             }
         }
         StreakManager.shared.logActivity(type: .sportSession, sport: session.sport, durationMinutes: session.durationMinutes)
@@ -387,8 +641,27 @@ final class TrainViewModel {
 
     func initializeDays() {
         let dayNames = ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"]
+        let defaultWeekdays: [Int] = defaultWeekdayAssignments(for: daysPerWeek)
+        if programDays.count == daysPerWeek {
+            for i in 0..<daysPerWeek where programDays[i].scheduledWeekday == nil {
+                programDays[i].scheduledWeekday = defaultWeekdays[i]
+            }
+            return
+        }
         programDays = (0..<daysPerWeek).map { i in
-            ProgramDay(name: dayNames[i])
+            ProgramDay(name: dayNames[i], scheduledWeekday: defaultWeekdays[i])
+        }
+    }
+
+    private func defaultWeekdayAssignments(for count: Int) -> [Int] {
+        switch count {
+        case 2: return [0, 3]
+        case 3: return [0, 2, 4]
+        case 4: return [0, 1, 3, 4]
+        case 5: return [0, 1, 2, 3, 4]
+        case 6: return [0, 1, 2, 3, 4, 5]
+        case 7: return [0, 1, 2, 3, 4, 5, 6]
+        default: return Array(0..<min(count, 7))
         }
     }
 
@@ -415,14 +688,33 @@ final class TrainViewModel {
             days: programDays,
             isActive: true
         )
+        if !multiActiveEnabled {
+            deactivateOtherPrograms(except: program.id)
+        }
         activeProgram = program
         saveProgram()
+        persistProgramToSupabase(program)
     }
 
     func activateTemplateProgram(_ program: TrainingProgram, startDayOffset: Int) {
+        if !multiActiveEnabled {
+            deactivateOtherPrograms(except: program.id)
+        }
         activeProgram = program
         UserDefaults.standard.set(startDayOffset, forKey: Self.programStartDayKey)
         saveProgram()
+        persistProgramToSupabase(program, startDayOffset: startDayOffset)
+    }
+
+    private func deactivateOtherPrograms(except keepId: UUID) {
+        for i in savedPrograms.indices where savedPrograms[i].id != keepId && savedPrograms[i].isActive {
+            savedPrograms[i].isActive = false
+            persistProgramToSupabase(savedPrograms[i])
+        }
+        if var old = activeProgram, old.id != keepId, old.isActive {
+            old.isActive = false
+            persistProgramToSupabase(old)
+        }
     }
 
     var canProceedFromSetup: Bool {
@@ -430,7 +722,52 @@ final class TrainViewModel {
     }
 
     var canProceedFromSchedule: Bool {
-        programDays.allSatisfy { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty && !$0.exercises.isEmpty }
+        let hasContent = programDays.allSatisfy { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty && !$0.exercises.isEmpty }
+        let allAssigned = programDays.allSatisfy { $0.scheduledWeekday != nil }
+        let grouped = Dictionary(grouping: programDays, by: { $0.scheduledWeekday ?? -1 })
+        let timesDistinct = grouped.allSatisfy { _, days in
+            guard days.count > 1 else { return true }
+            let times = days.compactMap { $0.timeOfDay }
+            return times.count == days.count && Set(times).count == days.count
+        }
+        return hasContent && allAssigned && timesDistinct
+    }
+
+    func setWeekday(_ weekday: Int, forDayAt index: Int) {
+        guard index < programDays.count else { return }
+        programDays[index].scheduledWeekday = weekday
+        ensureTimeOfDayAssignments(forWeekday: weekday)
+    }
+
+    func setTimeOfDay(_ time: ProgramTimeOfDay?, forDayAt index: Int) {
+        guard index < programDays.count else { return }
+        programDays[index].timeOfDay = time
+    }
+
+    private func ensureTimeOfDayAssignments(forWeekday weekday: Int) {
+        let indices = programDays.indices.filter { programDays[$0].scheduledWeekday == weekday }
+        if indices.count <= 1 {
+            if let only = indices.first {
+                programDays[only].timeOfDay = nil
+            }
+            return
+        }
+        var used: Set<ProgramTimeOfDay> = []
+        for i in indices {
+            if let t = programDays[i].timeOfDay, !used.contains(t) {
+                used.insert(t)
+            } else {
+                programDays[i].timeOfDay = nil
+            }
+        }
+        let available = ProgramTimeOfDay.allCases.filter { !used.contains($0) }
+        var pool = available
+        for i in indices where programDays[i].timeOfDay == nil {
+            if let next = pool.first {
+                programDays[i].timeOfDay = next
+                pool.removeFirst()
+            }
+        }
     }
 
     func formattedDate(_ date: Date) -> String {
@@ -528,6 +865,12 @@ final class TrainViewModel {
 
     // MARK: - Program Persistence
 
+    private func stampCacheUserId() {
+        if let uid = try? AuthService.shared.currentUserId() {
+            UserDefaults.standard.set(uid, forKey: "trainVM.cacheUserId")
+        }
+    }
+
     private func saveProgram() {
         guard let program = activeProgram else {
             UserDefaults.standard.removeObject(forKey: Self.programKey)
@@ -536,6 +879,7 @@ final class TrainViewModel {
         if let data = try? JSONEncoder().encode(program) {
             UserDefaults.standard.set(data, forKey: Self.programKey)
         }
+        stampCacheUserId()
         syncActiveProgramToList()
     }
 
@@ -543,6 +887,7 @@ final class TrainViewModel {
         if let data = try? JSONEncoder().encode(savedPrograms) {
             UserDefaults.standard.set(data, forKey: Self.allProgramsKey)
         }
+        stampCacheUserId()
     }
 
     private func syncActiveProgramToList() {
@@ -556,6 +901,22 @@ final class TrainViewModel {
     }
 
     func loadSavedProgram() {
+        // Only trust the local cache if it belongs to the currently-signed-in user.
+        // Otherwise wait for Supabase to populate state to avoid leaking another account's programs.
+        guard AuthService.shared.authState == .signedIn else {
+            savedPrograms = []
+            activeProgram = nil
+            return
+        }
+        let currentUid = (try? AuthService.shared.currentUserId()) ?? ""
+        let cachedUid = UserDefaults.standard.string(forKey: "trainVM.cacheUserId")
+        guard cachedUid == currentUid else {
+            savedPrograms = []
+            activeProgram = nil
+            UserDefaults.standard.removeObject(forKey: Self.programKey)
+            UserDefaults.standard.removeObject(forKey: Self.allProgramsKey)
+            return
+        }
         if let data = UserDefaults.standard.data(forKey: Self.allProgramsKey),
            let programs = try? JSONDecoder().decode([TrainingProgram].self, from: data) {
             savedPrograms = programs
@@ -564,11 +925,13 @@ final class TrainViewModel {
            let program = try? JSONDecoder().decode(TrainingProgram.self, from: data) {
             activeProgram = program
         }
+        loadedForUserId = currentUid
     }
 
     func deleteProgram() {
         guard let program = activeProgram else { return }
         savedPrograms.removeAll { $0.id == program.id }
+        deleteProgramFromSupabase(program.id)
         activeProgram = nil
         UserDefaults.standard.removeObject(forKey: Self.programKey)
         saveAllPrograms()
@@ -577,6 +940,7 @@ final class TrainViewModel {
     func deleteProgramById(_ id: UUID) {
         let wasActive = activeProgram?.id == id
         savedPrograms.removeAll { $0.id == id }
+        deleteProgramFromSupabase(id)
         if wasActive {
             activeProgram = nil
             UserDefaults.standard.removeObject(forKey: Self.programKey)
@@ -587,18 +951,59 @@ final class TrainViewModel {
     func switchToProgram(_ program: TrainingProgram) {
         var updated = program
         updated.isActive = true
-        if var old = activeProgram, old.id != program.id {
-            old.isActive = false
-            if let idx = savedPrograms.firstIndex(where: { $0.id == old.id }) {
-                savedPrograms[idx] = old
-            }
+        if !multiActiveEnabled {
+            deactivateOtherPrograms(except: program.id)
         }
         activeProgram = updated
         if let idx = savedPrograms.firstIndex(where: { $0.id == updated.id }) {
             savedPrograms[idx] = updated
+        } else {
+            savedPrograms.append(updated)
         }
         saveProgram()
         saveAllPrograms()
+        persistProgramToSupabase(updated)
+    }
+
+    func setProgramActive(_ program: TrainingProgram, active: Bool) {
+        guard let idx = savedPrograms.firstIndex(where: { $0.id == program.id }) else { return }
+        if active && !multiActiveEnabled {
+            deactivateOtherPrograms(except: program.id)
+        }
+        savedPrograms[idx].isActive = active
+        let updated = savedPrograms[idx]
+        if active {
+            activeProgram = updated
+            saveProgram()
+        } else if activeProgram?.id == updated.id {
+            activeProgram = activePrograms.first
+            if let primary = activeProgram, let data = try? JSONEncoder().encode(primary) {
+                UserDefaults.standard.set(data, forKey: Self.programKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Self.programKey)
+            }
+        }
+        saveAllPrograms()
+        persistProgramToSupabase(updated)
+        NotificationCenter.default.post(name: .activeProgramsChanged, object: nil)
+    }
+
+    func setMultiActiveEnabled(_ enabled: Bool) {
+        multiActiveEnabled = enabled
+        if !enabled {
+            // Collapse to a single active program — keep activeProgram, deactivate others.
+            if let primary = activeProgram ?? activePrograms.first {
+                deactivateOtherPrograms(except: primary.id)
+                if let idx = savedPrograms.firstIndex(where: { $0.id == primary.id }) {
+                    savedPrograms[idx].isActive = true
+                    activeProgram = savedPrograms[idx]
+                    persistProgramToSupabase(savedPrograms[idx])
+                }
+                saveProgram()
+                saveAllPrograms()
+            }
+        }
+        NotificationCenter.default.post(name: .activeProgramsChanged, object: nil)
     }
 
     func addProgramToLibrary(_ program: TrainingProgram) {
@@ -606,6 +1011,7 @@ final class TrainViewModel {
         p.isActive = false
         savedPrograms.append(p)
         saveAllPrograms()
+        persistProgramToSupabase(p)
     }
 
     func duplicateProgram(_ program: TrainingProgram) {
@@ -618,6 +1024,7 @@ final class TrainViewModel {
         )
         savedPrograms.append(copy)
         saveAllPrograms()
+        persistProgramToSupabase(copy)
     }
 
     func updateProgram(_ program: TrainingProgram) {
@@ -629,6 +1036,7 @@ final class TrainViewModel {
             saveProgram()
         }
         saveAllPrograms()
+        persistProgramToSupabase(program)
     }
 
     func swapExerciseInProgram(programId: UUID, dayId: UUID, exerciseIndex: Int, newExercise: Exercise) {
@@ -648,6 +1056,7 @@ final class TrainViewModel {
             saveProgram()
         }
         saveAllPrograms()
+        persistProgramToSupabase(savedPrograms[pIdx])
     }
 
     var inactivePrograms: [TrainingProgram] {

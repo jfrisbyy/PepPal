@@ -14,6 +14,7 @@ nonisolated struct SupabaseFeedPost: Codable, Sendable {
     let repost_count: Int?
     let created_at: String?
     let updated_at: String?
+    let edited_at: String?
 }
 
 nonisolated struct SupabaseFeedPostWithProfile: Codable, Sendable {
@@ -28,6 +29,7 @@ nonisolated struct SupabaseFeedPostWithProfile: Codable, Sendable {
     let repost_count: Int?
     let created_at: String?
     let updated_at: String?
+    let edited_at: String?
     let profiles: SupabasePostAuthor?
 }
 
@@ -121,6 +123,16 @@ final class SocialService {
         return f
     }()
 
+    func fetchPost(postId: String) async throws -> SupabaseFeedPostWithProfile {
+        try await supabase
+            .from("feed_posts")
+            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .eq("id", value: postId)
+            .single()
+            .execute()
+            .value
+    }
+
     func fetchPosts(limit: Int = 50, offset: Int = 0) async throws -> [SupabaseFeedPostWithProfile] {
         let response: [SupabaseFeedPostWithProfile] = try await supabase
             .from("feed_posts")
@@ -165,6 +177,50 @@ final class SocialService {
             .delete()
             .eq("id", value: postId)
             .execute()
+    }
+
+    nonisolated struct UpdateFeedPostPayload: Codable, Sendable {
+        let text_content: String
+        let tags: [String]?
+        let updated_at: String
+        let edited_at: String
+    }
+
+    func updatePost(postId: String, textContent: String, tags: [String]?) async throws -> SupabaseFeedPostWithProfile {
+        let now = ISO8601DateFormatter().string(from: Date())
+        let payload = UpdateFeedPostPayload(text_content: textContent, tags: tags, updated_at: now, edited_at: now)
+        try await supabase
+            .from("feed_posts")
+            .update(payload)
+            .eq("id", value: postId)
+            .execute()
+
+        let full: SupabaseFeedPostWithProfile = try await supabase
+            .from("feed_posts")
+            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .eq("id", value: postId)
+            .single()
+            .execute()
+            .value
+        return full
+    }
+
+    /// Fetch a page using a cursor (latest created_at seen). Returns posts older than the cursor.
+    func fetchPostsPage(before cursor: Date?, pageSize: Int = 20) async throws -> [SupabaseFeedPostWithProfile] {
+        var query = supabase
+            .from("feed_posts")
+            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+        if let cursor {
+            let iso = ISO8601DateFormatter()
+            iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            query = query.lt("created_at", value: iso.string(from: cursor))
+        }
+        let response: [SupabaseFeedPostWithProfile] = try await query
+            .order("created_at", ascending: false)
+            .limit(pageSize)
+            .execute()
+            .value
+        return response
     }
 
     func fetchComments(postId: String) async throws -> [SupabasePostCommentWithProfile] {
@@ -345,6 +401,20 @@ final class SocialService {
             .getPublicURL(path: fileName)
 
         return publicURL.absoluteString
+    }
+
+    func searchPosts(query: String, limit: Int = 20) async throws -> [SupabaseFeedPostWithProfile] {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return [] }
+        let response: [SupabaseFeedPostWithProfile] = try await supabase
+            .from("feed_posts")
+            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .ilike("text_content", pattern: "%\(q)%")
+            .order("created_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+        return response
     }
 
     func fetchUserPosts(userId: String, limit: Int = 50) async throws -> [SupabaseFeedPostWithProfile] {

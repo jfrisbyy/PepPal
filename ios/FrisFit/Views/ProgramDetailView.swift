@@ -16,9 +16,10 @@ struct ProgramDetailView: View {
     @State private var showDeleteConfirm: Bool = false
     @State private var hasChanges: Bool = false
 
-    struct SwapTarget {
+    struct SwapTarget: Identifiable {
         let dayId: UUID
         let exerciseIndex: Int
+        var id: String { "\(dayId.uuidString)-\(exerciseIndex)" }
     }
 
     init(program: TrainingProgram, viewModel: TrainViewModel, isActive: Bool) {
@@ -37,7 +38,7 @@ struct ProgramDetailView: View {
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle(program.name)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
@@ -110,29 +111,49 @@ struct ProgramDetailView: View {
             Text("Are you sure? This can't be undone.")
         }
         .sheet(isPresented: $showExercisePicker) {
-            ExercisePickerView { exercises in
-                if let target = swapTarget,
-                   let dayIdx = program.days.firstIndex(where: { $0.id == target.dayId }),
-                   let first = exercises.first {
-                    let old = program.days[dayIdx].exercises[target.exerciseIndex]
-                    program.days[dayIdx].exercises[target.exerciseIndex] = ProgramExercise(
-                        exercise: first,
-                        targetSets: old.targetSets,
-                        targetRepsMin: old.targetRepsMin,
-                        targetRepsMax: old.targetRepsMax,
-                        restSeconds: old.restSeconds
-                    )
-                    saveChanges()
-                } else if let dayId = editingDayId,
-                          let dayIdx = program.days.firstIndex(where: { $0.id == dayId }) {
-                    for exercise in exercises {
-                        program.days[dayIdx].exercises.append(ProgramExercise(exercise: exercise))
-                    }
-                    saveChanges()
+            exercisePickerSheet
+        }
+        .sheet(item: $progressionSheetTarget) { target in
+            ProgressionSchemeSheet(
+                dayId: target.dayId,
+                exerciseIndex: target.exerciseIndex,
+                program: $program,
+                onSave: { saveChanges() }
+            )
+        }
+    }
+
+    private var currentSwapSource: Exercise? {
+        guard let target = swapTarget,
+              let dayIdx = program.days.firstIndex(where: { $0.id == target.dayId }),
+              target.exerciseIndex < program.days[dayIdx].exercises.count else { return nil }
+        let pe = program.days[dayIdx].exercises[target.exerciseIndex]
+        return ExerciseLibrary.all.first { $0.id == pe.exerciseId }
+    }
+
+    private var exercisePickerSheet: some View {
+        ExercisePickerView(swapSource: currentSwapSource) { exercises in
+            if let target = swapTarget,
+               let dayIdx = program.days.firstIndex(where: { $0.id == target.dayId }),
+               let first = exercises.first {
+                let old = program.days[dayIdx].exercises[target.exerciseIndex]
+                program.days[dayIdx].exercises[target.exerciseIndex] = ProgramExercise(
+                    exercise: first,
+                    targetSets: old.targetSets,
+                    targetRepsMin: old.targetRepsMin,
+                    targetRepsMax: old.targetRepsMax,
+                    restSeconds: old.restSeconds
+                )
+                saveChanges()
+            } else if let dayId = editingDayId,
+                      let dayIdx = program.days.firstIndex(where: { $0.id == dayId }) {
+                for exercise in exercises {
+                    program.days[dayIdx].exercises.append(ProgramExercise(exercise: exercise))
                 }
-                swapTarget = nil
-                editingDayId = nil
+                saveChanges()
             }
+            swapTarget = nil
+            editingDayId = nil
         }
     }
 
@@ -335,6 +356,10 @@ struct ProgramDetailView: View {
             .padding(.top, 14)
             .padding(.bottom, 10)
 
+            weekdayEditor(dayIndex: dayIndex)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 10)
+
             ForEach(Array(day.exercises.enumerated()), id: \.element.id) { exIdx, exercise in
                 exerciseRow(exercise: exercise, dayId: day.id, dayIndex: dayIndex, exerciseIndex: exIdx)
             }
@@ -356,6 +381,8 @@ struct ProgramDetailView: View {
         )
     }
 
+    @State private var progressionSheetTarget: SwapTarget? = nil
+
     private func exerciseRow(exercise: ProgramExercise, dayId: UUID, dayIndex: Int, exerciseIndex: Int) -> some View {
         HStack(spacing: 10) {
             Image(systemName: exercise.primaryMuscle.icon)
@@ -373,6 +400,24 @@ struct ProgramDetailView: View {
                 Text("\(exercise.targetSets)×\(exercise.targetRepsMin)-\(exercise.targetRepsMax) · \(exercise.restSeconds)s rest")
                     .font(.system(size: 10))
                     .foregroundStyle(PepTheme.textSecondary)
+                if let prescribed = exercise.prescribedWeight, prescribed > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.forward")
+                            .font(.system(size: 9, weight: .bold))
+                        Text("Next: \(Int(prescribed)) lbs")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundStyle(PepTheme.amber)
+                }
+                if let scheme = exercise.progressionScheme, scheme != .none {
+                    Text(scheme.rawValue)
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(PepTheme.violet)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(PepTheme.violet.opacity(0.12))
+                        .clipShape(Capsule())
+                }
             }
 
             Spacer()
@@ -384,6 +429,12 @@ struct ProgramDetailView: View {
                     showExercisePicker = true
                 } label: {
                     Label("Swap Exercise", systemImage: "arrow.triangle.swap")
+                }
+
+                Button {
+                    progressionSheetTarget = SwapTarget(dayId: dayId, exerciseIndex: exerciseIndex)
+                } label: {
+                    Label("Progression…", systemImage: "chart.line.uptrend.xyaxis")
                 }
 
                 Button(role: .destructive) {
@@ -405,6 +456,151 @@ struct ProgramDetailView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 5)
+    }
+
+    // MARK: - Weekday Editor
+
+    private func weekdayEditor(dayIndex: Int) -> some View {
+        let selected = program.days[dayIndex].scheduledWeekday
+        let sharedWeekday: Int? = {
+            guard let wd = selected else { return nil }
+            let count = program.days.filter { $0.scheduledWeekday == wd }.count
+            return count > 1 ? wd : nil
+        }()
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("SCHEDULED ON")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                .tracking(0.8)
+            HStack(spacing: 6) {
+                ForEach(ProgramWeekday.allCases) { weekday in
+                    let isSelected = selected == weekday.rawValue
+                    let sharedCount = program.days.enumerated().filter { i, d in
+                        i != dayIndex && d.scheduledWeekday == weekday.rawValue
+                    }.count
+                    Button {
+                        withAnimation(.spring(duration: 0.2)) {
+                            program.days[dayIndex].scheduledWeekday = weekday.rawValue
+                            ensureTimeOfDayAssignments(forWeekday: weekday.rawValue)
+                            saveChanges()
+                        }
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Text(weekday.singleLetter)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(isSelected ? .black : PepTheme.textPrimary)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 34)
+                                .background(isSelected ? PepTheme.teal : PepTheme.elevated)
+                                .clipShape(.rect(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .strokeBorder(
+                                            isSelected ? Color.clear : PepTheme.glassBorderTop,
+                                            lineWidth: 0.5
+                                        )
+                                )
+                            if sharedCount > 0 {
+                                Circle()
+                                    .fill(PepTheme.amber)
+                                    .frame(width: 6, height: 6)
+                                    .offset(x: -4, y: 4)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            if sharedWeekday != nil {
+                timeOfDayEditor(dayIndex: dayIndex)
+            }
+        }
+    }
+
+    private func timeOfDayEditor(dayIndex: Int) -> some View {
+        let weekday = program.days[dayIndex].scheduledWeekday
+        let current = program.days[dayIndex].timeOfDay
+        let usedByOther: Set<ProgramTimeOfDay> = Set(
+            program.days.enumerated().compactMap { i, d in
+                (i != dayIndex && d.scheduledWeekday == weekday) ? d.timeOfDay : nil
+            }
+        )
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "clock.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(PepTheme.amber)
+                Text("TIME OF DAY")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                    .tracking(0.8)
+            }
+            HStack(spacing: 6) {
+                ForEach(ProgramTimeOfDay.allCases) { time in
+                    let isSelected = current == time
+                    let isTaken = usedByOther.contains(time) && !isSelected
+                    Button {
+                        withAnimation(.spring(duration: 0.2)) {
+                            program.days[dayIndex].timeOfDay = isSelected ? nil : time
+                            saveChanges()
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: time.icon)
+                                .font(.system(size: 10))
+                            Text(time.label)
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(
+                            isSelected ? .black : (isTaken ? PepTheme.textSecondary.opacity(0.4) : PepTheme.textPrimary)
+                        )
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 30)
+                        .background(
+                            isSelected
+                                ? PepTheme.amber
+                                : (isTaken ? PepTheme.elevated.opacity(0.4) : PepTheme.elevated)
+                        )
+                        .clipShape(.rect(cornerRadius: 7))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isTaken)
+                }
+            }
+        }
+        .padding(10)
+        .background(PepTheme.amber.opacity(0.06))
+        .clipShape(.rect(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(PepTheme.amber.opacity(0.2), lineWidth: 0.5)
+        )
+    }
+
+    private func ensureTimeOfDayAssignments(forWeekday weekday: Int) {
+        let indices = program.days.indices.filter { program.days[$0].scheduledWeekday == weekday }
+        if indices.count <= 1 {
+            if let only = indices.first {
+                program.days[only].timeOfDay = nil
+            }
+            return
+        }
+        var used: Set<ProgramTimeOfDay> = []
+        for i in indices {
+            if let t = program.days[i].timeOfDay, !used.contains(t) {
+                used.insert(t)
+            } else {
+                program.days[i].timeOfDay = nil
+            }
+        }
+        let available = ProgramTimeOfDay.allCases.filter { !used.contains($0) }
+        var pool = available
+        for i in indices where program.days[i].timeOfDay == nil {
+            if let next = pool.first {
+                program.days[i].timeOfDay = next
+                pool.removeFirst()
+            }
+        }
     }
 
     // MARK: - Helpers

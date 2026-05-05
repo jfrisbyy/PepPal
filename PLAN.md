@@ -1,38 +1,21 @@
-# Native Camera-Style Meal Log with Live Preview & Swipeable Modes
+# Merge the two protocol detail pages into one unified view
 
-Redesign the meal logging screen to feel like the native iPhone Camera app — the camera feed is always live in the background, with swipeable mode labels at the bottom and a photo library thumbnail in the corner.
+## The problem
 
-**How It Works**
+Right now tapping a protocol can land you on two different pages depending on entry point:
+- A **pharmacology page** (big bottle, medication-level chart, half-life, refill button, vial info, dose history) when tapping the protocol from the home card.
+- A **protocol detail page** (cycle timeline, dose log, interactions, side effects, reconstitution, supply, notes, etc.) when opening from "Manage Protocols" or the Details footer button.
 
-- **Live camera preview fills the screen** as the default when you open "Log Meal" — no intermediate buttons or selection screens
-- **Swipeable mode strip at the bottom** (like iPhone Camera's "Photo / Video / Slo-Mo" selector):
-  - **Scan** — the default; live camera with a shutter button to snap a photo for AI analysis
-  - **Describe** — slides up a text input over the camera to type what you ate
-  - **Search** — slides up a food search interface over the camera
-  - **Manual** — slides up quick-add number fields over the camera
-- Swiping left/right on the mode strip (or tapping a label) switches modes with a smooth spring animation — the selected mode snaps to center and highlights, just like the native camera
-- **Gallery thumbnail** in the bottom-left corner (small rounded square showing your most recent photo) — tap it to pick a photo from your library for AI analysis
-- **Shutter button** (large circle, bottom center) visible in Scan mode — tap to capture and analyze
-- **Close button** (X) in the top-left to dismiss
-- **Meal time label** (e.g. "Lunch") shown subtly at the top
+These will be combined into a single, definitive protocol page.
 
-**After Capturing / Selecting a Photo**
+## What changes
 
-- The live preview freezes on the captured image
-- Scanning animation plays over the photo
-- Results slide up from the bottom showing detected items and nutrition — same as the current result cards
-- "Retake" button to go back to the live camera
+- **One page for everything.** All entry points — tapping the protocol card, tapping a specific compound inside the stack, the Details footer, and the Manage Protocols list — now open the same unified protocol page.
+- **New hero at the top of the page.** The page leads with the large animated bottle, the medication-level chart, range selector (24h / 7d / 30d), half-life facts row, and the Refill button — exactly the premium feel of the old pharmacology page.
+- **Per-compound focus.** For multi-compound protocols, the hero shows a compound switcher at the top. Tapping a specific compound from the home card opens this page already focused on that compound's chart.
+- **Everything else preserved underneath.** Below the hero you still get: proactive insights, interactions, next dose action, cycle timeline, dose log, injection sites, reconstitution, side effects, goal-specific tracking (weight loss / healing / muscle / cognitive / tanning), supply, batch info, supplements, and notes.
+- **No more duplicate page.** The old standalone pharmacology page is removed so there's one source of truth.
 
-**Simulator Behavior**
+## Result
 
-- On simulator (where no camera hardware exists), a clean placeholder with the camera icon is shown in place of the live feed — the mode strip, gallery button, and other modes still work normally
-
-**Design Details**
-
-- Dark background behind the camera feed for that native camera feel
-- Mode labels in a horizontal scrollable strip with the active mode in white/bold, inactive in gray — mimics the iPhone camera's text selector
-- Shutter button: white circle with a slightly smaller inner circle, matching Apple's camera button style
-- Gallery thumbnail: 44×44 rounded rectangle in the bottom-left with a subtle border
-- When switching to Describe/Search/Manual modes, a dark translucent panel slides up over the lower portion of the camera — the camera stays visible behind at the top as a peek
-- Haptic feedback on mode switches and shutter tap
-
+Users see a single, premium editorial protocol page with the chart and refill front-and-center, and all the deeper tracking tools below — no more two conflicting views.

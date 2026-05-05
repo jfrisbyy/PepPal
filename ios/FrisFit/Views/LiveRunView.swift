@@ -105,11 +105,20 @@ struct LiveRunView: View {
     private var mapSection: some View {
         ZStack(alignment: .topTrailing) {
             Map(position: $mapCameraPosition) {
-                if runVM.routePoints.count >= 2 {
-                    MapPolyline(coordinates: runVM.routePoints.map {
-                        CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
-                    })
-                    .stroke(accentColor, lineWidth: 3)
+                ForEach(paceSegments.indices, id: \.self) { i in
+                    let seg = paceSegments[i]
+                    MapPolyline(coordinates: seg.coords)
+                        .stroke(seg.color, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                }
+                ForEach(mileMarkers) { marker in
+                    Annotation("\(marker.mile)", coordinate: marker.coordinate) {
+                        Text("\(marker.mile)")
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .foregroundStyle(.black)
+                            .frame(width: 22, height: 22)
+                            .background(Circle().fill(Color.white))
+                            .overlay(Circle().strokeBorder(accentColor, lineWidth: 2))
+                    }
                 }
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
@@ -134,7 +143,95 @@ struct LiveRunView: View {
                 }
             }
             .padding(12)
+
+            if runVM.isAutoPaused {
+                autoPauseBanner
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .allowsHitTesting(false)
+            }
         }
+    }
+
+    private var autoPauseBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "pause.circle.fill")
+                .font(.system(size: 14))
+            Text("Auto-paused")
+                .font(.system(size: 12, weight: .bold))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color.orange.opacity(0.95))
+        .clipShape(Capsule())
+        .frame(maxWidth: .infinity)
+    }
+
+    private struct MileMarker: Identifiable {
+        let id = UUID()
+        let mile: Int
+        let coordinate: CLLocationCoordinate2D
+    }
+
+    private struct ColoredSegment {
+        let coords: [CLLocationCoordinate2D]
+        let color: Color
+    }
+
+    private var paceSegments: [ColoredSegment] {
+        let pts = runVM.routePoints
+        guard pts.count >= 2 else { return [] }
+        let validPaces = pts.map(\.pace).filter { $0 > 0 && $0 < 20 }
+        let minP = validPaces.min() ?? 6
+        let maxP = validPaces.max() ?? 12
+        var out: [ColoredSegment] = []
+        for i in 0..<(pts.count - 1) {
+            let a = pts[i]
+            let b = pts[i + 1]
+            let color = paceColor(a.pace, minPace: minP, maxPace: maxP)
+            out.append(ColoredSegment(
+                coords: [
+                    CLLocationCoordinate2D(latitude: a.latitude, longitude: a.longitude),
+                    CLLocationCoordinate2D(latitude: b.latitude, longitude: b.longitude)
+                ],
+                color: color
+            ))
+        }
+        return out
+    }
+
+    private func paceColor(_ pace: Double, minPace: Double, maxPace: Double) -> Color {
+        guard pace > 0, maxPace > minPace else { return accentColor }
+        let t = max(0, min(1, (pace - minPace) / (maxPace - minPace)))
+        if t < 0.5 {
+            let k = t / 0.5
+            return Color(red: k, green: 0.85, blue: 0.25 * (1 - k))
+        } else {
+            let k = (t - 0.5) / 0.5
+            return Color(red: 1.0, green: 0.85 * (1 - k), blue: 0)
+        }
+    }
+
+    private var mileMarkers: [MileMarker] {
+        let splits = runVM.currentSplits
+        guard !splits.isEmpty else { return [] }
+        let pts = runVM.routePoints
+        guard pts.count >= 2 else { return [] }
+        var markers: [MileMarker] = []
+        var cumDistance: Double = 0
+        var lastMile: Int = 0
+        for i in 1..<pts.count {
+            let a = CLLocation(latitude: pts[i-1].latitude, longitude: pts[i-1].longitude)
+            let b = CLLocation(latitude: pts[i].latitude, longitude: pts[i].longitude)
+            cumDistance += a.distance(from: b) / 1609.344
+            let mile = Int(cumDistance)
+            if mile > lastMile && mile <= splits.count {
+                markers.append(MileMarker(mile: mile, coordinate: CLLocationCoordinate2D(latitude: pts[i].latitude, longitude: pts[i].longitude)))
+                lastMile = mile
+            }
+        }
+        return markers
     }
 
     // MARK: - HR Zone Bar
@@ -403,7 +500,7 @@ struct RunSummarySheet: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Run Complete")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

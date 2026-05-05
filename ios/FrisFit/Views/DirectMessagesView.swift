@@ -25,7 +25,7 @@ struct DirectMessagesView: View {
                 conversationsList
             }
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToConversation) {

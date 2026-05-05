@@ -20,7 +20,7 @@ struct SwimWorkoutBuilderView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationTitle("Swim Workouts")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

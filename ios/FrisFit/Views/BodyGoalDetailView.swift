@@ -28,7 +28,7 @@ struct BodyGoalDetailView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Body & Goals")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable {

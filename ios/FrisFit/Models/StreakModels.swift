@@ -1,12 +1,39 @@
 import Foundation
 
+nonisolated enum StreakState: String, Sendable {
+    case active        // logged today
+    case grace         // haven't logged today yet, but yesterday is intact (or covered by freeze) — still in flame state
+    case paused        // missed yesterday, freeze unavailable, 24h window to save it
+    case broken        // streak rolled to 0
+    case dormant       // never started a streak
+}
+
 nonisolated struct StreakData: Sendable {
     let currentStreak: Int
     let longestStreak: Int
     let lastActivityDate: Date?
+    /// True when the most recent freeze is still inside the rolling 7-day window
     let streakFreezeAvailable: Bool
-    let streakFreezeUsedThisWeek: Bool
+    /// When the active freeze (if any) expires and a new one becomes available
+    let freezeAvailableAgainAt: Date?
+    /// When the most recent freeze was auto-applied (for "covered yesterday" UI)
+    let freezeUsedAt: Date?
+    /// True when we've entered a paused state — user has 24h from this Date to log
+    let pausedUntil: Date?
     let missedYesterday: Bool
+
+    var streakFreezeUsedThisWeek: Bool { freezeAvailableAgainAt != nil && (freezeAvailableAgainAt ?? .distantPast) > Date() }
+
+    static let empty = StreakData(
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActivityDate: nil,
+        streakFreezeAvailable: true,
+        freezeAvailableAgainAt: nil,
+        freezeUsedAt: nil,
+        pausedUntil: nil,
+        missedYesterday: false
+    )
 }
 
 nonisolated struct ActivityLog: Identifiable, Sendable {
@@ -23,9 +50,13 @@ nonisolated struct ActivityLog: Identifiable, Sendable {
     }
 }
 
-nonisolated enum ActivityType: String, Sendable {
+nonisolated enum ActivityType: String, Sendable, CaseIterable {
     case workout
     case sportSession
+    case pin            // peptide dose / injection
+    case weight         // weigh-in
+    case food           // meal log
+    case mood           // mood / side-effects / daily check-in
     case streakFreeze
 }
 

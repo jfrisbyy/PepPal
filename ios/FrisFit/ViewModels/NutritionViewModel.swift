@@ -1,23 +1,91 @@
 import SwiftUI
+import Supabase
 
 @Observable
 final class NutritionViewModel {
-    var loggedMeals: [LoggedMeal] = []
+    @MainActor static let shared = NutritionViewModel()
+
+    @MainActor static var globalPendingPersistenceTasks: [Task<Void, Never>] = []
+
+    @MainActor static func sharedPersistenceWaiter() async {
+        let tasks = globalPendingPersistenceTasks
+        for task in tasks { await task.value }
+        globalPendingPersistenceTasks.removeAll { t in tasks.contains { $0 == t } }
+    }
+
+    var mealsByDay: [String: [LoggedMeal]] = [:]
     var isFollowingNutritionPlan: Bool = true
     var searchText: String = ""
     var selectedCategory: FoodCategory? = nil
     var isLoading: Bool = false
     var supabaseMealIds: [UUID: String] = [:]
     var savedMeals: [SavedMeal] = []
+    var selectedDate: Date = Date()
 
     private let savedMealsKey = "com.frisfit.savedMeals"
+    private var pendingPersistenceTasks: [Task<Void, Never>] = []
+    private var loadGeneration: Int = 0
+    private var activeLoadTask: Task<Void, Never>?
+    private var loadedDays: Set<String> = []
 
-    let dailyTarget = MacroTarget(calories: 2200, protein: 150, carbs: 250, fat: 73)
+    static func dayKey(for date: Date) -> String {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f.string(from: date)
+    }
+
+    var loggedMeals: [LoggedMeal] {
+        get { mealsByDay[Self.dayKey(for: selectedDate)] ?? [] }
+        set { mealsByDay[Self.dayKey(for: selectedDate)] = newValue }
+    }
+
+    func meals(for date: Date) -> [LoggedMeal] {
+        mealsByDay[Self.dayKey(for: date)] ?? []
+    }
+
+    func totalCalories(for date: Date) -> Int {
+        meals(for: date).reduce(0) { $0 + $1.totalCalories }
+    }
+    func totalProtein(for date: Date) -> Double { meals(for: date).reduce(0) { $0 + $1.totalProtein } }
+    func totalCarbs(for date: Date) -> Double { meals(for: date).reduce(0) { $0 + $1.totalCarbs } }
+    func totalFat(for date: Date) -> Double { meals(for: date).reduce(0) { $0 + $1.totalFat } }
+
+    func waitForPendingPersistence() async {
+        let tasks = pendingPersistenceTasks
+        for task in tasks { await task.value }
+        pendingPersistenceTasks.removeAll { t in tasks.contains { $0 == t } }
+        Self.globalPendingPersistenceTasks.removeAll { t in tasks.contains { $0 == t } }
+    }
+
+    var dailyTarget: MacroTarget {
+        if AdaptiveMacroStore.shared.isEnabled, let t = AdaptiveMacroStore.shared.target {
+            return t
+        }
+        return MacroTarget(calories: 2200, protein: 150, carbs: 250, fat: 73)
+    }
+
+    var adaptiveTargetReason: String? {
+        guard AdaptiveMacroStore.shared.isEnabled, let i = AdaptiveMacroStore.shared.inputs else { return nil }
+        var parts: [String] = []
+        parts.append("\(Int(i.weightKg))kg · \(i.goal.rawValue)")
+        parts.append(i.activity.label)
+        if i.trainingLoadBoost > 0 {
+            parts.append("+\(Int(i.trainingLoadBoost)) cal training boost")
+        }
+        return parts.joined(separator: " · ")
+    }
 
     var totalCalories: Int { loggedMeals.reduce(0) { $0 + $1.totalCalories } }
     var totalProtein: Double { loggedMeals.reduce(0) { $0 + $1.totalProtein } }
     var totalCarbs: Double { loggedMeals.reduce(0) { $0 + $1.totalCarbs } }
     var totalFat: Double { loggedMeals.reduce(0) { $0 + $1.totalFat } }
+
+    var todayTotalCalories: Int { totalCalories(for: Date()) }
+    var todayTotalProtein: Double { totalProtein(for: Date()) }
+    var todayTotalCarbs: Double { totalCarbs(for: Date()) }
+    var todayTotalFat: Double { totalFat(for: Date()) }
 
     var calorieProgress: Double {
         guard dailyTarget.calories > 0 else { return 0 }
@@ -89,29 +157,140 @@ final class NutritionViewModel {
     }
 
     func logMeal(food: FoodItem, servings: Double, mealTime: MealTime) {
-        let meal = LoggedMeal(food: food, servings: servings, mealTime: mealTime)
-        loggedMeals.append(meal)
-        persistMealToSupabase(meal: meal, food: food, servings: servings, mealTime: mealTime)
+        let targetDate = resolvedLogDate()
+        let meal = LoggedMeal(food: food, servings: servings, mealTime: mealTime, timestamp: targetDate)
+        let key = Self.dayKey(for: targetDate)
+        var arr = mealsByDay[key] ?? []
+        arr.append(meal)
+        mealsByDay[key] = arr
+        persistMealToSupabase(meal: meal, food: food, servings: servings, mealTime: mealTime, loggedAt: targetDate)
+        StreakManager.shared.logActivity(type: .food, at: targetDate)
+        Task { @MainActor in _ = await CorrelationEngine.shared.run() }
     }
 
-    private func persistMealToSupabase(meal: LoggedMeal, food: FoodItem, servings: Double, mealTime: MealTime) {
+    func copyMeal(_ meal: LoggedMeal, to date: Date, mealTime: MealTime? = nil) {
+        let cal = Calendar.current
+        let base = cal.startOfDay(for: date)
+        let target = cal.isDateInToday(date) ? Date() : (cal.date(byAdding: .hour, value: 12, to: base) ?? base)
+        let time = mealTime ?? meal.mealTime
+        let copy = LoggedMeal(food: meal.food, servings: meal.servings, mealTime: time, timestamp: target)
+        let key = Self.dayKey(for: target)
+        var arr = mealsByDay[key] ?? []
+        arr.append(copy)
+        mealsByDay[key] = arr
+        persistMealToSupabase(meal: copy, food: meal.food, servings: meal.servings, mealTime: time, loggedAt: target)
+    }
+
+    private func resolvedLogDate() -> Date {
+        let cal = Calendar.current
+        if cal.isDateInToday(selectedDate) {
+            return Date()
+        }
+        // For past/future selected dates, use noon on that day so timestamps land mid-day in local tz.
+        let start = cal.startOfDay(for: selectedDate)
+        return cal.date(byAdding: .hour, value: 12, to: start) ?? start
+    }
+
+    private func persistMealToSupabase(meal: LoggedMeal, food: FoodItem, servings: Double, mealTime: MealTime, loggedAt: Date) {
+        let diagAuthState = AuthService.shared.authState
+        let diagCurrentUserId: String? = (try? AuthService.shared.currentUserId())
+        print("[NutritionVM][DIAG] persistMealToSupabase called — authState=\(diagAuthState), currentUserId=\(diagCurrentUserId ?? "nil")")
+        DebugBanner.shared.log(.info, "Logging meal: \(food.name)", "authState=\(diagAuthState) userId=\(diagCurrentUserId ?? "nil")")
+        Task { @MainActor in
+            let sessionUserId: String? = await {
+                do {
+                    let uid = try await SupabaseService.shared.client.auth.session.user.id
+                    return uid.uuidString
+                } catch {
+                    print("[NutritionVM][DIAG] session.user.id threw: \(error)")
+                    DebugBanner.shared.log(.error, "No Supabase session", "\(error)")
+                    return nil
+                }
+            }()
+            print("[NutritionVM][DIAG] supabase session userId=\(sessionUserId ?? "nil")")
+            if let uid = sessionUserId {
+                DebugBanner.shared.log(.info, "Supabase session OK", "user=\(uid)")
+            }
+        }
         guard AuthService.shared.authState == .signedIn else {
             print("[NutritionVM] Not signed in — meal not persisted to Supabase")
+            DebugBanner.shared.log(.error, "Not signed in — meal NOT saved", "authState=\(diagAuthState). Sign in to persist to Supabase.")
             return
         }
-        Task {
+
+        if !NetworkMonitor.shared.isOnline {
+            if let userId = try? AuthService.shared.currentUserId() {
+                let payload = NutritionService.shared.mealInsertPayload(
+                    userId: userId, food: food, servings: servings, mealTime: mealTime, loggedAt: loggedAt
+                )
+                OfflineQueue.shared.enqueueInsert(table: "logged_meals", payload: payload)
+                DebugBanner.shared.log(.info, "Offline — queued meal: \(food.name)", "Will sync when back online")
+            }
+            return
+        }
+
+        let task = Task { @MainActor in
             do {
                 let userId = try AuthService.shared.currentUserId()
-                let created = try await NutritionService.shared.logMeal(userId: userId, food: food, servings: servings, mealTime: mealTime)
+                let created = try await NutritionService.shared.logMeal(userId: userId, food: food, servings: servings, mealTime: mealTime, loggedAt: loggedAt)
                 if let sid = created.id {
                     supabaseMealIds[meal.id] = sid
                 }
-                NotificationCenter.default.post(name: .mealDataChanged, object: nil)
-                print("[NutritionVM] Meal persisted to Supabase: \(food.name)")
+                loadedDays.insert(Self.dayKey(for: loggedAt))
+                NotificationCenter.default.post(name: .mealPersistedToSupabase, object: nil)
+                NotificationCenter.default.post(name: .supabaseDataChanged, object: nil, userInfo: ["source": "meal"])
+                NotificationCenter.default.post(
+                    name: .mealDataChanged,
+                    object: nil,
+                    userInfo: [
+                        "action": "add",
+                        "calories": Int(Double(food.calories) * servings),
+                        "protein": food.protein * servings,
+                        "carbs": food.carbs * servings,
+                        "fat": food.fat * servings,
+                        "food_name": food.name,
+                        "food_brand": food.brand,
+                        "meal_time": mealTime.rawValue,
+                        "servings": servings
+                    ]
+                )
+                print("[NutritionVM] Meal persisted to Supabase: \(food.name) (id: \(created.id ?? "nil"))")
+                DebugBanner.shared.log(.success, "Saved to Supabase: \(food.name)", "id=\(created.id ?? "nil")")
             } catch {
-                print("[NutritionVM] Failed to persist meal to Supabase: \(error)")
+                if let userId = try? AuthService.shared.currentUserId() {
+                    let payload = NutritionService.shared.mealInsertPayload(
+                        userId: userId, food: food, servings: servings, mealTime: mealTime, loggedAt: loggedAt
+                    )
+                    OfflineQueue.shared.enqueueInsert(table: "logged_meals", payload: payload)
+                    DebugBanner.shared.log(.info, "Queued meal for retry: \(food.name)", "\(error.localizedDescription)")
+                }
+                print("[NutritionVM] ERROR persisting meal '\(food.name)' to Supabase: \(error.localizedDescription) — \(error)")
+                print("[NutritionVM][DIAG] raw error: \(error)")
+                let mirror = Mirror(reflecting: error)
+                var code: Any? = nil
+                var message: Any? = nil
+                var details: Any? = nil
+                var hint: Any? = nil
+                for child in mirror.children {
+                    if child.label == "code" { code = child.value }
+                    if child.label == "message" { message = child.value }
+                    if child.label == "details" { details = child.value }
+                    if child.label == "hint" { hint = child.value }
+                }
+                if code != nil || message != nil {
+                    print("[NutritionVM][DIAG] PostgrestError code=\(code ?? "nil") message=\(message ?? "nil")")
+                }
+                var detail = "\(error.localizedDescription)"
+                if let m = message { detail += "\nmessage: \(m)" }
+                if let c = code { detail += "\ncode: \(c)" }
+                if let d = details { detail += "\ndetails: \(d)" }
+                if let h = hint { detail += "\nhint: \(h)" }
+                detail += "\nraw: \(error)"
+                DebugBanner.shared.log(.error, "Supabase insert failed: \(food.name)", detail)
             }
         }
+        pendingPersistenceTasks.append(task)
+        Self.globalPendingPersistenceTasks.append(task)
     }
 
     func quickAddMeal(name: String, calories: Int, protein: Double, carbs: Double, fat: Double, mealTime: MealTime) {
@@ -130,12 +309,35 @@ final class NutritionViewModel {
     }
 
     func removeMeal(_ meal: LoggedMeal) {
-        loggedMeals.removeAll { $0.id == meal.id }
+        let removedCalories = meal.totalCalories
+        let removedProtein = meal.totalProtein
+        let removedCarbs = meal.totalCarbs
+        let removedFat = meal.totalFat
+        let key = Self.dayKey(for: meal.timestamp)
+        mealsByDay[key]?.removeAll { $0.id == meal.id }
+        NotificationCenter.default.post(
+            name: .mealDataChanged,
+            object: nil,
+            userInfo: [
+                "action": "remove",
+                "calories": removedCalories,
+                "protein": removedProtein,
+                "carbs": removedCarbs,
+                "fat": removedFat
+            ]
+        )
         if let supabaseId = supabaseMealIds[meal.id] {
             supabaseMealIds.removeValue(forKey: meal.id)
             Task {
-                try? await NutritionService.shared.deleteMeal(mealId: supabaseId)
-                NotificationCenter.default.post(name: .mealDataChanged, object: nil)
+                do {
+                    try await NutritionService.shared.deleteMeal(mealId: supabaseId)
+                    print("[NutritionVM] Deleted meal \(supabaseId) from Supabase")
+                    await MainActor.run {
+                        NotificationCenter.default.post(name: .supabaseDataChanged, object: nil, userInfo: ["source": "meal_delete"])
+                    }
+                } catch {
+                    print("[NutritionVM] ERROR deleting meal \(supabaseId): \(error.localizedDescription) — \(error)")
+                }
             }
         }
     }
@@ -162,34 +364,82 @@ final class NutritionViewModel {
     }
 
     func loadFromSupabase() {
-        guard AuthService.shared.authState == .signedIn else { return }
+        loadFromSupabase(date: selectedDate)
+    }
+
+    func loadFromSupabase(date: Date) {
+        guard AuthService.shared.authState == .signedIn else {
+            print("[NutritionVM] loadFromSupabase skipped — user not signed in")
+            return
+        }
+        activeLoadTask?.cancel()
+        loadGeneration += 1
+        let generation = loadGeneration
         isLoading = true
-        Task {
-            do {
-                let userId = try AuthService.shared.currentUserId()
-                let meals = try await NutritionService.shared.fetchLoggedMeals(userId: userId, date: Date())
-                let converted = meals.map { NutritionService.shared.toLoggedMeal($0) }
-                var idMap: [UUID: String] = [:]
-                for (i, meal) in meals.enumerated() {
-                    if let sid = meal.id {
-                        idMap[converted[i].id] = sid
-                    }
-                }
-                loggedMeals = converted
-                supabaseMealIds = idMap
-            } catch {
-                print("[NutritionVM] Failed to load meals from Supabase: \(error)")
+        activeLoadTask = Task { @MainActor in
+            await waitForPendingPersistence()
+            guard !Task.isCancelled, generation == self.loadGeneration else { return }
+            await performLoad(date: date)
+            if generation == self.loadGeneration {
+                isLoading = false
             }
-            isLoading = false
+        }
+    }
+
+    func loadFromSupabaseAsync(force: Bool = false) async {
+        await loadFromSupabaseAsync(date: selectedDate, force: force)
+    }
+
+    func loadFromSupabaseAsync(date: Date, force: Bool = false) async {
+        guard AuthService.shared.authState == .signedIn else {
+            print("[NutritionVM] loadFromSupabaseAsync skipped — user not signed in")
+            return
+        }
+        let key = Self.dayKey(for: date)
+        if !force && loadedDays.contains(key) {
+            print("[NutritionVM] loadFromSupabaseAsync skipped — already loaded day \(key)")
+            return
+        }
+        await waitForPendingPersistence()
+        loadGeneration += 1
+        let generation = loadGeneration
+        isLoading = true
+        defer {
+            if generation == self.loadGeneration { isLoading = false }
+        }
+        await performLoad(date: date)
+        _ = generation
+    }
+
+    private func performLoad(date: Date) async {
+        let key = Self.dayKey(for: date)
+        do {
+            let userId = try AuthService.shared.currentUserId()
+            let meals = try await NutritionService.shared.fetchLoggedMeals(userId: userId, date: date)
+            let converted = meals.map { NutritionService.shared.toLoggedMeal($0) }
+            var idMap: [UUID: String] = supabaseMealIds
+            for (i, meal) in meals.enumerated() {
+                if let sid = meal.id {
+                    idMap[converted[i].id] = sid
+                }
+            }
+            let existing = mealsByDay[key] ?? []
+            let unpersisted = existing.filter { supabaseMealIds[$0.id] == nil }
+            mealsByDay[key] = converted + unpersisted
+            supabaseMealIds = idMap
+            loadedDays.insert(key)
+            print("[NutritionVM] Loaded \(meals.count) meals for \(key), \(unpersisted.count) unpersisted kept")
+        } catch {
+            print("[NutritionVM] ERROR loading meals for \(key): \(error.localizedDescription) — \(error)")
         }
     }
 
     func loadSampleData() {
         if AuthService.shared.authState == .signedIn {
-            loadFromSupabase()
             return
         }
-        guard loggedMeals.isEmpty else { return }
+        let todayKey = Self.dayKey(for: Date())
+        guard (mealsByDay[todayKey] ?? []).isEmpty else { return }
         let sampleMeals: [(String, MealTime)] = [
             ("Greek Yogurt (plain, nonfat)", .breakfast),
             ("Banana", .breakfast),
@@ -200,11 +450,13 @@ final class NutritionViewModel {
             ("Almonds", .snacks),
         ]
 
+        var arr: [LoggedMeal] = mealsByDay[todayKey] ?? []
         for (foodName, mealTime) in sampleMeals {
             if let food = FoodDatabase.allFoods.first(where: { $0.name == foodName }) {
                 let meal = LoggedMeal(food: food, servings: 1.0, mealTime: mealTime)
-                loggedMeals.append(meal)
+                arr.append(meal)
             }
         }
+        mealsByDay[todayKey] = arr
     }
 }

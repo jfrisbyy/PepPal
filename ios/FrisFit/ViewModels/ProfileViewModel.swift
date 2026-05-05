@@ -57,7 +57,6 @@ final class ProfileViewModel {
         Achievement(name: "Early Bird", icon: "sunrise.fill", description: "Complete 10 workouts before 7 AM", isUnlocked: false, unlockedDate: nil, accentColor: .cyan),
         Achievement(name: "3 Plate Squat", icon: "medal.fill", description: "Squat 315 lbs", isUnlocked: true, unlockedDate: Calendar.current.date(byAdding: .day, value: -7, to: Date()), accentColor: .amber),
         Achievement(name: "Marathon Month", icon: "calendar", description: "Work out 25+ days in a month", isUnlocked: false, unlockedDate: nil, accentColor: .violet),
-        Achievement(name: "5K FP Week", icon: "star.fill", description: "Earn 5,000 FP in a single week", isUnlocked: false, unlockedDate: nil, accentColor: .amber),
         Achievement(name: "Program Master", icon: "checkmark.seal.fill", description: "Complete an entire program", isUnlocked: false, unlockedDate: nil, accentColor: .cyan),
         Achievement(name: "Leg Day Legend", icon: "figure.step.training", description: "Never skip leg day for 8 weeks", isUnlocked: false, unlockedDate: nil, accentColor: .violet),
     ]
@@ -221,6 +220,7 @@ final class ProfileViewModel {
 
         do {
             let sp = try await ProfileService.shared.fetchProfile(userId: userId)
+            let counts = (try? await ProfileService.shared.fetchFollowCounts(userId: userId)) ?? ProfileService.FollowCounts(followers: 0, following: 0, friends: 0)
             let name = sp.display_name ?? "User"
             let uname = sp.username ?? "user"
             let initials = Self.computeInitials(from: name)
@@ -245,23 +245,26 @@ final class ProfileViewModel {
                 initials: initials,
                 bio: sp.bio ?? "",
                 avatarUrl: sp.avatar_url,
+                bannerUrl: sp.banner_url,
                 avatarColor: color,
                 activeProgram: sp.active_program,
                 totalFP: sp.total_fp ?? 0,
                 currentStreak: sp.current_streak ?? 0,
                 totalWorkouts: sp.total_workouts ?? 0,
                 memberSince: memberDate,
-                followerCount: sp.follower_count ?? 0,
-                followingCount: sp.following_count ?? 0,
-                friendCount: sp.friend_count ?? 0,
+                followerCount: counts.followers,
+                followingCount: counts.following,
+                friendCount: counts.friends,
                 isCurrentUser: true,
                 dateOfBirth: dob,
                 biologicalSex: sex,
-                heightCm: sp.height_cm
+                heightCm: sp.height_cm,
+                isPrivate: sp.is_private ?? false
             )
 
             loadMockMarketItems()
             isLoadingProfile = false
+            ProfileBannerStore.shared.syncRemote(urlString: sp.banner_url)
             await loadUserPosts()
         } catch {
             profileError = error.localizedDescription
@@ -277,7 +280,8 @@ final class ProfileViewModel {
         avatarColor: String?,
         dateOfBirth: Date? = nil,
         biologicalSex: BiologicalSex? = nil,
-        heightCm: Double? = nil
+        heightCm: Double? = nil,
+        isPrivate: Bool? = nil
     ) async {
         guard let session = AuthService.shared.session else { return }
         let userId = session.user.id.uuidString
@@ -293,10 +297,13 @@ final class ProfileViewModel {
             bio: bio,
             avatar_url: nil,
             avatar_color: avatarColor,
+            banner_url: nil,
             active_program: activeProgram,
             date_of_birth: dobString,
             biological_sex: biologicalSex?.rawValue,
-            height_cm: heightCm
+            height_cm: heightCm,
+            is_private: isPrivate,
+            medical_disclaimer_accepted_at: nil
         )
 
         do {
@@ -319,22 +326,73 @@ final class ProfileViewModel {
             isSaving = false
             return url
         } catch {
-            profileError = error.localizedDescription
+            print("AVATAR_UPLOAD: error: \(error)")
+            profileError = "Couldn't upload avatar: \(error.localizedDescription)"
             isSaving = false
             return nil
         }
     }
 
-    func loadUserPosts() async {
+    func uploadBanner(imageData: Data) async -> String? {
+        guard let session = AuthService.shared.session else { return nil }
+        let userId = session.user.id.uuidString
+        isSaving = true
+        do {
+            let url = try await ProfileService.shared.uploadBanner(userId: userId, imageData: imageData)
+            ProfileBannerStore.shared.setBanner(imageData)
+            await loadProfile()
+            isSaving = false
+            return url
+        } catch {
+            print("BANNER_UPLOAD: error: \(error)")
+            profileError = "Couldn't upload banner: \(error.localizedDescription)"
+            isSaving = false
+            return nil
+        }
+    }
+
+    func removeBanner() async {
         guard let session = AuthService.shared.session else { return }
         let userId = session.user.id.uuidString
+        isSaving = true
+        do {
+            try await ProfileService.shared.removeBanner(userId: userId)
+            ProfileBannerStore.shared.setBanner(nil)
+            await loadProfile()
+        } catch {
+            print("BANNER_REMOVE: error: \(error)")
+            profileError = "Couldn't remove banner: \(error.localizedDescription)"
+        }
+        isSaving = false
+    }
+
+    func loadUserPosts() async {
+        guard let session = AuthService.shared.session else {
+            print("PROFILE_POSTS: No auth session, skipping post load")
+            return
+        }
+        let userId = session.user.id.uuidString
+        print("PROFILE_POSTS: Loading posts for user \(userId)")
         isLoadingPosts = true
 
         do {
             let supabasePosts = try await socialService.fetchUserPosts(userId: userId)
+            print("PROFILE_POSTS: Fetched \(supabasePosts.count) posts from Supabase")
             let postIds = supabasePosts.map { $0.id }
-            let likedIds = try await socialService.fetchLikedPostIds(userId: userId, postIds: postIds)
-            let commentCounts = try await socialService.fetchCommentCounts(postIds: postIds)
+
+            var likedIds: Set<String> = []
+            do {
+                likedIds = try await socialService.fetchLikedPostIds(userId: userId, postIds: postIds)
+            } catch {
+                print("PROFILE_POSTS: Failed to fetch liked IDs: \(error.localizedDescription)")
+            }
+
+            var commentCounts: [String: Int] = [:]
+            do {
+                commentCounts = try await socialService.fetchCommentCounts(postIds: postIds)
+            } catch {
+                print("PROFILE_POSTS: Failed to fetch comment counts: \(error.localizedDescription)")
+            }
 
             var counts: [String: Int] = [:]
             for sp in supabasePosts {
@@ -356,7 +414,9 @@ final class ProfileViewModel {
                     audioDuration: sp.audio_duration
                 )
             }
+            print("PROFILE_POSTS: Successfully loaded \(userPosts.count) user posts")
         } catch {
+            print("PROFILE_POSTS: ERROR loading posts: \(error)")
             userPosts = []
         }
 

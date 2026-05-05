@@ -184,7 +184,6 @@ nonisolated struct CompletedRun: Identifiable, Sendable {
     let shoeId: UUID?
     let temperature: Double?
     let notes: String
-    let fpEarned: Int
     let isTreadmill: Bool
 
     var distanceKm: Double { distanceMiles * 1.60934 }
@@ -240,16 +239,6 @@ nonisolated struct CompletedRun: Identifiable, Sendable {
         self.temperature = temperature
         self.notes = notes
         self.isTreadmill = isTreadmill
-
-        let baseFP = distanceMiles * 100
-        let intensityBonus: Double
-        switch runType {
-        case .tempoRun, .intervalSession: intensityBonus = 1.3
-        case .longRun: intensityBonus = 1.2
-        case .raceRun: intensityBonus = 1.5
-        default: intensityBonus = 1.0
-        }
-        self.fpEarned = Int(baseFP * intensityBonus)
     }
 }
 
@@ -345,6 +334,30 @@ nonisolated struct WeeklyMileage: Identifiable, Sendable {
     }
 }
 
+nonisolated enum GPSAccuracy: String, CaseIterable, Identifiable, Sendable, Codable {
+    case best = "Best"
+    case balanced = "Balanced"
+    case batterySaver = "Battery Saver"
+
+    var id: String { rawValue }
+
+    var description: String {
+        switch self {
+        case .best: "Highest precision, more battery"
+        case .balanced: "10m accuracy, normal battery"
+        case .batterySaver: "100m accuracy, longest battery"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .best: "location.fill"
+        case .balanced: "location"
+        case .batterySaver: "battery.100"
+        }
+    }
+}
+
 nonisolated struct RunningSettings: Sendable, Codable {
     var distanceUnit: DistanceUnit = .miles
     var audioCueInterval: AudioCueInterval = .everyMile
@@ -353,6 +366,7 @@ nonisolated struct RunningSettings: Sendable, Codable {
     var announceDistance: Bool = true
     var autoPause: Bool = true
     var countdownSeconds: Int = 3
+    var gpsAccuracy: GPSAccuracy = .best
 }
 
 nonisolated private func formatDuration(_ seconds: TimeInterval) -> String {

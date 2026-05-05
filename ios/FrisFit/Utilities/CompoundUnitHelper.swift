@@ -52,7 +52,7 @@ nonisolated enum CompoundUnitHelper: Sendable {
         "Epicatechin",
     ]
 
-    static func unit(for compoundName: String) -> CompoundUnit {
+    static func defaultUnit(for compoundName: String) -> CompoundUnit {
         if mgCompounds.contains(compoundName) {
             return .mg
         }
@@ -66,6 +66,13 @@ nonisolated enum CompoundUnitHelper: Sendable {
             }
         }
         return .mcg
+    }
+
+    static func unit(for compoundName: String) -> CompoundUnit {
+        if let override = UnitOverrideStorage.unitOverride(for: compoundName) {
+            return override
+        }
+        return defaultUnit(for: compoundName)
     }
 
     static func displayDose(_ mcgValue: Double, for compoundName: String) -> String {

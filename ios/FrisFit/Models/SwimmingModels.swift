@@ -209,7 +209,6 @@ nonisolated struct CompletedSwim: Identifiable, Sendable {
     let heartRateZones: [HeartRateZoneDistribution]
     let openWaterCoordinates: [OpenWaterCoordinate]
     let notes: String
-    let fpEarned: Int
 
     var poolLengthMeters: Double {
         if poolLength == .custom, let custom = customPoolLengthMeters {
@@ -279,17 +278,6 @@ nonisolated struct CompletedSwim: Identifiable, Sendable {
         self.heartRateZones = heartRateZones
         self.openWaterCoordinates = openWaterCoordinates
         self.notes = notes
-
-        let baseFP = totalDistanceMeters / 10.0
-        let intensityMultiplier: Double
-        switch sessionType {
-        case .structuredWorkout, .cssTest: intensityMultiplier = 1.3
-        case .openWater: intensityMultiplier = 1.2
-        case .drillSession: intensityMultiplier = 1.15
-        default: intensityMultiplier = 1.0
-        }
-        let swolfBonus = averageSwolf > 0 && averageSwolf < 40 ? 20.0 : 0.0
-        self.fpEarned = Int((baseFP + swolfBonus) * intensityMultiplier)
     }
 }
 

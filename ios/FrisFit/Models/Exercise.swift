@@ -132,4 +132,63 @@ nonisolated struct Exercise: Identifiable, Hashable, Sendable, Codable {
     let instructions: [String]
     let commonMistakes: [String]
     let proTips: [String]
+    let videoURL: String?
+    let customFormCues: [String]?
+
+    init(
+        id: String,
+        name: String,
+        primaryMuscle: MuscleGroup,
+        secondaryMuscles: [MuscleGroup],
+        movementPattern: MovementPattern,
+        equipment: Equipment,
+        difficulty: Difficulty,
+        exerciseType: ExerciseType,
+        trackingType: TrackingType,
+        defaultRestSeconds: Int,
+        instructions: [String],
+        commonMistakes: [String],
+        proTips: [String],
+        videoURL: String? = nil,
+        customFormCues: [String]? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.primaryMuscle = primaryMuscle
+        self.secondaryMuscles = secondaryMuscles
+        self.movementPattern = movementPattern
+        self.equipment = equipment
+        self.difficulty = difficulty
+        self.exerciseType = exerciseType
+        self.trackingType = trackingType
+        self.defaultRestSeconds = defaultRestSeconds
+        self.instructions = instructions
+        self.commonMistakes = commonMistakes
+        self.proTips = proTips
+        self.videoURL = videoURL
+        self.customFormCues = customFormCues
+    }
+
+    /// The primary equipment required for this exercise.
+    var primaryEquipment: Equipment { equipment }
+
+    /// Form cues — short, punchy reminders for proper technique.
+    /// Uses custom cues if provided, otherwise falls back to the seeded library.
+    var formCues: [String] {
+        if let custom = customFormCues, !custom.isEmpty { return custom }
+        return ExerciseFormCues.cues(for: id)
+    }
+
+    /// Auto-generated YouTube search URL for a form demo. Always returns a valid URL.
+    var demoSearchURL: URL {
+        let query = "\(name) proper form technique"
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        return URL(string: "https://www.youtube.com/results?search_query=\(query)")!
+    }
+
+    /// Parsed video URL, if valid.
+    var videoPlaybackURL: URL? {
+        guard let videoURL, let url = URL(string: videoURL) else { return nil }
+        return url
+    }
 }

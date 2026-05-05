@@ -76,8 +76,17 @@ nonisolated struct WorkoutSummary: Sendable {
     let totalVolume: Double
     let totalSets: Int
     let caloriesBurned: Int
-    let fpEarned: Int
     let personalRecords: [PersonalRecord]
+
+    init(workoutName: String, duration: TimeInterval, totalVolume: Double, totalSets: Int, caloriesBurned: Int, fpEarned: Int = 0, personalRecords: [PersonalRecord]) {
+        self.workoutName = workoutName
+        self.duration = duration
+        self.totalVolume = totalVolume
+        self.totalSets = totalSets
+        self.caloriesBurned = caloriesBurned
+        _ = fpEarned
+        self.personalRecords = personalRecords
+    }
 }
 
 nonisolated enum NumberInputField: Sendable {

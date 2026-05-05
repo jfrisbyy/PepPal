@@ -225,6 +225,30 @@ nonisolated struct PeptideProtocol: Identifiable, Sendable {
     var nextDose: ProtocolCompound? {
         compounds.first
     }
+
+    func smartNextDose() -> ProtocolCompound? {
+        guard !compounds.isEmpty else { return nil }
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let now = Date()
+
+        let unlogged = compounds.filter { compound in
+            !doseLog.contains { log in
+                log.compoundName == compound.compoundName && cal.isDate(log.timestamp, inSameDayAs: today) && !log.wasSkipped
+            }
+        }
+        let pool = unlogged.isEmpty ? compounds : unlogged
+
+        return pool.min { a, b in
+            let aT = cal.dateComponents([.hour, .minute], from: a.timeOfDay)
+            let bT = cal.dateComponents([.hour, .minute], from: b.timeOfDay)
+            let aDate = cal.date(bySettingHour: aT.hour ?? 8, minute: aT.minute ?? 0, second: 0, of: today) ?? today
+            let bDate = cal.date(bySettingHour: bT.hour ?? 8, minute: bT.minute ?? 0, second: 0, of: today) ?? today
+            let aDelta = aDate < now ? aDate.addingTimeInterval(86400) : aDate
+            let bDelta = bDate < now ? bDate.addingTimeInterval(86400) : bDate
+            return aDelta < bDelta
+        }
+    }
 }
 
 nonisolated struct DoseLogEntry: Identifiable, Sendable {
@@ -235,14 +259,18 @@ nonisolated struct DoseLogEntry: Identifiable, Sendable {
     let timestamp: Date
     let injectionSite: InjectionSite
     let notes: String
+    let wasSkipped: Bool
+    let skipReason: String?
 
-    init(compoundName: String, doseMcg: Double, timestamp: Date = Date(), injectionSite: InjectionSite = .leftAbdomen, notes: String = "") {
+    init(compoundName: String, doseMcg: Double, timestamp: Date = Date(), injectionSite: InjectionSite = .leftAbdomen, notes: String = "", wasSkipped: Bool = false, skipReason: String? = nil) {
         self.id = UUID()
         self.compoundName = compoundName
         self.doseMcg = doseMcg
         self.timestamp = timestamp
         self.injectionSite = injectionSite
         self.notes = notes
+        self.wasSkipped = wasSkipped
+        self.skipReason = skipReason
     }
 }
 
@@ -296,15 +324,19 @@ nonisolated struct TitrationStep: Identifiable, Sendable {
 
 nonisolated struct ProtocolNote: Identifiable, Sendable {
     let id: UUID
+    var supabaseId: String?
     let timestamp: Date
     var text: String
     let doseLogId: UUID?
+    var photoUrl: String?
 
-    init(timestamp: Date = Date(), text: String, doseLogId: UUID? = nil) {
+    init(timestamp: Date = Date(), text: String, doseLogId: UUID? = nil, photoUrl: String? = nil) {
         self.id = UUID()
+        self.supabaseId = nil
         self.timestamp = timestamp
         self.text = text
         self.doseLogId = doseLogId
+        self.photoUrl = photoUrl
     }
 }
 

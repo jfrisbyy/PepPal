@@ -34,8 +34,17 @@ final class WorkoutSessionManager {
         restoreSession()
     }
 
-    func startSession(name: String, exercises: [WorkoutExercise]) {
+    func startSession(
+        name: String,
+        exercises: [WorkoutExercise],
+        programId: UUID? = nil,
+        dayId: UUID? = nil,
+        programExerciseIndices: [UUID: Int] = [:]
+    ) {
         let vm = ActiveWorkoutViewModel(name: name, exercises: exercises)
+        vm.sourceProgramId = programId
+        vm.sourceDayId = dayId
+        vm.programExerciseIndices = programExerciseIndices
         activeViewModel = vm
         startDate = Date()
         elapsedSeconds = 0
@@ -48,6 +57,10 @@ final class WorkoutSessionManager {
 
         WorkoutState.shared.isWorkoutActive = true
         WorkoutState.shared.workoutName = name
+
+        if let myId = try? AuthService.shared.currentUserId() {
+            FriendSocialService.shared.setPresence(friendId: myId, activity: "Workout")
+        }
     }
 
     func resumeActiveWorkout() {
@@ -70,6 +83,10 @@ final class WorkoutSessionManager {
 
         WorkoutState.shared.isWorkoutActive = false
         WorkoutState.shared.workoutProgress = 0
+
+        if let myId = try? AuthService.shared.currentUserId() {
+            FriendSocialService.shared.clearPresence(friendId: myId)
+        }
     }
 
     func updateProgress(_ exerciseIndex: Int, total: Int) {

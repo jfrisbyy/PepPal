@@ -98,7 +98,7 @@ struct MealLogMethodSheet: View {
                 Spacer()
             }
             .padding(20)
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

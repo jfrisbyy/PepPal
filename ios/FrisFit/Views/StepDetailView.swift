@@ -3,6 +3,7 @@ import SwiftUI
 struct StepDetailView: View {
     @State private var viewModel = StepDetailViewModel()
     @State private var animateProgress: Bool = false
+    @State private var selectedBarID: UUID? = nil
 
     var body: some View {
         ScrollView {
@@ -20,7 +21,7 @@ struct StepDetailView: View {
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Steps")
         .navigationBarTitleDisplayMode(.large)
         .task {
@@ -148,6 +149,7 @@ struct StepDetailView: View {
                         .clipShape(.capsule)
                 }
                 .sensoryFeedback(.selection, trigger: viewModel.selectedPeriod)
+                .simultaneousGesture(TapGesture().onEnded { selectedBarID = nil })
             }
         }
         .padding(3)
@@ -171,11 +173,167 @@ struct StepDetailView: View {
                 }
 
                 GeometryReader { geo in
-                    chartBars(width: geo.size.width)
+                    ZStack(alignment: .top) {
+                        chartBars(width: geo.size.width)
+                        if let info = selectedInfo(totalWidth: geo.size.width) {
+                            selectionCallout(info: info)
+                                .offset(x: info.calloutX, y: 0)
+                                .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottom)))
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedBarID = nil
+                        }
+                    }
                 }
-                .frame(height: 140)
+                .frame(height: 170)
             }
         }
+        .sensoryFeedback(.selection, trigger: selectedBarID)
+        .onChange(of: viewModel.selectedPeriod) { _, _ in
+            selectedBarID = nil
+        }
+    }
+
+    private struct BarSelectionInfo {
+        let title: String
+        let subtitle: String?
+        let value: Int
+        let calloutX: CGFloat
+        let calloutWidth: CGFloat
+    }
+
+    private func selectedInfo(totalWidth: CGFloat) -> BarSelectionInfo? {
+        guard let id = selectedBarID else { return nil }
+        let calloutWidth: CGFloat = 150
+        switch viewModel.selectedPeriod {
+        case .day:
+            guard let idx = viewModel.hourlySteps.firstIndex(where: { $0.id == id }) else { return nil }
+            let item = viewModel.hourlySteps[idx]
+            let count = max(viewModel.hourlySteps.count, 1)
+            let x = (totalWidth / CGFloat(count)) * (CGFloat(idx) + 0.5)
+            let dayTotal = max(viewModel.todaySteps, 1)
+            let pct = Double(item.steps) / Double(dayTotal) * 100
+            return BarSelectionInfo(
+                title: hourRangeLabel(hour: item.hour),
+                subtitle: item.steps > 0 ? String(format: "%.1f%% of today", pct) : nil,
+                value: item.steps,
+                calloutX: clampX(x, totalWidth: totalWidth, calloutWidth: calloutWidth),
+                calloutWidth: calloutWidth
+            )
+        case .week:
+            let data = Array(viewModel.dailySteps.suffix(7))
+            guard let idx = data.firstIndex(where: { $0.id == id }) else { return nil }
+            let item = data[idx]
+            let count = max(data.count, 1)
+            let x = (totalWidth / CGFloat(count)) * (CGFloat(idx) + 0.5)
+            return BarSelectionInfo(
+                title: fullDateLabel(item.date),
+                subtitle: item.steps >= viewModel.stepGoal ? "Goal reached" : "Goal \(formattedNumber(viewModel.stepGoal))",
+                value: item.steps,
+                calloutX: clampX(x, totalWidth: totalWidth, calloutWidth: calloutWidth),
+                calloutWidth: calloutWidth
+            )
+        case .month:
+            let data = Array(viewModel.dailySteps.suffix(30))
+            guard let idx = data.firstIndex(where: { $0.id == id }) else { return nil }
+            let item = data[idx]
+            let count = max(data.count, 1)
+            let x = (totalWidth / CGFloat(count)) * (CGFloat(idx) + 0.5)
+            return BarSelectionInfo(
+                title: fullDateLabel(item.date),
+                subtitle: nil,
+                value: item.steps,
+                calloutX: clampX(x, totalWidth: totalWidth, calloutWidth: calloutWidth),
+                calloutWidth: calloutWidth
+            )
+        case .sixMonths:
+            let data = viewModel.weeklySteps
+            guard let idx = data.firstIndex(where: { $0.id == id }) else { return nil }
+            let item = data[idx]
+            let count = max(data.count, 1)
+            let x = (totalWidth / CGFloat(count)) * (CGFloat(idx) + 0.5)
+            return BarSelectionInfo(
+                title: weekRangeLabel(start: item.weekStart),
+                subtitle: "Week total",
+                value: item.steps,
+                calloutX: clampX(x, totalWidth: totalWidth, calloutWidth: calloutWidth),
+                calloutWidth: calloutWidth
+            )
+        case .year:
+            let data = viewModel.monthlySteps
+            guard let idx = data.firstIndex(where: { $0.id == id }) else { return nil }
+            let item = data[idx]
+            let count = max(data.count, 1)
+            let x = (totalWidth / CGFloat(count)) * (CGFloat(idx) + 0.5)
+            return BarSelectionInfo(
+                title: item.fullLabel,
+                subtitle: "Month total",
+                value: item.steps,
+                calloutX: clampX(x, totalWidth: totalWidth, calloutWidth: calloutWidth),
+                calloutWidth: calloutWidth
+            )
+        }
+    }
+
+    private func clampX(_ x: CGFloat, totalWidth: CGFloat, calloutWidth: CGFloat) -> CGFloat {
+        let half = calloutWidth / 2
+        return min(max(x - half, 0), max(totalWidth - calloutWidth, 0))
+    }
+
+    private func selectionCallout(info: BarSelectionInfo) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(info.title)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(PepTheme.textSecondary)
+                .lineLimit(1)
+            Text(formattedNumber(info.value))
+                .font(.system(.headline, design: .rounded, weight: .bold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .contentTransition(.numericText())
+            Text(info.subtitle ?? "steps")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(PepTheme.textSecondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(width: info.calloutWidth, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(PepTheme.elevated)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(PepTheme.teal.opacity(0.4), lineWidth: 0.8)
+                )
+                .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
+        )
+    }
+
+    private func hourRangeLabel(hour: Int) -> String {
+        func hLabel(_ h: Int) -> String {
+            let hour24 = ((h % 24) + 24) % 24
+            let ampm = hour24 < 12 ? "AM" : "PM"
+            let h12 = hour24 % 12 == 0 ? 12 : hour24 % 12
+            return "\(h12) \(ampm)"
+        }
+        return "\(hLabel(hour)) – \(hLabel(hour + 1))"
+    }
+
+    private func fullDateLabel(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE, MMM d"
+        return formatter.string(from: date)
+    }
+
+    private func weekRangeLabel(start: Date) -> String {
+        let cal = Calendar.current
+        let end = cal.date(byAdding: .day, value: 6, to: start) ?? start
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return "\(f.string(from: start)) – \(f.string(from: end))"
     }
 
     private var chartTitle: String {
@@ -217,41 +375,23 @@ struct StepDetailView: View {
 
         return HStack(alignment: .bottom, spacing: spacing) {
             ForEach(data) { item in
-                VStack(spacing: 2) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(barFill(for: item.steps, max: maxVal))
-                        .frame(width: barWidth, height: max(barHeight(value: item.steps, maxValue: maxVal, height: 120), 2))
-
-                    if item.hour % 6 == 0 {
-                        Text(item.hourLabel)
-                            .font(.system(size: 8, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                }
+                tappableBar(id: item.id, cornerRadius: 2, width: barWidth, height: max(barHeight(value: item.steps, maxValue: maxVal, height: 120), 2), value: item.steps, maxVal: maxVal, label: item.hour % 6 == 0 ? item.hourLabel : nil, labelSize: 8)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func dailyChart<T: Identifiable>(data: [T], width: CGFloat, labelKey: KeyPath<T, String>?) -> some View where T: StepChartable {
+    private func dailyChart<T: Identifiable>(data: [T], width: CGFloat, labelKey: KeyPath<T, String>?) -> some View where T: StepChartable, T.ID == UUID {
         let maxVal = max(data.map(\.chartSteps).max() ?? 1, 1)
         let barCount = max(data.count, 1)
         let spacing: CGFloat = data.count <= 7 ? 6 : 2
         let barWidth = max((width - spacing * CGFloat(barCount - 1)) / CGFloat(barCount), 3)
+        let radius: CGFloat = data.count <= 7 ? 4 : 2
 
         return HStack(alignment: .bottom, spacing: spacing) {
             ForEach(data) { item in
-                VStack(spacing: 2) {
-                    RoundedRectangle(cornerRadius: data.count <= 7 ? 4 : 2)
-                        .fill(barFill(for: item.chartSteps, max: maxVal))
-                        .frame(width: barWidth, height: max(barHeight(value: item.chartSteps, maxValue: maxVal, height: 110), 2))
-
-                    if let labelKey = labelKey {
-                        Text(item[keyPath: labelKey])
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                }
+                let label: String? = labelKey.map { item[keyPath: $0] }
+                tappableBar(id: item.id, cornerRadius: radius, width: barWidth, height: max(barHeight(value: item.chartSteps, maxValue: maxVal, height: 110), 2), value: item.chartSteps, maxVal: maxVal, label: label, labelSize: 9)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -265,18 +405,9 @@ struct StepDetailView: View {
         let barWidth = max((width - spacing * CGFloat(barCount - 1)) / CGFloat(barCount), 4)
 
         return HStack(alignment: .bottom, spacing: spacing) {
-            ForEach(data) { item in
-                VStack(spacing: 2) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(barFill(for: item.steps, max: maxVal))
-                        .frame(width: barWidth, height: max(barHeight(value: item.steps, maxValue: maxVal, height: 110), 2))
-
-                    if data.firstIndex(where: { $0.id == item.id }).map({ $0 % 4 == 0 }) == true {
-                        Text(item.label)
-                            .font(.system(size: 8, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                }
+            ForEach(Array(data.enumerated()), id: \.element.id) { idx, item in
+                let showLabel = idx % 4 == 0
+                tappableBar(id: item.id, cornerRadius: 3, width: barWidth, height: max(barHeight(value: item.steps, maxValue: maxVal, height: 110), 2), value: item.steps, maxVal: maxVal, label: showLabel ? item.label : nil, labelSize: 8)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -291,18 +422,48 @@ struct StepDetailView: View {
 
         return HStack(alignment: .bottom, spacing: spacing) {
             ForEach(data) { item in
-                VStack(spacing: 2) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(barFill(for: item.steps, max: maxVal))
-                        .frame(width: barWidth, height: max(barHeight(value: item.steps, maxValue: maxVal, height: 110), 2))
-
-                    Text(item.label)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
+                tappableBar(id: item.id, cornerRadius: 4, width: barWidth, height: max(barHeight(value: item.steps, maxValue: maxVal, height: 110), 2), value: item.steps, maxVal: maxVal, label: item.label, labelSize: 9)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func tappableBar(id: UUID, cornerRadius: CGFloat, width: CGFloat, height: CGFloat, value: Int, maxVal: Int, label: String?, labelSize: CGFloat) -> some View {
+        let isSelected = selectedBarID == id
+        let isDimmed = selectedBarID != nil && !isSelected
+        VStack(spacing: 2) {
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .fill(isSelected ? selectedBarFill() : barFill(for: value, max: maxVal))
+                .frame(width: width, height: height)
+                .opacity(isDimmed ? 0.35 : 1.0)
+                .shadow(color: isSelected ? PepTheme.teal.opacity(0.6) : .clear, radius: isSelected ? 6 : 0)
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(width: max(width + 4, 12))
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                selectedBarID = isSelected ? nil : id
+                            }
+                        }
+                }
+
+            if let label {
+                Text(label)
+                    .font(.system(size: labelSize, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+    }
+
+    private func selectedBarFill() -> LinearGradient {
+        LinearGradient(
+            colors: [PepTheme.teal, PepTheme.teal.opacity(0.85)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 
     private func barHeight(value: Int, maxValue: Int, height: CGFloat) -> CGFloat {

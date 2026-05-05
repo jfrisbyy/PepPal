@@ -3,6 +3,7 @@ import SwiftUI
 struct ExerciseLibraryView: View {
     @State private var viewModel = ExerciseLibraryViewModel()
     @State private var navigationPath = NavigationPath()
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -12,11 +13,24 @@ struct ExerciseLibraryView: View {
                     exerciseList
                 }
             }
-            .background(PepTheme.background.ignoresSafeArea())
+            .appBackground()
             .searchable(text: $viewModel.searchText, prompt: "Search exercises...")
             .navigationTitle("Exercise Library")
-            
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 15, weight: .semibold))
+                            Text("Back")
+                                .font(.subheadline.weight(.medium))
+                        }
+                        .foregroundStyle(PepTheme.teal)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     if viewModel.selectedMuscleGroup != nil || viewModel.selectedEquipment != nil {
                         Button("Clear") {

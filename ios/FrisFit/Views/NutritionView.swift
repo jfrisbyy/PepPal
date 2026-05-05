@@ -1,30 +1,48 @@
 import SwiftUI
 
 struct NutritionView: View {
-    @State private var viewModel = NutritionViewModel()
+    @State private var viewModel = NutritionViewModel.shared
     @State private var showMealLogMethod: Bool = false
     @State private var selectedMealTimeForLog: MealTime = .breakfast
     @State private var animatedCalorieProgress: Double = 0
+    @State private var showMacroGoalSheet: Bool = false
+    @State private var showAdaptiveReason: Bool = false
+    @State private var mealToCopy: LoggedMeal? = nil
+    @State private var showCopyDatePicker: Bool = false
+    @State private var copyTargetDate: Date = Date()
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 calorieRing
                 macroBreakdown
+                WaterIntakeCard()
                 mealLog
             }
             .padding(.horizontal)
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle("Nutrition")
         
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                SyncStatusBadge()
+            }
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    selectedMealTimeForLog = suggestedMealTime
-                    showMealLogMethod = true
+                Menu {
+                    Button {
+                        selectedMealTimeForLog = suggestedMealTime
+                        showMealLogMethod = true
+                    } label: {
+                        Label("Log Meal", systemImage: "fork.knife")
+                    }
+                    Button {
+                        showMacroGoalSheet = true
+                    } label: {
+                        Label("Macro Goals", systemImage: "target")
+                    }
                 } label: {
                     Image(systemName: "plus.circle.fill")
                         .font(.title3)
@@ -35,10 +53,62 @@ struct NutritionView: View {
         .fullScreenCover(isPresented: $showMealLogMethod) {
             MealLogView(viewModel: viewModel, mealTime: selectedMealTimeForLog)
         }
+        .sheet(isPresented: $showMacroGoalSheet) {
+            AdaptiveMacroSheet()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showCopyDatePicker) {
+            NavigationStack {
+                VStack(spacing: 16) {
+                    DatePicker("Copy to", selection: $copyTargetDate, displayedComponents: [.date])
+                        .datePickerStyle(.graphical)
+                        .padding(.horizontal)
+                    Spacer()
+                    Button {
+                        if let meal = mealToCopy {
+                            viewModel.copyMeal(meal, to: copyTargetDate)
+                        }
+                        mealToCopy = nil
+                        showCopyDatePicker = false
+                    } label: {
+                        Text("Copy")
+                            .font(.system(.body, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(PepTheme.teal, in: .rect(cornerRadius: 12))
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 12)
+                }
+                .navigationTitle("Copy Meal")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Cancel") {
+                            mealToCopy = nil
+                            showCopyDatePicker = false
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.large])
+        }
         .onAppear {
-            viewModel.loadSampleData()
+            if AuthService.shared.authState != .signedIn {
+                viewModel.loadSampleData()
+            }
             withAnimation(.spring(response: 1.0, dampingFraction: 0.8)) {
                 animatedCalorieProgress = viewModel.calorieProgress
+            }
+        }
+        .task {
+            if AuthService.shared.authState == .signedIn {
+                await viewModel.loadFromSupabaseAsync()
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    animatedCalorieProgress = viewModel.calorieProgress
+                }
             }
         }
         .onChange(of: viewModel.calorieProgress) { _, newValue in
@@ -89,6 +159,36 @@ struct NutritionView: View {
                         .font(.caption2)
                         .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
                         .padding(.top, 2)
+
+                    if viewModel.adaptiveTargetReason != nil {
+                        Button { showAdaptiveReason.toggle() } label: {
+                            Text("Adaptive")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(PepTheme.teal)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(PepTheme.teal.opacity(0.15))
+                            .clipShape(.capsule)
+                        }
+                        .padding(.top, 3)
+                        .popover(isPresented: $showAdaptiveReason, arrowEdge: .top) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Recalculated from")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                Text(viewModel.adaptiveTargetReason ?? "")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                Text("Recomputes weekly from your weight & training.")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.top, 4)
+                            }
+                            .padding(12)
+                            .frame(width: 220)
+                            .presentationCompactAdaptation(.popover)
+                        }
+                    }
                 }
             }
             .frame(width: 190, height: 190)
@@ -199,6 +299,14 @@ struct NutritionView: View {
         let meals = viewModel.mealsForTime(mealTime)
         let sectionCalories = viewModel.caloriesForMealTime(mealTime)
 
+        let sectionProtein = viewModel.mealsForTime(mealTime).reduce(0) { $0 + $1.totalProtein }
+        let sectionCarbs = viewModel.mealsForTime(mealTime).reduce(0) { $0 + $1.totalCarbs }
+        let sectionFat = viewModel.mealsForTime(mealTime).reduce(0) { $0 + $1.totalFat }
+        let perMealCal = max(viewModel.dailyTarget.calories / 4, 1)
+        let perMealProtein = max(viewModel.dailyTarget.protein / 4, 1)
+        let perMealCarbs = max(viewModel.dailyTarget.carbs / 4, 1)
+        let perMealFat = max(viewModel.dailyTarget.fat / 4, 1)
+
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
                 Image(systemName: mealTime.icon)
@@ -213,6 +321,16 @@ struct NutritionView: View {
                     .foregroundStyle(PepTheme.textPrimary)
 
                 Spacer()
+
+                if sectionCalories > 0 {
+                    HStack(spacing: 3) {
+                        miniRing(value: Double(sectionCalories), target: Double(perMealCal), color: mealTime.color)
+                        miniRing(value: sectionProtein, target: Double(perMealProtein), color: PepTheme.teal)
+                        miniRing(value: sectionCarbs, target: Double(perMealCarbs), color: PepTheme.amber)
+                        miniRing(value: sectionFat, target: Double(perMealFat), color: PepTheme.violet)
+                    }
+                    .padding(.trailing, 4)
+                }
 
                 if viewModel.isFollowingNutritionPlan && !meals.isEmpty {
                     let status = viewModel.adherenceStatus(for: mealTime)
@@ -299,6 +417,20 @@ struct NutritionView: View {
         )
     }
 
+    private func miniRing(value: Double, target: Double, color: Color) -> some View {
+        let progress = target > 0 ? min(value / target, 1.0) : 0
+        return ZStack {
+            Circle()
+                .stroke(color.opacity(0.18), lineWidth: 2)
+                .frame(width: 14, height: 14)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .frame(width: 14, height: 14)
+                .rotationEffect(.degrees(-90))
+        }
+    }
+
     private func mealRow(_ meal: LoggedMeal) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
@@ -339,6 +471,35 @@ struct NutritionView: View {
             } label: {
                 Label("Delete", systemImage: "trash")
             }
+            Button {
+                viewModel.copyMeal(meal, to: Date())
+            } label: {
+                Label("Copy to Today", systemImage: "doc.on.doc")
+            }
+            .tint(PepTheme.teal)
+        }
+        .contextMenu {
+            Button {
+                viewModel.copyMeal(meal, to: Date())
+            } label: {
+                Label("Copy to Today", systemImage: "doc.on.doc")
+            }
+            Button {
+                mealToCopy = meal
+                copyTargetDate = Date()
+                showCopyDatePicker = true
+            } label: {
+                Label("Copy to date…", systemImage: "calendar.badge.plus")
+            }
+            Button(role: .destructive) {
+                viewModel.removeMeal(meal)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
         }
     }
+}
+
+extension NutritionView {
+    fileprivate func _copyPickerBinding() -> Binding<Bool> { $showCopyDatePicker }
 }

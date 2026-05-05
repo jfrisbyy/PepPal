@@ -31,7 +31,7 @@ struct TemplateDetailView: View {
             .padding(.horizontal)
             .padding(.bottom, 40)
         }
-        .background(PepTheme.background.ignoresSafeArea())
+        .appBackground()
         .navigationTitle(split.rawValue)
         .navigationBarTitleDisplayMode(.inline)
     }
