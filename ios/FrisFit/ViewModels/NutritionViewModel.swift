@@ -195,7 +195,6 @@ final class NutritionViewModel {
         let diagAuthState = AuthService.shared.authState
         let diagCurrentUserId: String? = (try? AuthService.shared.currentUserId())
         print("[NutritionVM][DIAG] persistMealToSupabase called — authState=\(diagAuthState), currentUserId=\(diagCurrentUserId ?? "nil")")
-        DebugBanner.shared.log(.info, "Logging meal: \(food.name)", "authState=\(diagAuthState) userId=\(diagCurrentUserId ?? "nil")")
         Task { @MainActor in
             let sessionUserId: String? = await {
                 do {
@@ -203,18 +202,13 @@ final class NutritionViewModel {
                     return uid.uuidString
                 } catch {
                     print("[NutritionVM][DIAG] session.user.id threw: \(error)")
-                    DebugBanner.shared.log(.error, "No Supabase session", "\(error)")
                     return nil
                 }
             }()
             print("[NutritionVM][DIAG] supabase session userId=\(sessionUserId ?? "nil")")
-            if let uid = sessionUserId {
-                DebugBanner.shared.log(.info, "Supabase session OK", "user=\(uid)")
-            }
         }
         guard AuthService.shared.authState == .signedIn else {
             print("[NutritionVM] Not signed in — meal not persisted to Supabase")
-            DebugBanner.shared.log(.error, "Not signed in — meal NOT saved", "authState=\(diagAuthState). Sign in to persist to Supabase.")
             return
         }
 
@@ -224,7 +218,6 @@ final class NutritionViewModel {
                     userId: userId, food: food, servings: servings, mealTime: mealTime, loggedAt: loggedAt
                 )
                 OfflineQueue.shared.enqueueInsert(table: "logged_meals", payload: payload)
-                DebugBanner.shared.log(.info, "Offline — queued meal: \(food.name)", "Will sync when back online")
             }
             return
         }
@@ -255,14 +248,12 @@ final class NutritionViewModel {
                     ]
                 )
                 print("[NutritionVM] Meal persisted to Supabase: \(food.name) (id: \(created.id ?? "nil"))")
-                DebugBanner.shared.log(.success, "Saved to Supabase: \(food.name)", "id=\(created.id ?? "nil")")
             } catch {
                 if let userId = try? AuthService.shared.currentUserId() {
                     let payload = NutritionService.shared.mealInsertPayload(
                         userId: userId, food: food, servings: servings, mealTime: mealTime, loggedAt: loggedAt
                     )
                     OfflineQueue.shared.enqueueInsert(table: "logged_meals", payload: payload)
-                    DebugBanner.shared.log(.info, "Queued meal for retry: \(food.name)", "\(error.localizedDescription)")
                 }
                 print("[NutritionVM] ERROR persisting meal '\(food.name)' to Supabase: \(error.localizedDescription) — \(error)")
                 print("[NutritionVM][DIAG] raw error: \(error)")
@@ -286,7 +277,7 @@ final class NutritionViewModel {
                 if let d = details { detail += "\ndetails: \(d)" }
                 if let h = hint { detail += "\nhint: \(h)" }
                 detail += "\nraw: \(error)"
-                DebugBanner.shared.log(.error, "Supabase insert failed: \(food.name)", detail)
+                _ = detail
             }
         }
         pendingPersistenceTasks.append(task)
