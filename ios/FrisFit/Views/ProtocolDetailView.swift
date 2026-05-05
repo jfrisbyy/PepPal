@@ -5,6 +5,7 @@ struct ProtocolDetailView: View {
     @State private var unitStore = UnitPreferenceStore.shared
     @State private var focusedCompoundName: String
     @State private var homeViewModel = HomeViewModel()
+    @State private var todaysPlanVM = TodaysPlanViewModel.shared
     @State private var editingBatchCompound: ProtocolCompound? = nil
     @Environment(\.dismiss) private var dismiss
 
@@ -34,6 +35,9 @@ struct ProtocolDetailView: View {
                             }
                         }
                     )
+                    if let insight = protocolInsight {
+                        AIInsightStrip(content: insight, color: PepTheme.teal)
+                    }
                 }
                 MedicalDisclaimerBanner(compact: true)
                 proactiveInsightsSection
@@ -225,6 +229,31 @@ struct ProtocolDetailView: View {
 
     private var vialsSection: some View {
         ProtocolVialsSection(protocolData: viewModel.protocolData)
+    }
+
+    /// Per-protocol editorial insight shown beneath the pharmacology chart.
+    /// Filters the global protocol module to lines that mention this protocol's
+    /// compounds (or the protocol name) so each detail view shows its own take.
+    private var protocolInsight: String? {
+        guard let raw = todaysPlanVM.moduleContent(for: "protocol"), !raw.isEmpty else { return nil }
+        let compoundNames = viewModel.protocolData.compounds.map { $0.compoundName }
+        let protocolName = viewModel.protocolData.name
+        let needles = (compoundNames + [protocolName]).filter { !$0.isEmpty }
+        guard !needles.isEmpty else { return raw }
+
+        // Split into sentences and keep ones that reference this protocol/compounds.
+        let sentences = raw
+            .replacingOccurrences(of: "\n", with: " ")
+            .components(separatedBy: CharacterSet(charactersIn: ".!?"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        let matched = sentences.filter { sentence in
+            needles.contains { sentence.localizedCaseInsensitiveContains($0) }
+        }
+        let scoped = matched.isEmpty ? sentences : matched
+        let joined = scoped.prefix(3).joined(separator: ". ")
+        return joined.isEmpty ? raw : joined + "."
     }
 
     private var proactiveInsightsSection: some View {

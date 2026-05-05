@@ -228,10 +228,6 @@ struct ProtocolSectionView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     headerBar
 
-                    if let insight = todaysPlanVM.moduleContent(for: "protocol") {
-                        AIInsightStrip(content: insight, color: PepTheme.teal)
-                    }
-
                     protocolBriefLines
 
                     VStack(spacing: 0) {
