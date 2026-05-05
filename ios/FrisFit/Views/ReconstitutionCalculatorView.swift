@@ -234,6 +234,9 @@ struct ReconstitutionCalculatorView: View {
     @State private var saveConfirmation: String? = nil
     @State private var presetSearch: String = ""
     @State private var showSyringeInfo: Bool = false
+    @State private var doseUnitOverride: CompoundUnit? = nil
+    @State private var linkedVialId: UUID? = nil
+    @State private var savedVialToast: String? = nil
 
     @State private var inventory = VialInventoryStore.shared
     @State private var showScanner: Bool = false
@@ -242,12 +245,27 @@ struct ReconstitutionCalculatorView: View {
     private var peptideMg: Double? { Double(peptideAmountMg) }
     private var waterMl: Double? { Double(waterVolumeMl) }
     private var doseUnit: CompoundUnit {
+        if let override = doseUnitOverride { return override }
         if let c = selectedCompound { return CompoundUnitHelper.unit(for: c.name) }
         return .mcg
     }
     private var doseMcg: Double? {
         guard let raw = Double(desiredDoseInput) else { return nil }
         return doseUnit == .mg ? raw * 1000 : raw
+    }
+
+    private var linkedVial: Vial? {
+        guard let id = linkedVialId else { return nil }
+        return inventory.vials.first { $0.id == id }
+    }
+
+    private var hasUnsavedVialChanges: Bool {
+        guard let v = linkedVial else { return false }
+        if let mg = peptideMg, abs(mg - v.vialSizeMg) > 0.0001 { return true }
+        if let water = waterMl, let existing = v.diluentMl, abs(water - existing) > 0.0001 { return true }
+        if waterMl != nil && v.diluentMl == nil { return true }
+        if let dose = doseMcg, abs(dose - v.typicalDoseMcg) > 0.0001 { return true }
+        return false
     }
     private var targetUnits: Double? { Double(desiredUnits) }
 
@@ -407,6 +425,9 @@ struct ReconstitutionCalculatorView: View {
             ScrollView {
                 VStack(spacing: 18) {
                     headerCard
+                    if !inventory.vials.isEmpty {
+                        savedVialsPicker
+                    }
                     presetPicker
                     modeToggle
                     syringePicker
@@ -421,6 +442,11 @@ struct ReconstitutionCalculatorView: View {
 
                         if !warnings.isEmpty {
                             warningSection
+                                .transition(.opacity)
+                        }
+
+                        if linkedVial != nil && hasUnsavedVialChanges {
+                            updateLinkedVialBanner
                                 .transition(.opacity)
                         }
 
@@ -469,6 +495,152 @@ struct ReconstitutionCalculatorView: View {
                     peptideAmountMg = formatNum(mg)
                 }
             }
+        }
+    }
+
+    // MARK: - Saved Vials Picker
+
+    private var savedVialsPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("MY VIALS")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(1.2)
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
+                if linkedVial != nil {
+                    Button { unlinkVial() } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 11))
+                            Text("Unlink")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(PepTheme.textSecondary)
+                    }
+                }
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(inventory.vials) { vial in
+                        savedVialChip(vial)
+                    }
+                }
+                .padding(.horizontal, 1)
+            }
+            .contentMargins(.horizontal, 0)
+            if let toast = savedVialToast {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.system(size: 11))
+                    Text(toast)
+                        .font(.caption2)
+                        .foregroundStyle(PepTheme.textPrimary)
+                }
+                .transition(.opacity)
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: linkedVialId)
+        .animation(.easeInOut(duration: 0.2), value: savedVialToast)
+    }
+
+    private func savedVialChip(_ vial: Vial) -> some View {
+        let isSelected = linkedVialId == vial.id
+        return Button { applyVial(vial) } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(vial.statusColor)
+                        .frame(width: 6, height: 6)
+                    Text(vial.compoundName)
+                        .font(.system(.caption, weight: .bold))
+                        .lineLimit(1)
+                }
+                Text("\(formatNum(vial.vialSizeMg)) mg · \(vial.diluentMl.map { String(format: "%.1f mL", $0) } ?? "unmixed")")
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(isSelected ? PepTheme.invertedText.opacity(0.85) : PepTheme.textSecondary)
+            }
+            .foregroundStyle(isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
+            .frame(maxWidth: 180, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(isSelected ? PepTheme.teal : PepTheme.elevated)
+            .clipShape(.rect(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(isSelected ? PepTheme.teal : PepTheme.glassBorderBottom.opacity(0.5), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func applyVial(_ vial: Vial) {
+        linkedVialId = vial.id
+        peptideAmountMg = formatNum(vial.vialSizeMg)
+        if let water = vial.diluentMl {
+            waterVolumeMl = formatNum(water)
+        }
+        if let profile = CompoundDatabase.all.first(where: { $0.name == vial.compoundName }) {
+            selectedCompound = profile
+        }
+        if vial.typicalDoseMcg > 0 {
+            let unit = CompoundUnitHelper.unit(for: vial.compoundName)
+            doseUnitOverride = unit
+            let display = unit == .mg ? vial.typicalDoseMcg / 1000 : vial.typicalDoseMcg
+            desiredDoseInput = formatNum(display)
+        }
+    }
+
+    private func unlinkVial() {
+        linkedVialId = nil
+    }
+
+    private var updateLinkedVialBanner: some View {
+        Button { updateLinkedVial() } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "arrow.up.doc.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(PepTheme.teal)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Update saved vial")
+                        .font(.system(.subheadline, weight: .bold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    if let v = linkedVial {
+                        Text(v.compoundName)
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(PepTheme.teal)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .background(PepTheme.teal.opacity(0.08))
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(PepTheme.teal.opacity(0.25), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func updateLinkedVial() {
+        guard var v = linkedVial else { return }
+        if let mg = peptideMg { v.vialSizeMg = mg }
+        if let water = effectiveWaterMl { v.diluentMl = water }
+        if let dose = doseMcg { v.typicalDoseMcg = dose }
+        if v.reconstitutedOn == nil, v.diluentMl != nil {
+            v.reconstitutedOn = Date()
+        }
+        inventory.update(v)
+        savedVialToast = "Vial updated"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+            savedVialToast = nil
         }
     }
 
@@ -719,14 +891,7 @@ struct ReconstitutionCalculatorView: View {
                 )
             }
 
-            calcInput(
-                label: "Desired Dose",
-                placeholder: doseUnit == .mg ? "5" : "250",
-                unit: doseUnit.rawValue,
-                text: $desiredDoseInput,
-                icon: "syringe.fill",
-                color: .orange
-            )
+            doseInputWithUnitToggle
 
             if mode == .reverse {
                 calcInput(
@@ -739,6 +904,67 @@ struct ReconstitutionCalculatorView: View {
                 )
             }
         }
+    }
+
+    private var doseInputWithUnitToggle: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "syringe.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.orange)
+                Text("Desired Dose")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
+                doseUnitSegment
+            }
+            HStack(spacing: 8) {
+                TextField(doseUnit == .mg ? "5" : "250", text: $desiredDoseInput)
+                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .keyboardType(.decimalPad)
+                Text(doseUnit.rawValue)
+                    .font(.system(.subheadline, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(PepTheme.elevated)
+            .clipShape(.rect(cornerRadius: 12))
+        }
+    }
+
+    private var doseUnitSegment: some View {
+        HStack(spacing: 0) {
+            ForEach([CompoundUnit.mcg, CompoundUnit.mg], id: \.rawValue) { u in
+                Button {
+                    setDoseUnit(u)
+                } label: {
+                    Text(u.rawValue)
+                        .font(.system(size: 10, weight: .heavy))
+                        .tracking(0.6)
+                        .foregroundStyle(doseUnit == u ? PepTheme.invertedText : PepTheme.textSecondary)
+                        .frame(width: 34, height: 22)
+                        .background(doseUnit == u ? PepTheme.teal : Color.clear)
+                        .clipShape(.capsule)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(2)
+        .background(PepTheme.elevated)
+        .clipShape(.capsule)
+    }
+
+    private func setDoseUnit(_ newUnit: CompoundUnit) {
+        let old = doseUnit
+        guard old != newUnit else { return }
+        if let raw = Double(desiredDoseInput) {
+            let mcg = old == .mg ? raw * 1000 : raw
+            let converted = newUnit == .mg ? mcg / 1000 : mcg
+            desiredDoseInput = formatNum(converted)
+        }
+        doseUnitOverride = newUnit
     }
 
     private func calcInput(label: String, placeholder: String, unit: String, text: Binding<String>, icon: String, color: Color) -> some View {

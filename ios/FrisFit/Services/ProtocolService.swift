@@ -48,6 +48,10 @@ nonisolated struct SupabaseCompoundUpdate: Codable, Sendable {
     let dose_mcg: Double?
     let frequency: String?
     let time_of_day: String?
+    let vendor_name: String?
+    let batch_number: String?
+    let manufacture_date: String?
+    let expiration_date: String?
 }
 
 nonisolated struct SupabaseCompound: Codable, Sendable {
@@ -449,7 +453,34 @@ final class ProtocolService {
         let update = SupabaseCompoundUpdate(
             dose_mcg: doseMcg,
             frequency: frequency,
-            time_of_day: nil
+            time_of_day: nil,
+            vendor_name: nil,
+            batch_number: nil,
+            manufacture_date: nil,
+            expiration_date: nil
+        )
+        try await supabase
+            .from("protocol_compounds")
+            .update(update)
+            .eq("id", value: id)
+            .execute()
+    }
+
+    func updateCompoundBatch(
+        id: String,
+        vendorName: String?,
+        batchNumber: String?,
+        manufactureDate: Date?,
+        expirationDate: Date?
+    ) async throws {
+        let update = SupabaseCompoundUpdate(
+            dose_mcg: nil,
+            frequency: nil,
+            time_of_day: nil,
+            vendor_name: vendorName,
+            batch_number: batchNumber,
+            manufacture_date: manufactureDate.map { dateOnlyFormatter.string(from: $0) },
+            expiration_date: expirationDate.map { dateOnlyFormatter.string(from: $0) }
         )
         try await supabase
             .from("protocol_compounds")

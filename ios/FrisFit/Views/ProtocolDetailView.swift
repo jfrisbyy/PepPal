@@ -4,6 +4,8 @@ struct ProtocolDetailView: View {
     @State private var viewModel: ProtocolDetailViewModel
     @State private var unitStore = UnitPreferenceStore.shared
     @State private var focusedCompoundName: String
+    @State private var homeViewModel = HomeViewModel()
+    @State private var editingBatchCompound: ProtocolCompound? = nil
     @Environment(\.dismiss) private var dismiss
 
     init(protocolData: PeptideProtocol, initialCompoundName: String? = nil) {
@@ -183,6 +185,28 @@ struct ProtocolDetailView: View {
             EditDoseSheet(viewModel: viewModel, dose: dose)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $editingBatchCompound) { compound in
+            EditCompoundBatchSheet(compound: compound) { vendor, batch, manufacture, expiration in
+                homeViewModel.updateCompoundBatch(
+                    protocolId: viewModel.protocolData.id,
+                    compoundId: compound.id,
+                    vendorName: vendor,
+                    batchNumber: batch,
+                    manufactureDate: manufacture,
+                    expirationDate: expiration
+                )
+                if let idx = viewModel.protocolData.compounds.firstIndex(where: { $0.id == compound.id }) {
+                    var updated = viewModel.protocolData.compounds[idx]
+                    updated.vendorName = vendor
+                    updated.batchNumber = batch
+                    updated.manufactureDate = manufacture
+                    updated.expirationDate = expiration
+                    viewModel.protocolData.compounds[idx] = updated
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .onAppear {
             viewModel.refreshFromSupabase()
@@ -1041,24 +1065,49 @@ struct ProtocolDetailView: View {
         ) {
             VStack(spacing: 10) {
                 ForEach(viewModel.protocolData.compounds) { compound in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(compound.compoundName)
-                            .font(.system(.subheadline, weight: .bold))
-                            .foregroundStyle(PepTheme.textPrimary)
+                    Button {
+                        editingBatchCompound = compound
+                    } label: {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text(compound.compoundName)
+                                    .font(.system(.subheadline, weight: .bold))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                                Spacer()
+                                HStack(spacing: 4) {
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 10, weight: .bold))
+                                    Text(hasBatchInfo(compound) ? "Edit" : "Add")
+                                        .font(.system(size: 11, weight: .semibold))
+                                }
+                                .foregroundStyle(PepTheme.teal)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(PepTheme.teal.opacity(0.12))
+                                .clipShape(.capsule)
+                            }
 
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                            batchDetail(label: "Vendor", value: compound.vendorName ?? "Not set")
-                            batchDetail(label: "Batch #", value: compound.batchNumber ?? "Not set")
-                            batchDetail(label: "Expiration", value: compound.expirationDate.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "Not set")
-                            batchDetail(label: "Route", value: compound.injectionRoute.rawValue)
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                                batchDetail(label: "Vendor", value: compound.vendorName ?? "Not set")
+                                batchDetail(label: "Batch #", value: compound.batchNumber ?? "Not set")
+                                batchDetail(label: "Manufactured", value: compound.manufactureDate.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "Not set")
+                                batchDetail(label: "Expiration", value: compound.expirationDate.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "Not set")
+                            }
                         }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(PepTheme.elevated.opacity(0.5))
+                        .clipShape(.rect(cornerRadius: 12))
                     }
-                    .padding(12)
-                    .background(PepTheme.elevated.opacity(0.5))
-                    .clipShape(.rect(cornerRadius: 12))
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.selection, trigger: editingBatchCompound?.id == compound.id)
                 }
             }
         }
+    }
+
+    private func hasBatchInfo(_ compound: ProtocolCompound) -> Bool {
+        compound.vendorName != nil || compound.batchNumber != nil || compound.manufactureDate != nil || compound.expirationDate != nil
     }
 
     private func batchDetail(label: String, value: String) -> some View {

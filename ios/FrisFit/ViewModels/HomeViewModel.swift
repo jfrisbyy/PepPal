@@ -1329,6 +1329,48 @@ final class HomeViewModel {
         }
     }
 
+    func updateCompoundBatch(
+        protocolId: UUID,
+        compoundId: UUID,
+        vendorName: String?,
+        batchNumber: String?,
+        manufactureDate: Date?,
+        expirationDate: Date?
+    ) {
+        guard let pIdx = allProtocols.firstIndex(where: { $0.id == protocolId }) else { return }
+        guard let cIdx = allProtocols[pIdx].compounds.firstIndex(where: { $0.id == compoundId }) else { return }
+        let old = allProtocols[pIdx].compounds[cIdx]
+        var replaced = ProtocolCompound(
+            compoundName: old.compoundName,
+            doseMcg: old.doseMcg,
+            frequency: old.frequency,
+            timeOfDay: old.timeOfDay,
+            injectionRoute: old.injectionRoute,
+            reconstitutionVolume: old.reconstitutionVolume,
+            vialSizeMg: old.vialSizeMg,
+            vendorName: vendorName,
+            batchNumber: batchNumber,
+            manufactureDate: manufactureDate,
+            expirationDate: expirationDate
+        )
+        replaced.supabaseId = old.supabaseId
+        allProtocols[pIdx].compounds[cIdx] = replaced
+        if activeProtocol?.id == protocolId {
+            activeProtocol = allProtocols[pIdx]
+        }
+        if let sid = old.supabaseId {
+            Task {
+                try? await ProtocolService.shared.updateCompoundBatch(
+                    id: sid,
+                    vendorName: vendorName,
+                    batchNumber: batchNumber,
+                    manufactureDate: manufactureDate,
+                    expirationDate: expirationDate
+                )
+            }
+        }
+    }
+
     func removeCompound(protocolId: UUID, compoundId: UUID) {
         guard let pIdx = allProtocols.firstIndex(where: { $0.id == protocolId }) else { return }
         guard let cIdx = allProtocols[pIdx].compounds.firstIndex(where: { $0.id == compoundId }) else { return }
