@@ -46,6 +46,25 @@ final class TodaysPlanViewModel {
         planResponse?.modules.first(where: { $0.type == type })?.content
     }
 
+    // MARK: - Active plan (today vs. historical)
+
+    /// True when the user is viewing a non-today date in the calendar.
+    var isHistoricalMode: Bool { historicalDate != nil }
+
+    /// Resolves to the historical briefing when a past date is selected,
+    /// falling back to today's plan otherwise.
+    var activePlan: TodaysPlanResponse? {
+        isHistoricalMode ? historicalPlan : planResponse
+    }
+
+    var activeSummary: String { activePlan?.summary ?? "" }
+
+    var activeModules: [TodaysPlanModule] { activePlan?.modules ?? [] }
+
+    func activeModuleContent(for type: String) -> String? {
+        activePlan?.modules.first(where: { $0.type == type })?.content
+    }
+
     func loadCachedPlan() {
         if let data = UserDefaults.standard.data(forKey: cacheKey),
            let timestamp = UserDefaults.standard.object(forKey: cacheDateKey) as? Date,

@@ -6,12 +6,21 @@ struct PlanBriefHeaderView: View {
     var onRefresh: () -> Void
     var onChatAboutThis: (String) -> Void
 
+    private var isHistorical: Bool { todaysPlanVM.isHistoricalMode }
+
     private var lines: MorningBriefService.Lines {
         MorningBriefService.shared.buildLines()
     }
 
     private var narrative: BriefNarrative? {
-        todaysPlanVM.planResponse?.narrative
+        todaysPlanVM.activePlan?.narrative
+    }
+
+    private var briefDateLabel: String? {
+        guard let date = todaysPlanVM.historicalDate else { return nil }
+        let f = DateFormatter()
+        f.dateFormat = "EEEE \u{00B7} MMM d"
+        return f.string(from: date).uppercased()
     }
 
     private var greeting: String {
@@ -20,16 +29,23 @@ struct PlanBriefHeaderView: View {
 
     private var headline: String {
         if let h = narrative?.headline, !h.isEmpty { return h }
+        if isHistorical {
+            return todaysPlanVM.activePlan?.summary ?? ""
+        }
         return MorningBriefService.shared.fallbackHeadline(from: lines)
     }
 
     private var body_: String {
         if let b = narrative?.body, !b.isEmpty { return b }
+        if isHistorical {
+            return ""
+        }
         return MorningBriefService.shared.fallbackBody(from: lines)
     }
 
     private var watchFor: String? {
-        narrative?.watchFor ?? lines.watchFor
+        if isHistorical { return narrative?.watchFor }
+        return narrative?.watchFor ?? lines.watchFor
     }
 
     var body: some View {
@@ -67,7 +83,7 @@ struct PlanBriefHeaderView: View {
 
                 Spacer(minLength: 4)
 
-                if todaysPlanVM.isLoading || todaysPlanVM.isBackgroundRefreshing {
+                if (todaysPlanVM.isLoading || todaysPlanVM.isBackgroundRefreshing || todaysPlanVM.isLoadingHistorical) {
                     ProgressView().controlSize(.mini).tint(PepTheme.violet)
                 }
 
@@ -84,6 +100,12 @@ struct PlanBriefHeaderView: View {
     }
 
     private var collapsedSummary: String {
+        if isHistorical {
+            if todaysPlanVM.isLoadingHistorical { return "Loading saved brief…" }
+            if narrative == nil && (todaysPlanVM.activePlan?.summary.isEmpty ?? true) {
+                return "No saved brief for this day"
+            }
+        }
         if todaysPlanVM.isLoading && narrative == nil { return "Generating your brief…" }
         let h = headline
         return h.isEmpty ? greeting : h
@@ -97,8 +119,10 @@ struct PlanBriefHeaderView: View {
                 .fill(PepTheme.violet.opacity(0.18))
                 .frame(height: 0.5)
 
-            if todaysPlanVM.isLoading && narrative == nil {
+            if (todaysPlanVM.isLoading || todaysPlanVM.isLoadingHistorical) && narrative == nil && todaysPlanVM.activePlan == nil {
                 shimmerContent
+            } else if isHistorical && todaysPlanVM.activePlan == nil {
+                emptyHistoricalContent
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(headline)
@@ -113,7 +137,7 @@ struct PlanBriefHeaderView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                if let watchFor {
+                if let watchFor, !isHistorical || !watchFor.isEmpty {
                     HStack(alignment: .top, spacing: 10) {
                         Rectangle()
                             .fill(PepTheme.violet)
@@ -137,7 +161,9 @@ struct PlanBriefHeaderView: View {
                     .clipShape(.rect(cornerRadius: 8))
                 }
 
-                chatButton
+                if !isHistorical {
+                    chatButton
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -201,14 +227,14 @@ struct PlanBriefHeaderView: View {
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(PepTheme.violet.opacity(0.7))
                 }
-                Text(greeting)
+                Text(isHistorical ? (briefDateLabel ?? greeting) : greeting)
                     .font(.system(size: 18, weight: .bold, design: .serif))
                     .foregroundStyle(PepTheme.textPrimary)
             }
             Spacer()
-            if todaysPlanVM.isLoading || todaysPlanVM.isBackgroundRefreshing {
+            if todaysPlanVM.isLoading || todaysPlanVM.isBackgroundRefreshing || todaysPlanVM.isLoadingHistorical {
                 ProgressView().controlSize(.mini).tint(PepTheme.violet)
-            } else {
+            } else if !isHistorical {
                 Button {
                     onRefresh()
                 } label: {
@@ -220,7 +246,34 @@ struct PlanBriefHeaderView: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
+            } else {
+                Text("ARCHIVE")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(PepTheme.violet.opacity(0.75))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(PepTheme.violet.opacity(0.12))
+                    .clipShape(.capsule)
             }
+        }
+    }
+
+    private var emptyHistoricalContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PepTheme.violet.opacity(0.7))
+                Text("No brief saved for this day")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+            }
+            Text("Briefs generated from now on are kept in your archive automatically.")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundStyle(PepTheme.textSecondary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -261,13 +314,13 @@ struct PlanBriefHeaderView: View {
         if let n = narrative {
             parts.append("\(n.headline)\n\(n.body)")
         }
-        if !todaysPlanVM.summary.isEmpty {
-            parts.append("Summary: \(todaysPlanVM.summary)")
+        if !todaysPlanVM.activeSummary.isEmpty {
+            parts.append("Summary: \(todaysPlanVM.activeSummary)")
         }
-        for module in todaysPlanVM.modules {
+        for module in todaysPlanVM.activeModules {
             parts.append("[\(module.title)] \(module.content)")
         }
-        let items = todaysPlanVM.planResponse?.actionItems ?? []
+        let items = todaysPlanVM.activePlan?.actionItems ?? []
         for item in items {
             parts.append("Action: \(item.title)\(item.reason.map { " — \($0)" } ?? "")")
         }

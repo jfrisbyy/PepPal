@@ -66,7 +66,7 @@ struct TodaysPlanCardView: View {
 
     private var mainCard: some View {
         VStack(spacing: 0) {
-            if viewModel.isSelectedDateToday {
+            if viewModel.isSelectedDateToday || todaysPlanVM.isHistoricalMode {
                 PlanBriefHeaderView(
                     todaysPlanVM: todaysPlanVM,
                     isCollapsed: $isBriefCollapsed,
@@ -116,7 +116,7 @@ struct TodaysPlanCardView: View {
     private var expandedTrainingContent: some View {
         if !isPlanMinimized && viewModel.isPlanExpanded && !viewModel.todaysPlan.isRestDay && viewModel.activeProgram != nil {
             VStack(spacing: 8) {
-                if let trainingInsight = todaysPlanVM.moduleContent(for: "training") {
+                if let trainingInsight = todaysPlanVM.activeModuleContent(for: "training") {
                     AIInsightStrip(
                         content: trainingInsight,
                         color: PepTheme.blue,
@@ -131,7 +131,7 @@ struct TodaysPlanCardView: View {
             }
             .transition(.opacity.combined(with: .move(edge: .top)))
         } else if !isPlanMinimized && viewModel.isPlanExpanded && viewModel.todaysPlan.isRestDay {
-            if let trainingInsight = todaysPlanVM.moduleContent(for: "training") {
+            if let trainingInsight = todaysPlanVM.activeModuleContent(for: "training") {
                 AIInsightStrip(content: trainingInsight, color: PepTheme.blue)
                     .padding(.horizontal, 2)
                     .padding(.top, 4)
@@ -412,8 +412,8 @@ struct PlanInsightSectionView: View {
 
                 pepChatAboutThisStrip
                     .padding(.horizontal, 14)
-            } else if todaysPlanVM.hasPlan && !todaysPlanVM.summary.isEmpty {
-                Text(todaysPlanVM.summary)
+            } else if todaysPlanVM.activePlan != nil && !todaysPlanVM.activeSummary.isEmpty {
+                Text(todaysPlanVM.activeSummary)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
                     .lineSpacing(3)
@@ -498,8 +498,8 @@ struct PlanInsightSectionView: View {
 
     private func buildPlanContextString() -> String {
         var parts: [String] = []
-        parts.append("Summary: \(todaysPlanVM.summary)")
-        for module in todaysPlanVM.modules {
+        parts.append("Summary: \(todaysPlanVM.activeSummary)")
+        for module in todaysPlanVM.activeModules {
             parts.append("[\(module.title)] \(module.content)")
         }
         return parts.joined(separator: "\n\n")
