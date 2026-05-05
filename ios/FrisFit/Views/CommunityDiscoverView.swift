@@ -484,6 +484,9 @@ final class CommunityDiscoverViewModel {
                 return (sp, score)
             }.sorted { $0.1 > $1.1 }
 
+            let postIds = scored.map { $0.0.id }
+            let commentCounts = (try? await SocialService.shared.fetchCommentCounts(postIds: postIds)) ?? [:]
+
             let hidden = LocalModerationStore.shared
             let mapped: [FeedPost] = scored.compactMap { (sp, _) in
                 let uid = sp.user_id.lowercased()
@@ -509,7 +512,7 @@ final class CommunityDiscoverViewModel {
                     likeCount: sp.high_five_count ?? 0,
                     isLiked: false,
                     comments: [],
-                    commentCount: 0,
+                    commentCount: commentCounts[sp.id] ?? 0,
                     repostCount: sp.repost_count ?? 0,
                     isReposted: false,
                     tags: feedTags,
