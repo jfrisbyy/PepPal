@@ -28,50 +28,13 @@ struct ChatConversationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            editorialNavBar
             messagesScrollView
-
             inputBar
         }
         .appBackground()
-        .navigationTitle(conversation?.participant.name ?? "Chat")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button(role: .destructive) {
-                        showReport = true
-                    } label: {
-                        Label("Report", systemImage: "flag")
-                    }
-                    Button(role: .destructive) {
-                        showBlockConfirm = true
-                    } label: {
-                        Label("Block User", systemImage: "hand.raised")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .foregroundStyle(PepTheme.teal)
-                }
-            }
-            ToolbarItem(placement: .principal) {
-                if let participant = conversation?.participant {
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(participant.avatarColor.opacity(0.2))
-                            .frame(width: 28, height: 28)
-                            .overlay {
-                                Text(participant.avatarInitial)
-                                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                                    .foregroundStyle(participant.avatarColor)
-                            }
-
-                        Text(participant.name)
-                            .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-                }
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             viewModel.markAsRead(conversationID: conversationID)
         }
@@ -109,15 +72,84 @@ struct ChatConversationView: View {
         }
     }
 
+    // MARK: - Editorial nav bar
+
+    private var editorialNavBar: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+                        .clipShape(Circle())
+                        .overlay { Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5) }
+                }
+
+                Spacer()
+
+                if let participant = conversation?.participant {
+                    VStack(spacing: 2) {
+                        Text("CORRESPONDENCE WITH")
+                            .font(.system(size: 8, weight: .black))
+                            .tracking(1.8)
+                            .foregroundStyle(PepTheme.textTertiary)
+                        Text(participant.name)
+                            .font(.system(.headline, design: .serif, weight: .semibold))
+                            .kerning(-0.2)
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer()
+
+                Menu {
+                    Button(role: .destructive) { showReport = true } label: {
+                        Label("Report", systemImage: "flag")
+                    }
+                    Button(role: .destructive) { showBlockConfirm = true } label: {
+                        Label("Block User", systemImage: "hand.raised")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+                        .clipShape(Circle())
+                        .overlay { Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5) }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(height: 0.5)
+        }
+        .background(.ultraThinMaterial)
+    }
+
+    // MARK: - Messages
+
     private var messagesScrollView: some View {
         ScrollView {
             ScrollViewReader { proxy in
                 LazyVStack(spacing: 6) {
+                    if let convo = conversation, convo.messages.isEmpty {
+                        emptyConversationHeader(participant: convo.participant)
+                            .padding(.top, 32)
+                    }
+
                     if let convo = conversation {
                         ForEach(groupedMessages(convo.messages), id: \.date) { group in
                             dateDivider(group.date)
-                                .padding(.top, 12)
-                                .padding(.bottom, 4)
+                                .padding(.top, 16)
+                                .padding(.bottom, 6)
 
                             ForEach(group.messages) { message in
                                 let isFromMe = message.senderID != convo.participant.id
@@ -137,7 +169,7 @@ struct ChatConversationView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 18)
                 .padding(.vertical, 12)
                 .animation(.easeInOut(duration: 0.2), value: viewModel.typingUserIds)
                 .onChange(of: conversation?.messages.count) { _, _ in
@@ -156,6 +188,39 @@ struct ChatConversationView: View {
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
+    }
+
+    private func emptyConversationHeader(participant: SocialUser) -> some View {
+        VStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .strokeBorder(participant.avatarColor.opacity(0.35), lineWidth: 0.75)
+                    .frame(width: 84, height: 84)
+                Text(participant.avatarInitial)
+                    .font(.system(size: 30, weight: .semibold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+
+            VStack(spacing: 6) {
+                Text("BEGINNING OF CORRESPONDENCE")
+                    .font(.system(size: 9, weight: .black))
+                    .tracking(2.0)
+                    .foregroundStyle(PepTheme.teal)
+                Text(participant.name)
+                    .font(.system(size: 26, weight: .semibold, design: .serif))
+                    .kerning(-0.4)
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("Say hello to begin the conversation.")
+                    .font(.system(.footnote, design: .serif).italic())
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(width: 36, height: 0.5)
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
@@ -194,15 +259,19 @@ struct ChatConversationView: View {
                             EmptyView()
                         }
                     }
-                    .clipShape(.rect(cornerRadius: 14))
+                    .clipShape(.rect(cornerRadius: 16))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16)
+                            .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                    }
             }
             .buttonStyle(.plain)
         }
     }
 
     private func messageBubble(message: DirectMessage, isFromMe: Bool) -> some View {
-        HStack {
-            if isFromMe { Spacer(minLength: 60) }
+        HStack(alignment: .bottom, spacing: 8) {
+            if isFromMe { Spacer(minLength: 56) }
 
             VStack(alignment: isFromMe ? .trailing : .leading, spacing: 6) {
                 ForEach(message.attachments) { att in
@@ -211,54 +280,78 @@ struct ChatConversationView: View {
 
                 if !message.text.isEmpty {
                     Text(message.text)
-                        .font(.subheadline)
+                        .font(.system(.subheadline, design: .serif))
                         .foregroundStyle(isFromMe ? .white : PepTheme.textPrimary)
+                        .lineSpacing(2)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(
-                            isFromMe
-                                ? AnyShapeStyle(LinearGradient(
-                                    colors: [PepTheme.teal, PepTheme.teal.opacity(0.85)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ))
-                                : AnyShapeStyle(PepTheme.elevated)
+                            Group {
+                                if isFromMe {
+                                    LinearGradient(
+                                        colors: [PepTheme.teal, PepTheme.teal.opacity(0.88)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                } else {
+                                    PepTheme.cardSurface
+                                }
+                            }
                         )
                         .clipShape(.rect(
-                            topLeadingRadius: isFromMe ? 18 : 6,
+                            topLeadingRadius: isFromMe ? 18 : 4,
                             bottomLeadingRadius: 18,
-                            bottomTrailingRadius: isFromMe ? 6 : 18,
+                            bottomTrailingRadius: isFromMe ? 4 : 18,
                             topTrailingRadius: 18
                         ))
+                        .overlay {
+                            if !isFromMe {
+                                UnevenRoundedRectangle(
+                                    topLeadingRadius: 4,
+                                    bottomLeadingRadius: 18,
+                                    bottomTrailingRadius: 18,
+                                    topTrailingRadius: 18
+                                )
+                                .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                            }
+                        }
                 }
 
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     Text(formatTime(message.timestamp))
-                        .font(.system(size: 10))
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(0.6)
+                        .foregroundStyle(PepTheme.textTertiary)
                     if isFromMe {
                         Image(systemName: message.isRead ? "checkmark.circle.fill" : "checkmark")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(message.isRead ? PepTheme.teal : PepTheme.textSecondary.opacity(0.6))
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(message.isRead ? PepTheme.teal : PepTheme.textTertiary)
                     }
                 }
                 .padding(.horizontal, 4)
             }
 
-            if !isFromMe { Spacer(minLength: 60) }
+            if !isFromMe { Spacer(minLength: 56) }
         }
     }
 
     private func dateDivider(_ date: Date) -> some View {
-        HStack {
-            VStack { Divider() }
-            Text(formatDateHeader(date))
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
+        HStack(spacing: 10) {
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(height: 0.5)
+            Text(formatDateHeader(date).uppercased())
+                .font(.system(size: 9, weight: .black))
+                .tracking(1.8)
+                .foregroundStyle(PepTheme.textTertiary)
                 .fixedSize()
-            VStack { Divider() }
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(height: 0.5)
         }
     }
+
+    // MARK: - Input
 
     @ViewBuilder
     private var inputBar: some View {
@@ -280,22 +373,27 @@ struct ChatConversationView: View {
             }
 
             HStack(spacing: 10) {
-                Circle().fill(.red).frame(width: 10, height: 10)
+                Circle().fill(.red).frame(width: 8, height: 8)
                     .phaseAnimator([0.3, 1.0]) { content, phase in
                         content.opacity(phase)
                     } animation: { _ in .easeInOut(duration: 0.7).repeatForever(autoreverses: true) }
+                Text("RECORDING")
+                    .font(.system(size: 9, weight: .black))
+                    .tracking(1.8)
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
                 Text(formatVoiceDuration(voiceRecorder.duration))
                     .font(.system(.subheadline, design: .monospaced, weight: .medium))
                     .foregroundStyle(PepTheme.textPrimary)
-                Spacer()
-                Text("Recording…")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(PepTheme.elevated)
-            .clipShape(.capsule)
+            .padding(.vertical, 11)
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+            }
 
             Button {
                 if let (data, duration) = voiceRecorder.finish() {
@@ -309,30 +407,34 @@ struct ChatConversationView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(
-            PepTheme.cardSurface
-                .shadow(color: .black.opacity(0.05), radius: 8, y: -2)
-                .ignoresSafeArea(edges: .bottom)
-        )
+        .background(inputBarBackground)
     }
 
     private var textInputBar: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .bottom, spacing: 10) {
             PhotosPicker(selection: $selectedMedia, matching: .any(of: [.images, .videos])) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundStyle(viewModel.uploadingAttachment ? PepTheme.textSecondary : PepTheme.teal)
+                Image(systemName: "plus")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(viewModel.uploadingAttachment ? PepTheme.textSecondary : PepTheme.textPrimary)
+                    .frame(width: 36, height: 36)
+                    .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+                    .clipShape(Circle())
+                    .overlay { Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5) }
             }
             .disabled(viewModel.uploadingAttachment)
 
-            TextField("Message...", text: $messageText, axis: .vertical)
-                .font(.subheadline)
+            TextField("Write a message…", text: $messageText, axis: .vertical)
+                .font(.system(.subheadline, design: .serif))
                 .lineLimit(1...5)
                 .focused($isInputFocused)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(PepTheme.elevated)
-                .clipShape(.capsule)
+                .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+                .clipShape(.rect(cornerRadius: 18))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18)
+                        .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                }
                 .onChange(of: messageText) { _, newValue in
                     if !newValue.isEmpty {
                         viewModel.sendTypingSignal()
@@ -345,9 +447,12 @@ struct ChatConversationView: View {
                 Button {
                     voiceRecorder.start()
                 } label: {
-                    Image(systemName: "mic.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(PepTheme.teal)
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(PepTheme.teal)
+                        .clipShape(Circle())
                 }
                 .disabled(viewModel.uploadingAttachment)
                 .sensoryFeedback(.impact(weight: .medium), trigger: voiceRecorder.isRecording)
@@ -355,28 +460,41 @@ struct ChatConversationView: View {
                 Button {
                     sendMessage()
                 } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(PepTheme.teal)
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(
+                            LinearGradient(
+                                colors: [PepTheme.teal, PepTheme.teal.opacity(0.88)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .clipShape(Circle())
                 }
                 .sensoryFeedback(.impact(weight: .light), trigger: conversation?.messages.count ?? 0)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(
-            PepTheme.cardSurface
-                .shadow(color: .black.opacity(0.05), radius: 8, y: -2)
-                .ignoresSafeArea(edges: .bottom)
-        )
+        .background(inputBarBackground)
         .overlay(alignment: .top) {
             if viewModel.uploadingAttachment {
                 HStack(spacing: 8) {
-                    ProgressView().scaleEffect(0.8)
-                    Text("Uploading…").font(.caption).foregroundStyle(PepTheme.textSecondary)
+                    ProgressView().scaleEffect(0.7)
+                    Text("UPLOADING")
+                        .font(.system(size: 9, weight: .black))
+                        .tracking(1.8)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
                 .padding(.horizontal, 12).padding(.vertical, 6)
-                .background(PepTheme.elevated, in: Capsule())
+                .background(
+                    Capsule()
+                        .fill(PepTheme.cardSurface)
+                        .overlay(Capsule().fill(PepTheme.cardOverlay))
+                        .overlay(Capsule().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5))
+                )
                 .offset(y: -32)
             }
         }
@@ -387,6 +505,17 @@ struct ChatConversationView: View {
                 selectedMedia = nil
             }
         }
+    }
+
+    private var inputBarBackground: some View {
+        ZStack(alignment: .top) {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(height: 0.5)
+        }
+        .ignoresSafeArea(edges: .bottom)
     }
 
     private func handlePickedMedia(_ item: PhotosPickerItem) async {
@@ -427,10 +556,14 @@ struct ChatConversationView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(PepTheme.elevated)
-            .clipShape(.rect(topLeadingRadius: 6, bottomLeadingRadius: 18, bottomTrailingRadius: 18, topTrailingRadius: 18))
+            .background(PepTheme.cardSurface)
+            .clipShape(.rect(topLeadingRadius: 4, bottomLeadingRadius: 18, bottomTrailingRadius: 18, topTrailingRadius: 18))
+            .overlay {
+                UnevenRoundedRectangle(topLeadingRadius: 4, bottomLeadingRadius: 18, bottomTrailingRadius: 18, topTrailingRadius: 18)
+                    .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+            }
 
-            Spacer(minLength: 60)
+            Spacer(minLength: 56)
         }
     }
 
