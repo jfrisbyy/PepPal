@@ -1,348 +1,534 @@
 import SwiftUI
+import Charts
 
 struct StepDetailView: View {
     @State private var viewModel = StepDetailViewModel()
     @State private var animateProgress: Bool = false
-    @State private var selectedBarID: UUID? = nil
+    @State private var selectedDate: Date? = nil
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                todayHeroCard
+            VStack(alignment: .leading, spacing: 24) {
+                editorialHeader
+                heroPanel
                 periodSelector
-                chartSection
+
+                EditorialSectionHeader(
+                    eyebrow: "01 \u{2014} Trends",
+                    title: chartTitle,
+                    meta: chartSubtitle.uppercased()
+                )
+                chartCard
+
+                EditorialSectionHeader(
+                    eyebrow: "02 \u{2014} Stats",
+                    title: nil,
+                    meta: periodLongLabel.uppercased()
+                )
                 statsGrid
+
                 if viewModel.selectedPeriod == .day {
-                    todayBreakdownSection
+                    EditorialSectionHeader(eyebrow: "03 \u{2014} Hourly", title: "When you moved")
+                    hourlyBreakdownCard
                 }
-                recentDaysSection
+
+                EditorialSectionHeader(eyebrow: viewModel.selectedPeriod == .day ? "04 \u{2014} This Week" : "03 \u{2014} Recent Days", title: nil)
+                recentDaysCard
             }
             .padding(.horizontal)
-            .padding(.bottom, 32)
+            .padding(.bottom, 40)
         }
         .scrollIndicators(.hidden)
         .appBackground()
-        .navigationTitle("Steps")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadData()
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+            withAnimation(.spring(response: 0.85, dampingFraction: 0.75)) {
                 animateProgress = true
             }
             viewModel.healthKit.startLiveStepStreaming()
         }
-        .onDisappear {
-            viewModel.healthKit.stopLiveStepStreaming()
-        }
-        .refreshable {
-            await viewModel.refreshSteps()
-        }
+        .onDisappear { viewModel.healthKit.stopLiveStepStreaming() }
+        .refreshable { await viewModel.refreshSteps() }
     }
 
-    // MARK: - Hero Card
+    // MARK: - Editorial header
 
-    private var todayHeroCard: some View {
-        VStack(spacing: 20) {
-            ZStack {
-                Circle()
-                    .stroke(PepTheme.elevated, lineWidth: 14)
-                    .frame(width: 160, height: 160)
+    private var editorialHeader: some View {
+        EditorialHeader(eyebrow: headerEyebrow, title: "Steps")
+            .padding(.top, 8)
+    }
 
-                Circle()
-                    .trim(from: 0, to: animateProgress ? viewModel.todayProgress : 0)
-                    .stroke(
-                        LinearGradient(
-                            colors: [PepTheme.teal, PepTheme.teal.opacity(0.6)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        style: StrokeStyle(lineWidth: 14, lineCap: .round)
-                    )
-                    .frame(width: 160, height: 160)
-                    .rotationEffect(.degrees(-90))
+    private var headerEyebrow: String {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE \u{00b7} MMM d"
+        return f.string(from: Date())
+    }
 
-                VStack(spacing: 4) {
-                    Image(systemName: "figure.walk")
-                        .font(.system(size: 20))
+    // MARK: - Hero
+
+    private var heroPanel: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 18) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("TODAY")
+                        .font(.system(size: 10, weight: .heavy))
+                        .tracking(2.4)
                         .foregroundStyle(PepTheme.teal)
 
                     Text(formattedNumber(viewModel.todaySteps))
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .font(.system(size: 56, weight: .semibold, design: .serif))
+                        .kerning(-1.5)
                         .foregroundStyle(PepTheme.textPrimary)
                         .contentTransition(.numericText())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
 
-                    Text("of \(formattedNumber(viewModel.stepGoal)) goal")
-                        .font(.system(.caption, weight: .medium))
+                    Text("of \(formattedNumber(viewModel.stepGoal)) goal \u{00b7} \(Int(viewModel.todayProgress * 100))%")
+                        .font(.system(.caption, design: .serif))
+                        .italic()
                         .foregroundStyle(PepTheme.textSecondary)
                 }
+                Spacer(minLength: 0)
+                heroRing
             }
 
-            HStack(spacing: 24) {
-                todayMetric(
-                    icon: "mappin.and.ellipse",
-                    value: String(format: "%.2f", viewModel.distanceMiles),
-                    unit: "mi",
-                    color: .green
-                )
-                todayMetric(
-                    icon: "arrow.up.right",
-                    value: "\(viewModel.todayFlights)",
-                    unit: "flights",
-                    color: PepTheme.amber
-                )
-                todayMetric(
-                    icon: "flame.fill",
-                    value: "\(Int(viewModel.healthKit.activeCalories))",
-                    unit: "cal",
-                    color: .orange
-                )
+            Rectangle()
+                .fill(LinearGradient(colors: [PepTheme.teal.opacity(0.5), PepTheme.teal.opacity(0)], startPoint: .leading, endPoint: .trailing))
+                .frame(height: 0.75)
+
+            HStack(spacing: 0) {
+                heroMetric(label: "Distance", value: String(format: "%.2f", viewModel.distanceMiles), unit: "mi")
+                Divider().overlay(PepTheme.separatorColor).frame(height: 30)
+                heroMetric(label: "Floors", value: "\(viewModel.todayFlights)", unit: "climbed")
+                Divider().overlay(PepTheme.separatorColor).frame(height: 30)
+                heroMetric(label: "Active", value: "\(Int(viewModel.healthKit.activeCalories))", unit: "cal")
             }
         }
         .padding(20)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .background(
+            ZStack {
+                PepTheme.cardSurface
+                LinearGradient(
+                    colors: [PepTheme.teal.opacity(0.10), Color.clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        )
         .clipShape(.rect(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
                 .strokeBorder(
-                    LinearGradient(
-                        colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.5
+                    LinearGradient(colors: [PepTheme.teal.opacity(0.28), PepTheme.teal.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.6
                 )
         )
-        .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 4)
-    }
-
-    private func todayMetric(icon: String, value: String, unit: String, color: Color) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundStyle(color)
-            Text(value)
-                .font(.system(.headline, design: .rounded, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
-            Text(unit)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
+        .overlay(alignment: .topLeading) {
+            Rectangle()
+                .fill(PepTheme.teal)
+                .frame(width: 2, height: 44)
+                .padding(.top, 20)
         }
-        .frame(maxWidth: .infinity)
+        .shadow(color: PepTheme.teal.opacity(0.12), radius: 16, x: 0, y: 6)
     }
 
-    // MARK: - Period Selector
+    private var heroRing: some View {
+        ZStack {
+            Circle()
+                .stroke(PepTheme.elevated, lineWidth: 8)
+                .frame(width: 96, height: 96)
+
+            Circle()
+                .trim(from: 0, to: animateProgress ? viewModel.todayProgress : 0)
+                .stroke(
+                    AngularGradient(
+                        colors: [PepTheme.teal, PepTheme.tealDeep, PepTheme.teal],
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                )
+                .frame(width: 96, height: 96)
+                .rotationEffect(.degrees(-90))
+
+            VStack(spacing: 2) {
+                Image(systemName: "figure.walk")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PepTheme.teal)
+                Text("\(Int(viewModel.todayProgress * 100))%")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .contentTransition(.numericText())
+            }
+        }
+    }
+
+    private func heroMetric(label: String, value: String, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .heavy))
+                .tracking(1.6)
+                .foregroundStyle(PepTheme.textTertiary)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(value)
+                    .font(.system(size: 18, weight: .semibold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .contentTransition(.numericText())
+                Text(unit)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Period selector
 
     private var periodSelector: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 4) {
             ForEach(StepTimePeriod.allCases) { period in
+                let isOn = viewModel.selectedPeriod == period
                 Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                         viewModel.selectedPeriod = period
+                        selectedDate = nil
                     }
                 } label: {
-                    Text(period.rawValue)
-                        .font(.system(size: 13, weight: viewModel.selectedPeriod == period ? .bold : .medium))
-                        .foregroundStyle(viewModel.selectedPeriod == period ? PepTheme.invertedText : PepTheme.textSecondary)
+                    Text(periodTitle(period))
+                        .font(.system(size: 11, weight: .heavy))
+                        .tracking(1.6)
+                        .foregroundStyle(isOn ? PepTheme.invertedText : PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(viewModel.selectedPeriod == period ? PepTheme.teal : Color.clear)
+                        .padding(.vertical, 10)
+                        .background(
+                            ZStack {
+                                if isOn {
+                                    LinearGradient(colors: [PepTheme.teal, PepTheme.tealDeep], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                }
+                            }
+                        )
                         .clipShape(.capsule)
                 }
                 .sensoryFeedback(.selection, trigger: viewModel.selectedPeriod)
-                .simultaneousGesture(TapGesture().onEnded { selectedBarID = nil })
             }
         }
-        .padding(3)
+        .padding(4)
         .background(PepTheme.elevated)
         .clipShape(.capsule)
+        .overlay(Capsule().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5))
     }
 
-    // MARK: - Chart Section
+    private func periodTitle(_ p: StepTimePeriod) -> String {
+        switch p {
+        case .day: return "DAY"
+        case .week: return "WEEK"
+        case .month: return "MONTH"
+        case .sixMonths: return "6 MOS"
+        case .year: return "YEAR"
+        }
+    }
 
-    private var chartSection: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Text(chartTitle)
-                        .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Spacer()
-                    Text(chartSubtitle)
-                        .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
+    private var periodLongLabel: String {
+        switch viewModel.selectedPeriod {
+        case .day: return "Today"
+        case .week: return "Past 7 days"
+        case .month: return "Past 30 days"
+        case .sixMonths: return "Past 26 weeks"
+        case .year: return "Past 12 months"
+        }
+    }
 
-                GeometryReader { geo in
-                    ZStack(alignment: .top) {
-                        chartBars(width: geo.size.width)
-                        if let info = selectedInfo(totalWidth: geo.size.width) {
-                            selectionCallout(info: info)
-                                .offset(x: info.calloutX, y: 0)
-                                .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottom)))
+    // MARK: - Chart card
+
+    private var chartCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                if let info = selectionInfo {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(info.title.uppercased())
+                            .font(.system(size: 10, weight: .heavy))
+                            .tracking(1.8)
+                            .foregroundStyle(PepTheme.teal)
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(formattedNumber(info.value))
+                                .font(.system(size: 28, weight: .semibold, design: .serif))
+                                .foregroundStyle(PepTheme.textPrimary)
+                                .contentTransition(.numericText())
+                            Text("steps")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(PepTheme.textSecondary)
+                        }
+                        if let sub = info.subtitle {
+                            Text(sub)
+                                .font(.system(.caption2, design: .serif))
+                                .italic()
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            selectedBarID = nil
+                } else {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AVERAGE")
+                            .font(.system(size: 10, weight: .heavy))
+                            .tracking(1.8)
+                            .foregroundStyle(PepTheme.textTertiary)
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(formattedNumber(viewModel.averageSteps))
+                                .font(.system(size: 28, weight: .semibold, design: .serif))
+                                .foregroundStyle(PepTheme.textPrimary)
+                                .contentTransition(.numericText())
+                            Text("steps/day")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(PepTheme.textSecondary)
                         }
+                        Text("Tap any bar to inspect")
+                            .font(.system(.caption2, design: .serif))
+                            .italic()
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
-                .frame(height: 170)
+                Spacer()
             }
+
+            chartView
+                .frame(height: 200)
         }
-        .sensoryFeedback(.selection, trigger: selectedBarID)
-        .onChange(of: viewModel.selectedPeriod) { _, _ in
-            selectedBarID = nil
-        }
+        .padding(18)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+        .sensoryFeedback(.selection, trigger: selectedDate)
+        .onChange(of: viewModel.selectedPeriod) { _, _ in selectedDate = nil }
     }
 
-    private struct BarSelectionInfo {
-        let title: String
-        let subtitle: String?
-        let value: Int
-        let calloutX: CGFloat
-        let calloutWidth: CGFloat
-    }
+    // MARK: - Chart
 
-    private func selectedInfo(totalWidth: CGFloat) -> BarSelectionInfo? {
-        guard let id = selectedBarID else { return nil }
-        let calloutWidth: CGFloat = 150
+    private var chartPoints: [ChartPoint] {
         switch viewModel.selectedPeriod {
         case .day:
-            guard let idx = viewModel.hourlySteps.firstIndex(where: { $0.id == id }) else { return nil }
-            let item = viewModel.hourlySteps[idx]
-            let count = max(viewModel.hourlySteps.count, 1)
-            let x = (totalWidth / CGFloat(count)) * (CGFloat(idx) + 0.5)
-            let dayTotal = max(viewModel.todaySteps, 1)
-            let pct = Double(item.steps) / Double(dayTotal) * 100
-            return BarSelectionInfo(
-                title: hourRangeLabel(hour: item.hour),
-                subtitle: item.steps > 0 ? String(format: "%.1f%% of today", pct) : nil,
-                value: item.steps,
-                calloutX: clampX(x, totalWidth: totalWidth, calloutWidth: calloutWidth),
-                calloutWidth: calloutWidth
-            )
+            let cal = Calendar.current
+            let today = cal.startOfDay(for: Date())
+            return viewModel.hourlySteps.map { item in
+                let date = cal.date(byAdding: .hour, value: item.hour, to: today) ?? today
+                return ChartPoint(date: date, value: item.steps, kind: .hour(item.hour))
+            }
         case .week:
-            let data = Array(viewModel.dailySteps.suffix(7))
-            guard let idx = data.firstIndex(where: { $0.id == id }) else { return nil }
-            let item = data[idx]
-            let count = max(data.count, 1)
-            let x = (totalWidth / CGFloat(count)) * (CGFloat(idx) + 0.5)
-            return BarSelectionInfo(
-                title: fullDateLabel(item.date),
-                subtitle: item.steps >= viewModel.stepGoal ? "Goal reached" : "Goal \(formattedNumber(viewModel.stepGoal))",
-                value: item.steps,
-                calloutX: clampX(x, totalWidth: totalWidth, calloutWidth: calloutWidth),
-                calloutWidth: calloutWidth
-            )
+            return viewModel.dailySteps.suffix(7).map {
+                ChartPoint(date: $0.date, value: $0.steps, kind: .day($0.date))
+            }
         case .month:
-            let data = Array(viewModel.dailySteps.suffix(30))
-            guard let idx = data.firstIndex(where: { $0.id == id }) else { return nil }
-            let item = data[idx]
-            let count = max(data.count, 1)
-            let x = (totalWidth / CGFloat(count)) * (CGFloat(idx) + 0.5)
-            return BarSelectionInfo(
-                title: fullDateLabel(item.date),
-                subtitle: nil,
-                value: item.steps,
-                calloutX: clampX(x, totalWidth: totalWidth, calloutWidth: calloutWidth),
-                calloutWidth: calloutWidth
-            )
+            return viewModel.dailySteps.suffix(30).map {
+                ChartPoint(date: $0.date, value: $0.steps, kind: .day($0.date))
+            }
         case .sixMonths:
-            let data = viewModel.weeklySteps
-            guard let idx = data.firstIndex(where: { $0.id == id }) else { return nil }
-            let item = data[idx]
-            let count = max(data.count, 1)
-            let x = (totalWidth / CGFloat(count)) * (CGFloat(idx) + 0.5)
-            return BarSelectionInfo(
-                title: weekRangeLabel(start: item.weekStart),
-                subtitle: "Week total",
-                value: item.steps,
-                calloutX: clampX(x, totalWidth: totalWidth, calloutWidth: calloutWidth),
-                calloutWidth: calloutWidth
-            )
+            return viewModel.weeklySteps.map {
+                ChartPoint(date: $0.weekStart, value: $0.steps, kind: .week($0.weekStart))
+            }
         case .year:
-            let data = viewModel.monthlySteps
-            guard let idx = data.firstIndex(where: { $0.id == id }) else { return nil }
-            let item = data[idx]
-            let count = max(data.count, 1)
-            let x = (totalWidth / CGFloat(count)) * (CGFloat(idx) + 0.5)
-            return BarSelectionInfo(
-                title: item.fullLabel,
-                subtitle: "Month total",
-                value: item.steps,
-                calloutX: clampX(x, totalWidth: totalWidth, calloutWidth: calloutWidth),
-                calloutWidth: calloutWidth
-            )
+            return viewModel.monthlySteps.map {
+                ChartPoint(date: $0.monthStart, value: $0.steps, kind: .month($0.monthStart))
+            }
         }
     }
 
-    private func clampX(_ x: CGFloat, totalWidth: CGFloat, calloutWidth: CGFloat) -> CGFloat {
-        let half = calloutWidth / 2
-        return min(max(x - half, 0), max(totalWidth - calloutWidth, 0))
+    private var goalReference: Int? {
+        switch viewModel.selectedPeriod {
+        case .day, .week, .month: return viewModel.stepGoal
+        default: return nil
+        }
     }
 
-    private func selectionCallout(info: BarSelectionInfo) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(info.title)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(PepTheme.textSecondary)
-                .lineLimit(1)
-            Text(formattedNumber(info.value))
-                .font(.system(.headline, design: .rounded, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
-                .contentTransition(.numericText())
-            Text(info.subtitle ?? "steps")
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
-                .lineLimit(1)
+    @ViewBuilder
+    private var chartView: some View {
+        let points = chartPoints
+        if points.isEmpty {
+            emptyChart
+        } else {
+            Chart {
+                ForEach(points) { p in
+                    BarMark(
+                        x: .value("Date", p.date, unit: chartUnit),
+                        y: .value("Steps", p.value)
+                    )
+                    .cornerRadius(4)
+                    .foregroundStyle(barGradient(for: p.value, max: points.map(\.value).max() ?? 1))
+                    .opacity(selectedDate == nil || isSelected(p) ? 1.0 : 0.35)
+                }
+
+                if let goal = goalReference, viewModel.selectedPeriod != .day {
+                    RuleMark(y: .value("Goal", goal))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                        .foregroundStyle(PepTheme.teal.opacity(0.55))
+                        .annotation(position: .top, alignment: .leading) {
+                            Text("GOAL")
+                                .font(.system(size: 8, weight: .heavy))
+                                .tracking(1.4)
+                                .foregroundStyle(PepTheme.teal)
+                                .padding(.leading, 2)
+                        }
+                }
+
+                if let sel = selectedDate, let p = nearestPoint(to: sel, in: points) {
+                    RuleMark(x: .value("Selected", p.date, unit: chartUnit))
+                        .foregroundStyle(PepTheme.teal.opacity(0.4))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 2]))
+                }
+            }
+            .chartXSelection(value: $selectedDate)
+            .chartYAxis {
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
+                    AxisGridLine().foregroundStyle(PepTheme.textSecondary.opacity(0.08))
+                    AxisValueLabel {
+                        if let v = value.as(Int.self) {
+                            Text(compactInt(v))
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(PepTheme.textTertiary)
+                        }
+                    }
+                }
+            }
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: xAxisCount)) { value in
+                    AxisValueLabel {
+                        if let date = value.as(Date.self) {
+                            Text(xAxisLabel(for: date))
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(PepTheme.textTertiary)
+                        }
+                    }
+                }
+            }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(width: info.calloutWidth, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(PepTheme.elevated)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(PepTheme.teal.opacity(0.4), lineWidth: 0.8)
-                )
-                .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
+    }
+
+    private var emptyChart: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "chart.bar.xaxis")
+                .font(.system(size: 28))
+                .foregroundStyle(PepTheme.textTertiary)
+            Text("No data for this period")
+                .font(.system(.subheadline, design: .serif))
+                .italic()
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var chartUnit: Calendar.Component {
+        switch viewModel.selectedPeriod {
+        case .day: return .hour
+        case .week, .month: return .day
+        case .sixMonths: return .weekOfYear
+        case .year: return .month
+        }
+    }
+
+    private var xAxisCount: Int {
+        switch viewModel.selectedPeriod {
+        case .day: return 5
+        case .week: return 7
+        case .month: return 5
+        case .sixMonths: return 5
+        case .year: return 6
+        }
+    }
+
+    private func xAxisLabel(for date: Date) -> String {
+        let f = DateFormatter()
+        switch viewModel.selectedPeriod {
+        case .day: f.dateFormat = "ha"
+        case .week: f.dateFormat = "EEE"
+        case .month: f.dateFormat = "MMM d"
+        case .sixMonths: f.dateFormat = "MMM"
+        case .year: f.dateFormat = "MMM"
+        }
+        return f.string(from: date)
+    }
+
+    private func barGradient(for value: Int, max: Int) -> LinearGradient {
+        let intensity = max > 0 ? Double(value) / Double(max) : 0
+        return LinearGradient(
+            colors: [
+                PepTheme.teal.opacity(0.55 + intensity * 0.45),
+                PepTheme.tealDeep.opacity(0.4 + intensity * 0.35)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
         )
     }
 
-    private func hourRangeLabel(hour: Int) -> String {
-        func hLabel(_ h: Int) -> String {
-            let hour24 = ((h % 24) + 24) % 24
-            let ampm = hour24 < 12 ? "AM" : "PM"
-            let h12 = hour24 % 12 == 0 ? 12 : hour24 % 12
-            return "\(h12) \(ampm)"
-        }
-        return "\(hLabel(hour)) – \(hLabel(hour + 1))"
-    }
-
-    private func fullDateLabel(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE, MMM d"
-        return formatter.string(from: date)
-    }
-
-    private func weekRangeLabel(start: Date) -> String {
+    private func isSelected(_ p: ChartPoint) -> Bool {
+        guard let sel = selectedDate else { return false }
         let cal = Calendar.current
-        let end = cal.date(byAdding: .day, value: 6, to: start) ?? start
+        switch viewModel.selectedPeriod {
+        case .day: return cal.component(.hour, from: p.date) == cal.component(.hour, from: sel)
+        case .week, .month: return cal.isDate(p.date, inSameDayAs: sel)
+        case .sixMonths:
+            return cal.dateComponents([.year, .weekOfYear], from: p.date) == cal.dateComponents([.year, .weekOfYear], from: sel)
+        case .year:
+            return cal.dateComponents([.year, .month], from: p.date) == cal.dateComponents([.year, .month], from: sel)
+        }
+    }
+
+    private func nearestPoint(to date: Date, in points: [ChartPoint]) -> ChartPoint? {
+        points.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) })
+    }
+
+    private struct SelectionInfo {
+        let title: String
+        let value: Int
+        let subtitle: String?
+    }
+
+    private var selectionInfo: SelectionInfo? {
+        guard let sel = selectedDate else { return nil }
+        let points = chartPoints
+        guard let p = nearestPoint(to: sel, in: points) else { return nil }
         let f = DateFormatter()
-        f.dateFormat = "MMM d"
-        return "\(f.string(from: start)) – \(f.string(from: end))"
+        switch p.kind {
+        case .hour(let h):
+            let pct = viewModel.todaySteps > 0 ? Double(p.value) / Double(viewModel.todaySteps) * 100 : 0
+            return SelectionInfo(
+                title: hourRange(h),
+                value: p.value,
+                subtitle: p.value > 0 ? String(format: "%.1f%% of today", pct) : "Quiet hour"
+            )
+        case .day(let date):
+            f.dateFormat = "EEEE, MMM d"
+            let goal = viewModel.stepGoal
+            let sub = p.value >= goal ? "Goal reached \u{2728}" : "\(formattedNumber(max(goal - p.value, 0))) to goal"
+            return SelectionInfo(title: f.string(from: date), value: p.value, subtitle: sub)
+        case .week(let start):
+            let cal = Calendar.current
+            let end = cal.date(byAdding: .day, value: 6, to: start) ?? start
+            f.dateFormat = "MMM d"
+            return SelectionInfo(
+                title: "Week of \(f.string(from: start)) \u{2013} \(f.string(from: end))",
+                value: p.value,
+                subtitle: "\(formattedNumber(p.value / 7)) avg/day"
+            )
+        case .month(let m):
+            f.dateFormat = "MMMM yyyy"
+            let cal = Calendar.current
+            let days = cal.range(of: .day, in: .month, for: m)?.count ?? 30
+            return SelectionInfo(
+                title: f.string(from: m),
+                value: p.value,
+                subtitle: "\(formattedNumber(p.value / days)) avg/day"
+            )
+        }
     }
 
     private var chartTitle: String {
         switch viewModel.selectedPeriod {
-        case .day: return "Today by Hour"
-        case .week: return "Last 7 Days"
-        case .month: return "Last 30 Days"
-        case .sixMonths: return "Last 6 Months"
-        case .year: return "Last 12 Months"
+        case .day: return "Today by hour"
+        case .week: return "Last 7 days"
+        case .month: return "Last 30 days"
+        case .sixMonths: return "Last 6 months"
+        case .year: return "Last 12 months"
         }
     }
 
@@ -350,175 +536,18 @@ struct StepDetailView: View {
         "Avg \(formattedNumber(viewModel.averageSteps))/day"
     }
 
-    @ViewBuilder
-    private func chartBars(width: CGFloat) -> some View {
-        switch viewModel.selectedPeriod {
-        case .day:
-            hourlyChart(width: width)
-        case .week:
-            dailyChart(data: Array(viewModel.dailySteps.suffix(7)), width: width, labelKey: \.shortLabel)
-        case .month:
-            dailyChart(data: Array(viewModel.dailySteps.suffix(30)), width: width, labelKey: nil)
-        case .sixMonths:
-            weeklyChart(width: width)
-        case .year:
-            monthlyChart(width: width)
-        }
-    }
-
-    private func hourlyChart(width: CGFloat) -> some View {
-        let data = viewModel.hourlySteps
-        let maxVal = max(data.map(\.steps).max() ?? 1, 1)
-        let barCount = max(data.count, 1)
-        let spacing: CGFloat = 1
-        let barWidth = max((width - spacing * CGFloat(barCount - 1)) / CGFloat(barCount), 2)
-
-        return HStack(alignment: .bottom, spacing: spacing) {
-            ForEach(data) { item in
-                tappableBar(id: item.id, cornerRadius: 2, width: barWidth, height: max(barHeight(value: item.steps, maxValue: maxVal, height: 120), 2), value: item.steps, maxVal: maxVal, label: item.hour % 6 == 0 ? item.hourLabel : nil, labelSize: 8)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func dailyChart<T: Identifiable>(data: [T], width: CGFloat, labelKey: KeyPath<T, String>?) -> some View where T: StepChartable, T.ID == UUID {
-        let maxVal = max(data.map(\.chartSteps).max() ?? 1, 1)
-        let barCount = max(data.count, 1)
-        let spacing: CGFloat = data.count <= 7 ? 6 : 2
-        let barWidth = max((width - spacing * CGFloat(barCount - 1)) / CGFloat(barCount), 3)
-        let radius: CGFloat = data.count <= 7 ? 4 : 2
-
-        return HStack(alignment: .bottom, spacing: spacing) {
-            ForEach(data) { item in
-                let label: String? = labelKey.map { item[keyPath: $0] }
-                tappableBar(id: item.id, cornerRadius: radius, width: barWidth, height: max(barHeight(value: item.chartSteps, maxValue: maxVal, height: 110), 2), value: item.chartSteps, maxVal: maxVal, label: label, labelSize: 9)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func weeklyChart(width: CGFloat) -> some View {
-        let data = viewModel.weeklySteps
-        let maxVal = max(data.map(\.steps).max() ?? 1, 1)
-        let barCount = max(data.count, 1)
-        let spacing: CGFloat = 4
-        let barWidth = max((width - spacing * CGFloat(barCount - 1)) / CGFloat(barCount), 4)
-
-        return HStack(alignment: .bottom, spacing: spacing) {
-            ForEach(Array(data.enumerated()), id: \.element.id) { idx, item in
-                let showLabel = idx % 4 == 0
-                tappableBar(id: item.id, cornerRadius: 3, width: barWidth, height: max(barHeight(value: item.steps, maxValue: maxVal, height: 110), 2), value: item.steps, maxVal: maxVal, label: showLabel ? item.label : nil, labelSize: 8)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func monthlyChart(width: CGFloat) -> some View {
-        let data = viewModel.monthlySteps
-        let maxVal = max(data.map(\.steps).max() ?? 1, 1)
-        let barCount = max(data.count, 1)
-        let spacing: CGFloat = 6
-        let barWidth = max((width - spacing * CGFloat(barCount - 1)) / CGFloat(barCount), 6)
-
-        return HStack(alignment: .bottom, spacing: spacing) {
-            ForEach(data) { item in
-                tappableBar(id: item.id, cornerRadius: 4, width: barWidth, height: max(barHeight(value: item.steps, maxValue: maxVal, height: 110), 2), value: item.steps, maxVal: maxVal, label: item.label, labelSize: 9)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private func tappableBar(id: UUID, cornerRadius: CGFloat, width: CGFloat, height: CGFloat, value: Int, maxVal: Int, label: String?, labelSize: CGFloat) -> some View {
-        let isSelected = selectedBarID == id
-        let isDimmed = selectedBarID != nil && !isSelected
-        VStack(spacing: 2) {
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .fill(isSelected ? selectedBarFill() : barFill(for: value, max: maxVal))
-                .frame(width: width, height: height)
-                .opacity(isDimmed ? 0.35 : 1.0)
-                .shadow(color: isSelected ? PepTheme.teal.opacity(0.6) : .clear, radius: isSelected ? 6 : 0)
-                .overlay(alignment: .bottom) {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .frame(width: max(width + 4, 12))
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                selectedBarID = isSelected ? nil : id
-                            }
-                        }
-                }
-
-            if let label {
-                Text(label)
-                    .font(.system(size: labelSize, weight: .medium))
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-        }
-    }
-
-    private func selectedBarFill() -> LinearGradient {
-        LinearGradient(
-            colors: [PepTheme.teal, PepTheme.teal.opacity(0.85)],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
-
-    private func barHeight(value: Int, maxValue: Int, height: CGFloat) -> CGFloat {
-        guard maxValue > 0 else { return 2 }
-        return CGFloat(value) / CGFloat(maxValue) * height
-    }
-
-    private func barFill(for value: Int, max maxVal: Int) -> LinearGradient {
-        let intensity = maxVal > 0 ? Double(value) / Double(maxVal) : 0
-        return LinearGradient(
-            colors: [
-                PepTheme.teal.opacity(0.4 + intensity * 0.6),
-                PepTheme.teal.opacity(0.2 + intensity * 0.4)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
-
-    // MARK: - Stats Grid
+    // MARK: - Stats grid
 
     private var statsGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            statCard(
-                title: "Average",
-                value: formattedNumber(viewModel.averageSteps),
-                subtitle: "steps/day",
-                icon: "chart.line.uptrend.xyaxis",
-                color: PepTheme.teal
-            )
-            statCard(
-                title: "Total",
-                value: formattedCompact(viewModel.totalStepsInPeriod),
-                subtitle: "steps",
-                icon: "sum",
-                color: PepTheme.violet
-            )
-            statCard(
-                title: "Best",
-                value: formattedNumber(viewModel.maxStepsInPeriod),
-                subtitle: periodUnitLabel,
-                icon: "arrow.up",
-                color: .green
-            )
-            statCard(
-                title: "Lowest",
-                value: formattedNumber(viewModel.minStepsInPeriod),
-                subtitle: periodUnitLabel,
-                icon: "arrow.down",
-                color: PepTheme.amber
-            )
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            statTile(eyebrow: "Average", value: formattedNumber(viewModel.averageSteps), unit: "steps/day", icon: "chart.line.uptrend.xyaxis", accent: PepTheme.teal)
+            statTile(eyebrow: "Total", value: compactInt(viewModel.totalStepsInPeriod), unit: "steps", icon: "sum", accent: PepTheme.violet)
+            statTile(eyebrow: "Best", value: formattedNumber(viewModel.maxStepsInPeriod), unit: bestUnit, icon: "arrow.up.right", accent: PepTheme.success)
+            statTile(eyebrow: "Lowest", value: formattedNumber(viewModel.minStepsInPeriod), unit: bestUnit, icon: "arrow.down.right", accent: PepTheme.amber)
         }
     }
 
-    private var periodUnitLabel: String {
+    private var bestUnit: String {
         switch viewModel.selectedPeriod {
         case .day: return "in an hour"
         case .week, .month: return "in a day"
@@ -527,25 +556,28 @@ struct StepDetailView: View {
         }
     }
 
-    private func statCard(title: String, value: String, subtitle: String, icon: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+    private func statTile(eyebrow: String, value: String, unit: String, icon: String, accent: Color) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(eyebrow.uppercased())
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(1.8)
+                    .foregroundStyle(accent)
+                Spacer()
                 Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(color)
-                Text(title)
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(accent.opacity(0.7))
             }
 
             Text(value)
-                .font(.system(.title3, design: .rounded, weight: .bold))
+                .font(.system(size: 22, weight: .semibold, design: .serif))
                 .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.65)
 
-            Text(subtitle)
-                .font(.system(size: 10, weight: .medium))
+            Text(unit)
+                .font(.system(.caption2, design: .serif))
+                .italic()
                 .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -554,150 +586,166 @@ struct StepDetailView: View {
         .clipShape(.rect(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                .strokeBorder(
+                    LinearGradient(colors: [accent.opacity(0.2), accent.opacity(0.04)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.6
+                )
         )
-    }
-
-    // MARK: - Today Breakdown
-
-    private var todayBreakdownSection: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "clock.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.teal)
-                    SubheadText(text: "Hourly Breakdown")
-                }
-
-                let activeHours = viewModel.hourlySteps.filter { $0.steps > 0 }
-
-                if activeHours.isEmpty {
-                    HStack {
-                        Spacer()
-                        VStack(spacing: 8) {
-                            Image(systemName: "figure.walk")
-                                .font(.title2)
-                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                            Text("No step data yet today")
-                                .font(.subheadline)
-                                .foregroundStyle(PepTheme.textSecondary)
-                        }
-                        .padding(.vertical, 12)
-                        Spacer()
-                    }
-                } else {
-                    let top5 = activeHours.sorted { $0.steps > $1.steps }.prefix(5)
-                    ForEach(Array(top5)) { hour in
-                        HStack(spacing: 12) {
-                            Text(hour.hourLabel)
-                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(PepTheme.textSecondary)
-                                .frame(width: 44, alignment: .leading)
-
-                            GeometryReader { geo in
-                                let maxSteps = top5.map(\.steps).max() ?? 1
-                                let ratio = CGFloat(hour.steps) / CGFloat(max(maxSteps, 1))
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(PepTheme.teal.opacity(0.3 + Double(ratio) * 0.5))
-                                    .frame(width: geo.size.width * ratio)
-                            }
-                            .frame(height: 20)
-
-                            Text(formattedNumber(hour.steps))
-                                .font(.system(.caption, design: .rounded, weight: .bold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                                .frame(width: 50, alignment: .trailing)
-                        }
-                    }
-                }
-            }
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(accent)
+                .frame(width: 2)
+                .padding(.vertical, 14)
         }
     }
 
-    // MARK: - Recent Days
+    // MARK: - Hourly breakdown
 
-    private var recentDaysSection: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
+    private var hourlyBreakdownCard: some View {
+        let active = viewModel.hourlySteps.filter { $0.steps > 0 }
+        let top = Array(active.sorted { $0.steps > $1.steps }.prefix(5))
+        let maxV = top.map(\.steps).max() ?? 1
+
+        return VStack(alignment: .leading, spacing: 14) {
+            if top.isEmpty {
                 HStack {
-                    Image(systemName: "calendar")
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.teal)
-                    SubheadText(text: "Recent Days")
-                }
-
-                let recent = viewModel.dailySteps.suffix(7).reversed()
-
-                if recent.isEmpty {
-                    HStack {
-                        Spacer()
-                        Text("No historical data available")
-                            .font(.subheadline)
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Image(systemName: "moon.stars")
+                            .font(.title3)
+                            .foregroundStyle(PepTheme.textTertiary)
+                        Text("Nothing logged yet today")
+                            .font(.system(.subheadline, design: .serif))
+                            .italic()
                             .foregroundStyle(PepTheme.textSecondary)
-                            .padding(.vertical, 12)
-                        Spacer()
                     }
-                } else {
-                    ForEach(Array(recent)) { day in
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(dayLabel(for: day.date))
-                                    .font(.system(.subheadline, weight: .semibold))
-                                    .foregroundStyle(PepTheme.textPrimary)
-                                Text(day.dateLabel)
-                                    .font(.system(.caption2, weight: .medium))
-                                    .foregroundStyle(PepTheme.textSecondary)
+                    .padding(.vertical, 16)
+                    Spacer()
+                }
+            } else {
+                ForEach(Array(top.enumerated()), id: \.element.id) { idx, hour in
+                    HStack(spacing: 12) {
+                        Text(String(format: "%02d", idx + 1))
+                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                            .tracking(1.2)
+                            .foregroundStyle(PepTheme.teal)
+                            .frame(width: 22, alignment: .leading)
+
+                        Text(hour.hourLabel.uppercased())
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .tracking(1.2)
+                            .foregroundStyle(PepTheme.textSecondary)
+                            .frame(width: 44, alignment: .leading)
+
+                        GeometryReader { geo in
+                            let ratio = CGFloat(hour.steps) / CGFloat(max(maxV, 1))
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(PepTheme.elevated)
+                                Capsule()
+                                    .fill(LinearGradient(colors: [PepTheme.teal, PepTheme.tealDeep], startPoint: .leading, endPoint: .trailing))
+                                    .frame(width: max(geo.size.width * ratio, 6))
                             }
-                            .frame(width: 80, alignment: .leading)
-
-                            GeometryReader { geo in
-                                let maxSteps = max(viewModel.stepGoal, viewModel.dailySteps.suffix(7).map(\.steps).max() ?? 1)
-                                let ratio = min(CGFloat(day.steps) / CGFloat(max(maxSteps, 1)), 1.0)
-                                ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(PepTheme.elevated)
-
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(day.steps >= viewModel.stepGoal
-                                            ? LinearGradient(colors: [.green, .green.opacity(0.7)], startPoint: .leading, endPoint: .trailing)
-                                            : LinearGradient(colors: [PepTheme.teal, PepTheme.teal.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
-                                        )
-                                        .frame(width: geo.size.width * ratio)
-                                }
-                            }
-                            .frame(height: 22)
-
-                            Text(formattedNumber(day.steps))
-                                .font(.system(.caption, design: .rounded, weight: .bold))
-                                .foregroundStyle(day.steps >= viewModel.stepGoal ? .green : PepTheme.textPrimary)
-                                .frame(width: 50, alignment: .trailing)
                         }
+                        .frame(height: 8)
 
-                        if day.id != recent.last?.id {
-                            Divider().overlay(PepTheme.shimmerHighlight)
-                        }
+                        Text(formattedNumber(hour.steps))
+                            .font(.system(.caption, design: .serif, weight: .semibold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .frame(width: 56, alignment: .trailing)
                     }
                 }
             }
         }
+        .padding(16)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5))
+    }
+
+    // MARK: - Recent days
+
+    private var recentDaysCard: some View {
+        let recent = Array(viewModel.dailySteps.suffix(7).reversed())
+        let maxSteps = max(viewModel.stepGoal, recent.map(\.steps).max() ?? 1)
+
+        return VStack(alignment: .leading, spacing: 14) {
+            if recent.isEmpty {
+                Text("No history available yet")
+                    .font(.system(.subheadline, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 12)
+            } else {
+                ForEach(Array(recent.enumerated()), id: \.element.id) { idx, day in
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(dayLabel(for: day.date))
+                                .font(.system(size: 14, weight: .semibold, design: .serif))
+                                .foregroundStyle(PepTheme.textPrimary)
+                            Text(day.dateLabel.uppercased())
+                                .font(.system(size: 9, weight: .heavy))
+                                .tracking(1.4)
+                                .foregroundStyle(PepTheme.textTertiary)
+                        }
+                        .frame(width: 96, alignment: .leading)
+
+                        GeometryReader { geo in
+                            let ratio = min(CGFloat(day.steps) / CGFloat(maxSteps), 1.0)
+                            let met = day.steps >= viewModel.stepGoal
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(PepTheme.elevated)
+                                Capsule()
+                                    .fill(
+                                        met
+                                        ? LinearGradient(colors: [PepTheme.success, PepTheme.success.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
+                                        : LinearGradient(colors: [PepTheme.teal, PepTheme.tealDeep], startPoint: .leading, endPoint: .trailing)
+                                    )
+                                    .frame(width: max(geo.size.width * ratio, 6))
+                            }
+                        }
+                        .frame(height: 10)
+
+                        HStack(spacing: 2) {
+                            if day.steps >= viewModel.stepGoal {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(PepTheme.success)
+                            }
+                            Text(formattedNumber(day.steps))
+                                .font(.system(.caption, design: .serif, weight: .semibold))
+                                .foregroundStyle(day.steps >= viewModel.stepGoal ? PepTheme.success : PepTheme.textPrimary)
+                        }
+                        .frame(width: 70, alignment: .trailing)
+                    }
+
+                    if idx != recent.indices.last {
+                        Rectangle()
+                            .fill(PepTheme.separatorColor)
+                            .frame(height: 0.5)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5))
     }
 
     // MARK: - Helpers
 
     private func formattedNumber(_ value: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.groupingSeparator = ","
-        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.groupingSeparator = ","
+        return f.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
-    private func formattedCompact(_ value: Int) -> String {
-        if value >= 1_000_000 {
-            return String(format: "%.1fM", Double(value) / 1_000_000)
-        } else if value >= 10_000 {
-            return String(format: "%.1fK", Double(value) / 1_000)
-        }
+    private func compactInt(_ value: Int) -> String {
+        if value >= 1_000_000 { return String(format: "%.1fM", Double(value) / 1_000_000) }
+        if value >= 10_000 { return String(format: "%.1fK", Double(value) / 1_000) }
+        if value >= 1_000 { return String(format: "%.2fK", Double(value) / 1_000) }
         return formattedNumber(value)
     }
 
@@ -705,9 +753,35 @@ struct StepDetailView: View {
         let cal = Calendar.current
         if cal.isDateInToday(date) { return "Today" }
         if cal.isDateInYesterday(date) { return "Yesterday" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE"
-        return formatter.string(from: date)
+        let f = DateFormatter()
+        f.dateFormat = "EEEE"
+        return f.string(from: date)
+    }
+
+    private func hourRange(_ hour: Int) -> String {
+        func label(_ h: Int) -> String {
+            let h24 = ((h % 24) + 24) % 24
+            let ampm = h24 < 12 ? "AM" : "PM"
+            let h12 = h24 % 12 == 0 ? 12 : h24 % 12
+            return "\(h12)\(ampm)"
+        }
+        return "\(label(hour)) \u{2013} \(label(hour + 1))"
+    }
+}
+
+// MARK: - Chart point
+
+private struct ChartPoint: Identifiable {
+    let id = UUID()
+    let date: Date
+    let value: Int
+    let kind: Kind
+
+    enum Kind {
+        case hour(Int)
+        case day(Date)
+        case week(Date)
+        case month(Date)
     }
 }
 
