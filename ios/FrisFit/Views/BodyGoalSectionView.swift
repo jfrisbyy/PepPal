@@ -5,11 +5,18 @@ struct BodyGoalSectionView: View {
     var aiInsight: String? = nil
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 8) {
+            if let insight = aiInsight {
+                AIInsightStrip(content: insight, color: .green)
+                    .padding(.horizontal, 2)
+            }
+            if let line = MorningBriefService.shared.buildLines().bodyGoal {
+                BriefLineRow(line: line, icon: "scalemass.fill")
+                    .padding(.horizontal, 2)
+            }
+
             Button {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
-                    viewModel.isExpanded.toggle()
-                }
+                viewModel.showFullDetail = true
             } label: {
                 GlassCard(accent: viewModel.currentGoal.color) {
                     VStack(alignment: .leading, spacing: 14) {
@@ -38,10 +45,9 @@ struct BodyGoalSectionView: View {
                                 ProgressView()
                                     .tint(PepTheme.teal)
                             } else {
-                                Image(systemName: "chevron.down")
+                                Image(systemName: "chevron.right")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(PepTheme.textSecondary)
-                                    .rotationEffect(.degrees(viewModel.isExpanded ? 180 : 0))
                             }
                         }
 
@@ -97,7 +103,7 @@ struct BodyGoalSectionView: View {
                                 Image(systemName: "scalemass")
                                     .font(.caption)
                                     .foregroundStyle(PepTheme.textSecondary)
-                                Text("Log your first weigh-in to start tracking")
+                                Text("Tap to log your first weigh-in")
                                     .font(.caption)
                                     .foregroundStyle(PepTheme.textSecondary)
                             }
@@ -121,45 +127,10 @@ struct BodyGoalSectionView: View {
                 }
             }
             .buttonStyle(.scale)
-            .sensoryFeedback(.selection, trigger: viewModel.isExpanded)
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.4).onEnded { _ in
-                    viewModel.showFullDetail = true
-                }
-            )
-
-            if viewModel.isExpanded {
-                VStack(spacing: 8) {
-                    if let insight = aiInsight {
-                        AIInsightStrip(content: insight, color: .green)
-                            .padding(.horizontal, 2)
-                    }
-                    if let line = MorningBriefService.shared.buildLines().bodyGoal {
-                        BriefLineRow(line: line, icon: "scalemass.fill")
-                            .padding(.horizontal, 2)
-                    }
-                    expandedContent
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            .sensoryFeedback(.selection, trigger: viewModel.showFullDetail)
         }
         .onAppear {
             viewModel.loadData()
-        }
-        .sheet(isPresented: $viewModel.showWeighInSheet) {
-            WeighInSheet(viewModel: viewModel)
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $viewModel.showMeasurementSheet) {
-            MeasurementSheet(viewModel: viewModel)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $viewModel.showGoalPicker) {
-            GoalPickerSheet(viewModel: viewModel)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $viewModel.showFullDetail) {
             BodyGoalDetailView(viewModel: viewModel)
@@ -197,104 +168,6 @@ struct BodyGoalSectionView: View {
             }
             .frame(height: 6)
         }
-    }
-
-    private var expandedContent: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                expandedActionButton(icon: "scalemass.fill", label: "Log Weight", color: PepTheme.teal) {
-                    viewModel.showWeighInSheet = true
-                }
-                expandedActionButton(icon: "ruler.fill", label: "Measurements", color: PepTheme.amber) {
-                    viewModel.showMeasurementSheet = true
-                }
-            }
-
-            HStack(spacing: 10) {
-                expandedActionButton(icon: "target", label: "Change Goal", color: viewModel.currentGoal.color) {
-                    viewModel.showGoalPicker = true
-                }
-                expandedActionButton(icon: "chart.line.uptrend.xyaxis", label: "Full Details", color: PepTheme.violet) {
-                    viewModel.showFullDetail = true
-                }
-            }
-
-            bmiCard
-        }
-        .padding(.top, -6)
-        .padding(.horizontal, 2)
-    }
-
-    private func expandedActionButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(color)
-                Text(label)
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-            .clipShape(.rect(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-            )
-        }
-        .buttonStyle(.scale)
-    }
-
-    private var bmiCard: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .stroke(PepTheme.elevated, lineWidth: 4)
-                    .frame(width: 44, height: 44)
-                Circle()
-                    .trim(from: 0, to: min(viewModel.bmi.value / 40.0, 1.0))
-                    .stroke(viewModel.bmi.color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                    .frame(width: 44, height: 44)
-                    .rotationEffect(.degrees(-90))
-                Text(String(format: "%.1f", viewModel.bmi.value))
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(viewModel.bmi.color)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("BMI")
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Text(viewModel.bmi.category)
-                    .font(.system(.caption2, weight: .medium))
-                    .foregroundStyle(viewModel.bmi.color)
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(String(format: "%.1f lbs total", abs(viewModel.totalChange)))
-                    .font(.system(.caption, design: .rounded, weight: .bold))
-                    .foregroundStyle(viewModel.totalChange <= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : PepTheme.textPrimary)
-                Text("since start")
-                    .font(.system(.caption2, weight: .medium))
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-        )
     }
 }
 

@@ -12,8 +12,11 @@ struct BodyGoalDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 24) {
+                editorialMasthead
                 goalHeader
+                quickActionsRow
+                statTriptych
                 tabPicker
                 switch selectedTab {
                 case .weight:
@@ -25,12 +28,24 @@ struct BodyGoalDetailView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.bottom, 24)
+            .padding(.top, 8)
+            .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
         .appBackground()
-        .navigationTitle("Body & Goals")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    viewModel.showGoalPicker = true
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                }
+            }
+        }
         .refreshable {
             await viewModel.refresh()
         }
@@ -44,17 +59,166 @@ struct BodyGoalDetailView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $viewModel.showGoalPicker) {
+            GoalPickerSheet(viewModel: viewModel)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+    }
+
+    // MARK: - Editorial Masthead
+
+    private var editorialMasthead: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("COMPOSITION  \u{2014}  VOL. 01")
+                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .tracking(2.4)
+                .foregroundStyle(viewModel.currentGoal.color.opacity(0.85))
+
+            Text(viewModel.currentGoal.rawValue)
+                .font(.system(size: 34, weight: .black, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(viewModel.currentGoal.color)
+                    .frame(width: 28, height: 2)
+                Text(viewModel.currentGoal.subtitle.uppercased())
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .tracking(1.6)
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Quick Actions
+
+    private var quickActionsRow: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                actionButton(icon: "scalemass.fill", label: "Log Weight", color: PepTheme.teal) {
+                    viewModel.showWeighInSheet = true
+                }
+                actionButton(icon: "ruler.fill", label: "Measurements", color: PepTheme.amber) {
+                    viewModel.showMeasurementSheet = true
+                }
+            }
+            HStack(spacing: 10) {
+                actionButton(icon: "target", label: "Change Goal", color: viewModel.currentGoal.color) {
+                    viewModel.showGoalPicker = true
+                }
+                actionButton(icon: "chart.line.uptrend.xyaxis", label: "Trends", color: PepTheme.violet) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        selectedTab = .weight
+                    }
+                }
+            }
+        }
+    }
+
+    private func actionButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 30, height: 30)
+                    Image(systemName: icon)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(color)
+                }
+                Text(label)
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.scale)
+    }
+
+    // MARK: - Stat Triptych
+
+    private var statTriptych: some View {
+        HStack(spacing: 0) {
+            triptychCell(
+                eyebrow: "START",
+                value: viewModel.startingWeight > 0 ? String(format: "%.1f", viewModel.startingWeight) : "\u{2014}",
+                unit: "lbs",
+                color: PepTheme.textSecondary
+            )
+            divider
+            triptychCell(
+                eyebrow: "NOW",
+                value: viewModel.currentWeight > 0 ? String(format: "%.1f", viewModel.currentWeight) : "\u{2014}",
+                unit: "lbs",
+                color: PepTheme.textPrimary
+            )
+            divider
+            triptychCell(
+                eyebrow: "GOAL",
+                value: String(format: "%.1f", viewModel.targetWeight),
+                unit: "lbs",
+                color: viewModel.currentGoal.color
+            )
+        }
+        .padding(.vertical, 18)
+        .padding(.horizontal, 12)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(PepTheme.shimmerHighlight)
+            .frame(width: 1, height: 36)
+    }
+
+    private func triptychCell(eyebrow: String, value: String, unit: String, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(eyebrow)
+                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                .tracking(1.8)
+                .foregroundStyle(PepTheme.textSecondary)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(color)
+                Text(unit)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Goal Header
 
     private var goalHeader: some View {
         VStack(spacing: 16) {
-            HStack(spacing: 16) {
+            HStack(spacing: 18) {
                 ZStack {
                     Circle()
-                        .stroke(PepTheme.elevated, lineWidth: 6)
-                        .frame(width: 80, height: 80)
+                        .stroke(PepTheme.elevated, lineWidth: 8)
+                        .frame(width: 110, height: 110)
                     Circle()
                         .trim(from: 0, to: viewModel.progressToGoal)
                         .stroke(
@@ -63,35 +227,51 @@ struct BodyGoalDetailView: View {
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
                         )
-                        .frame(width: 80, height: 80)
+                        .frame(width: 110, height: 110)
                         .rotationEffect(.degrees(-90))
-                    VStack(spacing: 0) {
-                        Text("\(Int(viewModel.progressToGoal * 100))%")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .animation(.spring(response: 0.7, dampingFraction: 0.8), value: viewModel.progressToGoal)
+                    VStack(spacing: 2) {
+                        Text("\(Int(viewModel.progressToGoal * 100))")
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
                             .foregroundStyle(viewModel.currentGoal.color)
+                        Text("PERCENT")
+                            .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                            .tracking(1.6)
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 6) {
-                        Image(systemName: viewModel.currentGoal.icon)
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(viewModel.currentGoal.color)
-                        Text(viewModel.currentGoal.rawValue)
-                            .font(.system(.subheadline, weight: .bold))
-                            .foregroundStyle(viewModel.currentGoal.color)
-                    }
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("PROGRESS")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.8)
+                        .foregroundStyle(PepTheme.textSecondary)
 
-                    if viewModel.currentWeight > 0 {
-                        HStack(spacing: 16) {
-                            statPill(label: "Start", value: String(format: "%.1f", viewModel.startingWeight))
-                            statPill(label: "Current", value: String(format: "%.1f", viewModel.currentWeight))
-                            statPill(label: "Goal", value: String(format: "%.1f", viewModel.targetWeight))
-                        }
+                    Text(String(format: "%.1f lbs to go", viewModel.remainingToGoal))
+                        .font(.system(size: 20, weight: .bold, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: viewModel.weeklyChange <= 0 ? "arrow.down.right" : "arrow.up.right")
+                            .font(.system(size: 10, weight: .bold))
+                        Text(String(format: "%.1f lbs this week", abs(viewModel.weeklyChange)))
+                            .font(.system(.caption, weight: .semibold))
                     }
+                    .foregroundStyle(
+                        viewModel.currentGoal.isLosing
+                        ? (viewModel.weeklyChange <= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
+                        : (viewModel.weeklyChange >= 0 ? Color(red: 76/255, green: 217/255, blue: 100/255) : Color(red: 255/255, green: 107/255, blue: 107/255))
+                    )
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(PepTheme.elevated.opacity(0.6))
+                    .clipShape(.capsule)
                 }
+                Spacer(minLength: 0)
             }
 
             HStack(spacing: 12) {
