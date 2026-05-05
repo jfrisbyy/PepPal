@@ -228,6 +228,8 @@ struct ChatConversationView: View {
         switch att.kind {
         case .voice:
             VoiceMessagePlayer(attachment: att, isFromMe: isFromMe)
+        case .post:
+            SharedPostBubble(attachment: att, isFromMe: isFromMe)
         case .image, .video:
             Button {
                 expandedAttachment = att
@@ -255,7 +257,7 @@ struct ChatConversationView: View {
                                     .foregroundStyle(.white)
                             }
                             .allowsHitTesting(false)
-                        case .voice:
+                        case .voice, .post:
                             EmptyView()
                         }
                     }

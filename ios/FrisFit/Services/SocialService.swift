@@ -235,52 +235,21 @@ final class SocialService {
     }
 
     func addComment(postId: String, userId: String, text: String) async throws -> SupabasePostCommentWithProfile {
-        let columnNames = ["content", "body", "text"]
-        var lastError: Error?
-        var inserted = false
-
-        for col in columnNames {
-            do {
-                try await supabase
-                    .from("post_comments")
-                    .insert(["post_id": postId, "user_id": userId, col: text])
-                    .execute()
-                inserted = true
-                break
-            } catch {
-                lastError = error
-            }
-        }
-
-        if !inserted {
-            do {
-                try await supabase
-                    .from("post_comments")
-                    .insert(["post_id": postId, "user_id": userId])
-                    .execute()
-                inserted = true
-            } catch {
-                lastError = error
-            }
-        }
-
-        guard inserted else {
-            throw lastError ?? NSError(domain: "SocialService", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to insert comment"])
-        }
-
-        let recent: [SupabasePostCommentWithProfile] = try await supabase
+        let inserted: SupabasePostComment = try await supabase
             .from("post_comments")
-            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
-            .eq("post_id", value: postId)
-            .eq("user_id", value: userId)
-            .order("created_at", ascending: false)
-            .limit(1)
+            .insert(["post_id": postId, "user_id": userId, "content": text])
+            .select()
+            .single()
             .execute()
             .value
 
-        guard let full = recent.first else {
-            throw NSError(domain: "SocialService", code: 404, userInfo: [NSLocalizedDescriptionKey: "Comment was saved but could not be retrieved"])
-        }
+        let full: SupabasePostCommentWithProfile = try await supabase
+            .from("post_comments")
+            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+            .eq("id", value: inserted.id)
+            .single()
+            .execute()
+            .value
         return full
     }
 

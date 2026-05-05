@@ -11,6 +11,7 @@ struct PostDetailView: View {
     @State private var commentError: String?
     @State private var likeBounce: Int = 0
     @State private var repostBounce: Int = 0
+    @State private var showShareSheet: Bool = false
     private let likeManager = LikeManager.shared
 
     private var postSupabaseId: String {
@@ -472,13 +473,18 @@ struct PostDetailView: View {
 
             Spacer()
 
-            Button { } label: {
+            Button {
+                showShareSheet = true
+            } label: {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 16))
                     .foregroundStyle(PepTheme.textSecondary)
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.scale)
+            .sheet(isPresented: $showShareSheet) {
+                SharePostSheet(post: post)
+            }
         }
     }
 

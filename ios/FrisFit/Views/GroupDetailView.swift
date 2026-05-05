@@ -300,6 +300,8 @@ struct GroupDetailView: View {
         switch att.kind {
         case .voice:
             VoiceMessagePlayer(attachment: att, isFromMe: isFromMe)
+        case .post:
+            SharedPostBubble(attachment: att, isFromMe: isFromMe)
         case .image, .video:
             Button {
                 expandedAttachment = att
@@ -327,7 +329,7 @@ struct GroupDetailView: View {
                                     .foregroundStyle(.white)
                             }
                             .allowsHitTesting(false)
-                        case .voice:
+                        case .voice, .post:
                             EmptyView()
                         }
                     }

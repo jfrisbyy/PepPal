@@ -30,6 +30,17 @@ struct AttachmentPreviewView: View {
                             .foregroundStyle(.white)
                         VoiceMessagePlayer(attachment: attachment, isFromMe: false)
                     }
+                case .post:
+                    VStack(spacing: 16) {
+                        Image(systemName: "text.bubble")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.white)
+                        Text(attachment.previewText ?? "Shared post")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
                 }
             }
 

@@ -18,6 +18,7 @@ struct FeedPostCard: View {
     var onUserTap: ((SocialUser) -> Void)? = nil
 
     @State private var likeBounce: Int = 0
+    @State private var showShareSheet: Bool = false
     @State private var revealFiltered: Bool = false
     @State private var moderation = LocalModerationStore.shared
     @State private var repostBounce: Int = 0
@@ -440,13 +441,18 @@ struct FeedPostCard: View {
 
             Spacer()
 
-            Button { } label: {
+            Button {
+                showShareSheet = true
+            } label: {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 15))
                     .foregroundStyle(PepTheme.textSecondary)
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.scale)
+            .sheet(isPresented: $showShareSheet) {
+                SharePostSheet(post: post)
+            }
         }
     }
 

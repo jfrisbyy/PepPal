@@ -4,6 +4,7 @@ nonisolated enum DirectMessageAttachmentKind: String, Sendable, Codable {
     case image
     case video
     case voice
+    case post
 }
 
 nonisolated struct DirectMessageAttachment: Identifiable, Sendable, Codable, Hashable {
@@ -13,14 +14,20 @@ nonisolated struct DirectMessageAttachment: Identifiable, Sendable, Codable, Has
     let width: Int?
     let height: Int?
     let durationSeconds: Double?
+    /// For `.post`: the supabase post id being shared.
+    let postId: String?
+    /// For `.post`: a short preview snippet (author name + first line).
+    let previewText: String?
 
-    init(id: String = UUID().uuidString, kind: DirectMessageAttachmentKind, url: String, width: Int? = nil, height: Int? = nil, durationSeconds: Double? = nil) {
+    init(id: String = UUID().uuidString, kind: DirectMessageAttachmentKind, url: String, width: Int? = nil, height: Int? = nil, durationSeconds: Double? = nil, postId: String? = nil, previewText: String? = nil) {
         self.id = id
         self.kind = kind
         self.url = url
         self.width = width
         self.height = height
         self.durationSeconds = durationSeconds
+        self.postId = postId
+        self.previewText = previewText
     }
 }
 
