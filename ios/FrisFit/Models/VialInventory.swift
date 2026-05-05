@@ -127,8 +127,28 @@ final class VialInventoryStore {
         didSet { save() }
     }
 
+    private(set) var hasHydratedFromCloud: Bool = false
+
     private init() {
         load()
+        Task { await self.hydrateFromCloud() }
+    }
+
+    func hydrateFromCloud() async {
+        let remote = await VialSyncService.shared.fetchAll()
+        await MainActor.run {
+            if !remote.isEmpty {
+                // Merge: prefer remote rows, but keep any local-only vials (queued for upload below).
+                let remoteIds = Set(remote.map(\.id))
+                let localOnly = self.vials.filter { !remoteIds.contains($0.id) }
+                self.vials = remote + localOnly
+                for v in localOnly { Task { await VialSyncService.shared.upsert(v) } }
+            } else if !self.vials.isEmpty {
+                // First-ever sync from local-only state: push everything up.
+                for v in self.vials { Task { await VialSyncService.shared.upsert(v) } }
+            }
+            self.hasHydratedFromCloud = true
+        }
     }
 
     private func load() {
@@ -144,20 +164,26 @@ final class VialInventoryStore {
 
     func add(_ vial: Vial) {
         vials.insert(vial, at: 0)
+        Task { await VialSyncService.shared.upsert(vial) }
     }
 
     func update(_ vial: Vial) {
         guard let idx = vials.firstIndex(where: { $0.id == vial.id }) else { return }
         vials[idx] = vial
+        Task { await VialSyncService.shared.upsert(vial) }
     }
 
     func remove(_ vial: Vial) {
         vials.removeAll { $0.id == vial.id }
+        let id = vial.id
+        Task { await VialSyncService.shared.delete(clientId: id) }
     }
 
     func recordDose(vialId: UUID, mcg: Double) {
         guard let idx = vials.firstIndex(where: { $0.id == vialId }) else { return }
         vials[idx].mcgUsed += mcg
+        let updated = vials[idx]
+        Task { await VialSyncService.shared.upsert(updated) }
     }
 
     func activeVials(for compoundName: String) -> [Vial] {

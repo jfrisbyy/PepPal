@@ -24,8 +24,19 @@ final class BasketballViewModel {
     var performanceRating: Int = 5
     var gameNotes: String = ""
 
+    private(set) var hasHydratedFromCloud: Bool = false
+
     init() {
-        loadSampleData()
+        Task { await self.hydrateFromCloud() }
+    }
+
+    @MainActor
+    func hydrateFromCloud() async {
+        let remote = await BasketballGameService.shared.fetchAll()
+        if !remote.isEmpty {
+            self.games = remote
+        }
+        self.hasHydratedFromCloud = true
     }
 
     var totalGamesPlayed: Int {
@@ -147,6 +158,7 @@ final class BasketballViewModel {
             notes: gameNotes
         )
         games.insert(game, at: 0)
+        Task { await BasketballGameService.shared.insert(game) }
         resetLogForm()
     }
 
@@ -221,6 +233,7 @@ final class BasketballViewModel {
             notes: ""
         )
         games.insert(game, at: 0)
+        Task { await BasketballGameService.shared.insert(game) }
     }
 
     private func loadSampleData() {
