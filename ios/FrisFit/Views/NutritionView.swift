@@ -15,7 +15,7 @@ struct NutritionView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                calorieRing
+                editorialHero
                 EditorialInsightSection(
                     eyebrow: "FUEL · INSIGHT",
                     title: "Today's Read",
@@ -24,7 +24,6 @@ struct NutritionView: View {
                     isRefreshing: todaysPlanVM.isBackgroundRefreshing || (todaysPlanVM.isLoading && todaysPlanVM.moduleContent(for: "nutrition") == nil),
                     lastUpdated: todaysPlanVM.lastFetchDate
                 )
-                macroBreakdown
                 WaterIntakeCard()
                 mealLog
             }
@@ -133,6 +132,274 @@ struct NutritionView: View {
         if hour < 15 { return .lunch }
         if hour < 20 { return .dinner }
         return .snacks
+    }
+
+    private var editorialHero: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            heroHeader
+
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [PepTheme.teal.opacity(0.55), PepTheme.teal.opacity(0.0)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 0.75)
+
+            HStack(alignment: .center, spacing: 22) {
+                heroRing
+                heroMacroColumn
+            }
+
+            Rectangle()
+                .fill(PepTheme.cardOverlay)
+                .frame(height: 0.5)
+
+            heroFootnote
+        }
+        .padding(.vertical, 20)
+        .padding(.horizontal, 20)
+        .background(
+            ZStack {
+                PepTheme.cardSurface
+                LinearGradient(
+                    colors: [PepTheme.teal.opacity(0.06), Color.clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        )
+        .clipShape(.rect(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [PepTheme.teal.opacity(0.22), PepTheme.teal.opacity(0.06)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.6
+                )
+        )
+        .overlay(alignment: .topLeading) {
+            Rectangle()
+                .fill(PepTheme.teal)
+                .frame(width: 2, height: 36)
+                .padding(.top, 20)
+        }
+    }
+
+    private var heroHeader: some View {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text("FUEL · TODAY")
+                        .font(.system(.caption2, weight: .heavy))
+                        .tracking(3.2)
+                        .foregroundStyle(PepTheme.teal)
+                    Rectangle()
+                        .fill(PepTheme.shimmerHighlight)
+                        .frame(width: 18, height: 1)
+                }
+                Text("Daily Intake")
+                    .font(.system(size: 22, weight: .bold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+            Spacer()
+            if viewModel.adaptiveTargetReason != nil {
+                Button { showAdaptiveReason.toggle() } label: {
+                    Text("ADAPTIVE")
+                        .font(.system(size: 9, weight: .heavy))
+                        .tracking(1.6)
+                        .foregroundStyle(PepTheme.teal)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .overlay(
+                            Capsule().strokeBorder(PepTheme.teal.opacity(0.45), lineWidth: 0.6)
+                        )
+                }
+                .popover(isPresented: $showAdaptiveReason, arrowEdge: .top) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Recalculated from")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(viewModel.adaptiveTargetReason ?? "")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                        Text("Recomputes weekly from your weight & training.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                    }
+                    .padding(12)
+                    .frame(width: 220)
+                    .presentationCompactAdaptation(.popover)
+                }
+            }
+        }
+    }
+
+    private var heroRing: some View {
+        ZStack {
+            Circle()
+                .stroke(PepTheme.elevated, lineWidth: 12)
+
+            Circle()
+                .trim(from: 0, to: animatedCalorieProgress)
+                .stroke(
+                    AngularGradient(
+                        colors: [PepTheme.teal.opacity(0.5), PepTheme.teal],
+                        center: .center,
+                        startAngle: .degrees(0),
+                        endAngle: .degrees(360 * animatedCalorieProgress)
+                    ),
+                    style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .shadow(color: PepTheme.teal.opacity(0.3), radius: 6)
+
+            VStack(spacing: 1) {
+                Text("\(viewModel.totalCalories)")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("of \(viewModel.dailyTarget.calories)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+                Text("KCAL")
+                    .font(.system(size: 8, weight: .heavy))
+                    .tracking(1.6)
+                    .foregroundStyle(PepTheme.teal)
+                    .padding(.top, 2)
+            }
+        }
+        .frame(width: 132, height: 132)
+    }
+
+    private var heroMacroColumn: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            heroMacroRow(
+                label: "Protein",
+                current: viewModel.totalProtein,
+                target: Double(viewModel.dailyTarget.protein),
+                progress: viewModel.proteinProgress,
+                color: PepTheme.teal
+            )
+            heroMacroRow(
+                label: "Carbs",
+                current: viewModel.totalCarbs,
+                target: Double(viewModel.dailyTarget.carbs),
+                progress: viewModel.carbsProgress,
+                color: PepTheme.amber
+            )
+            heroMacroRow(
+                label: "Fat",
+                current: viewModel.totalFat,
+                target: Double(viewModel.dailyTarget.fat),
+                progress: viewModel.fatProgress,
+                color: PepTheme.violet
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func heroMacroRow(label: String, current: Double, target: Double, progress: Double, color: Color) -> some View {
+        let remaining = max(Int(target) - Int(current), 0)
+        return VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Rectangle()
+                    .fill(color)
+                    .frame(width: 2, height: 10)
+                Text(label.uppercased())
+                    .font(.system(.caption2, weight: .heavy))
+                    .tracking(1.8)
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
+                Text("\(Int(current))")
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                +
+                Text(" / \(Int(target))g")
+                    .font(.system(.caption, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(color.opacity(0.14))
+                        .frame(height: 3)
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [color.opacity(0.6), color],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * min(progress, 1.0), height: 3)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.85), value: progress)
+                }
+            }
+            .frame(height: 3)
+
+            Text(remaining > 0 ? "\(remaining)g remaining" : "target met")
+                .font(.system(.caption2, design: .serif))
+                .italic()
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.75))
+        }
+    }
+
+    private var heroFootnote: some View {
+        HStack(spacing: 18) {
+            footnoteStat(label: "Remaining", value: "\(viewModel.caloriesRemaining)", unit: "kcal")
+            Rectangle()
+                .fill(PepTheme.cardOverlay)
+                .frame(width: 0.5, height: 24)
+            footnoteStat(
+                label: "Consumed",
+                value: "\(Int(animatedCalorieProgress * 100))",
+                unit: "%"
+            )
+            Rectangle()
+                .fill(PepTheme.cardOverlay)
+                .frame(width: 0.5, height: 24)
+            footnoteStat(
+                label: "Macro Split",
+                value: macroSplitString,
+                unit: "P · C · F"
+            )
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func footnoteStat(label: String, value: String, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label.uppercased())
+                .font(.system(size: 8, weight: .heavy))
+                .tracking(1.6)
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(value)
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text(unit)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+    }
+
+    private var macroSplitString: String {
+        let p = viewModel.totalProtein * 4
+        let c = viewModel.totalCarbs * 4
+        let f = viewModel.totalFat * 9
+        let total = max(p + c + f, 1)
+        let pp = Int((p / total * 100).rounded())
+        let cp = Int((c / total * 100).rounded())
+        let fp = max(100 - pp - cp, 0)
+        return "\(pp)·\(cp)·\(fp)"
     }
 
     private var calorieRing: some View {
