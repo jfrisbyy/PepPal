@@ -11,8 +11,10 @@ struct PeptideMedicationChart: View {
     var comparison: PKSeries? = nil
     var range: PKChartRange = .sevenDay
     var height: CGFloat = 240
+    var onDoseTapped: ((PKDose) -> Void)? = nil
 
     @State private var scrubTime: Date? = nil
+    @State private var tappedDoseId: Date? = nil
 
     private var now: Date { Date() }
     private var allSamples: [PKSamplePoint] { primary.samples }
@@ -111,14 +113,26 @@ struct PeptideMedicationChart: View {
                         .clipShape(.capsule)
                 }
 
-            // Dose markers (tiny dots at each dose time)
+            // Dose markers (clickable dots at each dose time)
             ForEach(primary.doses, id: \.time) { d in
+                let isTapped = tappedDoseId == d.time
+                // Outer halo ring for tap affordance
+                PointMark(
+                    x: .value("Dose", d.time),
+                    y: .value("mg", interpolate(at: d.time, samples: primary.samples))
+                )
+                .foregroundStyle(primary.color.opacity(isTapped ? 0.35 : 0.18))
+                .symbolSize(isTapped ? 220 : 130)
+                .symbol(.circle)
+
+                // Solid inner dot
                 PointMark(
                     x: .value("Dose", d.time),
                     y: .value("mg", interpolate(at: d.time, samples: primary.samples))
                 )
                 .foregroundStyle(primary.color)
-                .symbolSize(28)
+                .symbolSize(isTapped ? 90 : 55)
+                .symbol(.circle)
             }
 
             // Scrub indicator
@@ -176,8 +190,18 @@ struct PeptideMedicationChart: View {
                                     }
                                 }
                             }
-                            .onEnded { _ in
+                            .onEnded { value in
+                                let translation = hypot(value.translation.width, value.translation.height)
+                                let isTap = translation < 6
                                 scrubTime = nil
+                                if isTap, let dose = nearestDose(to: value.location, proxy: proxy, geo: geo) {
+                                    tappedDoseId = dose.time
+                                    UISelectionFeedbackGenerator().selectionChanged()
+                                    onDoseTapped?(dose)
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                                        if tappedDoseId == dose.time { tappedDoseId = nil }
+                                    }
+                                }
                             }
                     )
             }
@@ -211,6 +235,29 @@ struct PeptideMedicationChart: View {
     }
 
     // MARK: - Helpers
+
+    /// Find the dose closest to a tap location, within a touch-friendly radius.
+    private func nearestDose(to location: CGPoint, proxy: ChartProxy, geo: GeometryProxy) -> PKDose? {
+        guard let plotFrame = proxy.plotFrame, !primary.doses.isEmpty else { return nil }
+        let frame = geo[plotFrame]
+        let local = CGPoint(x: location.x - frame.minX, y: location.y - frame.minY)
+        var best: (PKDose, CGFloat)? = nil
+        for dose in primary.doses {
+            let mg = interpolate(at: dose.time, samples: primary.samples)
+            guard let px = proxy.position(forX: dose.time),
+                  let py = proxy.position(forY: mg) else { continue }
+            let dx = px - local.x
+            let dy = py - local.y
+            let dist = sqrt(dx * dx + dy * dy)
+            if best == nil || dist < best!.1 {
+                best = (dose, dist)
+            }
+        }
+        if let (dose, dist) = best, dist <= 28 {
+            return dose
+        }
+        return nil
+    }
 
     private func interpolate(at t: Date, samples: [PKSamplePoint]) -> Double {
         guard !samples.isEmpty else { return 0 }

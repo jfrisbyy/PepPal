@@ -6,6 +6,7 @@ import SwiftUI
 struct ProtocolPharmacologyHero: View {
     let protocolData: PeptideProtocol
     @Binding var focusedCompoundName: String
+    var onDoseTapped: ((PKDose, String) -> Void)? = nil
 
     @State private var range: PKChartRange = .sevenDay
     @State private var compareCompound: String? = nil
@@ -318,7 +319,11 @@ struct ProtocolPharmacologyHero: View {
                 primary: primarySeries,
                 comparison: compareSeries,
                 range: range,
-                height: 220
+                height: 220,
+                onDoseTapped: { dose in
+                    let name = compound?.compoundName ?? focusedCompoundName
+                    onDoseTapped?(dose, name)
+                }
             )
             if doses.isEmpty {
                 Text("Log a dose to see your medication-level curve.")

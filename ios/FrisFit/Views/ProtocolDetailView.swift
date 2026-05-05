@@ -23,7 +23,16 @@ struct ProtocolDetailView: View {
                 if !viewModel.protocolData.compounds.isEmpty {
                     ProtocolPharmacologyHero(
                         protocolData: viewModel.protocolData,
-                        focusedCompoundName: $focusedCompoundName
+                        focusedCompoundName: $focusedCompoundName,
+                        onDoseTapped: { dose, compoundName in
+                            if let entry = viewModel.protocolData.doseLog.first(where: {
+                                $0.compoundName == compoundName &&
+                                !$0.wasSkipped &&
+                                abs($0.timestamp.timeIntervalSince(dose.time)) < 1
+                            }) {
+                                viewModel.editingDose = entry
+                            }
+                        }
                     )
                 }
                 MedicalDisclaimerBanner(compact: true)
