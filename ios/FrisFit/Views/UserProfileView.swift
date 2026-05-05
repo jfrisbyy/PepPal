@@ -182,10 +182,29 @@ struct UserProfileView: View {
                         )
                         .frame(width: 80, height: 80)
                         .overlay {
-                            Text(user.avatarInitial)
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white)
+                            if let urlString = user.avatarURL,
+                               let url = URL(string: urlString),
+                               !urlString.isEmpty {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image.resizable().aspectRatio(contentMode: .fill)
+                                    default:
+                                        Text(user.avatarInitial)
+                                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                                .frame(width: 80, height: 80)
+                                .clipShape(Circle())
+                                .allowsHitTesting(false)
+                            } else {
+                                Text(user.avatarInitial)
+                                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                            }
                         }
+                        .clipShape(Circle())
                 }
                 .offset(x: 16, y: 44)
         }
@@ -451,10 +470,29 @@ struct UserProfileView: View {
                 )
                 .frame(width: 40, height: 40)
                 .overlay {
-                    Text(user.avatarInitial)
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                    if let urlString = user.avatarURL,
+                       let url = URL(string: urlString),
+                       !urlString.isEmpty {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().aspectRatio(contentMode: .fill)
+                            default:
+                                Text(user.avatarInitial)
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                        .allowsHitTesting(false)
+                    } else {
+                        Text(user.avatarInitial)
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
                 }
+                .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {

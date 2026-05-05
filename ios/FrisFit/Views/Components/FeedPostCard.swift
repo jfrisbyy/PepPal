@@ -92,10 +92,28 @@ struct FeedPostCard: View {
                         .fill(post.user.avatarColor.opacity(0.2))
                         .frame(width: 42, height: 42)
                         .overlay {
-                            Text(post.user.avatarInitial)
-                                .font(.system(.headline, design: .rounded, weight: .bold))
-                                .foregroundStyle(post.user.avatarColor)
+                            if let urlString = post.user.avatarURL,
+                               let url = URL(string: urlString),
+                               !urlString.isEmpty {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image.resizable().aspectRatio(contentMode: .fill)
+                                    default:
+                                        Text(post.user.avatarInitial)
+                                            .font(.system(.headline, design: .rounded, weight: .bold))
+                                            .foregroundStyle(post.user.avatarColor)
+                                    }
+                                }
+                                .clipShape(Circle())
+                                .allowsHitTesting(false)
+                            } else {
+                                Text(post.user.avatarInitial)
+                                    .font(.system(.headline, design: .rounded, weight: .bold))
+                                    .foregroundStyle(post.user.avatarColor)
+                            }
                         }
+                        .clipShape(Circle())
 
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 4) {
