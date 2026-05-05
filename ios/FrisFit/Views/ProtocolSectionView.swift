@@ -225,7 +225,7 @@ struct ProtocolSectionView: View {
                 }
             }
             GlassCard(accent: PepTheme.teal) {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 14) {
                     headerBar
 
                     if let insight = todaysPlanVM.moduleContent(for: "protocol") {
@@ -234,8 +234,12 @@ struct ProtocolSectionView: View {
 
                     protocolBriefLines
 
-                    VStack(spacing: 10) {
-                        ForEach(protocols) { proto in
+                    VStack(spacing: 0) {
+                        ForEach(Array(protocols.enumerated()), id: \.element.id) { idx, proto in
+                            if idx > 0 {
+                                editorialDivider
+                                    .padding(.vertical, 14)
+                            }
                             protocolStackRow(proto)
                         }
                     }
@@ -244,47 +248,29 @@ struct ProtocolSectionView: View {
         }
     }
 
-    private func protocolStackRow(_ proto: PeptideProtocol) -> some View {
-        let isExpanded = expandedProtocolIds.contains(proto.id)
-        return VStack(spacing: 0) {
-            protocolStackHeader(proto, isExpanded: isExpanded)
+    private var editorialDivider: some View {
+        Rectangle()
+            .fill(PepTheme.textSecondary.opacity(0.15))
+            .frame(height: 0.5)
+    }
 
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 12) {
-                    stackDivider
-                    if proto.hasPhases {
-                        phaseProgressBar(proto)
+    private func protocolStackRow(_ proto: PeptideProtocol) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            protocolStackHeader(proto)
+
+            if proto.hasPhases {
+                phaseProgressBar(proto)
+                    .padding(.top, 2)
+            }
+
+            if !proto.compounds.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(proto.compounds) { compound in
+                        compoundRow(proto: proto, compound: compound)
                     }
-                    compoundSchedulesList(proto)
-                    if let sched = TitrationScheduleStore.shared.schedule(for: proto.id) {
-                        TitrationScheduleCard(
-                            schedule: sched,
-                            onEdit: {
-                                titrationTargetProto = proto
-                                openBuilder(for: proto, seed: nil, existing: sched)
-                            },
-                            onRemove: {
-                                viewModel.removeTitrationSchedule(protocolId: proto.id)
-                            }
-                        )
-                    }
-                    peptideToolsStrip(proto)
-                    footerActions(proto)
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .background(PepTheme.elevated.opacity(0.35))
-        .clipShape(.rect(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(
-                    proto.isActive ? proto.goal.color.opacity(0.22) : PepTheme.glassBorderBottom,
-                    lineWidth: 0.5
-                )
-        )
     }
 
     @ViewBuilder
@@ -309,33 +295,33 @@ struct ProtocolSectionView: View {
             .frame(height: 0.5)
     }
 
-    private func protocolStackHeader(_ proto: PeptideProtocol, isExpanded: Bool) -> some View {
+    private func protocolStackHeader(_ proto: PeptideProtocol) -> some View {
         Button {
             navDetailProto = ProtocolDetailNavTarget(
                 proto: proto,
                 compoundName: proto.compounds.first?.compoundName
             )
         } label: {
-            HStack(spacing: 12) {
-                leadingBottleIcon(proto)
-
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Text(proto.name)
-                            .font(.system(.subheadline, design: .rounded, weight: .bold))
+                            .font(.system(.title3, design: .serif, weight: .semibold))
                             .foregroundStyle(PepTheme.textPrimary)
                             .lineLimit(1)
                         if !proto.isActive {
                             Text("ENDED")
                                 .font(.system(size: 8, weight: .heavy))
+                                .tracking(1.2)
                                 .foregroundStyle(PepTheme.textSecondary)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1.5)
                                 .background(PepTheme.elevated)
                                 .clipShape(.capsule)
                         } else if proto.hasPhases {
-                            Text(proto.currentPhase.rawValue)
+                            Text(proto.currentPhase.rawValue.uppercased())
                                 .font(.system(size: 9, weight: .bold))
+                                .tracking(1.0)
                                 .foregroundStyle(proto.currentPhase.color)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 1.5)
@@ -346,7 +332,7 @@ struct ProtocolSectionView: View {
 
                     HStack(spacing: 6) {
                         Text(proto.weekLabel)
-                            .font(.system(.caption2, design: .rounded))
+                            .font(.system(.caption, design: .serif).italic())
                             .foregroundStyle(PepTheme.textSecondary)
                         Text("·")
                             .font(.caption2)
@@ -379,11 +365,9 @@ struct ProtocolSectionView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
             }
-            .padding(12)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: isExpanded)
     }
 
     @ViewBuilder
@@ -422,19 +406,18 @@ struct ProtocolSectionView: View {
 
     private var headerBar: some View {
         HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Image(systemName: "pill.fill")
-                        .font(.caption)
+                        .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(PepTheme.teal)
-                    Text("Protocols")
-                        .font(.system(.caption, weight: .semibold))
+                    Text("PROTOCOLS")
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(PepTheme.textSecondary)
-                        .textCase(.uppercase)
-                        .tracking(0.5)
+                        .tracking(2.0)
                 }
                 Text(protocols.count == 1 ? "Active Protocol" : "\(protocols.count) Protocols")
-                    .font(.system(.headline, design: .rounded, weight: .bold))
+                    .font(.system(.title2, design: .serif, weight: .semibold))
                     .foregroundStyle(PepTheme.textPrimary)
             }
 
@@ -592,21 +575,30 @@ struct ProtocolSectionView: View {
     @ViewBuilder
     private func currentBodyLevelLine(proto: PeptideProtocol, compound: ProtocolCompound, accent: Color) -> some View {
         let level = ProtocolBodyLevelCalculator.currentLevel(for: compound, in: proto)
-        HStack(spacing: 6) {
-            Text("IN BODY")
-                .font(.system(size: 9, weight: .semibold))
-                .tracking(1.4)
-                .foregroundStyle(PepTheme.textSecondary.opacity(0.85))
-            Text(level.displayValue)
-                .font(.system(.caption, design: .serif, weight: .semibold))
-                .foregroundStyle(PepTheme.textPrimary)
-            if let pct = level.percentOfLastDose {
-                Text("·")
-                    .font(.caption2)
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                Text("\(pct)% of last dose")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(PepTheme.textSecondary)
+        inBodyReadout(level: level, accent: accent)
+    }
+
+    private func inBodyReadout(level: ProtocolBodyLevelCalculator.Reading, accent: Color) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(accent)
+                .frame(width: 5, height: 5)
+                .overlay(Circle().stroke(accent.opacity(0.4), lineWidth: 3).blur(radius: 2))
+            VStack(alignment: .leading, spacing: 1) {
+                Text("IN BODY NOW")
+                    .font(.system(size: 8, weight: .bold))
+                    .tracking(1.6)
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(level.displayValue)
+                        .font(.system(.subheadline, design: .serif, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    if let pct = level.percentOfLastDose {
+                        Text("\(pct)% of last dose")
+                            .font(.system(.caption2, design: .serif).italic())
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                }
             }
             Spacer(minLength: 0)
         }
@@ -628,46 +620,58 @@ struct ProtocolSectionView: View {
                 .reduce(0.0) { $0 + $1.doseMcg }
             return max(0, min(1, 1 - (used / 1000.0) / mg))
         }()
-        return HStack(spacing: 10) {
+        let level = ProtocolBodyLevelCalculator.currentLevel(for: compound, in: proto)
+        return HStack(alignment: .top, spacing: 14) {
             Button {
                 navDetailProto = ProtocolDetailNavTarget(proto: proto, compoundName: compound.compoundName)
             } label: {
-                HStack(spacing: 10) {
+                HStack(alignment: .top, spacing: 14) {
+                    // Prominent bottle
                     PeptideBottleView(
                         fillFraction: fillFraction,
                         liquidColor: accent,
-                        compactHeight: 56,
+                        compactHeight: 88,
                         showHighlights: true
                     )
-                    .frame(width: 32)
+                    .frame(width: 50, height: 88)
+                    .shadow(color: accent.opacity(0.25), radius: 8, x: 0, y: 4)
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        // Compound name — editorial serif
                         Text(compound.compoundName)
-                            .font(.system(.subheadline, weight: .semibold))
+                            .font(.system(.headline, design: .serif, weight: .semibold))
                             .foregroundStyle(PepTheme.textPrimary)
                             .lineLimit(1)
+
+                        // Dose · frequency
                         HStack(spacing: 6) {
                             Text(CompoundUnitHelper.displayDoseShort(compound.doseMcg, for: compound.compoundName))
-                                .font(.system(.caption2, design: .rounded, weight: .semibold))
+                                .font(.system(.caption, design: .rounded, weight: .semibold))
                                 .foregroundStyle(PepTheme.textSecondary)
                             Text("·")
                                 .font(.caption2)
                                 .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                             Text(compound.frequency)
-                                .font(.system(.caption2, weight: .medium))
+                                .font(.system(.caption, design: .serif).italic())
                                 .foregroundStyle(PepTheme.textSecondary)
                                 .lineLimit(1)
                         }
+
+                        // In-body level — featured editorial readout
+                        inBodyReadout(level: level, accent: accent)
+                            .padding(.top, 2)
+
+                        // Sparkline
+                        CompoundLevelSparkline(proto: proto, compound: compound, color: accent)
+                            .frame(height: 18)
+                            .padding(.top, 1)
+
+                        // Supply chip below
                         let supply = SupplyForecastService.forecast(for: compound, in: proto)
                         if supply.hasAnyVial {
                             SupplyChip(forecast: supply, compact: true)
-                                .padding(.top, 1)
+                                .padding(.top, 2)
                         }
-                        currentBodyLevelLine(proto: proto, compound: compound, accent: accent)
-                            .padding(.top, 3)
-                        CompoundLevelSparkline(proto: proto, compound: compound, color: accent)
-                            .frame(height: 18)
-                            .padding(.top, 2)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -675,20 +679,19 @@ struct ProtocolSectionView: View {
             }
             .buttonStyle(.plain)
 
-            Spacer(minLength: 0)
-
-            if proto.isActive {
-                Button {
-                    viewModel.quickLogDose(protocolId: proto.id, compoundId: compound.id)
-                } label: {
-                    Image(systemName: loggedToday ? "checkmark.circle.fill" : "plus.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundStyle(loggedToday ? .green : PepTheme.teal)
-                        .symbolEffect(.bounce, value: loggedToday)
+            VStack(spacing: 8) {
+                if proto.isActive {
+                    Button {
+                        viewModel.quickLogDose(protocolId: proto.id, compoundId: compound.id)
+                    } label: {
+                        Image(systemName: loggedToday ? "checkmark.circle.fill" : "plus.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(loggedToday ? .green : PepTheme.teal)
+                            .symbolEffect(.bounce, value: loggedToday)
+                    }
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.success, trigger: loggedToday)
                 }
-                .buttonStyle(.plain)
-                .sensoryFeedback(.success, trigger: loggedToday)
-            }
 
             Menu {
                 Button {
@@ -719,11 +722,23 @@ struct ProtocolSectionView: View {
                     .background(PepTheme.elevated.opacity(0.5))
                     .clipShape(.circle)
             }
+            }
         }
-        .padding(10)
-        .background(PepTheme.elevated.opacity(0.45))
-        .clipShape(.rect(cornerRadius: 12))
-        .contentShape(.rect(cornerRadius: 12))
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(
+            LinearGradient(
+                colors: [accent.opacity(0.06), PepTheme.elevated.opacity(0.35)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(accent.opacity(0.18), lineWidth: 0.5)
+        )
+        .contentShape(.rect(cornerRadius: 14))
         .contextMenu {
             Button {
                 editSchedule = EditScheduleTarget(proto: proto, compound: compound)
