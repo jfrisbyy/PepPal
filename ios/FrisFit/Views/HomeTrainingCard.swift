@@ -2,11 +2,13 @@ import SwiftUI
 
 struct HomeTrainingCard: View {
     @Bindable var viewModel: HomeViewModel
+    @Bindable var trainViewModel: TrainViewModel
     @Binding var showProgramCreation: Bool
     var onStartWorkout: () -> Void
 
     @State private var showEditProgram: Bool = false
     @State private var editProgramTrainVM: TrainViewModel? = nil
+    @State private var showPreSession: Bool = false
 
     var body: some View {
         let hasProgram = viewModel.activeProgram != nil
@@ -17,18 +19,15 @@ struct HomeTrainingCard: View {
             if showSection {
                 VStack(spacing: 8) {
                     summaryCard(hasProgram: hasProgram)
-
-                    if viewModel.isPlanExpanded,
-                       !viewModel.todaysPlan.isRestDay,
-                       viewModel.activeProgram != nil {
-                        ExpandedPlanContentView(
-                            viewModel: viewModel,
-                            onStartWorkout: onStartWorkout
-                        )
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
                 }
             }
+        }
+        .navigationDestination(isPresented: $showPreSession) {
+            PreSessionBriefView(
+                homeVM: viewModel,
+                trainVM: trainViewModel,
+                onStartWorkout: onStartWorkout
+            )
         }
         .sheet(isPresented: $showEditProgram, onDismiss: {
             viewModel.reloadActiveProgram()
@@ -55,9 +54,9 @@ struct HomeTrainingCard: View {
     private func summaryCard(hasProgram: Bool) -> some View {
         Button {
             if hasProgram, !viewModel.todaysPlan.isRestDay {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
-                    viewModel.isPlanExpanded.toggle()
-                }
+                showPreSession = true
+            } else if hasProgram, viewModel.todaysPlan.isRestDay {
+                viewModel.showEditSplit = true
             }
         } label: {
             GlassCard(accent: PepTheme.blue) {
@@ -88,7 +87,7 @@ struct HomeTrainingCard: View {
             }
         }
         .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: viewModel.isPlanExpanded)
+        .sensoryFeedback(.selection, trigger: showPreSession)
     }
 
     // MARK: - Editorial Header
@@ -134,16 +133,9 @@ struct HomeTrainingCard: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(PepTheme.blue)
             }
-            if hasProgram, !viewModel.todaysPlan.isRestDay {
-                Image(systemName: viewModel.isPlanExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                    .contentTransition(.symbolEffect(.replace))
-            } else {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.35))
-            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(PepTheme.textSecondary.opacity(hasProgram && !viewModel.todaysPlan.isRestDay ? 0.55 : 0.35))
         }
     }
 
@@ -274,7 +266,6 @@ struct HomeTrainingCard: View {
         return Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                 viewModel.selectDisplayedProgram(program.id)
-                viewModel.isPlanExpanded = isFocused ? !viewModel.isPlanExpanded : true
             }
         } label: {
             HStack(spacing: 10) {
@@ -385,29 +376,19 @@ struct HomeTrainingCard: View {
                 .frame(height: 0.5)
                 .padding(.bottom, 10)
 
-            Button {
-                if isRestDay {
-                    viewModel.showEditSplit = true
-                } else {
-                    onStartWorkout()
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: isRestDay ? "slider.horizontal.3" : "play.fill")
-                        .font(.system(size: 10, weight: .bold))
-                    Text(isRestDay ? "EDIT SPLIT" : "START WORKOUT")
-                        .font(.system(size: 10, weight: .heavy))
-                        .tracking(2.5)
-                    Spacer()
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 9, weight: .bold))
-                        .opacity(0.6)
-                }
-                .foregroundStyle(PepTheme.blue)
-                .contentShape(Rectangle())
+            HStack(spacing: 8) {
+                Image(systemName: isRestDay ? "slider.horizontal.3" : "sparkles")
+                    .font(.system(size: 10, weight: .bold))
+                Text(isRestDay ? "EDIT SPLIT" : "OPEN PRE-SESSION BRIEF")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(2.5)
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 9, weight: .bold))
+                    .opacity(0.6)
             }
-            .buttonStyle(.plain)
-            .sensoryFeedback(.impact(weight: .light), trigger: viewModel.isPlanExpanded)
+            .foregroundStyle(PepTheme.blue)
+            .contentShape(Rectangle())
         }
     }
 
@@ -440,26 +421,24 @@ struct HomeTrainingCard: View {
                     .frame(height: 0.5)
                     .padding(.bottom, 10)
 
-                HStack(spacing: 8) {
-                    Button {
-                        showProgramCreation = true
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 10, weight: .bold))
-                            Text("BROWSE ROUTINES")
-                                .font(.system(size: 10, weight: .heavy))
-                                .tracking(2.5)
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(size: 9, weight: .bold))
-                                .opacity(0.6)
-                        }
-                        .foregroundStyle(PepTheme.blue)
-                        .contentShape(Rectangle())
+                Button {
+                    showProgramCreation = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("BROWSE ROUTINES")
+                            .font(.system(size: 10, weight: .heavy))
+                            .tracking(2.5)
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 9, weight: .bold))
+                            .opacity(0.6)
                     }
-                    .buttonStyle(.plain)
+                    .foregroundStyle(PepTheme.blue)
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
             }
         }
     }

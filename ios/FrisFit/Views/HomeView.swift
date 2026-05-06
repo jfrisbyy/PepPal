@@ -277,6 +277,7 @@ struct HomeView: View {
                     })
                     HomeTrainingCard(
                         viewModel: viewModel,
+                        trainViewModel: trainViewModel,
                         showProgramCreation: $showProgramCreation,
                         onStartWorkout: { startWorkoutFromHome() }
                     )
