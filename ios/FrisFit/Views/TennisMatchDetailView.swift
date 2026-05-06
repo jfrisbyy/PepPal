@@ -7,180 +7,196 @@ struct TennisMatchDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
-                matchHeader
-                if !match.sets.isEmpty { scorecardSection }
-                serveSection
-                shotStatsSection
-                ratingsSection
-                if !match.notes.isEmpty { notesSection }
-                fpSection
+            VStack(spacing: 18) {
+                heroCard
+                if !match.sets.isEmpty { scorecardCard }
+                serveCard
+                shotStatsCard
+                ratingsCard
+                if !match.notes.isEmpty { notesCard }
             }
             .padding(.horizontal)
             .padding(.bottom, 32)
         }
-        .appBackground()
-        .navigationTitle(match.sessionType.isMatch ? "Match Detail" : "Session Detail")
+        .appBackground(accent: accentColor)
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var matchHeader: some View {
-        GlassCard {
-            VStack(spacing: 14) {
-                HStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill((match.result?.color ?? accentColor).opacity(0.15))
-                            .frame(width: 56, height: 56)
-                        if let result = match.result {
-                            Text(result.rawValue)
-                                .font(.system(size: 24, weight: .black, design: .rounded))
-                                .foregroundStyle(result.color)
-                        } else {
-                            Image(systemName: match.sessionType.icon)
-                                .font(.system(size: 24))
-                                .foregroundStyle(accentColor)
-                        }
-                    }
+    // MARK: - Hero
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        if match.sessionType.isMatch && !match.opponentName.isEmpty {
-                            Text("vs \(match.opponentName)")
-                                .font(.title3.weight(.bold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                        } else {
-                            Text(match.sessionType.rawValue)
-                                .font(.title3.weight(.bold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                        }
-
-                        Text(match.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute()))
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-
+    private var heroCard: some View {
+        PepSportCard(accent: accentColor) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text((match.sessionType.isMatch ? "MATCH" : "SESSION") + " · " + match.sessionType.rawValue.uppercased())
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(2.0)
+                        .foregroundStyle(accentColor.opacity(0.9))
                     Spacer()
-
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("\(match.durationMinutes)")
-                            .font(.system(.title2, design: .rounded, weight: .bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        Text("min")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(PepTheme.textSecondary)
+                    if let result = match.result {
+                        Text(result.label.uppercased())
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(1.4)
+                            .foregroundStyle(result.color)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(result.color.opacity(0.15))
+                            .clipShape(Capsule())
                     }
                 }
 
+                Text(heroTitle)
+                    .font(.system(size: 28, weight: .semibold, design: .serif))
+                    .kerning(-0.5)
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(2)
+
+                Text(match.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute()))
+                    .font(.system(size: 12, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+
                 if !match.sets.isEmpty {
                     Text(match.scoreDisplay)
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(match.result == .win ? .green : match.result == .loss ? .red : accentColor)
+                        .font(.system(size: 22, weight: .bold, design: .serif))
+                        .foregroundStyle(match.result == .win ? .green : (match.result == .loss ? .red : accentColor))
+                }
+
+                LinearGradient(
+                    colors: [PepTheme.textPrimary.opacity(0.16), PepTheme.textPrimary.opacity(0)],
+                    startPoint: .leading, endPoint: .trailing
+                )
+                .frame(height: 0.5)
+
+                HStack(spacing: 0) {
+                    heroStat(value: "\(match.durationMinutes)", label: "MIN")
+                    statDivider
+                    heroStat(value: "\(match.stats.aces)", label: "ACES")
+                    statDivider
+                    heroStat(value: "\(match.stats.winners)", label: "WINNERS")
+                    statDivider
+                    heroStat(value: "\(match.stats.unforcedErrors)", label: "UE")
                 }
             }
         }
     }
 
-    private var scorecardSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "list.number")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Scorecard")
-                Spacer()
-            }
+    private var heroTitle: String {
+        if match.sessionType.isMatch && !match.opponentName.isEmpty {
+            return "vs \(match.opponentName)"
+        }
+        return match.sessionType.rawValue
+    }
 
-            VStack(spacing: 8) {
+    private var statDivider: some View {
+        Rectangle().fill(PepTheme.shimmerHighlight).frame(width: 0.5, height: 28)
+    }
+
+    private func heroStat(value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(.title3, design: .serif, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Scorecard
+
+    private var scorecardCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(kicker: "01 — Score", title: "Scorecard", accent: accentColor)
+
+            VStack(spacing: 10) {
                 HStack(spacing: 0) {
                     Text("")
                         .frame(maxWidth: .infinity, alignment: .leading)
                     ForEach(Array(match.sets.enumerated()), id: \.offset) { i, _ in
-                        Text("Set \(i + 1)")
-                            .font(.system(size: 10, weight: .bold))
+                        Text("S\(i + 1)")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(1.4)
                             .foregroundStyle(PepTheme.textSecondary)
                             .frame(width: 50)
                     }
                 }
 
                 HStack(spacing: 0) {
-                    Text("You")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("YOU")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(1.6)
+                        .foregroundStyle(accentColor)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     ForEach(Array(match.sets.enumerated()), id: \.offset) { _, set in
                         Text("\(set.playerGames)")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .font(.system(size: 18, weight: .semibold, design: .serif))
                             .foregroundStyle(set.playerWon ? .green : PepTheme.textPrimary)
                             .frame(width: 50)
                     }
                 }
 
-                Rectangle().fill(PepTheme.elevated).frame(height: 1)
+                Rectangle().fill(PepTheme.elevated.opacity(0.6)).frame(height: 0.5)
 
                 HStack(spacing: 0) {
-                    Text(match.opponentName.isEmpty ? "Opponent" : match.opponentName)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
+                    Text((match.opponentName.isEmpty ? "Opponent" : match.opponentName).uppercased())
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(1.6)
+                        .foregroundStyle(PepTheme.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     ForEach(Array(match.sets.enumerated()), id: \.offset) { _, set in
                         Text("\(set.opponentGames)")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundStyle(!set.playerWon ? .red : PepTheme.textPrimary)
+                            .font(.system(size: 18, weight: .semibold, design: .serif))
+                            .foregroundStyle(!set.playerWon && (set.playerGames + set.opponentGames > 0) ? .red : PepTheme.textPrimary)
                             .frame(width: 50)
                     }
                 }
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
+        .editorialCard(accent: accentColor)
     }
 
-    private var serveSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "arrow.up.right")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Serve Analysis")
-                Spacer()
-            }
+    // MARK: - Serve
 
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-                statCell(value: String(format: "%.0f%%", match.stats.firstServePercentage), label: "1st Srv%", color: accentColor)
+    private var serveCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(kicker: "02 — Serve", title: "Serve Analysis", accent: accentColor)
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                statCell(value: String(format: "%.0f%%", match.stats.firstServePercentage), label: "1st Srv", color: accentColor)
                 statCell(value: "\(match.stats.aces)", label: "Aces", color: .green)
-                statCell(value: "\(match.stats.doubleFaults)", label: "Dbl Faults", color: .red)
+                statCell(value: "\(match.stats.doubleFaults)", label: "Dbl Flt", color: .red)
             }
 
             if match.stats.breakPointsTotal > 0 {
-                HStack(spacing: 8) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                     statCell(value: "\(match.stats.breakPointsConverted)/\(match.stats.breakPointsTotal)", label: "Break Pts", color: PepTheme.amber)
-                    statCell(value: String(format: "%.0f%%", match.stats.breakPointConversionRate), label: "BP Conv%", color: PepTheme.amber)
+                    statCell(value: String(format: "%.0f%%", match.stats.breakPointConversionRate), label: "BP Conv", color: PepTheme.amber)
                 }
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
+        .editorialCard(accent: accentColor)
     }
 
-    private var shotStatsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(.green)
-                HeadlineText(text: "Shot Stats")
-                Spacer()
-            }
+    // MARK: - Shot stats
 
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+    private var shotStatsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(kicker: "03 — Rally", title: "Shot Stats", accent: PepTheme.amber)
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                 statCell(value: "\(match.stats.winners)", label: "Winners", color: .green)
                 statCell(value: "\(match.stats.unforcedErrors)", label: "UE", color: .red)
-                statCell(value: String(format: "%.1f", match.stats.winnerToErrorRatio), label: "W/UE Ratio", color: match.stats.winnerToErrorRatio >= 1.0 ? .green : .orange)
+                statCell(value: String(format: "%.2f", match.stats.winnerToErrorRatio), label: "W/UE", color: match.stats.winnerToErrorRatio >= 1.0 ? .green : .orange)
             }
 
             if match.stats.totalShotsTracked > 0 {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                     statCell(value: "\(match.stats.forehandsHit)", label: "Forehands", color: accentColor)
                     statCell(value: "\(match.stats.backhandsHit)", label: "Backhands", color: .green)
                     statCell(value: "\(match.stats.servesHit)", label: "Serves", color: .blue)
@@ -188,82 +204,65 @@ struct TennisMatchDetailView: View {
                 }
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
+        .editorialCard(accent: PepTheme.amber)
     }
 
-    private var ratingsSection: some View {
-        HStack(spacing: 8) {
-            ratingCard(label: "Performance", value: match.performanceRating, icon: "star.fill", color: PepTheme.amber)
-            ratingCard(label: "Confidence", value: match.confidenceRating, icon: "brain.head.profile.fill", color: PepTheme.violet)
+    // MARK: - Ratings
+
+    private var ratingsCard: some View {
+        HStack(spacing: 10) {
+            ratingCol(label: "Performance", value: match.performanceRating, icon: "star.fill", color: PepTheme.amber)
+            ratingCol(label: "Confidence", value: match.confidenceRating, icon: "brain.head.profile.fill", color: PepTheme.violet)
         }
     }
 
-    private func ratingCard(label: String, value: Int, icon: String, color: Color) -> some View {
+    private func ratingCol(label: String, value: Int, icon: String, color: Color) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 16))
                 .foregroundStyle(color)
             Text("\(value)/10")
-                .font(.system(.title3, design: .rounded, weight: .bold))
+                .font(.system(.title3, design: .serif, weight: .semibold))
                 .foregroundStyle(color)
-            Text(label)
-                .font(.system(size: 10, weight: .semibold))
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
                 .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
+        .padding(.vertical, 14)
+        .editorialCard(accent: color)
     }
 
-    private var notesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "note.text")
-                    .foregroundStyle(PepTheme.textSecondary)
-                HeadlineText(text: "Notes")
-                Spacer()
-            }
+    // MARK: - Notes
+
+    private var notesCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            EditorialSectionHeading(kicker: "Notes", title: "Match Journal", accent: accentColor)
             Text(match.notes)
-                .font(.subheadline)
-                .foregroundStyle(PepTheme.textSecondary)
+                .font(.system(size: 14, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
-    }
-
-    private var fpSection: some View {
-        EmptyView()
+        .editorialCard(accent: accentColor)
     }
 
     private func statCell(value: String, label: String, color: Color) -> some View {
         VStack(spacing: 5) {
             Text(value)
-                .font(.system(.title3, design: .rounded, weight: .bold))
+                .font(.system(.title3, design: .serif, weight: .semibold))
                 .foregroundStyle(color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-            Text(label)
-                .font(.system(size: 10, weight: .semibold))
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
                 .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(color.opacity(0.08))
+        .background(color.opacity(0.07))
         .clipShape(.rect(cornerRadius: 10))
-    }
-
-    private func cardBorder() -> some View {
-        RoundedRectangle(cornerRadius: 16)
-            .strokeBorder(
-                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
-                lineWidth: 0.5
-            )
     }
 }

@@ -32,8 +32,8 @@ struct TennisLiveScorerView: View {
 
                 bottomBar
             }
-            .appBackground()
-            .navigationTitle("Live Match")
+            .appBackground(accent: accentColor)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -68,14 +68,16 @@ struct TennisLiveScorerView: View {
     }
 
     private var scoreboard: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text(formatTime(elapsedSeconds))
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(PepTheme.textSecondary)
+        VStack(spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("LIVE · " + formatTime(elapsedSeconds))
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .tracking(1.6)
+                    .foregroundStyle(accentColor.opacity(0.9))
                 Spacer()
-                Text(tennisVM.liveScore.format.rawValue)
-                    .font(.system(size: 11, weight: .semibold))
+                Text(tennisVM.liveScore.format.rawValue.uppercased())
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.4)
                     .foregroundStyle(accentColor)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -119,7 +121,7 @@ struct TennisLiveScorerView: View {
                             .frame(width: 6, height: 6)
                     }
                     Text("You")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 16, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.textPrimary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -149,8 +151,8 @@ struct TennisLiveScorerView: View {
                             .fill(.red)
                             .frame(width: 6, height: 6)
                     }
-                    Text(tennisVM.opponentName.isEmpty ? "OPP" : tennisVM.opponentName)
-                        .font(.system(size: 15, weight: .bold))
+                    Text(tennisVM.opponentName.isEmpty ? "Opponent" : tennisVM.opponentName)
+                        .font(.system(size: 16, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.textPrimary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -212,7 +214,8 @@ struct TennisLiveScorerView: View {
                     Image(systemName: "hand.thumbsup.fill")
                         .font(.system(size: 28))
                     Text("Won Point")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 14, weight: .semibold, design: .serif))
+                        .tracking(0.3)
                 }
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
@@ -232,7 +235,8 @@ struct TennisLiveScorerView: View {
                     Image(systemName: "hand.thumbsdown.fill")
                         .font(.system(size: 28))
                     Text("Lost Point")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 14, weight: .semibold, design: .serif))
+                        .tracking(0.3)
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
@@ -252,12 +256,13 @@ struct TennisLiveScorerView: View {
                 .font(.system(size: 48))
                 .foregroundStyle(playerWon ? PepTheme.amber : PepTheme.textSecondary)
 
-            Text(playerWon ? "Match Won!" : "Match Lost")
-                .font(.title.weight(.bold))
+            Text(playerWon ? "Match Won." : "Match Lost.")
+                .font(.system(size: 32, weight: .semibold, design: .serif))
+                .kerning(-0.5)
                 .foregroundStyle(PepTheme.textPrimary)
 
             Text(tennisVM.liveScore.sets.map(\.display).joined(separator: "  "))
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 20, weight: .semibold, design: .serif))
                 .foregroundStyle(accentColor)
 
             Button {

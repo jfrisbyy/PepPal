@@ -19,8 +19,8 @@ struct TennisWorkoutBuilderView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .appBackground()
-            .navigationTitle("Tennis Sessions")
+            .appBackground(accent: accentColor)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -32,16 +32,18 @@ struct TennisWorkoutBuilderView: View {
     }
 
     private var savedSessionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "tray.full.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Saved Sessions")
-                Spacer()
-                Text("\(tennisVM.savedTennisSessions.count)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(accentColor)
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(
+                kicker: "01 — Library",
+                title: "Saved Sessions",
+                accent: accentColor,
+                trailing: AnyView(
+                    Text("\(tennisVM.savedTennisSessions.count)")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1.4)
+                        .foregroundStyle(accentColor)
+                )
+            )
 
             if tennisVM.savedTennisSessions.isEmpty {
                 HStack {
@@ -109,13 +111,12 @@ struct TennisWorkoutBuilderView: View {
     }
 
     private var builderSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "plus.square.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Build Practice Session")
-                Spacer()
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(
+                kicker: "02 — Build",
+                title: "New practice session",
+                accent: accentColor
+            )
 
             TextField("Session Name", text: $sessionName)
                 .font(.system(size: 14, weight: .medium))
@@ -268,7 +269,8 @@ struct TennisWorkoutBuilderView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 16))
                 Text("Save Session")
-                    .font(.subheadline.weight(.bold))
+                    .font(.system(size: 15, weight: .semibold, design: .serif))
+                    .tracking(0.3)
             }
             .foregroundStyle(.black)
             .frame(maxWidth: .infinity)

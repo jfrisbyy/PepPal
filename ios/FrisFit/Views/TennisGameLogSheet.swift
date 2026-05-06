@@ -23,8 +23,8 @@ struct TennisGameLogSheet: View {
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .appBackground()
-            .navigationTitle("Log Tennis")
+            .appBackground(accent: accentColor)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -52,8 +52,8 @@ struct TennisGameLogSheet: View {
     }
 
     private var sessionTypeStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionLabel("SESSION TYPE")
+        VStack(alignment: .leading, spacing: 18) {
+            editorialHeading(kicker: "01 — Setup", title: "Session type", accent: accentColor)
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                 ForEach(TennisSessionType.allCases) { type in
@@ -91,8 +91,8 @@ struct TennisGameLogSheet: View {
     }
 
     private var matchInfoSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionLabel("MATCH INFO")
+        VStack(alignment: .leading, spacing: 14) {
+            editorialHeading(kicker: "Format", title: "Match info", accent: accentColor)
 
             HStack(spacing: 12) {
                 ForEach(TennisMatchFormat.allCases) { format in
@@ -147,7 +147,7 @@ struct TennisGameLogSheet: View {
                 .scrollIndicators(.hidden)
             }
 
-            sectionLabel("RESULT")
+            editorialHeading(kicker: "Result", title: "How did it end?", accent: accentColor)
 
             HStack(spacing: 12) {
                 ForEach(TennisMatchResult.allCases) { result in
@@ -174,9 +174,9 @@ struct TennisGameLogSheet: View {
     }
 
     private var scoreSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                sectionLabel("SET SCORES")
+                editorialHeading(kicker: "Score", title: "Set scores", accent: accentColor)
                 Spacer()
                 if tennisVM.logSets.count < 5 {
                     Button {
@@ -265,8 +265,8 @@ struct TennisGameLogSheet: View {
     }
 
     private var durationSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionLabel("DURATION")
+        VStack(alignment: .leading, spacing: 12) {
+            editorialHeading(kicker: "Duration", title: "Time on court", accent: accentColor)
 
             HStack(spacing: 12) {
                 Button { tennisVM.matchDuration = max(5, tennisVM.matchDuration - 5) } label: {
@@ -309,8 +309,8 @@ struct TennisGameLogSheet: View {
     }
 
     private var statsStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionLabel("MATCH STATS")
+        VStack(alignment: .leading, spacing: 18) {
+            editorialHeading(kicker: "02 — Stats", title: "By the numbers", accent: accentColor)
 
             VStack(spacing: 12) {
                 HStack {
@@ -395,8 +395,8 @@ struct TennisGameLogSheet: View {
     }
 
     private var ratingsStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionLabel("SELF ASSESSMENT")
+        VStack(alignment: .leading, spacing: 18) {
+            editorialHeading(kicker: "03 — Reflection", title: "How did it feel?", accent: accentColor)
 
             VStack(spacing: 16) {
                 ratingSlider(label: "Confidence", value: $tennisVM.confidenceRating, icon: "brain.head.profile.fill", color: PepTheme.violet)
@@ -410,8 +410,8 @@ struct TennisGameLogSheet: View {
                     .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
             )
 
-            VStack(alignment: .leading, spacing: 8) {
-                sectionLabel("NOTES")
+            VStack(alignment: .leading, spacing: 10) {
+                editorialHeading(kicker: "Notes", title: "Anything to remember?", accent: accentColor)
                 TextField("How did you play? Key moments?", text: $tennisVM.matchNotes, axis: .vertical)
                     .font(.subheadline)
                     .foregroundStyle(PepTheme.textPrimary)
@@ -583,7 +583,8 @@ struct TennisGameLogSheet: View {
                             .font(.title3)
                     }
                     Text(currentStep == 2 ? "Log Session" : "Next")
-                        .font(.headline.weight(.bold))
+                        .font(.system(size: 15, weight: .semibold, design: .serif))
+                        .tracking(0.3)
                 }
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
@@ -604,8 +605,12 @@ struct TennisGameLogSheet: View {
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .bold))
-            .foregroundStyle(PepTheme.textSecondary)
-            .tracking(1)
+            .font(.system(size: 9, weight: .bold))
+            .tracking(1.8)
+            .foregroundStyle(accentColor.opacity(0.85))
+    }
+
+    private func editorialHeading(kicker: String, title: String, accent: Color) -> some View {
+        EditorialSectionHeading(kicker: kicker, title: title, accent: accent)
     }
 }
