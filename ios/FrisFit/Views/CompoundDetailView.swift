@@ -40,6 +40,11 @@ struct CompoundDetailView: View {
     private var usersOnProtocol: [ProtocolUser] { realProtocolUsers }
 
     private var displayedUserCount: Int {
+        // Prefer the count of users we can actually surface as clickable cards so
+        // the "Users" stat never shows a number higher than the visible roster.
+        // Fall back to the aggregate (anonymous) live stat or the static seed only
+        // when no public users have loaded yet.
+        if !realProtocolUsers.isEmpty { return realProtocolUsers.count }
         if let s = liveStat, s.recent_users > 0 { return s.recent_users }
         return compound.communityUsers
     }
