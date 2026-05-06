@@ -57,14 +57,14 @@ stable
 security definer
 set search_path = public
 set row_security = off
-as $
+as $fn$
     select exists (
         select 1
         from public.conversation_participants
         where conversation_id = p_conversation_id
           and user_id = p_user_id
     );
-$;
+$fn$;
 
 create or replace function public.is_group_member(
     p_group_id uuid,
@@ -76,14 +76,14 @@ stable
 security definer
 set search_path = public
 set row_security = off
-as $
+as $fn$
     select exists (
         select 1
         from public.group_members
         where group_id = p_group_id
           and user_id = p_user_id
     );
-$;
+$fn$;
 
 create or replace function public.is_group_admin(
     p_group_id uuid,
@@ -95,7 +95,7 @@ stable
 security definer
 set search_path = public
 set row_security = off
-as $
+as $fn$
     select exists (
         select 1
         from public.group_members
@@ -103,7 +103,7 @@ as $
           and user_id = p_user_id
           and role in ('Owner', 'Admin')
     );
-$;
+$fn$;
 
 create or replace function public.is_group_public(
     p_group_id uuid
@@ -114,14 +114,14 @@ stable
 security definer
 set search_path = public
 set row_security = off
-as $
+as $fn$
     select exists (
         select 1
         from public.groups
         where id = p_group_id
           and privacy = 'Public'
     );
-$;
+$fn$;
 
 create or replace function public.is_circle_member(
     p_circle_id uuid,
@@ -133,14 +133,14 @@ stable
 security definer
 set search_path = public
 set row_security = off
-as $
+as $fn$
     select exists (
         select 1
         from public.circle_members
         where circle_id = p_circle_id
           and user_id = p_user_id
     );
-$;
+$fn$;
 
 create or replace function public.is_circle_admin(
     p_circle_id uuid,
@@ -152,7 +152,7 @@ stable
 security definer
 set search_path = public
 set row_security = off
-as $
+as $fn$
     select exists (
         select 1
         from public.circle_members
@@ -160,7 +160,7 @@ as $
           and user_id = p_user_id
           and role in ('Owner', 'Admin')
     );
-$;
+$fn$;
 
 create or replace function public.is_circle_public(
     p_circle_id uuid
@@ -171,14 +171,14 @@ stable
 security definer
 set search_path = public
 set row_security = off
-as $
+as $fn$
     select exists (
         select 1
         from public.circles
         where id = p_circle_id
           and coalesce(is_private, false) = false
     );
-$;
+$fn$;
 
 do $
 declare
