@@ -56,6 +56,32 @@ nonisolated struct AIMemoryFactRow: Codable, Sendable {
     let updated_at: String?
 }
 
+nonisolated struct ConversationMuteRow: Codable, Sendable {
+    let user_id: String
+    let conversation_id: String
+}
+
+nonisolated struct ModerationMutedUserRow: Codable, Sendable {
+    let user_id: String
+    let target_user_id: String
+}
+
+nonisolated struct ModerationTagRow: Codable, Sendable {
+    let user_id: String
+    let tag: String
+}
+
+nonisolated struct ModerationKeywordRow: Codable, Sendable {
+    let user_id: String
+    let keyword: String
+}
+
+nonisolated struct ModerationReportRow: Codable, Sendable {
+    let user_id: String
+    let target_kind: String   // 'post' | 'comment' | 'message'
+    let target_id: String
+}
+
 /// Centralised Supabase persistence helpers for what used to live in
 /// `UserDefaults`. Every method swallows errors so writes never crash the UI;
 /// the local cache stays the source of truth between sync windows.
@@ -260,6 +286,246 @@ nonisolated final class PersistenceSyncService: @unchecked Sendable {
                 .value
         } catch {
             print("AI memory fetch failed: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    // MARK: - Conversation Mutes
+
+    func upsertConversationMute(conversationId: String) async {
+        guard let uid = await currentUserId() else { return }
+        let row = ConversationMuteRow(user_id: uid, conversation_id: conversationId)
+        do {
+            try await supabase.from("conversation_mutes")
+                .upsert(row, onConflict: "user_id,conversation_id")
+                .execute()
+        } catch {
+            print("Conversation mute upsert failed: \(error.localizedDescription)")
+        }
+    }
+
+    func deleteConversationMute(conversationId: String) async {
+        guard let uid = await currentUserId() else { return }
+        do {
+            try await supabase.from("conversation_mutes")
+                .delete()
+                .eq("user_id", value: uid)
+                .eq("conversation_id", value: conversationId)
+                .execute()
+        } catch {
+            print("Conversation mute delete failed: \(error.localizedDescription)")
+        }
+    }
+
+    func fetchConversationMutes() async -> [String] {
+        guard let uid = await currentUserId() else { return [] }
+        do {
+            let rows: [ConversationMuteRow] = try await supabase.from("conversation_mutes")
+                .select()
+                .eq("user_id", value: uid)
+                .execute()
+                .value
+            return rows.map { $0.conversation_id }
+        } catch {
+            print("Conversation mute fetch failed: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    // MARK: - Moderation: muted users
+
+    func upsertModerationMutedUser(_ targetUserId: String) async {
+        guard let uid = await currentUserId() else { return }
+        let row = ModerationMutedUserRow(user_id: uid, target_user_id: targetUserId)
+        do {
+            try await supabase.from("moderation_muted_users")
+                .upsert(row, onConflict: "user_id,target_user_id")
+                .execute()
+        } catch {
+            print("Moderation muted user upsert failed: \(error.localizedDescription)")
+        }
+    }
+
+    func deleteModerationMutedUser(_ targetUserId: String) async {
+        guard let uid = await currentUserId() else { return }
+        do {
+            try await supabase.from("moderation_muted_users")
+                .delete()
+                .eq("user_id", value: uid)
+                .eq("target_user_id", value: targetUserId)
+                .execute()
+        } catch {
+            print("Moderation muted user delete failed: \(error.localizedDescription)")
+        }
+    }
+
+    func fetchModerationMutedUsers() async -> [String] {
+        guard let uid = await currentUserId() else { return [] }
+        do {
+            let rows: [ModerationMutedUserRow] = try await supabase.from("moderation_muted_users")
+                .select()
+                .eq("user_id", value: uid)
+                .execute()
+                .value
+            return rows.map { $0.target_user_id }
+        } catch {
+            print("Moderation muted users fetch failed: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    // MARK: - Moderation: muted tags
+
+    func upsertModerationMutedTag(_ tag: String) async {
+        guard let uid = await currentUserId() else { return }
+        let row = ModerationTagRow(user_id: uid, tag: tag)
+        do {
+            try await supabase.from("moderation_muted_tags")
+                .upsert(row, onConflict: "user_id,tag")
+                .execute()
+        } catch {
+            print("Moderation muted tag upsert failed: \(error.localizedDescription)")
+        }
+    }
+
+    func deleteModerationMutedTag(_ tag: String) async {
+        guard let uid = await currentUserId() else { return }
+        do {
+            try await supabase.from("moderation_muted_tags")
+                .delete()
+                .eq("user_id", value: uid)
+                .eq("tag", value: tag)
+                .execute()
+        } catch {
+            print("Moderation muted tag delete failed: \(error.localizedDescription)")
+        }
+    }
+
+    func fetchModerationMutedTags() async -> [String] {
+        guard let uid = await currentUserId() else { return [] }
+        do {
+            let rows: [ModerationTagRow] = try await supabase.from("moderation_muted_tags")
+                .select()
+                .eq("user_id", value: uid)
+                .execute()
+                .value
+            return rows.map { $0.tag }
+        } catch {
+            print("Moderation muted tags fetch failed: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    // MARK: - Moderation: followed tags
+
+    func upsertModerationFollowedTag(_ tag: String) async {
+        guard let uid = await currentUserId() else { return }
+        let row = ModerationTagRow(user_id: uid, tag: tag)
+        do {
+            try await supabase.from("moderation_followed_tags")
+                .upsert(row, onConflict: "user_id,tag")
+                .execute()
+        } catch {
+            print("Moderation followed tag upsert failed: \(error.localizedDescription)")
+        }
+    }
+
+    func deleteModerationFollowedTag(_ tag: String) async {
+        guard let uid = await currentUserId() else { return }
+        do {
+            try await supabase.from("moderation_followed_tags")
+                .delete()
+                .eq("user_id", value: uid)
+                .eq("tag", value: tag)
+                .execute()
+        } catch {
+            print("Moderation followed tag delete failed: \(error.localizedDescription)")
+        }
+    }
+
+    func fetchModerationFollowedTags() async -> [String] {
+        guard let uid = await currentUserId() else { return [] }
+        do {
+            let rows: [ModerationTagRow] = try await supabase.from("moderation_followed_tags")
+                .select()
+                .eq("user_id", value: uid)
+                .execute()
+                .value
+            return rows.map { $0.tag }
+        } catch {
+            print("Moderation followed tags fetch failed: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    // MARK: - Moderation: keyword filters
+
+    func upsertModerationKeyword(_ keyword: String) async {
+        guard let uid = await currentUserId() else { return }
+        let row = ModerationKeywordRow(user_id: uid, keyword: keyword)
+        do {
+            try await supabase.from("moderation_keyword_filters")
+                .upsert(row, onConflict: "user_id,keyword")
+                .execute()
+        } catch {
+            print("Moderation keyword upsert failed: \(error.localizedDescription)")
+        }
+    }
+
+    func deleteModerationKeyword(_ keyword: String) async {
+        guard let uid = await currentUserId() else { return }
+        do {
+            try await supabase.from("moderation_keyword_filters")
+                .delete()
+                .eq("user_id", value: uid)
+                .eq("keyword", value: keyword)
+                .execute()
+        } catch {
+            print("Moderation keyword delete failed: \(error.localizedDescription)")
+        }
+    }
+
+    func fetchModerationKeywords() async -> [String] {
+        guard let uid = await currentUserId() else { return [] }
+        do {
+            let rows: [ModerationKeywordRow] = try await supabase.from("moderation_keyword_filters")
+                .select()
+                .eq("user_id", value: uid)
+                .execute()
+                .value
+            return rows.map { $0.keyword }
+        } catch {
+            print("Moderation keywords fetch failed: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    // MARK: - Moderation: reports
+
+    func upsertModerationReport(kind: String, targetId: String) async {
+        guard let uid = await currentUserId() else { return }
+        let row = ModerationReportRow(user_id: uid, target_kind: kind, target_id: targetId)
+        do {
+            try await supabase.from("moderation_reports")
+                .upsert(row, onConflict: "user_id,target_kind,target_id")
+                .execute()
+        } catch {
+            print("Moderation report upsert failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// Returns rows grouped by `target_kind` so callers can hydrate each set in
+    /// one round-trip.
+    func fetchModerationReports() async -> [ModerationReportRow] {
+        guard let uid = await currentUserId() else { return [] }
+        do {
+            return try await supabase.from("moderation_reports")
+                .select()
+                .eq("user_id", value: uid)
+                .execute()
+                .value
+        } catch {
+            print("Moderation reports fetch failed: \(error.localizedDescription)")
             return []
         }
     }
