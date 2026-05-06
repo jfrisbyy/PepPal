@@ -170,48 +170,48 @@ struct EditProfileView: View {
                 }
             }
 
-            ZStack(alignment: .bottomTrailing) {
-                Group {
-                    if let image = bannerStore.bannerImage {
-                        Color(.secondarySystemBackground)
+            PhotosPicker(selection: $selectedBannerPhoto, matching: .images) {
+                ZStack(alignment: .bottomTrailing) {
+                    Group {
+                        if let image = bannerStore.bannerImage {
+                            Color(.secondarySystemBackground)
+                                .frame(height: 130)
+                                .overlay {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .allowsHitTesting(false)
+                                }
+                                .clipped()
+                        } else {
+                            LinearGradient(
+                                colors: [
+                                    PepTheme.teal.opacity(0.35),
+                                    PepTheme.violet.opacity(0.25),
+                                    PepTheme.background
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                             .frame(height: 130)
                             .overlay {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .allowsHitTesting(false)
+                                VStack(spacing: 6) {
+                                    Image(systemName: "photo.on.rectangle.angled")
+                                        .font(.system(size: 24))
+                                    Text("Tap to add a header image")
+                                        .font(.system(.caption, weight: .semibold))
+                                }
+                                .foregroundStyle(.white.opacity(0.9))
                             }
-                            .clipped()
-                    } else {
-                        LinearGradient(
-                            colors: [
-                                PepTheme.teal.opacity(0.35),
-                                PepTheme.violet.opacity(0.25),
-                                PepTheme.background
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        .frame(height: 130)
-                        .overlay {
-                            VStack(spacing: 6) {
-                                Image(systemName: "photo.on.rectangle.angled")
-                                    .font(.system(size: 24))
-                                Text("Add a header image")
-                                    .font(.system(.caption, weight: .semibold))
-                            }
-                            .foregroundStyle(.white.opacity(0.85))
                         }
                     }
-                }
-                .frame(maxWidth: .infinity)
-                .clipShape(.rect(cornerRadius: 14))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-                )
+                    .frame(maxWidth: .infinity)
+                    .clipShape(.rect(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                    )
 
-                PhotosPicker(selection: $selectedBannerPhoto, matching: .images) {
                     HStack(spacing: 6) {
                         Image(systemName: "camera.fill")
                             .font(.system(size: 11, weight: .semibold))
@@ -224,9 +224,10 @@ struct EditProfileView: View {
                     .background(PepTheme.teal)
                     .clipShape(.capsule)
                     .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 2)
+                    .padding(10)
                 }
-                .padding(10)
             }
+            .buttonStyle(.plain)
         }
     }
 
