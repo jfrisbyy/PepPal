@@ -14,6 +14,7 @@ struct EditorialCalendarReveal: View {
 
     @State private var weekAnchor: Date = Date()
     @State private var monthAnchor: Date = Date()
+    @State private var yearAnchor: Date = Date()
     @State private var dragOffset: CGFloat = 0
 
     private let calendar = Calendar.current
@@ -48,6 +49,7 @@ struct EditorialCalendarReveal: View {
         }
         .onChange(of: viewModel.selectedMonthDate) { _, newValue in
             monthAnchor = newValue
+            yearAnchor = newValue
         }
     }
 
@@ -216,23 +218,22 @@ struct EditorialCalendarReveal: View {
         return "\(f.string(from: week.weekStart)) – \(f.string(from: week.weekEnd))"
     }
 
-    // MARK: - Month grid
+    // MARK: - Month picker (12-month grid for a year)
 
     private var monthView: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 16) {
             HStack {
                 navButton(icon: "chevron.left") {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
-                        if let d = calendar.date(byAdding: .month, value: -1, to: monthAnchor) {
-                            monthAnchor = d
-                            viewModel.selectedMonthDate = d
+                        if let d = calendar.date(byAdding: .year, value: -1, to: yearAnchor) {
+                            yearAnchor = d
                         }
                     }
                 }
 
                 Spacer()
 
-                Text(monthTitle(for: monthAnchor))
+                Text(yearTitle(for: yearAnchor))
                     .font(.system(size: 14, weight: .semibold))
                     .tracking(2)
                     .textCase(.uppercase)
@@ -243,34 +244,17 @@ struct EditorialCalendarReveal: View {
 
                 navButton(icon: "chevron.right") {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
-                        if let d = calendar.date(byAdding: .month, value: 1, to: monthAnchor) {
-                            monthAnchor = d
-                            viewModel.selectedMonthDate = d
+                        if let d = calendar.date(byAdding: .year, value: 1, to: yearAnchor) {
+                            yearAnchor = d
                         }
                     }
                 }
             }
 
-            // Weekday headers
-            HStack(spacing: 0) {
-                ForEach(weekdaySymbols(), id: \.self) { symbol in
-                    Text(symbol)
-                        .font(.system(size: 9, weight: .semibold))
-                        .tracking(1.4)
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
-                        .frame(maxWidth: .infinity)
-                }
-            }
-
-            // Day grid
-            let cells = monthCells(for: monthAnchor)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 10) {
-                ForEach(Array(cells.enumerated()), id: \.offset) { _, date in
-                    if let date {
-                        monthDayCell(for: date)
-                    } else {
-                        Color.clear.frame(height: 36)
-                    }
+            let months = monthsInYear(yearAnchor)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+                ForEach(Array(months.enumerated()), id: \.offset) { _, monthDate in
+                    monthCell(for: monthDate)
                 }
             }
 
@@ -288,6 +272,74 @@ struct EditorialCalendarReveal: View {
         }
     }
 
+    private func monthCell(for date: Date) -> some View {
+        let isSelected = calendar.isDate(date, equalTo: viewModel.selectedMonthDate, toGranularity: .month)
+        let isCurrent = calendar.isDate(date, equalTo: Date(), toGranularity: .month)
+        let isFuture = date > Date() && !isCurrent
+
+        return Button {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                viewModel.selectedMonthDate = date
+                monthAnchor = date
+                isExpanded = false
+            }
+        } label: {
+            VStack(spacing: 4) {
+                Text(monthShortLabel(for: date).uppercased())
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular, design: .serif))
+                    .tracking(1.2)
+                    .foregroundStyle(
+                        isSelected
+                            ? PepTheme.textPrimary
+                            : (isFuture ? PepTheme.textPrimary.opacity(0.32) : PepTheme.textPrimary.opacity(0.85))
+                    )
+                Circle()
+                    .fill(isCurrent && !isSelected ? PepTheme.teal : Color.clear)
+                    .frame(width: 3, height: 3)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(
+                ZStack {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(PepTheme.teal.opacity(0.16))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(PepTheme.teal.opacity(0.55), lineWidth: 0.8)
+                            )
+                    } else {
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(PepTheme.textPrimary.opacity(0.06), lineWidth: 0.5)
+                    }
+                }
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: isSelected)
+    }
+
+    private func monthShortLabel(for date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM"
+        return f.string(from: date)
+    }
+
+    private func yearTitle(for date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy"
+        return f.string(from: date)
+    }
+
+    private func monthsInYear(_ date: Date) -> [Date] {
+        let year = calendar.component(.year, from: date)
+        return (1...12).compactMap { month in
+            calendar.date(from: DateComponents(year: year, month: month, day: 1))
+        }
+    }
+
+    @available(*, deprecated, message: "Month mode now uses month-picker grid")
     private func monthDayCell(for date: Date) -> some View {
         let isSelected = calendar.isDate(date, inSameDayAs: viewModel.selectedDate)
         let isToday = calendar.isDateInToday(date)
@@ -441,6 +493,7 @@ struct EditorialCalendarReveal: View {
         case .monthly:
             viewModel.selectedMonthDate = Date()
             monthAnchor = Date()
+            yearAnchor = Date()
         }
     }
 
