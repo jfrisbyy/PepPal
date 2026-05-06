@@ -2,15 +2,16 @@ import SwiftUI
 
 /// Premium inline calendar that drops down beneath the editorial eyebrow.
 ///
-/// - Week strip with weekday initials (tracked caps) and serif date numerals
-/// - Swipe between weeks with a spring animation
-/// - Toggle a magazine-style month grid in place
-/// - "Back to Today" link when not on today
+/// - Day / Week / Month segmented control replaces the legacy "View Month" link
+/// - Day: magazine week strip (swipe to change weeks, tap to pick a day)
+/// - Week: list of recent weeks with prev/next + "Current" link
+/// - Month: magazine month grid with prev/next + "Current" link
+/// - Picking a period also drives `viewModel.selectedTimePeriod` so the home
+///   page renders the matching daily / weekly / monthly content below.
 struct EditorialCalendarReveal: View {
     @Bindable var viewModel: HomeViewModel
     @Binding var isExpanded: Bool
 
-    @State private var showMonth: Bool = false
     @State private var weekAnchor: Date = Date()
     @State private var monthAnchor: Date = Date()
     @State private var dragOffset: CGFloat = 0
@@ -19,19 +20,20 @@ struct EditorialCalendarReveal: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            if showMonth {
-                monthView
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .move(edge: .top)),
-                        removal: .opacity
-                    ))
-            } else {
-                weekStrip
-                    .transition(.asymmetric(
-                        insertion: .opacity,
-                        removal: .opacity.combined(with: .move(edge: .top))
-                    ))
+            Group {
+                switch viewModel.selectedTimePeriod {
+                case .daily:
+                    weekStrip
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                case .weekly:
+                    weekListView
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                case .monthly:
+                    monthView
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
+            .animation(.spring(response: 0.42, dampingFraction: 0.86), value: viewModel.selectedTimePeriod)
 
             footerControls
         }
@@ -39,15 +41,17 @@ struct EditorialCalendarReveal: View {
         .padding(.bottom, 6)
         .onAppear {
             weekAnchor = viewModel.selectedDate
-            monthAnchor = viewModel.selectedDate
+            monthAnchor = viewModel.selectedMonthDate
         }
         .onChange(of: viewModel.selectedDate) { _, newValue in
             weekAnchor = newValue
+        }
+        .onChange(of: viewModel.selectedMonthDate) { _, newValue in
             monthAnchor = newValue
         }
     }
 
-    // MARK: - Week strip
+    // MARK: - Day mode (week strip)
 
     private var weekStrip: some View {
         let days = weekDays(anchor: weekAnchor)
@@ -84,7 +88,7 @@ struct EditorialCalendarReveal: View {
         let isFuture = date > calendar.startOfDay(for: Date()).addingTimeInterval(86400 - 1)
 
         return Button {
-            select(date)
+            selectDay(date)
         } label: {
             VStack(spacing: 8) {
                 Text(weekdayInitial(for: date))
@@ -127,22 +131,103 @@ struct EditorialCalendarReveal: View {
         .sensoryFeedback(.selection, trigger: isSelected && calendar.isDate(date, inSameDayAs: viewModel.selectedDate))
     }
 
+    // MARK: - Week mode (list of weeks)
+
+    private var weekListView: some View {
+        VStack(spacing: 12) {
+            HStack {
+                navButton(icon: "chevron.left") {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
+                        viewModel.navigateWeek(by: -1)
+                    }
+                }
+
+                Spacer()
+
+                Text(viewModel.selectedWeekLabel.uppercased())
+                    .font(.system(size: 13, weight: .semibold))
+                    .tracking(1.8)
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .contentTransition(.numericText())
+
+                Spacer()
+
+                navButton(icon: "chevron.right") {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
+                        viewModel.navigateWeek(by: 1)
+                    }
+                }
+            }
+
+            VStack(spacing: 0) {
+                ForEach(viewModel.weekNavigationWeeks) { week in
+                    weekRow(week: week)
+                    if week.id != viewModel.weekNavigationWeeks.last?.id {
+                        Rectangle()
+                            .fill(PepTheme.textPrimary.opacity(0.06))
+                            .frame(height: 0.5)
+                    }
+                }
+            }
+        }
+    }
+
+    private func weekRow(week: WeekItem) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
+                viewModel.selectedWeekStart = week.weekStart
+                isExpanded = false
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Text(weekRowLabel(week: week))
+                    .font(.system(size: 16, weight: week.isSelected ? .semibold : .regular, design: .serif))
+                    .foregroundStyle(
+                        week.isSelected
+                            ? PepTheme.textPrimary
+                            : PepTheme.textPrimary.opacity(0.78)
+                    )
+
+                Spacer()
+
+                if week.isCurrent {
+                    Text("THIS WEEK")
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(1.5)
+                        .foregroundStyle(PepTheme.teal)
+                }
+
+                if week.isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(PepTheme.teal)
+                }
+            }
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: viewModel.selectedWeekStart)
+    }
+
+    private func weekRowLabel(week: WeekItem) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return "\(f.string(from: week.weekStart)) – \(f.string(from: week.weekEnd))"
+    }
+
     // MARK: - Month grid
 
     private var monthView: some View {
         VStack(spacing: 14) {
             HStack {
-                Button {
+                navButton(icon: "chevron.left") {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
                         if let d = calendar.date(byAdding: .month, value: -1, to: monthAnchor) {
                             monthAnchor = d
+                            viewModel.selectedMonthDate = d
                         }
                     }
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .frame(width: 28, height: 28)
                 }
 
                 Spacer()
@@ -156,17 +241,13 @@ struct EditorialCalendarReveal: View {
 
                 Spacer()
 
-                Button {
+                navButton(icon: "chevron.right") {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
                         if let d = calendar.date(byAdding: .month, value: 1, to: monthAnchor) {
                             monthAnchor = d
+                            viewModel.selectedMonthDate = d
                         }
                     }
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .frame(width: 28, height: 28)
                 }
             }
 
@@ -214,7 +295,13 @@ struct EditorialCalendarReveal: View {
         let inMonth = calendar.isDate(date, equalTo: monthAnchor, toGranularity: .month)
 
         return Button {
-            select(date)
+            // Tapping a day in the month grid pivots back to daily for that date.
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
+                viewModel.selectedDate = date
+                viewModel.selectedTimePeriod = .daily
+                weekAnchor = date
+                isExpanded = false
+            }
         } label: {
             ZStack {
                 if isSelected {
@@ -247,63 +334,134 @@ struct EditorialCalendarReveal: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Footer
+    // MARK: - Footer (period segmented + back-to-current)
 
     private var footerControls: some View {
-        HStack(spacing: 18) {
-            Button {
-                withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-                    showMonth.toggle()
+        VStack(spacing: 12) {
+            periodSegmentedControl
+
+            if let backLabel = backToCurrentLabel {
+                HStack {
+                    Spacer()
+                    Button {
+                        withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                            jumpToCurrent()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.uturn.backward")
+                                .font(.system(size: 9, weight: .bold))
+                            Text(backLabel.uppercased())
+                                .font(.system(size: 10, weight: .semibold))
+                                .tracking(1.6)
+                        }
+                        .foregroundStyle(PepTheme.teal)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.opacity)
                 }
-            } label: {
-                HStack(spacing: 6) {
-                    Text(showMonth ? "Hide Month" : "View Month")
-                        .font(.system(size: 10, weight: .semibold))
-                        .tracking(1.6)
-                        .textCase(.uppercase)
-                    Image(systemName: showMonth ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 9, weight: .bold))
-                }
-                .foregroundStyle(PepTheme.textSecondary)
             }
-            .buttonStyle(.plain)
-            .sensoryFeedback(.selection, trigger: showMonth)
+        }
+    }
 
-            Spacer()
-
-            if !calendar.isDateInToday(viewModel.selectedDate) {
+    private var periodSegmentedControl: some View {
+        HStack(spacing: 0) {
+            ForEach(HomeTimePeriod.allCases) { period in
                 Button {
                     withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-                        viewModel.selectedDate = Date()
-                        weekAnchor = Date()
-                        monthAnchor = Date()
+                        viewModel.selectedTimePeriod = period
                     }
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.uturn.backward")
-                            .font(.system(size: 9, weight: .bold))
-                        Text("Back to Today")
-                            .font(.system(size: 10, weight: .semibold))
-                            .tracking(1.6)
-                            .textCase(.uppercase)
-                    }
-                    .foregroundStyle(PepTheme.teal)
+                    Text(periodLabel(period).uppercased())
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.8)
+                        .foregroundStyle(
+                            viewModel.selectedTimePeriod == period
+                                ? PepTheme.textPrimary
+                                : PepTheme.textSecondary.opacity(0.7)
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            ZStack {
+                                if viewModel.selectedTimePeriod == period {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(PepTheme.teal.opacity(0.12))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .strokeBorder(PepTheme.teal.opacity(0.4), lineWidth: 0.6)
+                                        )
+                                }
+                            }
+                        )
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .transition(.opacity)
+                .sensoryFeedback(.selection, trigger: viewModel.selectedTimePeriod)
             }
+        }
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(PepTheme.elevated.opacity(0.6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(PepTheme.textPrimary.opacity(0.06), lineWidth: 0.5)
+                )
+        )
+    }
+
+    private func periodLabel(_ p: HomeTimePeriod) -> String {
+        switch p {
+        case .daily: return "Day"
+        case .weekly: return "Week"
+        case .monthly: return "Month"
+        }
+    }
+
+    private var backToCurrentLabel: String? {
+        switch viewModel.selectedTimePeriod {
+        case .daily:
+            return calendar.isDateInToday(viewModel.selectedDate) ? nil : "Back to Today"
+        case .weekly:
+            return viewModel.isSelectedWeekCurrent ? nil : "This Week"
+        case .monthly:
+            return viewModel.isSelectedMonthCurrent ? nil : "This Month"
+        }
+    }
+
+    private func jumpToCurrent() {
+        switch viewModel.selectedTimePeriod {
+        case .daily:
+            viewModel.selectedDate = Date()
+            weekAnchor = Date()
+        case .weekly:
+            let start = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) ?? Date()
+            viewModel.selectedWeekStart = start
+        case .monthly:
+            viewModel.selectedMonthDate = Date()
+            monthAnchor = Date()
         }
     }
 
     // MARK: - Helpers
 
-    private func select(_ date: Date) {
+    private func selectDay(_ date: Date) {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
             viewModel.selectedDate = date
             weekAnchor = date
-            monthAnchor = date
             isExpanded = false
         }
+    }
+
+    private func navButton(icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(PepTheme.textSecondary)
+                .frame(width: 28, height: 28)
+        }
+        .buttonStyle(.plain)
     }
 
     private func shiftWeek(by offset: Int) {
@@ -332,7 +490,6 @@ struct EditorialCalendarReveal: View {
     private func weekdaySymbols() -> [String] {
         let f = DateFormatter()
         let symbols = f.veryShortStandaloneWeekdaySymbols ?? ["S","M","T","W","T","F","S"]
-        // Reorder by firstWeekday (Sun=1 by default)
         let first = calendar.firstWeekday - 1
         return Array(symbols[first...] + symbols[..<first])
     }
@@ -358,7 +515,6 @@ struct EditorialCalendarReveal: View {
                 cells.append(d)
             }
         }
-        // Pad to multiple of 7
         while cells.count % 7 != 0 { cells.append(nil) }
         return cells
     }

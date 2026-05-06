@@ -34,13 +34,14 @@ struct HomeView: View {
     @State private var showNotificationCenter: Bool = false
     @State private var notifStore = SmartNotificationStore.shared
     @State private var isCalendarRevealExpanded: Bool = false
+    @State private var scrollOffset: CGFloat = 0
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 if viewModel.isLoading {
                     SkeletonHomeView()
-                        .padding(.top, 8)
+                        .padding(.top, 56)
                         .transition(.opacity)
                 } else {
                     EditorialHeader(
@@ -54,7 +55,7 @@ struct HomeView: View {
                         )
                     }
                     .padding(.horizontal)
-                    .padding(.top, 8)
+                    .padding(.top, 56)
                     .padding(.bottom, 6)
                     Group {
                         switch viewModel.selectedTimePeriod {
@@ -78,31 +79,25 @@ struct HomeView: View {
                 }
             }
             .scrollIndicators(.hidden)
+            .onScrollGeometryChange(for: CGFloat.self) { geo in
+                geo.contentOffset.y
+            } action: { _, newValue in
+                scrollOffset = newValue
+            }
             .refreshable {
                 await viewModel.refresh()
                 await energyBalanceViewModel.refresh()
             }
             .appBackground(accent: PepTheme.teal)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 10) {
-                        Button {
-                            showGlobalSearch = true
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                                .frame(width: 32, height: 32)
-                                .background(PepTheme.cardSurface)
-                                .clipShape(.circle)
-                                .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5))
-                        }
-                        .sensoryFeedback(.selection, trigger: showGlobalSearch)
-                        notificationsToolbarIcon
-                        streakToolbarIcon
-                    }
-                }
+            .toolbar(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                Color.clear.frame(height: 0)
+            }
+            .overlay(alignment: .topTrailing) {
+                floatingActionPill
+                    .padding(.top, 6)
+                    .padding(.trailing, 14)
             }
             .onAppear { performHomeAppear() }
             .onChange(of: scenePhase) { _, newPhase in
@@ -465,7 +460,108 @@ struct HomeView: View {
 
 
 
-    // MARK: - Notifications Toolbar Icon
+    // MARK: - Floating Action Pill
+
+    /// Unified floating pill in the top-right corner: search · bell · streak.
+    /// Fades and shrinks slightly while the user scrolls so it never blocks text.
+    private var floatingActionPill: some View {
+        HStack(spacing: 0) {
+            Button {
+                showGlobalSearch = true
+            } label: {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .frame(width: 36, height: 36)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: showGlobalSearch)
+
+            pillDivider
+
+            Button {
+                showNotificationCenter = true
+            } label: {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: notifStore.unreadCount > 0 ? "bell.badge.fill" : "bell")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(notifStore.unreadCount > 0 ? PepTheme.teal : PepTheme.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .symbolEffect(.bounce, value: notifStore.unreadCount)
+                    if notifStore.unreadCount > 0 {
+                        Circle()
+                            .fill(PepTheme.coral)
+                            .frame(width: 7, height: 7)
+                            .overlay(Circle().strokeBorder(PepTheme.cardSurface, lineWidth: 1))
+                            .offset(x: -8, y: 8)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: showNotificationCenter)
+
+            pillDivider
+
+            Button {
+                showStreakInfo = true
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: streakIconName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(streakIconStyle)
+                        .symbolEffect(.pulse, options: .repeating, isActive: viewModel.streakManager.streakState == .active)
+                    Text("\(viewModel.quickStats.streakDays)")
+                        .font(.system(.subheadline, design: .rounded, weight: .bold))
+                        .foregroundStyle(viewModel.streakManager.streakState == .broken ? PepTheme.textSecondary : PepTheme.textPrimary)
+                }
+                .padding(.horizontal, 12)
+                .frame(height: 36)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: showStreakInfo)
+        }
+        .background(
+            Capsule()
+                .fill(PepTheme.cardSurface)
+                .overlay(
+                    Capsule().strokeBorder(
+                        viewModel.streakManager.streakState == .paused
+                            ? PepTheme.amber.opacity(0.6)
+                            : PepTheme.glassBorderTop,
+                        lineWidth: 0.6
+                    )
+                )
+                .shadow(color: .black.opacity(0.18), radius: 12, x: 0, y: 6)
+        )
+        .clipShape(.capsule)
+        .scaleEffect(pillScale, anchor: .topTrailing)
+        .opacity(pillOpacity)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: pillScale)
+        .animation(.easeOut(duration: 0.18), value: pillOpacity)
+    }
+
+    private var pillDivider: some View {
+        Rectangle()
+            .fill(PepTheme.textPrimary.opacity(0.08))
+            .frame(width: 0.5, height: 18)
+    }
+
+    /// 1.0 at the top, easing down to 0.88 once the page is scrolled.
+    private var pillScale: CGFloat {
+        let progress = min(max(scrollOffset / 80, 0), 1)
+        return 1.0 - 0.12 * progress
+    }
+
+    /// 1.0 at the top, easing down to 0.7 once the page is scrolled.
+    private var pillOpacity: Double {
+        let progress = min(max(Double(scrollOffset) / 80, 0), 1)
+        return 1.0 - 0.3 * progress
+    }
+
+    // MARK: - Notifications Toolbar Icon (legacy — superseded by floatingActionPill)
 
     private var notificationsToolbarIcon: some View {
         Button {

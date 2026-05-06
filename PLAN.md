@@ -1,26 +1,30 @@
-# Make the date eyebrow the elegant entry point to a calendar
+# Floating action pill + Day/Week/Month tabs in the calendar reveal
 
-## What changes
+## What changes on the home screen
 
-The small "WEDNESDAY · MAY 6" label sitting above "Good evening, Jordan" becomes the single, premium way to change the date on the home screen.
+### 1. Day / Week / Month inside the calendar reveal
 
-## Features
+- Tapping the editorial eyebrow ("Wednesday · May 6") still drops the calendar down beneath it.
+- The footer of the reveal is replaced with a tracked, small-caps segmented control: **DAY · WEEK · MONTH**.
+  - **Day** shows the existing magazine week strip (swipe between weeks, tap a date).
+  - **Week** shows a clean list of recent weeks with the selected week highlighted, plus prev/next chevrons and a "Current" link when off-week.
+  - **Month** shows the magazine month grid you have today, plus prev/next month chevrons and a "Current" link when off-month.
+- Picking Day/Week/Month here also drives what the home page renders below (daily plan, weekly summary, or monthly summary) — they stay in lockstep.
+- "Back to Today / Current" link still appears on the right of the footer when you're not on the present day/week/month.
+- All transitions use the same gentle spring + crossfade as today.
 
-- **Tap the eyebrow date** to drop down an inline, editorial calendar strip directly beneath it — no modal, no sheet, no jarring transition.
-- The strip shows a swipeable week of days with the selected date elegantly highlighted; swipe left/right to move between weeks, with smooth spring animation and subtle haptics.
-- A discreet "View full month" affordance opens a polished month grid in the same inline space for deeper navigation, then collapses back to the week.
-- A whisper-quiet **"Back to Today"** link appears when viewing a past or future date.
-- Tapping the eyebrow again (or selecting a date) gracefully collapses the calendar.
+### 2. Fully floating action pill (search · bell · streak)
 
-## Design
+- The top navigation bar background is removed entirely on the home screen — content scrolls cleanly underneath, nothing visually blocking the editorial text.
+- Search, notifications, and the streak counter are merged into **one unified floating pill** in the top-right safe area:
+  - Magnifying glass · bell (with unread dot) · vertical hairline · flame + streak number.
+  - Soft card-surface fill with a hairline border, gentle shadow — feels like it's hovering over the page.
+- On scroll, the pill **fades and shrinks slightly** (~88% scale, ~70% opacity) for an even cleaner read, then snaps back to full size when the page settles.
+- Tapping each segment still opens the same destinations (Global Search, Notification Center, Streak Info).
+- Haptic selection feedback is preserved.
 
-- **Affordance:** A tiny chevron sits right after the date in the same tracked, small-caps style as the eyebrow — it rotates 180° on open. Nothing else changes about the typography.
-- **Inline reveal:** The calendar slides down with a soft spring, pushing the greeting and content gently downward. The hairline rule under the eyebrow stays as the visual anchor.
-- **Week strip:** Seven minimalist day cells — weekday initial in tracked caps on top, the date numeral in serif below. The selected day uses a quiet accent fill with the brand teal; today gets a small dot. Future days that have no data are softened to a low-contrast tone.
-- **Month view:** Same serif numerals, generous spacing, faint hairline grid — feels like a magazine calendar page rather than a system date picker.
-- **Motion:** Spring transitions throughout, gentle selection haptic on date tap, chevron rotates with the reveal.
+### 3. Small cleanups
 
-## Cleanup
+- Remove the now-redundant standalone toolbar items (search/bell/streak) since they live in the floating pill.
+- Keep all existing date-driven content (daily/weekly/monthly summaries) wired to the same view model state — no data behavior changes.
 
-- The small date pill in the top toolbar is removed so the eyebrow is the one, unambiguous place to change dates. The toolbar keeps search, notifications, and streak.
-- The existing "selected date" banner that appears for non-today dates stays as-is for context.
