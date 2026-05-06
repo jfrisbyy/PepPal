@@ -9,7 +9,8 @@ struct LiveRunView: View {
     @State private var showSummary: Bool = false
     @State private var countdownActive: Bool = true
     @State private var countdownValue: Int = 3
-    @State private var mapCameraPosition: MapCameraPosition = .automatic
+    @State private var mapCameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
+    @State private var followsUser: Bool = true
 
     private let accentColor = Color(red: 0.0, green: 0.9, blue: 1.0)
 
@@ -104,11 +105,12 @@ struct LiveRunView: View {
 
     private var mapSection: some View {
         ZStack(alignment: .topTrailing) {
-            Map(position: $mapCameraPosition) {
+            Map(position: $mapCameraPosition, interactionModes: [.pan, .zoom, .pitch]) {
+                UserAnnotation()
                 ForEach(paceSegments.indices, id: \.self) { i in
                     let seg = paceSegments[i]
                     MapPolyline(coordinates: seg.coords)
-                        .stroke(seg.color, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                        .stroke(seg.color, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
                 }
                 ForEach(mileMarkers) { marker in
                     Annotation("\(marker.mile)", coordinate: marker.coordinate) {
@@ -121,9 +123,48 @@ struct LiveRunView: View {
                     }
                 }
             }
-            .mapStyle(.standard(pointsOfInterest: .excludingAll))
+            .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .including([.park, .stadium, .nationalPark])))
+            .mapControls {
+                MapCompass()
+                MapScaleView()
+            }
+            .onChange(of: runVM.routePoints.count) { _, _ in
+                guard followsUser, !runVM.isTreadmillMode else { return }
+                if let last = runVM.routePoints.last {
+                    let coord = CLLocationCoordinate2D(latitude: last.latitude, longitude: last.longitude)
+                    withAnimation(.easeInOut(duration: 0.6)) {
+                        mapCameraPosition = .camera(MapCamera(centerCoordinate: coord, distance: 800, heading: 0, pitch: 0))
+                    }
+                }
+            }
+            .gesture(
+                DragGesture().onChanged { _ in
+                    if followsUser { followsUser = false }
+                }
+            )
 
             VStack(alignment: .trailing, spacing: 6) {
+                if !followsUser && !runVM.isTreadmillMode {
+                    Button {
+                        followsUser = true
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            mapCameraPosition = .userLocation(fallback: .automatic)
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 11, weight: .bold))
+                            Text("Recenter")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(accentColor.opacity(0.95))
+                        .clipShape(Capsule())
+                    }
+                }
+
                 if runVM.isTreadmillMode {
                     HStack(spacing: 6) {
                         Image(systemName: "figure.run.treadmill")
