@@ -12,6 +12,7 @@ nonisolated enum TrainModeType: String, CaseIterable, Identifiable, Sendable, Co
     case volleyball = "Volleyball"
     case pickleball = "Pickleball"
     case football = "Football"
+    case martialArts = "Martial Arts"
     case custom = "Custom"
 
     var id: String { rawValue }
@@ -28,6 +29,7 @@ nonisolated enum TrainModeType: String, CaseIterable, Identifiable, Sendable, Co
         case .volleyball: "figure.volleyball"
         case .pickleball: "figure.pickleball"
         case .football: "football.fill"
+        case .martialArts: "figure.martial.arts"
         case .custom: "star.fill"
         }
     }
@@ -44,6 +46,7 @@ nonisolated enum TrainModeType: String, CaseIterable, Identifiable, Sendable, Co
         case .volleyball: Color(red: 0.95, green: 0.30, blue: 0.20)
         case .pickleball: Color(red: 0.62, green: 0.86, blue: 0.18)
         case .football: Color(red: 0.55, green: 0.35, blue: 0.17)
+        case .martialArts: Color(red: 0.85, green: 0.18, blue: 0.22)
         case .custom: Color(red: 0.55, green: 0.36, blue: 0.96)
         }
     }
@@ -59,6 +62,7 @@ nonisolated enum TrainModeType: String, CaseIterable, Identifiable, Sendable, Co
         case .volleyball: .volleyball
         case .pickleball: .pickleball
         case .football: .football
+        case .martialArts: .martialArts
         default: nil
         }
     }
@@ -84,6 +88,8 @@ nonisolated enum TrainModeType: String, CaseIterable, Identifiable, Sendable, Co
         case .pickleball:
             return [.sportSessions, .sportStats, .gameLog, .sportHistory, .goals]
         case .football:
+            return [.sportSessions, .sportStats, .gameLog, .sportHistory, .goals]
+        case .martialArts:
             return [.sportSessions, .sportStats, .gameLog, .sportHistory, .goals]
         case .custom:
             return [.sportSessions, .sportStats, .sportHistory, .goals]

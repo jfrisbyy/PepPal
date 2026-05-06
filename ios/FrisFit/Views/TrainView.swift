@@ -12,6 +12,7 @@ struct TrainView: View {
     @State private var tennisVM = TennisViewModel.shared
     @State private var volleyballVM = VolleyballViewModel.shared
     @State private var pickleVM = PickleballViewModel.shared
+    @State private var maVM = MartialArtsViewModel.shared
     @State private var showLibrary: Bool = false
     @State private var sessionManager = WorkoutSessionManager.shared
     @State private var showSportSelector: Bool = false
@@ -296,6 +297,27 @@ struct TrainView: View {
             .navigationDestination(isPresented: $pickleVM.showMatchDetail) {
                 if let match = pickleVM.selectedMatch {
                     PickleballMatchDetailView(match: match)
+                }
+            }
+            .sheet(isPresented: $maVM.showSessionLog) {
+                MartialArtsSessionLogSheet(maVM: maVM)
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $maVM.showDrillLibrary) {
+                MartialArtsDrillLibraryView()
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $maVM.showSettings) {
+                MartialArtsSettingsView(maVM: maVM)
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $maVM.showWorkoutBuilder) {
+                MartialArtsWorkoutBuilderView(maVM: maVM)
+                    .presentationDetents([.large])
+            }
+            .navigationDestination(isPresented: $maVM.showSessionDetail) {
+                if let session = maVM.selectedSession {
+                    MartialArtsSessionDetailView(session: session)
                 }
             }
             .sheet(isPresented: $showProgressSheet) {
@@ -1338,6 +1360,11 @@ struct TrainView: View {
             case .pickleball:
                 PickleballDashboardView(
                     pickleVM: pickleVM,
+                    accentColor: viewModel.currentMode.type.color
+                )
+            case .martialArts:
+                MartialArtsDashboardView(
+                    maVM: maVM,
                     accentColor: viewModel.currentMode.type.color
                 )
             default:

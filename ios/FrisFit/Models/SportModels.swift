@@ -12,6 +12,7 @@ nonisolated enum Sport: String, CaseIterable, Identifiable, Sendable {
     case swimming = "Swimming"
     case running = "Running"
     case cycling = "Cycling"
+    case martialArts = "Martial Arts"
     case custom = "Custom"
 
 
@@ -29,6 +30,7 @@ nonisolated enum Sport: String, CaseIterable, Identifiable, Sendable {
         case .swimming: "figure.pool.swim"
         case .running: "figure.run"
         case .cycling: "figure.outdoor.cycle"
+        case .martialArts: "figure.martial.arts"
         case .custom: "star.fill"
         }
     }
@@ -45,6 +47,7 @@ nonisolated enum Sport: String, CaseIterable, Identifiable, Sendable {
         case .swimming: Color(red: 0.2, green: 0.6, blue: 1.0)
         case .running: Color(red: 0.0, green: 0.9, blue: 1.0)
         case .cycling: Color(red: 0.95, green: 0.45, blue: 0.0)
+        case .martialArts: Color(red: 0.85, green: 0.18, blue: 0.22)
         case .custom: Color(red: 0.55, green: 0.36, blue: 0.96)
         }
     }
