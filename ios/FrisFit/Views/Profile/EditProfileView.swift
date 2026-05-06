@@ -669,19 +669,34 @@ struct EditProfileView: View {
     private func save() async {
         if let data = avatarImageData {
             isUploading = true
-            _ = await viewModel.uploadAvatar(imageData: data)
+            let avatarUrl = await viewModel.uploadAvatar(imageData: data)
             isUploading = false
+            if avatarUrl == nil {
+                saveErrorMessage = viewModel.profileError ?? "Couldn't upload your avatar. Please try again."
+                showSaveError = true
+                return
+            }
         }
 
         if let bannerData = pendingBannerData {
             isUploading = true
-            _ = await viewModel.uploadBanner(imageData: bannerData)
+            let bannerUrl = await viewModel.uploadBanner(imageData: bannerData)
             isUploading = false
+            if bannerUrl == nil {
+                saveErrorMessage = viewModel.profileError ?? "Couldn't upload your header image. Please try again."
+                showSaveError = true
+                return
+            }
             pendingBannerData = nil
         } else if bannerRemoved {
             isUploading = true
             await viewModel.removeBanner()
             isUploading = false
+            if let err = viewModel.profileError {
+                saveErrorMessage = err
+                showSaveError = true
+                return
+            }
             bannerRemoved = false
         }
 
