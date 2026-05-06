@@ -106,7 +106,7 @@ nonisolated struct ContextBundle: Sendable {
         var parts: [String] = []
         parts.append(userProfile.timeOfDay)
         if let p = protocolContext {
-            parts.append("proto:\(p.compoundName):\(p.currentDose):\(p.currentWeek):\(p.currentPhase):\(p.doseLoggedToday):\(p.doseLoggedTime ?? "none")")
+            parts.append("proto:\(p.compoundName):\(p.currentDose):\(p.currentWeek):\(p.currentPhase):\(p.doseLoggedToday):\(p.doseLoggedTime ?? "none"):\(p.currentBodyLevel ?? "-"):\(p.percentOfLastDose ?? -1):\(p.levelPhase ?? "-")")
         }
         if let n = nutritionToday {
             parts.append("nutr:\(n.caloriesConsumed):\(n.proteinConsumed):\(n.carbsConsumed):\(n.fatConsumed):\(n.mealsLogged)")
@@ -168,6 +168,18 @@ nonisolated struct ContextBundle: Sendable {
                 if let t = p.doseLoggedTime { protocolStr += " at \(t)" }
             } else {
                 protocolStr += "\nDose logged today: No"
+            }
+            if let level = p.currentBodyLevel {
+                protocolStr += "\nCurrent amount in body (calculated PK): \(level)"
+            }
+            if let pct = p.percentOfLastDose {
+                protocolStr += "\nPercent of last dose still active: ~\(pct)%"
+            }
+            if let last = p.lastDoseAmount {
+                protocolStr += "\nLast dose: \(last)"
+            }
+            if let phase = p.levelPhase {
+                protocolStr += "\nPK phase relative to last dose: \(phase)"
             }
             sections.append(protocolStr)
         }
@@ -361,6 +373,15 @@ nonisolated struct ProtocolContext: Sendable {
     let percentThrough: Int?
     let doseLoggedToday: Bool
     let doseLoggedTime: String?
+    /// Calculated current circulating amount in body (e.g. "4.20 mg", "320 mcg").
+    /// Same value shown on the protocol card's "in body now" line.
+    let currentBodyLevel: String?
+    /// Percent of last dose still active in the body (0-150).
+    let percentOfLastDose: Int?
+    /// Last dose amount for reference (e.g. "6 mg").
+    let lastDoseAmount: String?
+    /// Coarse phase of the PK curve relative to the last dose: "absorbing", "peak", "declining", "trough".
+    let levelPhase: String?
 }
 
 nonisolated struct NutritionTodayContext: Sendable {

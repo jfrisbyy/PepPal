@@ -99,6 +99,9 @@ final class TodaysPlanService {
 
     CRITICAL MODULE REQUIREMENTS:
     - If the user has ANY active protocol (protocolContext is present OR compoundKnowledge is present), you MUST include a "protocol" module in every response. Never omit it. The protocol module should reference the specific compound(s), current week, phase, and dose status. If they have multiple protocols, the module must mention every compound across every protocol.
+
+    PEPTIDE LEVEL AWARENESS (NON-NEGOTIABLE WHEN PROTOCOL DATA EXISTS):
+    The context includes the calculated current circulating amount of each compound in the user's body — this is the same Bateman PK value shown on the user's protocol level chart, not the prescribed dose. Whenever you discuss the protocol (in summary, narrative, or the protocol module), you MUST reference the actual circulating level — not just the scheduled dose. Use the "Current amount in body" value, the percent of last dose still active, and the PK phase (absorbing / peak / declining / trough). Examples: "Retatrutide is sitting around 4.2 mg right now — about 70% of your last dose, declining off Tuesday's peak." or "You're in the trough window — Sema is down to ~120 mcg, which is why appetite is back." Connect this level to today's reality: peak windows often coincide with stronger side effects and reduced appetite; trough windows often mean appetite returns and side effects fade. Tie training, nutrition timing, and side-effect predictions to where the user sits on the curve. Never describe the protocol purely in terms of mg-per-week or scheduled dose when a calculated body level is provided.
     - If the user has nutrition data for today (mealsLogged > 0 OR a nutrition target exists), include a "nutrition" module.
     - If the user has an active training program or today's workout is scheduled, include a "training" module.
     - If the user has weight data (currentWeight > 0), include a "body" module.
@@ -199,6 +202,27 @@ final class TodaysPlanService {
             throw TodaysPlanError.invalidResponse
         }
         return try JSONDecoder().decode(TodaysPlanModule.self, from: jsonData)
+    }
+
+    /// Coarse PK phase relative to the last dose using a small forward sample
+    /// to detect direction of the curve. Returns one of:
+    /// "absorbing", "peak", "declining", "trough".
+    private static func pkPhase(for compound: ProtocolCompound, in proto: PeptideProtocol, now: Date) -> String? {
+        let profile = PeptidePharmacology.profile(for: compound.compoundName)
+        let doses = PKSampleBuilder.dosesFromLog(proto.doseLog, compoundName: compound.compoundName)
+        guard let lastDose = doses.last else { return nil }
+        let nowMg = PeptidePharmacology.levelMg(at: now, doses: doses, ka: profile.ka, ke: profile.ke)
+        let lastMg = lastDose.mg
+        let pct = lastMg > 0 ? nowMg / lastMg : 0
+        if pct < 0.05 { return "trough" }
+        // Sample 30 minutes forward and back to detect direction.
+        let backMg = PeptidePharmacology.levelMg(at: now.addingTimeInterval(-1800), doses: doses, ka: profile.ka, ke: profile.ke)
+        let fwdMg = PeptidePharmacology.levelMg(at: now.addingTimeInterval(1800), doses: doses, ka: profile.ka, ke: profile.ke)
+        let rising = nowMg > backMg && fwdMg >= nowMg
+        let nearPeak = abs(fwdMg - nowMg) / max(nowMg, 1e-6) < 0.02 && abs(nowMg - backMg) / max(nowMg, 1e-6) < 0.02
+        if nearPeak { return "peak" }
+        if rising { return "absorbing" }
+        return "declining"
     }
 
     func generatePlan(context: ContextBundle) async throws -> TodaysPlanResponse {
@@ -327,6 +351,13 @@ final class TodaysPlanService {
             let todayDoses = proto.doseLog.filter { Calendar.current.isDateInToday($0.timestamp) }
             let doseTime = todayDoses.first.map { timeFormatter.string(from: $0.timestamp) }
 
+            let reading = ProtocolBodyLevelCalculator.currentLevel(for: compound, in: proto, now: now)
+            let lastDoseStr = reading.lastDoseMg.map { mg -> String in
+                if mg >= 1 { return String(format: "%.2f mg", mg) }
+                return String(format: "%.0f mcg", mg * 1000)
+            }
+            let phase = Self.pkPhase(for: compound, in: proto, now: now)
+
             protocolContext = ProtocolContext(
                 compoundName: compound.compoundName,
                 currentDose: CompoundUnitHelper.displayDoseShort(compound.doseMcg, for: compound.compoundName),
@@ -337,7 +368,11 @@ final class TodaysPlanService {
                 totalDays: daysSinceStart,
                 percentThrough: percentThrough,
                 doseLoggedToday: !todayDoses.isEmpty,
-                doseLoggedTime: doseTime
+                doseLoggedTime: doseTime,
+                currentBodyLevel: reading.displayValue,
+                percentOfLastDose: reading.percentOfLastDose,
+                lastDoseAmount: lastDoseStr,
+                levelPhase: phase
             )
         }
 
@@ -358,6 +393,18 @@ final class TodaysPlanService {
                     }.count
                     knowledge += "• \(compound.compoundName) — \(dose), \(compound.frequency)"
                     knowledge += todayCount > 0 ? " [logged today]\n" : " [not logged today]\n"
+                    let reading = ProtocolBodyLevelCalculator.currentLevel(for: compound, in: proto, now: now)
+                    let phase = Self.pkPhase(for: compound, in: proto, now: now)
+                    var levelLine = "  In body now (calculated PK): \(reading.displayValue)"
+                    if let pct = reading.percentOfLastDose {
+                        levelLine += " (~\(pct)% of last dose)"
+                    }
+                    if let phase { levelLine += " — \(phase)" }
+                    knowledge += levelLine + "\n"
+                    if let lastMg = reading.lastDoseMg {
+                        let lastStr = lastMg >= 1 ? String(format: "%.2f mg", lastMg) : String(format: "%.0f mcg", lastMg * 1000)
+                        knowledge += "  Last dose: \(lastStr)\n"
+                    }
                     if let profile = CompoundDatabase.all.first(where: {
                         $0.name.lowercased() == compound.compoundName.lowercased()
                     }) {
