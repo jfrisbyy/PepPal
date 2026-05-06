@@ -75,7 +75,7 @@ struct CreateTrainModeSheet: View {
                 .foregroundStyle(PepTheme.textSecondary)
                 .tracking(1.2)
 
-            let types: [TrainModeType] = [.custom, .running, .cycling, .swimming, .basketball, .soccer, .tennis, .volleyball, .football]
+            let types: [TrainModeType] = [.custom, .running, .cycling, .swimming, .basketball, .soccer, .tennis, .volleyball, .pickleball, .football]
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 70), spacing: 8)], spacing: 8) {
                 ForEach(types) { type in

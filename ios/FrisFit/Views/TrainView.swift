@@ -11,6 +11,7 @@ struct TrainView: View {
     @State private var soccerVM = SoccerViewModel.shared
     @State private var tennisVM = TennisViewModel.shared
     @State private var volleyballVM = VolleyballViewModel.shared
+    @State private var pickleVM = PickleballViewModel.shared
     @State private var showLibrary: Bool = false
     @State private var sessionManager = WorkoutSessionManager.shared
     @State private var showSportSelector: Bool = false
@@ -274,6 +275,27 @@ struct TrainView: View {
             .navigationDestination(isPresented: $volleyballVM.showMatchDetail) {
                 if let match = volleyballVM.selectedMatch {
                     VolleyballMatchDetailView(match: match)
+                }
+            }
+            .sheet(isPresented: $pickleVM.showMatchLog) {
+                PickleballGameLogSheet(pickleVM: pickleVM)
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $pickleVM.showDrillLibrary) {
+                PickleballDrillLibraryView()
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $pickleVM.showSettings) {
+                PickleballSettingsView(pickleVM: pickleVM)
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $pickleVM.showWorkoutBuilder) {
+                PickleballWorkoutBuilderView(pickleVM: pickleVM)
+                    .presentationDetents([.large])
+            }
+            .navigationDestination(isPresented: $pickleVM.showMatchDetail) {
+                if let match = pickleVM.selectedMatch {
+                    PickleballMatchDetailView(match: match)
                 }
             }
             .sheet(isPresented: $showProgressSheet) {
@@ -1311,6 +1333,11 @@ struct TrainView: View {
             case .volleyball:
                 VolleyballDashboardView(
                     volleyballVM: volleyballVM,
+                    accentColor: viewModel.currentMode.type.color
+                )
+            case .pickleball:
+                PickleballDashboardView(
+                    pickleVM: pickleVM,
                     accentColor: viewModel.currentMode.type.color
                 )
             default:
