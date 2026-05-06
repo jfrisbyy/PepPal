@@ -24,7 +24,6 @@ struct TodaysPlanCardView: View {
     var body: some View {
         VStack(spacing: 0) {
             mainCard
-            expandedTrainingContent
         }
         .fullScreenCover(isPresented: $showPepChat) {
             PepChatView(planContext: pepChatPlanContext)
@@ -82,8 +81,6 @@ struct TodaysPlanCardView: View {
 
             if !isPlanMinimized {
                 VStack(spacing: 0) {
-                    trainingSection
-                    planDivider
                     DailyTasksSectionView(
                         viewModel: viewModel,
                         isDailyTasksCollapsed: $isDailyTasksCollapsed,

@@ -275,6 +275,11 @@ struct HomeView: View {
                     }, onTapActivity: {
                         showActivity = true
                     })
+                    HomeTrainingCard(
+                        viewModel: viewModel,
+                        showProgramCreation: $showProgramCreation,
+                        onStartWorkout: { startWorkoutFromHome() }
+                    )
                     DailyNutritionCard(viewModel: energyBalanceViewModel, onLogMeal: {
                         let hour = Calendar.current.component(.hour, from: Date())
                         if hour < 10 { logMealTime = .breakfast }
