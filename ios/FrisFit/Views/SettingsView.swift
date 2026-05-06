@@ -6,6 +6,8 @@ struct SettingsView: View {
     @Bindable var viewModel: ProfileViewModel
     @State private var showDeleteConfirm: Bool = false
     @State private var showLogOutConfirm: Bool = false
+    @State private var isDeletingAccount: Bool = false
+    @State private var deleteAccountError: String?
     @State private var appearanceManager = AppearanceManager.shared
     @State private var healthKit = HealthKitService.shared
     @State private var reminderManager = ReminderManager.shared
@@ -45,9 +47,19 @@ struct SettingsView: View {
         
         .alert("Delete Account", isPresented: $showDeleteConfirm) {
             Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) { }
+            Button("Delete", role: .destructive) {
+                Task { await performDeleteAccount() }
+            }
         } message: {
             Text("This will permanently delete your account and all data. This action cannot be undone.")
+        }
+        .alert("Couldn't delete account", isPresented: Binding(
+            get: { deleteAccountError != nil },
+            set: { if !$0 { deleteAccountError = nil } }
+        )) {
+            Button("OK", role: .cancel) { deleteAccountError = nil }
+        } message: {
+            Text(deleteAccountError ?? "")
         }
         .alert("Apple Health Access", isPresented: $showHealthSettingsAlert) {
             Button("Open Settings") {
@@ -482,6 +494,20 @@ struct SettingsView: View {
         }
     }
 
+    private func performDeleteAccount() async {
+        guard !isDeletingAccount else { return }
+        isDeletingAccount = true
+        defer { isDeletingAccount = false }
+        do {
+            try await AccountDeletionService.deleteAccountAndSignOut()
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } catch {
+            ErrorLogger.shared.log(error, screen: "SettingsView.deleteAccount")
+            deleteAccountError = error.localizedDescription
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+    }
+
     private func requestPermissionIfNeeded() {
         Task {
             _ = await reminderManager.requestAuthorizationIfNeeded()
@@ -847,8 +873,12 @@ struct SettingsView: View {
                     showLogOutConfirm = true
                 }
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
-                SettingsButton(icon: "trash.fill", title: "Delete Account", color: .red) {
-                    showDeleteConfirm = true
+                SettingsButton(
+                    icon: isDeletingAccount ? "hourglass" : "trash.fill",
+                    title: isDeletingAccount ? "Deleting\u{2026}" : "Delete Account",
+                    color: .red
+                ) {
+                    if !isDeletingAccount { showDeleteConfirm = true }
                 }
             }
         }
