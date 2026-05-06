@@ -28,6 +28,7 @@ struct TrainView: View {
     @State private var showRoutines: Bool = false
     @State private var showRoutineEditor: Bool = false
     @State private var routineStore = RoutineStore.shared
+    @State private var scrollOffset: CGFloat = 0
 
     var body: some View {
         NavigationStack {
@@ -38,10 +39,7 @@ struct TrainView: View {
                         .transition(.opacity)
                 } else {
                     VStack(spacing: 0) {
-                        inlineHeader
-                            .padding(.horizontal)
-                            .padding(.top, 4)
-                            .padding(.bottom, 8)
+                        Color.clear.frame(height: 52)
 
                         if viewModel.availableModes.count > 1 {
                             modeTabBar
@@ -60,6 +58,16 @@ struct TrainView: View {
                         }
                     }
                 }
+            }
+            .onScrollGeometryChange(for: CGFloat.self) { geo in
+                geo.contentOffset.y
+            } action: { _, newValue in
+                scrollOffset = newValue
+            }
+            .overlay(alignment: .topTrailing) {
+                trainModesPill
+                    .padding(.trailing, 16)
+                    .padding(.top, 8)
             }
             .appBackground(accent: PepTheme.coral)
             .navigationTitle("")
@@ -138,39 +146,31 @@ struct TrainView: View {
         }
     }
 
-    // MARK: - Inline Header
+    // MARK: - Floating Modes Pill
 
-    private var inlineHeader: some View {
-        HStack {
-            Spacer()
+    private var trainModesPill: some View {
+        FloatingNavPill(scrollOffset: scrollOffset, accent: viewModel.currentMode.type.color) {
             Button {
                 viewModel.showModeSelectorSheet = true
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: viewModel.currentMode.type.icon)
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Training Modes")
                         .font(.system(size: 13, weight: .semibold))
+                    Text("Modes")
+                        .font(.system(size: 12, weight: .semibold))
+                        .tracking(0.2)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 9, weight: .bold))
                         .opacity(0.7)
                 }
                 .foregroundStyle(viewModel.currentMode.type.color)
                 .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(
-                    Capsule()
-                        .fill(viewModel.currentMode.type.color.opacity(0.14))
-                )
-                .overlay(
-                    Capsule()
-                        .strokeBorder(viewModel.currentMode.type.color.opacity(0.32), lineWidth: 0.6)
-                )
+                .frame(height: 36)
+                .contentShape(Rectangle())
             }
-            .buttonStyle(.scale)
+            .buttonStyle(.plain)
             .sensoryFeedback(.selection, trigger: viewModel.showModeSelectorSheet)
         }
-        .frame(height: 44)
     }
 
     // MARK: - Mode Tab Bar

@@ -13,6 +13,8 @@ struct ProfileView: View {
     @State private var navigateToPost: FeedPost?
     @State private var selectedHashtag: String?
     @State private var bannerStore = ProfileBannerStore.shared
+    @State private var scrollOffset: CGFloat = 0
+    @State private var navigateToSettings: Bool = false
 
     enum ProfileTab: String, CaseIterable {
         case posts = "Posts"
@@ -39,15 +41,20 @@ struct ProfileView: View {
                 }
             }
             .scrollIndicators(.hidden)
+            .onScrollGeometryChange(for: CGFloat.self) { geo in
+                geo.contentOffset.y
+            } action: { _, newValue in
+                scrollOffset = newValue
+            }
             .appBackground(accent: PepTheme.teal)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(value: ProfileDestination.settings) {
-                        Image(systemName: "gearshape")
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-                }
+            .overlay(alignment: .topTrailing) {
+                profileFloatingPill
+                    .padding(.trailing, 16)
+                    .padding(.top, 8)
+            }
+            .navigationDestination(isPresented: $navigateToSettings) {
+                SettingsView(viewModel: viewModel)
             }
             .task {
                 await viewModel.loadProfile()
@@ -102,6 +109,14 @@ struct ProfileView: View {
             }
             .navigationDestination(for: FollowListDestination.self) { destination in
                 FollowListView(destination: destination, profileViewModel: viewModel)
+            }
+        }
+    }
+
+    private var profileFloatingPill: some View {
+        FloatingNavPill(scrollOffset: scrollOffset) {
+            FloatingPillIconButton(systemName: "gearshape") {
+                navigateToSettings = true
             }
         }
     }

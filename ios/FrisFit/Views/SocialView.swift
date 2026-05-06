@@ -14,6 +14,11 @@ struct SocialView: View {
     @State private var showComposer: Bool = false
     @State private var selectedHashtag: String?
     @State private var selectedUserForMention: SocialUser?
+    @State private var scrollOffset: CGFloat = 0
+    @State private var showCommunityDiscover: Bool = false
+    @State private var showNotifications: Bool = false
+    @State private var showGroups: Bool = false
+    @State private var showMessages: Bool = false
     @Namespace private var communityPickerNS
 
     var body: some View {
@@ -50,61 +55,16 @@ struct SocialView: View {
             .appBackground(accent: PepTheme.violet)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 18) {
-                        NavigationLink {
-                            CommunityDiscoverView()
-                        } label: {
-                            Image(systemName: "safari")
-                                .font(.system(size: 15, weight: .light))
-                                .foregroundStyle(PepTheme.textPrimary.opacity(0.75))
-                        }
-
-                        NavigationLink {
-                            NotificationsView()
-                        } label: {
-                            ZStack(alignment: .topTrailing) {
-                                Image(systemName: "bell")
-                                    .font(.system(size: 15, weight: .light))
-                                    .foregroundStyle(PepTheme.textPrimary.opacity(0.75))
-
-                                if notificationsViewModel.unreadCount > 0 {
-                                    Circle()
-                                        .fill(PepTheme.teal)
-                                        .frame(width: 6, height: 6)
-                                        .offset(x: 4, y: -2)
-                                }
-                            }
-                        }
-
-                        NavigationLink {
-                            GroupsListView(viewModel: groupsViewModel)
-                        } label: {
-                            Image(systemName: "person.2")
-                                .font(.system(size: 15, weight: .light))
-                                .foregroundStyle(PepTheme.textPrimary.opacity(0.75))
-                        }
-
-                        NavigationLink {
-                            DirectMessagesView(viewModel: messagesViewModel)
-                        } label: {
-                            ZStack(alignment: .topTrailing) {
-                                Image(systemName: "bubble.left")
-                                    .font(.system(size: 15, weight: .light))
-                                    .foregroundStyle(PepTheme.textPrimary.opacity(0.75))
-
-                                if messagesViewModel.totalUnread > 0 {
-                                    Circle()
-                                        .fill(PepTheme.teal)
-                                        .frame(width: 6, height: 6)
-                                        .offset(x: 4, y: -2)
-                                }
-                            }
-                        }
-                    }
-                }
+            .toolbar(.hidden, for: .navigationBar)
+            .overlay(alignment: .topTrailing) {
+                communityFloatingPill
+                    .padding(.trailing, 16)
+                    .padding(.top, 8)
             }
+            .navigationDestination(isPresented: $showCommunityDiscover) { CommunityDiscoverView() }
+            .navigationDestination(isPresented: $showNotifications) { NotificationsView() }
+            .navigationDestination(isPresented: $showGroups) { GroupsListView(viewModel: groupsViewModel) }
+            .navigationDestination(isPresented: $showMessages) { DirectMessagesView(viewModel: messagesViewModel) }
             .sheet(item: $commentPost) { post in
                 CommentsSheet(post: post) { text in
                     viewModel.addComment(to: post.id, text: text)
@@ -149,6 +109,36 @@ struct SocialView: View {
                     }
                 }
                 await notificationsViewModel.refreshUnreadCount()
+            }
+        }
+    }
+
+    // MARK: - Floating Nav Pill
+
+    private var communityFloatingPill: some View {
+        FloatingNavPill(scrollOffset: scrollOffset) {
+            FloatingPillIconButton(systemName: "safari") {
+                showCommunityDiscover = true
+            }
+            FloatingPillDivider()
+            FloatingPillIconButton(
+                systemName: notificationsViewModel.unreadCount > 0 ? "bell.badge.fill" : "bell",
+                tint: notificationsViewModel.unreadCount > 0 ? PepTheme.teal : PepTheme.textPrimary,
+                badge: notificationsViewModel.unreadCount > 0
+            ) {
+                showNotifications = true
+            }
+            FloatingPillDivider()
+            FloatingPillIconButton(systemName: "person.2") {
+                showGroups = true
+            }
+            FloatingPillDivider()
+            FloatingPillIconButton(
+                systemName: "bubble.left",
+                badge: messagesViewModel.totalUnread > 0,
+                badgeColor: PepTheme.teal
+            ) {
+                showMessages = true
             }
         }
     }
@@ -267,6 +257,8 @@ struct SocialView: View {
     private var feedScrollView: some View {
         ScrollView {
             VStack(spacing: 0) {
+                Color.clear.frame(height: 52)
+
                 communityModePicker
                     .padding(.horizontal)
                     .padding(.top, 4)
@@ -365,6 +357,11 @@ struct SocialView: View {
             }
         }
         .scrollIndicators(.hidden)
+        .onScrollGeometryChange(for: CGFloat.self) { geo in
+            geo.contentOffset.y
+        } action: { _, newValue in
+            scrollOffset = newValue
+        }
         .refreshable {
             await viewModel.refreshFeed()
         }

@@ -6,6 +6,7 @@ struct DiscoverView: View {
     @State private var showAIChat: Bool = false
     @State private var heroAppeared: Bool = false
     @State private var cardsAppeared: Bool = false
+    @State private var scrollOffset: CGFloat = 0
 
     var body: some View {
         NavigationStack {
@@ -20,13 +21,18 @@ struct DiscoverView: View {
                 .padding(.bottom, 100)
             }
             .scrollIndicators(.hidden)
+            .onScrollGeometryChange(for: CGFloat.self) { geo in
+                geo.contentOffset.y
+            } action: { _, newValue in
+                scrollOffset = newValue
+            }
             .appBackground(accent: PepTheme.blue)
             .navigationBarTitleDisplayMode(.large)
             .navigationTitle("Discover")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    segmentToggle
-                }
+            .overlay(alignment: .topTrailing) {
+                discoverFloatingPill
+                    .padding(.trailing, 16)
+                    .padding(.top, 8)
             }
             .navigationDestination(for: CompoundProfile.self) { compound in
                 CompoundDetailView(compound: compound)
@@ -60,28 +66,25 @@ struct DiscoverView: View {
         }
     }
 
-    private var segmentToggle: some View {
-        HStack(spacing: 0) {
-            ForEach(DiscoverViewModel.DiscoverSegment.allCases, id: \.self) { segment in
+    private var discoverFloatingPill: some View {
+        FloatingNavPill(scrollOffset: scrollOffset) {
+            ForEach(Array(DiscoverViewModel.DiscoverSegment.allCases.enumerated()), id: \.element) { idx, segment in
+                if idx > 0 { FloatingPillDivider() }
+                let isActive = viewModel.selectedSegment == segment
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         viewModel.selectedSegment = segment
                     }
                 } label: {
                     Text(segment.rawValue.uppercased())
-                        .font(.system(size: 10, weight: viewModel.selectedSegment == segment ? .heavy : .semibold))
+                        .font(.system(size: 10, weight: isActive ? .heavy : .semibold))
                         .tracking(1.4)
-                        .foregroundStyle(viewModel.selectedSegment == segment ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.7))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(alignment: .bottom) {
-                            if viewModel.selectedSegment == segment {
-                                Rectangle()
-                                    .fill(PepTheme.textPrimary)
-                                    .frame(height: 1.5)
-                            }
-                        }
+                        .foregroundStyle(isActive ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.75))
+                        .padding(.horizontal, 14)
+                        .frame(height: 36)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
                 .sensoryFeedback(.selection, trigger: viewModel.selectedSegment)
             }
         }
