@@ -46,17 +46,29 @@ struct LiveRunView: View {
     // MARK: - Countdown
 
     private var countdownOverlay: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             Spacer()
+            Text("PREPARING THE RUN")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(2.4)
+                .foregroundStyle(accentColor.opacity(0.85))
             Text("\(countdownValue)")
-                .font(.system(size: 120, weight: .heavy, design: .rounded))
-                .foregroundStyle(accentColor)
+                .font(.system(size: 140, weight: .heavy, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [accentColor, accentColor.opacity(0.7)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
                 .contentTransition(.numericText())
-            Text("Get Ready")
-                .font(.title3.weight(.semibold))
+                .shadow(color: accentColor.opacity(0.35), radius: 24, y: 8)
+            Text("Lace up. Breathe in.")
+                .font(.system(size: 15, design: .serif))
+                .italic()
                 .foregroundStyle(PepTheme.textSecondary)
             Spacer()
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func startCountdown() {
@@ -84,14 +96,15 @@ struct LiveRunView: View {
             heartRateZoneBar
 
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 18) {
+                    editorialHeader
                     primaryMetrics
                     secondaryMetrics
                     liveSplitsSection
                 }
                 .padding(.horizontal)
-                .padding(.top, 12)
-                .padding(.bottom, 120)
+                .padding(.top, 16)
+                .padding(.bottom, 140)
             }
 
             Spacer(minLength: 0)
@@ -99,6 +112,71 @@ struct LiveRunView: View {
         .safeAreaInset(edge: .bottom) {
             controlBar
         }
+    }
+
+    // MARK: - Editorial Header
+
+    private var editorialHeader: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Circle()
+                    .fill(runVM.isPaused ? Color.orange : accentColor)
+                    .frame(width: 7, height: 7)
+                    .shadow(color: (runVM.isPaused ? Color.orange : accentColor).opacity(0.6), radius: 6)
+                Text(runVM.isPaused ? "PAUSED" : "LIVE")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(2.0)
+                    .foregroundStyle(runVM.isPaused ? Color.orange : accentColor)
+                Text("·")
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                Text(runVM.selectedRunType.rawValue.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer(minLength: 0)
+                if runVM.isTreadmillMode {
+                    HStack(spacing: 4) {
+                        Image(systemName: "figure.run.treadmill")
+                            .font(.system(size: 9))
+                        Text("Treadmill")
+                            .font(.system(size: 11, weight: .medium, design: .serif))
+                    }
+                    .foregroundStyle(PepTheme.textSecondary)
+                } else if let shoeId = runVM.selectedShoeId,
+                          let shoe = runVM.shoes.first(where: { $0.id == shoeId }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "shoe.fill")
+                            .font(.system(size: 9))
+                        Text(shoe.name)
+                            .font(.system(size: 11, weight: .medium, design: .serif))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+
+            Text(headerHeadline)
+                .font(.system(size: 22, weight: .semibold, design: .serif))
+                .kerning(-0.3)
+                .foregroundStyle(PepTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LinearGradient(
+                colors: [accentColor.opacity(0.32), accentColor.opacity(0.0)],
+                startPoint: .leading, endPoint: .trailing
+            )
+            .frame(height: 0.5)
+        }
+    }
+
+    private var headerHeadline: String {
+        if runVM.isAutoPaused { return "A pause in the stride." }
+        if runVM.isPaused { return "Catch your breath." }
+        if runVM.currentDistanceMiles >= 13 { return "Long miles, long thoughts." }
+        if runVM.currentDistanceMiles >= 6 { return "Hitting your stride." }
+        if runVM.elapsedSeconds < 300 { return "Easing into pace." }
+        return "One foot in front of the other."
     }
 
     // MARK: - Map
@@ -482,46 +560,85 @@ struct LiveRunView: View {
     // MARK: - Control Bar
 
     private var controlBar: some View {
-        HStack(spacing: 24) {
-            if runVM.isPaused {
-                Button {
-                    runVM.resumeRun()
-                } label: {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.white)
-                        .frame(width: 64, height: 64)
-                        .background(accentColor)
-                        .clipShape(Circle())
-                }
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [accentColor.opacity(0.0), accentColor.opacity(0.35), accentColor.opacity(0.0)],
+                startPoint: .leading, endPoint: .trailing
+            )
+            .frame(height: 0.5)
 
-                Button {
-                    showStopConfirm = true
-                } label: {
-                    Image(systemName: "stop.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(Color.red.opacity(0.9))
-                        .clipShape(Circle())
-                }
-            } else {
-                Button {
-                    runVM.pauseRun()
-                } label: {
-                    Image(systemName: "pause.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.white)
-                        .frame(width: 64, height: 64)
-                        .background(PepTheme.elevated)
-                        .clipShape(Circle())
-                        .overlay(Circle().strokeBorder(accentColor.opacity(0.3), lineWidth: 2))
+            HStack(spacing: 18) {
+                if runVM.isPaused {
+                    controlButton(
+                        systemImage: "stop.fill",
+                        label: "END",
+                        color: .red,
+                        size: 60,
+                        action: { showStopConfirm = true }
+                    )
+                    .sensoryFeedback(.warning, trigger: showStopConfirm)
+
+                    controlButton(
+                        systemImage: "play.fill",
+                        label: "RESUME",
+                        color: accentColor,
+                        size: 76,
+                        isPrimary: true,
+                        action: { runVM.resumeRun() }
+                    )
+                    .sensoryFeedback(.impact(weight: .medium), trigger: runVM.isPaused)
+                } else {
+                    controlButton(
+                        systemImage: "pause.fill",
+                        label: "PAUSE",
+                        color: PepTheme.textPrimary.opacity(0.85),
+                        size: 76,
+                        isPrimary: true,
+                        action: { runVM.pauseRun() }
+                    )
+                    .sensoryFeedback(.impact(weight: .light), trigger: runVM.isPaused)
                 }
             }
+            .padding(.vertical, 18)
+            .frame(maxWidth: .infinity)
+            .background(.ultraThinMaterial)
         }
-        .padding(.vertical, 16)
-        .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
+    }
+
+    @ViewBuilder
+    private func controlButton(
+        systemImage: String,
+        label: String,
+        color: Color,
+        size: CGFloat,
+        isPrimary: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        VStack(spacing: 6) {
+            Button(action: action) {
+                ZStack {
+                    Circle()
+                        .fill(isPrimary ? color : color.opacity(0.12))
+                    if isPrimary {
+                        Circle()
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+                    } else {
+                        Circle()
+                            .strokeBorder(color.opacity(0.4), lineWidth: 1)
+                    }
+                    Image(systemName: systemImage)
+                        .font(.system(size: isPrimary ? 26 : 20, weight: .bold))
+                        .foregroundStyle(isPrimary ? Color.black : color)
+                }
+                .frame(width: size, height: size)
+                .shadow(color: isPrimary ? color.opacity(0.35) : .clear, radius: 12, y: 4)
+            }
+            .buttonStyle(.scale)
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.6)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
     }
 }
 

@@ -45,17 +45,29 @@ struct LiveRideView: View {
     // MARK: - Countdown
 
     private var countdownOverlay: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             Spacer()
+            Text("PREPARING THE RIDE")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(2.4)
+                .foregroundStyle(accentColor.opacity(0.85))
             Text("\(countdownValue)")
-                .font(.system(size: 120, weight: .heavy, design: .rounded))
-                .foregroundStyle(accentColor)
+                .font(.system(size: 140, weight: .heavy, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [accentColor, accentColor.opacity(0.7)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
                 .contentTransition(.numericText())
-            Text("Get Ready")
-                .font(.title3.weight(.semibold))
+                .shadow(color: accentColor.opacity(0.35), radius: 24, y: 8)
+            Text("Roll out in moments")
+                .font(.system(size: 15, design: .serif))
+                .italic()
                 .foregroundStyle(PepTheme.textSecondary)
             Spacer()
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func startCountdown() {
@@ -78,20 +90,21 @@ struct LiveRideView: View {
     private var rideContent: some View {
         VStack(spacing: 0) {
             mapSection
-                .frame(height: 200)
+                .frame(height: 220)
 
             heartRateZoneBar
 
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 18) {
+                    editorialHeader
                     primaryMetrics
                     secondaryMetrics
                     powerAndCadenceCard
                     liveSegmentsSection
                 }
                 .padding(.horizontal)
-                .padding(.top, 12)
-                .padding(.bottom, 120)
+                .padding(.top, 16)
+                .padding(.bottom, 140)
             }
 
             Spacer(minLength: 0)
@@ -99,6 +112,63 @@ struct LiveRideView: View {
         .safeAreaInset(edge: .bottom) {
             controlBar
         }
+    }
+
+    // MARK: - Editorial Header
+
+    private var editorialHeader: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Circle()
+                    .fill(cyclingVM.isPaused ? Color.orange : accentColor)
+                    .frame(width: 7, height: 7)
+                    .shadow(color: (cyclingVM.isPaused ? Color.orange : accentColor).opacity(0.6), radius: 6)
+                Text(cyclingVM.isPaused ? "PAUSED" : "LIVE")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(2.0)
+                    .foregroundStyle(cyclingVM.isPaused ? Color.orange : accentColor)
+                Text("·")
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                Text(cyclingVM.selectedRideType.rawValue.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer(minLength: 0)
+                if let bikeId = cyclingVM.selectedBikeId,
+                   let bike = cyclingVM.bikes.first(where: { $0.id == bikeId }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "bicycle")
+                            .font(.system(size: 9))
+                        Text(bike.name)
+                            .font(.system(size: 11, weight: .medium, design: .serif))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+
+            Text(headerHeadline)
+                .font(.system(size: 22, weight: .semibold, design: .serif))
+                .kerning(-0.3)
+                .foregroundStyle(PepTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LinearGradient(
+                colors: [accentColor.opacity(0.32), accentColor.opacity(0.0)],
+                startPoint: .leading, endPoint: .trailing
+            )
+            .frame(height: 0.5)
+        }
+    }
+
+    private var headerHeadline: String {
+        if cyclingVM.isAutoPaused { return "Stillness mid-ride." }
+        if cyclingVM.isPaused { return "Catch your breath." }
+        if cyclingVM.currentDistanceMiles >= 25 { return "Deep into the ride." }
+        if cyclingVM.currentDistanceMiles >= 10 { return "Settled into a rhythm." }
+        if cyclingVM.elapsedSeconds < 300 { return "Easy spin to start." }
+        return "Holding the line."
     }
 
     // MARK: - Map
@@ -435,46 +505,85 @@ struct LiveRideView: View {
     // MARK: - Control Bar
 
     private var controlBar: some View {
-        HStack(spacing: 24) {
-            if cyclingVM.isPaused {
-                Button {
-                    cyclingVM.resumeRide()
-                } label: {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.white)
-                        .frame(width: 64, height: 64)
-                        .background(accentColor)
-                        .clipShape(Circle())
-                }
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [accentColor.opacity(0.0), accentColor.opacity(0.35), accentColor.opacity(0.0)],
+                startPoint: .leading, endPoint: .trailing
+            )
+            .frame(height: 0.5)
 
-                Button {
-                    showStopConfirm = true
-                } label: {
-                    Image(systemName: "stop.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(Color.red.opacity(0.9))
-                        .clipShape(Circle())
-                }
-            } else {
-                Button {
-                    cyclingVM.pauseRide()
-                } label: {
-                    Image(systemName: "pause.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.white)
-                        .frame(width: 64, height: 64)
-                        .background(PepTheme.elevated)
-                        .clipShape(Circle())
-                        .overlay(Circle().strokeBorder(accentColor.opacity(0.3), lineWidth: 2))
+            HStack(spacing: 18) {
+                if cyclingVM.isPaused {
+                    controlButton(
+                        systemImage: "stop.fill",
+                        label: "END",
+                        color: .red,
+                        size: 60,
+                        action: { showStopConfirm = true }
+                    )
+                    .sensoryFeedback(.warning, trigger: showStopConfirm)
+
+                    controlButton(
+                        systemImage: "play.fill",
+                        label: "RESUME",
+                        color: accentColor,
+                        size: 76,
+                        isPrimary: true,
+                        action: { cyclingVM.resumeRide() }
+                    )
+                    .sensoryFeedback(.impact(weight: .medium), trigger: cyclingVM.isPaused)
+                } else {
+                    controlButton(
+                        systemImage: "pause.fill",
+                        label: "PAUSE",
+                        color: PepTheme.textPrimary.opacity(0.85),
+                        size: 76,
+                        isPrimary: true,
+                        action: { cyclingVM.pauseRide() }
+                    )
+                    .sensoryFeedback(.impact(weight: .light), trigger: cyclingVM.isPaused)
                 }
             }
+            .padding(.vertical, 18)
+            .frame(maxWidth: .infinity)
+            .background(.ultraThinMaterial)
         }
-        .padding(.vertical, 16)
-        .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
+    }
+
+    @ViewBuilder
+    private func controlButton(
+        systemImage: String,
+        label: String,
+        color: Color,
+        size: CGFloat,
+        isPrimary: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        VStack(spacing: 6) {
+            Button(action: action) {
+                ZStack {
+                    Circle()
+                        .fill(isPrimary ? color : color.opacity(0.12))
+                    if isPrimary {
+                        Circle()
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+                    } else {
+                        Circle()
+                            .strokeBorder(color.opacity(0.4), lineWidth: 1)
+                    }
+                    Image(systemName: systemImage)
+                        .font(.system(size: isPrimary ? 26 : 20, weight: .bold))
+                        .foregroundStyle(isPrimary ? Color.black : color)
+                }
+                .frame(width: size, height: size)
+                .shadow(color: isPrimary ? color.opacity(0.35) : .clear, radius: 12, y: 4)
+            }
+            .buttonStyle(.scale)
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.6)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
     }
 }
 
