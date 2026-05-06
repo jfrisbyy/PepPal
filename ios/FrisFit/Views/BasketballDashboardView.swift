@@ -16,7 +16,6 @@ struct BasketballDashboardView: View {
             recentRunsCard
             drillProgressCard
             practicePlansCard
-            drillLibraryRow
             settingsRow
 
             if bbVM.seriousMode {
@@ -690,45 +689,6 @@ struct BasketballDashboardView: View {
             )
         }
         .buttonStyle(.plain)
-    }
-
-    // MARK: - Drill library row
-
-    private var drillLibraryRow: some View {
-        Button {
-            bbVM.showDrillLibrary = true
-        } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(accentColor.opacity(0.12))
-                        .frame(width: 38, height: 38)
-                    Image(systemName: "books.vertical.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(accentColor)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Drill Library")
-                        .font(.system(size: 14, weight: .semibold, design: .serif))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("\(BasketballDrillLibrary.all.count) drills · \(DrillCategory.allCases.count) categories")
-                        .font(.system(size: 10))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-            .padding(14)
-            .background(PepTheme.cardSurface)
-            .clipShape(.rect(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-            )
-        }
-        .buttonStyle(.scale)
     }
 
     // MARK: - Settings row
