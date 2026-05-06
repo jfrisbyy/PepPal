@@ -35,6 +35,9 @@ final class TrainViewModel {
     /// Programs that have not been confirmed synced to Supabase yet.
     /// Either created offline, or last persist attempt failed.
     private var pendingSyncProgramIds: Set<UUID> = []
+    /// Tracks the in-flight Supabase fetch so concurrent callers (onAppear +
+    /// auth listener) don't both run `fetchPrograms` and stomp each other.
+    private var loadProgramsTask: Task<Void, Never>?
 
     var programName: String = ""
     var programType: ProgramType = .recurringSplit
@@ -271,6 +274,8 @@ final class TrainViewModel {
     private func handleAuthUserChanged(newUserId: String?) {
         if newUserId == nil {
             // Signed out — wipe all local program state so the next account starts clean.
+            loadProgramsTask?.cancel()
+            loadProgramsTask = nil
             savedPrograms = []
             activeProgram = nil
             programSupabaseIds = [:]
@@ -282,7 +287,17 @@ final class TrainViewModel {
             return
         }
         if newUserId != loadedForUserId {
-            // Different user signed in — clear cached state and re-fetch from Supabase.
+            // First-ever sign-in for this VM: a load is likely already in-flight
+            // (kicked off by onAppear → loadAllData while auth was resolving).
+            // Don't wipe + restart — let the in-flight fetch populate state, otherwise
+            // we'll race two concurrent fetches and re-persist the same program
+            // as a brand new row on every launch.
+            if loadedForUserId == nil && (loadProgramsTask != nil || programsLoadedFromSupabase) {
+                return
+            }
+            // True user switch — clear cached state and re-fetch from Supabase.
+            loadProgramsTask?.cancel()
+            loadProgramsTask = nil
             savedPrograms = []
             activeProgram = nil
             programSupabaseIds = [:]
@@ -354,81 +369,93 @@ final class TrainViewModel {
     }
 
     func loadProgramsFromSupabase() {
-        guard !programsLoadedFromSupabase else { return }
+        // Coalesce concurrent calls — onAppear and the auth listener both invoke this.
+        // Without this guard, two fetches race and the second sees the first's freshly
+        // loaded program as "unsynced" (UUIDs are regenerated on each fetch), so it
+        // re-persists it as a brand-new row in Supabase on every launch.
+        if loadProgramsTask != nil { return }
+        if programsLoadedFromSupabase { return }
         programsLoadedFromSupabase = true
-        Task {
-            var attempts = 0
-            while AuthService.shared.authState == .loading && attempts < 40 {
-                try? await Task.sleep(for: .milliseconds(250))
-                attempts += 1
+        let task = Task { [weak self] in
+            await self?.runLoadProgramsFromSupabase()
+            await MainActor.run { self?.loadProgramsTask = nil }
+        }
+        loadProgramsTask = task
+    }
+
+    private func runLoadProgramsFromSupabase() async {
+        var attempts = 0
+        while AuthService.shared.authState == .loading && attempts < 40 {
+            try? await Task.sleep(for: .milliseconds(250))
+            attempts += 1
+        }
+        guard AuthService.shared.authState == .signedIn else {
+            programsLoadedFromSupabase = false
+            return
+        }
+        let currentUid = (try? AuthService.shared.currentUserId()) ?? ""
+        // If local cache belongs to a different user, drop it before fetching.
+        if let prior = loadedForUserId, prior != currentUid {
+            savedPrograms = []
+            activeProgram = nil
+            programSupabaseIds = [:]
+            UserDefaults.standard.removeObject(forKey: Self.programKey)
+            UserDefaults.standard.removeObject(forKey: Self.allProgramsKey)
+        }
+        do {
+            let results = try await TrainingProgramService.shared.fetchPrograms()
+            var idMap: [UUID: String] = [:]
+            var programs: [TrainingProgram] = []
+            var activeStartOffset: Int? = nil
+            for entry in results {
+                idMap[entry.program.id] = entry.supabaseId
+                programs.append(entry.program)
+                if entry.program.isActive {
+                    activeStartOffset = entry.startDayOffset
+                }
             }
-            guard AuthService.shared.authState == .signedIn else {
-                programsLoadedFromSupabase = false
-                return
+            // Only preserve local programs we KNOW failed to sync (pendingSyncProgramIds).
+            // Previously we kept anything missing from the fetch, but fetchPrograms
+            // assigns fresh UUIDs to every row, so legitimately-synced programs would be
+            // mis-classified as unsynced and re-persisted as duplicates on every launch.
+            let priorLocal = savedPrograms
+            let remoteIds = Set(programs.map(\.id))
+            let unsynced = priorLocal.filter {
+                pendingSyncProgramIds.contains($0.id) && !remoteIds.contains($0.id)
             }
-            let currentUid = (try? AuthService.shared.currentUserId()) ?? ""
-            // If local cache belongs to a different user, drop it before fetching.
-            if let prior = loadedForUserId, prior != currentUid {
-                savedPrograms = []
-                activeProgram = nil
-                programSupabaseIds = [:]
-                UserDefaults.standard.removeObject(forKey: Self.programKey)
+            if !unsynced.isEmpty {
+                print("[TrainVM] Preserving \(unsynced.count) unsynced local program(s) after fetch")
+            }
+            savedPrograms = programs + unsynced
+            programSupabaseIds = idMap
+            activeProgram = savedPrograms.first { $0.isActive }
+            loadedForUserId = currentUid
+            // Retry persistence only for programs we actually failed to sync earlier.
+            let toRetry = savedPrograms.filter { pendingSyncProgramIds.contains($0.id) }
+            for prog in toRetry {
+                persistProgramToSupabase(prog)
+            }
+            if let offset = activeStartOffset {
+                UserDefaults.standard.set(offset, forKey: Self.programStartDayKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Self.programStartDayKey)
+            }
+            if let data = try? JSONEncoder().encode(savedPrograms) {
+                UserDefaults.standard.set(data, forKey: Self.allProgramsKey)
+            } else {
                 UserDefaults.standard.removeObject(forKey: Self.allProgramsKey)
             }
-            do {
-                let results = try await TrainingProgramService.shared.fetchPrograms()
-                var idMap: [UUID: String] = [:]
-                var programs: [TrainingProgram] = []
-                var activeStartOffset: Int? = nil
-                for entry in results {
-                    idMap[entry.program.id] = entry.supabaseId
-                    programs.append(entry.program)
-                    if entry.program.isActive {
-                        activeStartOffset = entry.startDayOffset
-                    }
-                }
-                // Preserve any local programs that haven't been synced yet,
-                // so an empty/partial Supabase response never wipes pending work.
-                let priorLocal = savedPrograms
-                let remoteIds = Set(programs.map(\.id))
-                let unsynced = priorLocal.filter { !remoteIds.contains($0.id) }
-                if !unsynced.isEmpty {
-                    print("[TrainVM] Preserving \(unsynced.count) unsynced local program(s) after fetch")
-                    for prog in unsynced { pendingSyncProgramIds.insert(prog.id) }
-                }
-                savedPrograms = programs + unsynced
-                programSupabaseIds = idMap
-                activeProgram = savedPrograms.first { $0.isActive }
-                loadedForUserId = currentUid
-                // Retry persistence for anything we kept locally or that previously failed.
-                let toRetry = savedPrograms.filter { pendingSyncProgramIds.contains($0.id) }
-                for prog in toRetry {
-                    persistProgramToSupabase(prog)
-                }
-                if let offset = activeStartOffset {
-                    UserDefaults.standard.set(offset, forKey: Self.programStartDayKey)
-                } else {
-                    UserDefaults.standard.removeObject(forKey: Self.programStartDayKey)
-                }
-                if let data = try? JSONEncoder().encode(savedPrograms) {
-                    UserDefaults.standard.set(data, forKey: Self.allProgramsKey)
-                } else {
-                    UserDefaults.standard.removeObject(forKey: Self.allProgramsKey)
-                }
-                if let program = activeProgram, let data = try? JSONEncoder().encode(program) {
-                    UserDefaults.standard.set(data, forKey: Self.programKey)
-                } else {
-                    UserDefaults.standard.removeObject(forKey: Self.programKey)
-                }
-                stampCacheUserId()
-                NotificationCenter.default.post(name: .activeProgramsChanged, object: nil)
-            } catch {
-                print("[TrainVM] Failed to load programs from Supabase: \(error)")
-                programsLoadedFromSupabase = false
-                await MainActor.run {
-                    DebugBanner.shared.log(.error, "Program load failed", "\(error.localizedDescription)\n\nRaw: \(error)")
-                }
+            if let program = activeProgram, let data = try? JSONEncoder().encode(program) {
+                UserDefaults.standard.set(data, forKey: Self.programKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Self.programKey)
             }
+            stampCacheUserId()
+            NotificationCenter.default.post(name: .activeProgramsChanged, object: nil)
+        } catch {
+            print("[TrainVM] Failed to load programs from Supabase: \(error)")
+            programsLoadedFromSupabase = false
+            DebugBanner.shared.log(.error, "Program load failed", "\(error.localizedDescription)\n\nRaw: \(error)")
         }
     }
 
