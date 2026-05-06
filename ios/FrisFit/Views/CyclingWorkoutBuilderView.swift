@@ -33,41 +33,43 @@ struct CyclingWorkoutBuilderView: View {
     }
 
     private var savedWorkoutsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "tray.full.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Saved Workouts")
-                Spacer()
-                Text("\(cyclingVM.savedCyclingWorkouts.count)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(accentColor)
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(
+                kicker: "Library",
+                title: "Saved Workouts",
+                accent: accentColor,
+                trailing: AnyView(
+                    Text("\(cyclingVM.savedCyclingWorkouts.count) TOTAL")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1.4)
+                        .foregroundStyle(PepTheme.textSecondary)
+                )
+            )
 
             if cyclingVM.savedCyclingWorkouts.isEmpty {
-                HStack {
-                    Spacer()
-                    VStack(spacing: 6) {
-                        Image(systemName: "figure.outdoor.cycle")
-                            .font(.title2)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
-                        Text("No saved ride workouts yet")
-                            .font(.caption)
-                            .foregroundStyle(PepTheme.textSecondary)
-                    }
-                    .padding(.vertical, 14)
-                    Spacer()
+                VStack(spacing: 8) {
+                    Image(systemName: "figure.outdoor.cycle")
+                        .font(.system(size: 22))
+                        .foregroundStyle(accentColor.opacity(0.4))
+                    Text("No saved workouts yet")
+                        .font(.system(size: 14, weight: .semibold, design: .serif))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("Build a block, save it, ride it on repeat.")
+                        .font(.system(size: 11, design: .serif))
+                        .italic()
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
             } else {
-                ForEach(cyclingVM.savedCyclingWorkouts) { workout in
-                    savedWorkoutRow(workout)
+                VStack(spacing: 10) {
+                    ForEach(cyclingVM.savedCyclingWorkouts) { workout in
+                        savedWorkoutRow(workout)
+                    }
                 }
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
+        .editorialCard(accent: accentColor)
     }
 
     private func savedWorkoutRow(_ workout: CustomCyclingWorkout) -> some View {
@@ -77,21 +79,18 @@ struct CyclingWorkoutBuilderView: View {
                     .fill(accentColor.opacity(0.12))
                     .frame(width: 40, height: 40)
                 Image(systemName: workout.type.icon)
-                    .font(.system(size: 16))
+                    .font(.system(size: 15))
                     .foregroundStyle(accentColor)
             }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(workout.name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold, design: .serif))
                     .foregroundStyle(PepTheme.textPrimary)
-                HStack(spacing: 8) {
-                    Label(workout.type.rawValue, systemImage: workout.type.icon)
-                    Label("\(workout.intervals.count) blocks", systemImage: "repeat")
-                    Label("~\(workout.estimatedDurationMinutes) min", systemImage: "clock")
-                }
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
+                Text("\(workout.type.rawValue) \u{00B7} \(workout.intervals.count) blocks \u{00B7} ~\(workout.estimatedDurationMinutes) min")
+                    .font(.system(size: 11, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
             }
 
             Spacer()
@@ -100,24 +99,22 @@ struct CyclingWorkoutBuilderView: View {
                 cyclingVM.savedCyclingWorkouts.removeAll { $0.id == workout.id }
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.red.opacity(0.6))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red.opacity(0.7))
                     .frame(width: 28, height: 28)
-                    .background(PepTheme.elevated.opacity(0.5))
+                    .background(Color.red.opacity(0.10))
                     .clipShape(Circle())
             }
+            .buttonStyle(.plain)
         }
-        .padding(.vertical, 4)
+        .padding(10)
+        .background(PepTheme.elevated.opacity(0.35))
+        .clipShape(.rect(cornerRadius: 12))
     }
 
     private var builderSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "plus.square.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Build New Workout")
-                Spacer()
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(kicker: "Compose", title: "Build New Workout", accent: accentColor)
 
             TextField("Workout Name", text: $workoutName)
                 .font(.system(size: 14, weight: .medium))
@@ -129,8 +126,8 @@ struct CyclingWorkoutBuilderView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("TYPE")
                     .font(.system(size: 9, weight: .bold))
+                    .tracking(1.4)
                     .foregroundStyle(PepTheme.textSecondary)
-                    .tracking(1)
 
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
@@ -184,10 +181,7 @@ struct CyclingWorkoutBuilderView: View {
 
             saveButton
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
+        .editorialCard(accent: accentColor)
     }
 
     private func intervalEditor(index: Int) -> some View {

@@ -369,10 +369,7 @@ struct LiveRideView: View {
     private var liveSegmentsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Image(systemName: "list.number")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Segments")
-                Spacer()
+                EditorialSectionHeading(kicker: "Live", title: "Segments", accent: accentColor)
             }
 
             if cyclingVM.currentSegments.isEmpty {
@@ -515,28 +512,70 @@ struct RideSummarySheet: View {
     }
 
     private var summaryHeader: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(.green)
+        PepSportCard(accent: accentColor) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("RIDE COMPLETE")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(2.0)
+                        .foregroundStyle(accentColor.opacity(0.9))
+                    Spacer()
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.green)
+                }
 
-            Text(ride.rideType.rawValue)
-                .font(.title2.weight(.bold))
-                .foregroundStyle(PepTheme.textPrimary)
+                Text(String(format: "%.1f miles, well ridden.", ride.distanceMiles))
+                    .font(.system(size: 24, weight: .semibold, design: .serif))
+                    .kerning(-0.4)
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(2)
 
-            if let cat = ride.climbCategory {
-                Text(cat.rawValue)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(cat.color)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(cat.color.opacity(0.12))
-                    .clipShape(Capsule())
+                Text(summaryBlurb)
+                    .font(.system(size: 13, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if ride.climbCategory != nil || ride.isIndoor {
+                    HStack(spacing: 6) {
+                        if let cat = ride.climbCategory {
+                            Text(cat.rawValue)
+                                .font(.system(size: 9, weight: .bold))
+                                .tracking(1.2)
+                                .foregroundStyle(cat.color)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(cat.color.opacity(0.12))
+                                .clipShape(Capsule())
+                        }
+                        if ride.isIndoor {
+                            Text("INDOOR")
+                                .font(.system(size: 9, weight: .bold))
+                                .tracking(1.2)
+                                .foregroundStyle(PepTheme.violet)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(PepTheme.violet.opacity(0.12))
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
             }
-
-
         }
-        .padding(.top, 12)
+    }
+
+    private var summaryBlurb: String {
+        if ride.totalElevationGain >= 2000 {
+            return String(format: "%.0f ft of climbing on a %@. Legs earned the rest.", ride.totalElevationGain, ride.rideType.rawValue.lowercased())
+        }
+        if ride.maxSpeed >= 30 {
+            return String(format: "Topped out at %.1f mph. That\u{2019}s a fast one.", ride.maxSpeed)
+        }
+        if ride.averageSpeed >= 18 {
+            return String(format: "Held %.1f mph average — strong tempo today.", ride.averageSpeed)
+        }
+        return "Time in the saddle is time well spent."
     }
 
     private var mainStats: some View {
@@ -551,27 +590,28 @@ struct RideSummarySheet: View {
     }
 
     private var powerStats: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HeadlineText(text: "Power & Cadence")
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(kicker: "Output", title: "Power & Cadence", accent: .yellow)
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                summaryCell(value: "\(ride.averagePower)", label: "Avg Watts", color: .yellow)
-                summaryCell(value: "\(ride.maxPower)", label: "Max Watts", color: .red)
-                summaryCell(value: "\(ride.averageCadence)", label: "Avg RPM", color: .mint)
-                summaryCell(value: "\(ride.maxCadence)", label: "Max RPM", color: .teal)
+                summaryCell(value: "\(ride.averagePower)", label: "AVG WATTS", color: .yellow)
+                summaryCell(value: "\(ride.maxPower)", label: "MAX WATTS", color: .red)
+                summaryCell(value: "\(ride.averageCadence)", label: "AVG RPM", color: .mint)
+                summaryCell(value: "\(ride.maxCadence)", label: "MAX RPM", color: .teal)
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
+        .editorialCard(accent: .yellow)
     }
 
     private func summaryCell(value: String, label: String, color: Color) -> some View {
         VStack(spacing: 6) {
             Text(value)
-                .font(.system(.title3, design: .rounded, weight: .bold))
+                .font(.system(.title3, design: .serif, weight: .semibold))
                 .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 9, weight: .bold))
+                .tracking(1.2)
                 .foregroundStyle(PepTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
@@ -581,17 +621,17 @@ struct RideSummarySheet: View {
     }
 
     private var segmentsSummary: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HeadlineText(text: "Segments")
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(kicker: "Splits", title: "Segments", accent: accentColor)
             ForEach(ride.segments.prefix(10)) { seg in
                 HStack {
-                    Text("Mi \(seg.segmentNumber)")
-                        .font(.system(size: 13, weight: .semibold))
+                    Text("Mile \(seg.segmentNumber)")
+                        .font(.system(size: 13, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
                     HStack(spacing: 12) {
                         Text("\(seg.avgSpeedFormatted) mph")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .font(.system(size: 13, weight: .semibold, design: .serif))
                             .foregroundStyle(accentColor)
                         Text("\(seg.avgHeartRate) bpm")
                             .font(.system(size: 11, weight: .medium))
@@ -600,14 +640,12 @@ struct RideSummarySheet: View {
                 }
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
+        .editorialCard(accent: accentColor)
     }
 
     private var heartRateZoneSummary: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HeadlineText(text: "Heart Rate Zones")
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(kicker: "Effort", title: "Heart Rate Zones", accent: .red)
             ForEach(ride.heartRateZones, id: \.zone.id) { dist in
                 HStack(spacing: 10) {
                     Text("Z\(dist.zone.rawValue)")
@@ -634,8 +672,6 @@ struct RideSummarySheet: View {
                 }
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
+        .editorialCard(accent: .red)
     }
 }

@@ -52,58 +52,82 @@ struct RideDetailView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(ride.rideType.color.opacity(0.15))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: ride.rideType.icon)
-                        .font(.system(size: 20))
-                        .foregroundStyle(ride.rideType.color)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text(ride.rideType.rawValue)
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                        if ride.isIndoor {
-                            Text("INDOOR")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(PepTheme.violet)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(PepTheme.violet.opacity(0.12))
-                                .clipShape(Capsule())
-                        }
-                        if let cat = ride.climbCategory {
-                            Text(cat.rawValue)
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(cat.color)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(cat.color.opacity(0.12))
-                                .clipShape(Capsule())
-                        }
+        PepSportCard(accent: accentColor) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("RIDE \u{00B7} \(ride.rideType.rawValue.uppercased())")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(2.0)
+                        .foregroundStyle(accentColor.opacity(0.9))
+                    Spacer()
+                    if ride.isIndoor {
+                        Text("INDOOR")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(1.2)
+                            .foregroundStyle(PepTheme.violet)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(PepTheme.violet.opacity(0.12))
+                            .clipShape(Capsule())
                     }
-                    Text(ride.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute()))
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
+                    if let cat = ride.climbCategory {
+                        Text(cat.rawValue)
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(1.0)
+                            .foregroundStyle(cat.color)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(cat.color.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
                 }
 
-                Spacer()
+                Text(String(format: "%.1f miles, %@.", ride.distanceMiles, ride.movingTimeFormatted))
+                    .font(.system(size: 22, weight: .semibold, design: .serif))
+                    .kerning(-0.4)
+                    .foregroundStyle(PepTheme.textPrimary)
 
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(String(format: "%.1f mi", ride.distanceMiles))
-                        .font(.system(.title3, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.teal)
-                    Text("distance")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary)
+                Text(ride.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute()))
+                    .font(.system(size: 12, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+
+                LinearGradient(
+                    colors: [PepTheme.textPrimary.opacity(0.16), PepTheme.textPrimary.opacity(0)],
+                    startPoint: .leading, endPoint: .trailing
+                )
+                .frame(height: 0.5)
+
+                HStack(spacing: 0) {
+                    headerStat(value: ride.averageSpeedFormatted, label: "AVG MPH")
+                    headerStatDivider
+                    headerStat(value: String(format: "%.0f", ride.totalElevationGain), label: "FT UP")
+                    headerStatDivider
+                    headerStat(value: "\(ride.caloriesBurned)", label: "KCAL")
                 }
             }
         }
+    }
+
+    private var headerStatDivider: some View {
+        Rectangle()
+            .fill(PepTheme.shimmerHighlight)
+            .frame(width: 0.5, height: 26)
+    }
+
+    private func headerStat(value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(.title3, design: .serif, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Main Stats
@@ -141,10 +165,7 @@ struct RideDetailView: View {
     private var elevationCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "mountain.2.fill")
-                    .foregroundStyle(.green)
-                HeadlineText(text: "Elevation Profile")
-                Spacer()
+                EditorialSectionHeading(kicker: "Vertical", title: "Elevation Profile", accent: .green)
             }
 
             if ride.routeCoordinates.count >= 2 {
@@ -210,10 +231,7 @@ struct RideDetailView: View {
     private var powerCadenceCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "bolt.heart.fill")
-                    .foregroundStyle(.yellow)
-                HeadlineText(text: "Power & Cadence")
-                Spacer()
+                EditorialSectionHeading(kicker: "Output", title: "Power & Cadence", accent: .yellow)
             }
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
@@ -258,13 +276,17 @@ struct RideDetailView: View {
     private var speedSegmentsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "speedometer")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Mile Segments")
-                Spacer()
-                Text("\(ride.segments.count) segments")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
+                EditorialSectionHeading(
+                    kicker: "Splits",
+                    title: "Mile Segments",
+                    accent: accentColor,
+                    trailing: AnyView(
+                        Text("\(ride.segments.count) SEGMENTS")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(1.4)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    )
+                )
             }
 
             if ride.segments.isEmpty {
@@ -317,10 +339,7 @@ struct RideDetailView: View {
     private var heartRateZonesCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "heart.fill")
-                    .foregroundStyle(.red)
-                HeadlineText(text: "Heart Rate Zones")
-                Spacer()
+                EditorialSectionHeading(kicker: "Effort", title: "Heart Rate Zones", accent: .red)
             }
 
             ForEach(ride.heartRateZones, id: \.zone.id) { dist in
@@ -365,10 +384,7 @@ struct RideDetailView: View {
     private var rideInfoCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Image(systemName: "info.circle.fill")
-                    .foregroundStyle(PepTheme.textSecondary)
-                HeadlineText(text: "Ride Info")
-                Spacer()
+                EditorialSectionHeading(kicker: "Details", title: "Ride Info", accent: accentColor)
             }
 
             HStack {
