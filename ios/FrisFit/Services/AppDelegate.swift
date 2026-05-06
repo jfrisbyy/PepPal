@@ -32,7 +32,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         let userInfo = notification.request.content.userInfo
+        let title = notification.request.content.title
+        let body = notification.request.content.body
         Task { @MainActor in
+            SmartNotificationEngine.shared.recordIncoming(userInfo: userInfo, title: title, body: body)
             if let convId = userInfo["conversation_id"] as? String,
                ConversationMuteStore.shared.isMuted(conversationId: convId) {
                 completionHandler([])
@@ -48,7 +51,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let userInfo = response.notification.request.content.userInfo
+        let title = response.notification.request.content.title
+        let body = response.notification.request.content.body
         Task { @MainActor in
+            SmartNotificationEngine.shared.recordIncoming(userInfo: userInfo, title: title, body: body)
             DeepLinkRouter.shared.handle(userInfo: userInfo)
             completionHandler()
         }

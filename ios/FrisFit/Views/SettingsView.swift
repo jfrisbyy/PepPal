@@ -18,6 +18,7 @@ struct SettingsView: View {
                 unitsSection
                 personalizationSection
                 aiMemorySection
+                smartNotificationsSection
                 vialScanHistorySection
                 timerSection
                 healthKitSection
@@ -129,6 +130,33 @@ struct SettingsView: View {
             NavigationStack {
                 VialScanHistoryView { _, _ in
                     showVialScanHistory = false
+                }
+            }
+        }
+    }
+
+    private var smartNotificationsSection: some View {
+        SettingsCard(title: "Notifications") {
+            NavigationLink {
+                SmartNotificationSettingsView()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "bell.badge.fill")
+                        .font(.body)
+                        .foregroundStyle(PepTheme.teal)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Smart Notifications")
+                            .font(.body)
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("Categories, quiet hours, daily limit")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
         }

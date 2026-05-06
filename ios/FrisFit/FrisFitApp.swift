@@ -24,6 +24,8 @@ struct EPTIApp: App {
         print("APP_INIT: EPTIApp init complete")
     }
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -33,7 +35,13 @@ struct EPTIApp: App {
                 }
                 .onAppear {
                     print("APP_INIT: ContentView appeared")
+                    Task { await SmartNotificationEngine.shared.replanAll() }
                 }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task { await SmartNotificationEngine.shared.replanAll() }
+            }
         }
     }
 }

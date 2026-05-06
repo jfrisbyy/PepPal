@@ -31,6 +31,8 @@ struct HomeView: View {
     @State private var historicalMealsLoaded: Bool = false
     @State private var showOnboardingSuccessCard: Bool = UserDefaults.standard.bool(forKey: OnboardingManager.successCardPendingKey)
     @State private var showStreakInfo: Bool = false
+    @State private var showNotificationCenter: Bool = false
+    @State private var notifStore = SmartNotificationStore.shared
 
     var body: some View {
         NavigationStack {
@@ -93,6 +95,7 @@ struct HomeView: View {
                                 .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5))
                         }
                         .sensoryFeedback(.selection, trigger: showGlobalSearch)
+                        notificationsToolbarIcon
                         streakToolbarIcon
                     }
                 }
@@ -144,6 +147,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showGlobalSearch) {
                 GlobalSearchView()
+            }
+            .sheet(isPresented: $showNotificationCenter) {
+                SmartNotificationCenterView()
             }
             .sheet(isPresented: $showEditProfileFromNudge, onDismiss: {
                 Task { await profileNudgeState.checkProfile() }
@@ -467,6 +473,37 @@ struct HomeView: View {
     }
 
 
+
+    // MARK: - Notifications Toolbar Icon
+
+    private var notificationsToolbarIcon: some View {
+        Button {
+            showNotificationCenter = true
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: notifStore.unreadCount > 0 ? "bell.badge.fill" : "bell")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(notifStore.unreadCount > 0 ? PepTheme.teal : PepTheme.textPrimary)
+                    .frame(width: 32, height: 32)
+                    .background(PepTheme.cardSurface)
+                    .clipShape(.circle)
+                    .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5))
+                    .symbolEffect(.bounce, value: notifStore.unreadCount)
+                if notifStore.unreadCount > 0 {
+                    Text(notifStore.unreadCount > 9 ? "9+" : "\(notifStore.unreadCount)")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 4)
+                        .frame(minWidth: 14, minHeight: 14)
+                        .background(PepTheme.coral, in: Capsule())
+                        .overlay(Capsule().strokeBorder(PepTheme.background, lineWidth: 1))
+                        .offset(x: 4, y: -4)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: showNotificationCenter)
+    }
 
     // MARK: - Streak Toolbar Icon
 
