@@ -77,22 +77,15 @@ struct TodaysPlanCardView: View {
                     .frame(height: 0.6)
             }
 
-            planMainHeader
-
-            if !isPlanMinimized {
-                VStack(spacing: 0) {
-                    DailyTasksSectionView(
-                        viewModel: viewModel,
-                        isDailyTasksCollapsed: $isDailyTasksCollapsed,
-                        collapsedTaskCategories: $collapsedTaskCategories,
-                        showAddTask: $showAddTask,
-                        showProtocolReason: $showProtocolReason
-                    )
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            DailyTasksSectionView(
+                viewModel: viewModel,
+                isDailyTasksCollapsed: $isDailyTasksCollapsed,
+                collapsedTaskCategories: $collapsedTaskCategories,
+                showAddTask: $showAddTask,
+                showProtocolReason: $showProtocolReason
+            )
         }
-        .padding(.bottom, isPlanMinimized ? 0 : 8)
+        .padding(.bottom, 8)
         .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 16))
         .overlay(
