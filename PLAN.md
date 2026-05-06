@@ -1,55 +1,44 @@
-# Pre-Session command center — full-screen detail view
+# Add a Sleep card to the homepage with manual logging + Apple Health sync
 
-## Overview
-A full-screen pre-session brief that opens when you tap the Training card on the home page. It's your editorial "before the lift" command center — readiness, fuel, history, warmup, and today's exercises — all wrapped in the same premium feel as the rest of the app, ending in a Review-then-Start flow.
+## What you'll get
 
-## How you get there
-- [x] Tapping the Training card on the home page pushes the new pre-session view as a full-screen detail page (same navigation pattern as Program Detail).
-- [x] The card itself stays as a glanceable summary; deeper context lives on this page.
-- [x] A clear back button returns you home; a floating bottom bar carries the primary action.
+A new **Sleep** card lives in the Activity section of the home page, right alongside Energy, Training, Nutrition, and Water. It shows last night at a glance, lets you log a night yourself in seconds, and expands into a full Sleep & Recovery page when you want the deeper picture.
 
-## What you'll see (top to bottom)
+### Features
+- See last night's hours and quality on the home card with a tiny 7-night bar trail.
+- Auto-pulls from Apple Health when connected — no manual entry needed.
+- If Apple Health isn't connected (or last night is missing), the card invites you to log manually.
+- Quick "Log sleep" button opens a sheet to enter bedtime, wake time, quality, and an optional note.
+- Quality captured as a 1–10 slider with a descriptive label (Restless → Excellent).
+- Hours auto-calculate from bedtime/wake time, but you can override.
+- Source badge shows whether the night came from Apple Health or you logged it.
+- Tapping the card opens the full Sleep & Recovery page.
+- Manual entries sync to your account so they show up across devices and feed into trends, the daily brief, and correlations.
 
-**1. Editorial header**
-- [x] Program name, week & day position (e.g. "W3 · DAY 4/6"), today's split name in serif type, and a focus tag (Push / Pull / Legs / etc).
-- [x] Subtle progress bar showing where today sits in the current mesocycle.
+### Design (compact card)
+- Same dark glass card styling as the Energy and Nutrition cards — rounded, subtle border, soft shadow.
+- Top row: moon icon, "Sleep" title, small "Log" pill button on the right (violet accent).
+- Big rounded number for hours slept last night with a small "h" suffix, plus a quality chip ("Good · 7/10") next to it.
+- Tiny 7-bar mini chart underneath showing the last week, with last night highlighted.
+- Bottom row: source badge ("Apple Health" or "Logged") and a chevron hinting at the detail page.
+- Empty state: friendly "Log last night's sleep" prompt with a single tap-to-open button.
 
-**2. Readiness check**
-- [x] Quick read of sleep, soreness, energy, and current peptide level in your body (pulled from the chart calculation, not just dosage).
-- [x] Each metric shown as a compact ring or bar with a single-line interpretation ("Recovery looking strong — push intensity").
-- [x] Tap to log today's readiness if missing.
+### Design (manual log sheet)
+- Bedtime and wake-time pickers stacked, with auto-calculated total hours shown live.
+- 1–10 quality slider with color gradient (red → amber → green) and dynamic label.
+- Optional notes field (multi-line, "How did you feel?").
+- Save button pinned to bottom; haptic confirm on save.
 
-**3. Today's focus & coaching cue**
-- [x] One AI-generated sentence framing the session ("Strength block — top set on bench, accessories at RPE 7").
+### Design (full Sleep & Recovery page — already exists, enhanced)
+- Reuses the existing Sleep & Recovery view with a new "Log a night" button in the toolbar.
+- Manually-logged nights blend into the same chart and stages breakdown as Apple Health nights.
+- Adds a small "Recent entries" list so you can edit or delete a night you logged.
 
-**4. Estimated timeline**
-- [x] Visual stacked timeline: Warmup → Main work → Cooldown, with minute estimates and total session duration.
+### Where it appears
+- **Home → Activity section**: between the Training card and Nutrition card.
+- **Sleep & Recovery page**: opens when you tap the card (already exists, lightly upgraded).
+- **Manual log sheet**: opens when you tap the "Log" pill or the empty-state button.
 
-**5. Warmup & mobility flow**
-- [x] 3–5 suggested warmup movements specific to today's split (e.g. band pull-aparts before push day).
-- [x] Each as a small row with reps/duration; tap to expand technique notes.
-
-**6. Last time you trained this**
-- [x] Date of last identical session, total volume, any PRs hit, and a one-line trend ("+8% volume vs last week").
-
-**7. Today's exercises**
-- [x] Clean list with target sets × reps and the working weight pulled from your last session.
-- [x] Each row shows last-session performance inline ("Last: 185×5,5,4").
-- [ ] Swipe or tap to edit target weight, swap exercise, or add notes before starting (target weight editable in Review sheet; swap/notes deferred).
-
-**8. Fueling & hydration**
-- [x] Short pre-workout tips: suggested carbs, hydration target, caffeine timing, and a peptide-aware note when relevant (e.g. timing around current compound levels).
-
-## Primary action
-- [x] Sticky bottom bar with a single button: **"Review & Start"**.
-- [x] Tapping it opens a quick-edit step (confirm/adjust today's exercises, weights, set count) then drops you straight into the active workout flow.
-
-## Design language
-- [x] Matches the existing premium editorial style: serif headlines, monospaced micro-labels with tracking, glass cards, blue accent for the Train surface.
-- [x] Subtle entrance: sections fade and rise in sequence on appear.
-- [x] Haptic tap on Review & Start; spring transitions throughout.
-- [x] Empty/missing states are graceful (e.g. no last-session data → "First time running this split — set your starting weights").
-
-## Out of scope for this pass
-- Music / playlist suggestions (deferred).
-- Real-time biometric polling during the session itself.
+### Behind-the-scenes touches
+- Manually-logged sleep flows into the daily brief, weekly summary, training correlations, and biomarker trends just like Apple Health data.
+- Cached locally so the card renders instantly, then refreshes from Apple Health and the cloud.

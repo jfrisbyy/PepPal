@@ -281,6 +281,7 @@ struct HomeView: View {
                         showProgramCreation: $showProgramCreation,
                         onStartWorkout: { startWorkoutFromHome() }
                     )
+                    HomeSleepCard(healthKit: viewModel.healthKit)
                     DailyNutritionCard(viewModel: energyBalanceViewModel, onLogMeal: {
                         let hour = Calendar.current.component(.hour, from: Date())
                         if hour < 10 { logMealTime = .breakfast }

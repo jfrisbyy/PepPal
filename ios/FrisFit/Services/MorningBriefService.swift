@@ -111,11 +111,12 @@ final class MorningBriefService {
         }
 
         // 4. HealthKit signals if no logs yet
-        if parts.count < 2 && hk.isAuthorized {
-            if hk.sleepHours > 0 {
-                parts.append("Slept \(String(format: "%.1f", hk.sleepHours))h last night.")
+        if parts.count < 2 {
+            let sleepHours = hk.sleepHours > 0 ? hk.sleepHours : (SleepLogViewModel.shared.lastNightLog()?.hours ?? 0)
+            if sleepHours > 0 {
+                parts.append("Slept \(String(format: "%.1f", sleepHours))h last night.")
             }
-            if hk.steps > 0 {
+            if hk.isAuthorized && hk.steps > 0 {
                 parts.append("\(hk.steps) steps banked so far.")
             }
         }
@@ -210,8 +211,9 @@ final class MorningBriefService {
             if let hrv = corr.averageHRV { value += " · HRV \(Int(hrv))ms" }
             return BriefLine(label: "Recovery", value: value, detail: corr.insight, tone: tone)
         }
-        guard hk.isAuthorized else { return nil }
-        let sleep = hk.sleepHours
+        let manualSleep = SleepLogViewModel.shared.lastNightLog()?.hours ?? 0
+        guard hk.isAuthorized || manualSleep > 0 else { return nil }
+        let sleep = hk.sleepHours > 0 ? hk.sleepHours : manualSleep
         let hrv = hk.hrv
         let score = hk.recoveryScore
         var parts: [String] = []
