@@ -4,14 +4,60 @@ import SwiftUI
 final class BasketballViewModel {
     static let shared = BasketballViewModel()
 
+    // MARK: - Persistence keys
+    private enum Keys {
+        static let seriousMode = "bb.seriousMode"
+        static let goals = "bb.goals"
+        static let weeklyFocus = "bb.weeklyFocus"
+        static let weeklyFocusDate = "bb.weeklyFocusDate"
+        static let drillSessions = "bb.drillSessions"
+    }
+
+    // MARK: - Persistent settings
+
+    var seriousMode: Bool = UserDefaults.standard.bool(forKey: Keys.seriousMode) {
+        didSet { UserDefaults.standard.set(seriousMode, forKey: Keys.seriousMode) }
+    }
+
+    var goals: [BasketballGoal] = [] {
+        didSet { saveGoals() }
+    }
+
+    var weeklyFocus: BasketballFocusSkill = .catchAndShoot {
+        didSet {
+            UserDefaults.standard.set(weeklyFocus.rawValue, forKey: Keys.weeklyFocus)
+            UserDefaults.standard.set(Date(), forKey: Keys.weeklyFocusDate)
+        }
+    }
+
+    /// drillSlug -> session count
+    private(set) var drillSessions: [String: Int] = [:] {
+        didSet { saveDrillSessions() }
+    }
+
+    // MARK: - Data
+
     var games: [BasketballGame] = []
     var practicePlans: [PracticePlan] = []
     var selectedGame: BasketballGame? = nil
     var showGameDetail: Bool = false
+    var showRunDetail: Bool = false
     var showGameLog: Bool = false
+    var showRunLog: Bool = false
     var showDrillLibrary: Bool = false
     var showPracticePlanBuilder: Bool = false
     var showShotChart: Bool = false
+    var showSettings: Bool = false
+    var showGoalsEditor: Bool = false
+    var showWeeklyFocus: Bool = false
+
+    // Drill / plan runner state
+    var selectedDrill: BasketballDrill? = nil
+    var showDrillDetail: Bool = false
+    var runningDrill: BasketballDrill? = nil
+    var runningPlan: PracticePlan? = nil
+
+    // MARK: - Log form state
 
     var selectedSessionType: BasketballSessionType = .pickupGame
     var currentStats = BasketballGameStats()
@@ -20,13 +66,20 @@ final class BasketballViewModel {
     var opponentScore: Int = 0
     var gameDuration: Int = 60
     var shotChartEntries: [ShotChartEntry] = []
-    var confidenceRating: Int = 5
-    var performanceRating: Int = 5
+    var confidenceRating: Int = 7
+    var performanceRating: Int = 7
+    var energyRating: Int = 7
+    var legsRating: Int = 7
+    var vibeRating: Int = 7
     var gameNotes: String = ""
+    var location: String = ""
+    var partners: [String] = []
+    var drillsCompletedThisSession: [String] = []
 
     private(set) var hasHydratedFromCloud: Bool = false
 
     init() {
+        loadPersisted()
         Task { await self.hydrateFromCloud() }
     }
 
@@ -39,17 +92,40 @@ final class BasketballViewModel {
         self.hasHydratedFromCloud = true
     }
 
-    var totalGamesPlayed: Int {
-        games.filter { $0.sessionType.isGame }.count
+    private func loadPersisted() {
+        if let raw = UserDefaults.standard.string(forKey: Keys.weeklyFocus),
+           let skill = BasketballFocusSkill(rawValue: raw) {
+            weeklyFocus = skill
+        }
+        if let data = UserDefaults.standard.data(forKey: Keys.goals),
+           let decoded = try? JSONDecoder().decode([BasketballGoal].self, from: data) {
+            goals = decoded
+        } else {
+            goals = [BasketballGoal(type: .sessionsPerWeek, target: 3)]
+        }
+        if let data = UserDefaults.standard.data(forKey: Keys.drillSessions),
+           let decoded = try? JSONDecoder().decode([String: Int].self, from: data) {
+            drillSessions = decoded
+        }
     }
 
-    var totalWins: Int {
-        games.filter { $0.result == .win }.count
+    private func saveGoals() {
+        if let data = try? JSONEncoder().encode(goals) {
+            UserDefaults.standard.set(data, forKey: Keys.goals)
+        }
     }
 
-    var totalLosses: Int {
-        games.filter { $0.result == .loss }.count
+    private func saveDrillSessions() {
+        if let data = try? JSONEncoder().encode(drillSessions) {
+            UserDefaults.standard.set(data, forKey: Keys.drillSessions)
+        }
     }
+
+    // MARK: - Aggregates (serious mode)
+
+    var totalGamesPlayed: Int { games.filter { $0.sessionType.isGame }.count }
+    var totalWins: Int { games.filter { $0.result == .win }.count }
+    var totalLosses: Int { games.filter { $0.result == .loss }.count }
 
     var winPercentage: Double {
         let total = totalWins + totalLosses
@@ -58,49 +134,37 @@ final class BasketballViewModel {
     }
 
     var averagePoints: Double {
-        let gameStats = games.filter { $0.sessionType.isGame }
-        guard !gameStats.isEmpty else { return 0 }
-        return Double(gameStats.reduce(0) { $0 + $1.stats.points }) / Double(gameStats.count)
+        let g = games.filter { $0.sessionType.isGame }
+        guard !g.isEmpty else { return 0 }
+        return Double(g.reduce(0) { $0 + $1.stats.points }) / Double(g.count)
     }
 
     var averageRebounds: Double {
-        let gameStats = games.filter { $0.sessionType.isGame }
-        guard !gameStats.isEmpty else { return 0 }
-        return Double(gameStats.reduce(0) { $0 + $1.stats.totalRebounds }) / Double(gameStats.count)
+        let g = games.filter { $0.sessionType.isGame }
+        guard !g.isEmpty else { return 0 }
+        return Double(g.reduce(0) { $0 + $1.stats.totalRebounds }) / Double(g.count)
     }
 
     var averageAssists: Double {
-        let gameStats = games.filter { $0.sessionType.isGame }
-        guard !gameStats.isEmpty else { return 0 }
-        return Double(gameStats.reduce(0) { $0 + $1.stats.assists }) / Double(gameStats.count)
+        let g = games.filter { $0.sessionType.isGame }
+        guard !g.isEmpty else { return 0 }
+        return Double(g.reduce(0) { $0 + $1.stats.assists }) / Double(g.count)
     }
 
     var seasonHighPoints: Int {
         games.filter { $0.sessionType.isGame }.map(\.stats.points).max() ?? 0
     }
 
-    var overallFGPercentage: Double {
-        let gameStats = games.filter { $0.sessionType.isGame }
-        let totalMade = gameStats.reduce(0) { $0 + $1.stats.fieldGoalsMade }
-        let totalAttempted = gameStats.reduce(0) { $0 + $1.stats.fieldGoalsAttempted }
-        guard totalAttempted > 0 else { return 0 }
-        return Double(totalMade) / Double(totalAttempted) * 100
-    }
+    var overallFGPercentage: Double { pct(\.stats.fieldGoalsMade, \.stats.fieldGoalsAttempted) }
+    var overall3PTPercentage: Double { pct(\.stats.threePointersMade, \.stats.threePointersAttempted) }
+    var overallFTPercentage: Double { pct(\.stats.freeThrowsMade, \.stats.freeThrowsAttempted) }
 
-    var overall3PTPercentage: Double {
-        let gameStats = games.filter { $0.sessionType.isGame }
-        let totalMade = gameStats.reduce(0) { $0 + $1.stats.threePointersMade }
-        let totalAttempted = gameStats.reduce(0) { $0 + $1.stats.threePointersAttempted }
-        guard totalAttempted > 0 else { return 0 }
-        return Double(totalMade) / Double(totalAttempted) * 100
-    }
-
-    var overallFTPercentage: Double {
-        let gameStats = games.filter { $0.sessionType.isGame }
-        let totalMade = gameStats.reduce(0) { $0 + $1.stats.freeThrowsMade }
-        let totalAttempted = gameStats.reduce(0) { $0 + $1.stats.freeThrowsAttempted }
-        guard totalAttempted > 0 else { return 0 }
-        return Double(totalMade) / Double(totalAttempted) * 100
+    private func pct(_ made: KeyPath<BasketballGame, Int>, _ att: KeyPath<BasketballGame, Int>) -> Double {
+        let g = games.filter { $0.sessionType.isGame }
+        let totalMade = g.reduce(0) { $0 + $1[keyPath: made] }
+        let totalAtt = g.reduce(0) { $0 + $1[keyPath: att] }
+        guard totalAtt > 0 else { return 0 }
+        return Double(totalMade) / Double(totalAtt) * 100
     }
 
     var thisWeekGames: [BasketballGame] {
@@ -108,9 +172,54 @@ final class BasketballViewModel {
         return games.filter { $0.date >= weekStart }
     }
 
-    var thisWeekSessions: Int {
-        thisWeekGames.count
+    var thisWeekSessions: Int { thisWeekGames.count }
+
+    var thisWeekMinutes: Int {
+        thisWeekGames.reduce(0) { $0 + $1.durationMinutes }
     }
+
+    var thisWeekMakes: Int {
+        thisWeekGames.reduce(0) { $0 + $1.stats.fieldGoalsMade + $1.stats.freeThrowsMade } +
+        thisWeekGames.reduce(0) { $0 + $1.shotChart.filter(\.made).count }
+    }
+
+    var thisWeekDrillsCompleted: Int {
+        thisWeekGames.reduce(0) { $0 + $1.drillsCompleted.count }
+    }
+
+    // MARK: - Streak
+
+    /// Current consecutive-day session streak.
+    var currentStreak: Int {
+        let cal = Calendar.current
+        let dates = Set(games.map { cal.startOfDay(for: $0.date) })
+        var streak = 0
+        var day = cal.startOfDay(for: Date())
+        // Allow today to not count as breaker — start from today and walk back.
+        if !dates.contains(day) { day = cal.date(byAdding: .day, value: -1, to: day)! }
+        while dates.contains(day) {
+            streak += 1
+            day = cal.date(byAdding: .day, value: -1, to: day)!
+        }
+        return streak
+    }
+
+    /// 12-week heatmap data — number of sessions on each day, last 84 days.
+    var heatmapData: [(date: Date, count: Int)] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        var bucket: [Date: Int] = [:]
+        for game in games {
+            let day = cal.startOfDay(for: game.date)
+            bucket[day, default: 0] += 1
+        }
+        return (0..<84).reversed().compactMap { offset in
+            guard let day = cal.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            return (day, bucket[day] ?? 0)
+        }
+    }
+
+    // MARK: - Trends (serious mode)
 
     var pointsTrendData: [(date: Date, points: Int)] {
         games.filter { $0.sessionType.isGame }
@@ -143,11 +252,92 @@ final class BasketballViewModel {
         return (made, attempted, pct)
     }
 
-    func logGame() {
+    // MARK: - Goals
+
+    func progress(for goal: BasketballGoal) -> Double {
+        let value = currentValue(for: goal.type)
+        guard goal.target > 0 else { return 0 }
+        return min(Double(value) / Double(goal.target), 1.0)
+    }
+
+    func currentValue(for type: BasketballGoalType) -> Int {
+        switch type {
+        case .sessionsPerWeek: thisWeekSessions
+        case .minutesPerWeek: thisWeekMinutes
+        case .shotsPerWeek: thisWeekMakes
+        case .drillsPerWeek: thisWeekDrillsCompleted
+        case .streakDays: currentStreak
+        }
+    }
+
+    func addGoal(_ goal: BasketballGoal) { goals.append(goal) }
+
+    func removeGoal(_ goal: BasketballGoal) {
+        goals.removeAll { $0.id == goal.id }
+    }
+
+    func updateGoal(_ goal: BasketballGoal) {
+        if let idx = goals.firstIndex(where: { $0.id == goal.id }) {
+            goals[idx] = goal
+        }
+    }
+
+    // MARK: - Drill mastery
+
+    func mastery(for drill: BasketballDrill) -> DrillMastery {
+        DrillMastery.forSessionCount(drillSessions[drill.slug] ?? 0)
+    }
+
+    func sessionCount(for drill: BasketballDrill) -> Int {
+        drillSessions[drill.slug] ?? 0
+    }
+
+    func recordDrillCompletion(_ drill: BasketballDrill) {
+        drillSessions[drill.slug, default: 0] += 1
+    }
+
+    var drillsTouched: [(drill: BasketballDrill, count: Int)] {
+        drillSessions.compactMap { (slug, count) -> (drill: BasketballDrill, count: Int)? in
+            guard let drill = BasketballDrillLibrary.drill(forSlug: slug) else { return nil }
+            return (drill, count)
+        }
+        .sorted { $0.count > $1.count }
+    }
+
+    // MARK: - Hero copy
+
+    func heroLine(firstName: String) -> String {
+        if thisWeekSessions == 0 {
+            return "Time to get back on the court."
+        }
+        if currentStreak >= 3 {
+            return "\(currentStreak)-day streak — keep cooking."
+        }
+        if thisWeekSessions >= 4 {
+            return "\(thisWeekSessions) runs this week — locked in."
+        }
+        return "\(thisWeekSessions) run\(thisWeekSessions == 1 ? "" : "s") this week — keep going."
+    }
+
+    // MARK: - Logging
+
+    func logRun() {
+        let intensity = max(min(Int(round(Double(energyRating + legsRating + vibeRating) / 3)), 10), 1)
+        let calories = METCalculator.caloriesBurned(
+            sport: "Basketball",
+            workoutType: nil,
+            durationMinutes: gameDuration,
+            weightKg: BasketballViewModel.userWeightKg(),
+            intensity: intensity
+        )
+
+        var stats = currentStats
+        if stats.minutesPlayed == 0 { stats.minutesPlayed = gameDuration }
+
         let game = BasketballGame(
             date: Date(),
             sessionType: selectedSessionType,
-            stats: currentStats,
+            stats: stats,
             result: selectedSessionType.isGame ? gameResult : nil,
             teamScore: selectedSessionType.isGame ? teamScore : nil,
             opponentScore: selectedSessionType.isGame ? opponentScore : nil,
@@ -155,12 +345,35 @@ final class BasketballViewModel {
             shotChart: shotChartEntries,
             confidenceRating: confidenceRating,
             performanceRating: performanceRating,
-            notes: gameNotes
+            notes: gameNotes,
+            location: location,
+            partners: partners,
+            energyRating: energyRating,
+            legsRating: legsRating,
+            vibeRating: vibeRating,
+            drillsCompleted: drillsCompletedThisSession,
+            caloriesBurned: calories
         )
         games.insert(game, at: 0)
-        Task { await BasketballGameService.shared.insert(game) }
+
+        // Record drill mastery progress
+        for slug in drillsCompletedThisSession {
+            drillSessions[slug, default: 0] += 1
+        }
+
+        Task {
+            await BasketballGameService.shared.insert(game)
+            await Self.logCaloriesToActivity(
+                durationMinutes: game.durationMinutes,
+                calories: game.caloriesBurned,
+                notes: game.location.isEmpty ? nil : "Hooped at \(game.location)"
+            )
+        }
         resetLogForm()
     }
+
+    /// Legacy 4-step logger entry point (serious mode).
+    func logGame() { logRun() }
 
     func resetLogForm() {
         selectedSessionType = .pickupGame
@@ -170,9 +383,15 @@ final class BasketballViewModel {
         opponentScore = 0
         gameDuration = 60
         shotChartEntries = []
-        confidenceRating = 5
-        performanceRating = 5
+        confidenceRating = 7
+        performanceRating = 7
+        energyRating = 7
+        legsRating = 7
+        vibeRating = 7
         gameNotes = ""
+        location = ""
+        partners = []
+        drillsCompletedThisSession = []
     }
 
     func addShotEntry(zone: ShotZone, made: Bool) {
@@ -186,20 +405,33 @@ final class BasketballViewModel {
             } else {
                 currentStats.points += 2
             }
-        } else {
-            if zone.isThreePointer {
-                currentStats.threePointersAttempted += 1
-            }
+        } else if zone.isThreePointer {
+            currentStats.threePointersAttempted += 1
         }
         currentStats.fieldGoalsAttempted += 1
     }
+
+    // MARK: - Practice plans
 
     func savePracticePlan(_ plan: PracticePlan) {
         practicePlans.insert(plan, at: 0)
     }
 
-    /// Ingest a generic SportSession logged from the Train page. If it's basketball,
-    /// turn it into a BasketballGame so it shows up on the basketball dashboard.
+    func deletePracticePlan(_ plan: PracticePlan) {
+        practicePlans.removeAll { $0.id == plan.id }
+    }
+
+    /// Adopt a template into the user's saved plans.
+    func adoptTemplate(_ template: PracticePlan) {
+        let cloned = PracticePlan(
+            name: template.name,
+            drills: template.drills.map { PracticePlanDrill(drill: $0.drill) }
+        )
+        savePracticePlan(cloned)
+    }
+
+    // MARK: - Sport session ingestion
+
     func ingestSportSession(_ session: SportSession) {
         guard session.sport == .basketball else { return }
 
@@ -219,6 +451,14 @@ final class BasketballViewModel {
             }
         }()
 
+        let calories = METCalculator.caloriesBurned(
+            sport: "Basketball",
+            workoutType: nil,
+            durationMinutes: session.durationMinutes,
+            weightKg: BasketballViewModel.userWeightKg(),
+            intensity: session.intensity
+        )
+
         let game = BasketballGame(
             date: session.date,
             sessionType: sessionType,
@@ -230,95 +470,34 @@ final class BasketballViewModel {
             shotChart: [],
             confidenceRating: session.intensity,
             performanceRating: session.intensity,
-            notes: ""
+            notes: "",
+            caloriesBurned: calories
         )
         games.insert(game, at: 0)
-        Task { await BasketballGameService.shared.insert(game) }
-    }
-
-    private func loadSampleData() {
-        let cal = Calendar.current
-        let now = Date()
-
-        games = [
-            BasketballGame(
-                date: cal.date(byAdding: .day, value: -1, to: now)!,
-                sessionType: .pickupGame,
-                stats: BasketballGameStats(points: 22, fieldGoalsMade: 9, fieldGoalsAttempted: 18, threePointersMade: 2, threePointersAttempted: 5, freeThrowsMade: 2, freeThrowsAttempted: 3, offensiveRebounds: 2, defensiveRebounds: 5, assists: 6, steals: 3, blocks: 1, turnovers: 2, minutesPlayed: 40),
-                result: .win,
-                teamScore: 62,
-                opponentScore: 55,
-                durationMinutes: 90,
-                shotChart: generateSampleShotChart(),
-                confidenceRating: 8,
-                performanceRating: 8
-            ),
-            BasketballGame(
-                date: cal.date(byAdding: .day, value: -3, to: now)!,
-                sessionType: .fullGame5v5,
-                stats: BasketballGameStats(points: 15, fieldGoalsMade: 6, fieldGoalsAttempted: 15, threePointersMade: 1, threePointersAttempted: 4, freeThrowsMade: 2, freeThrowsAttempted: 2, offensiveRebounds: 1, defensiveRebounds: 4, assists: 8, steals: 2, blocks: 0, turnovers: 3, minutesPlayed: 36),
-                result: .loss,
-                teamScore: 48,
-                opponentScore: 52,
-                durationMinutes: 80,
-                shotChart: generateSampleShotChart(),
-                confidenceRating: 6,
-                performanceRating: 6
-            ),
-            BasketballGame(
-                date: cal.date(byAdding: .day, value: -5, to: now)!,
-                sessionType: .soloShooting,
-                stats: BasketballGameStats(points: 0, fieldGoalsMade: 38, fieldGoalsAttempted: 50, threePointersMade: 15, threePointersAttempted: 25, freeThrowsMade: 8, freeThrowsAttempted: 10, offensiveRebounds: 0, defensiveRebounds: 0, assists: 0, steals: 0, blocks: 0, turnovers: 0, minutesPlayed: 45),
-                durationMinutes: 45,
-                shotChart: generateSampleShotChart(),
-                confidenceRating: 7,
-                performanceRating: 7
-            ),
-            BasketballGame(
-                date: cal.date(byAdding: .day, value: -7, to: now)!,
-                sessionType: .pickupGame,
-                stats: BasketballGameStats(points: 28, fieldGoalsMade: 11, fieldGoalsAttempted: 20, threePointersMade: 4, threePointersAttempted: 8, freeThrowsMade: 2, freeThrowsAttempted: 4, offensiveRebounds: 3, defensiveRebounds: 6, assists: 4, steals: 1, blocks: 2, turnovers: 1, minutesPlayed: 44),
-                result: .win,
-                teamScore: 71,
-                opponentScore: 58,
-                durationMinutes: 95,
-                shotChart: generateSampleShotChart(),
-                confidenceRating: 9,
-                performanceRating: 9
-            ),
-            BasketballGame(
-                date: cal.date(byAdding: .day, value: -10, to: now)!,
-                sessionType: .fullGame3v3,
-                stats: BasketballGameStats(points: 18, fieldGoalsMade: 7, fieldGoalsAttempted: 14, threePointersMade: 3, threePointersAttempted: 6, freeThrowsMade: 1, freeThrowsAttempted: 2, offensiveRebounds: 2, defensiveRebounds: 3, assists: 3, steals: 2, blocks: 0, turnovers: 2, minutesPlayed: 30),
-                result: .win,
-                teamScore: 21,
-                opponentScore: 15,
-                durationMinutes: 50,
-                shotChart: generateSampleShotChart(),
-                confidenceRating: 7,
-                performanceRating: 8
-            ),
-        ]
-
-        practicePlans = [
-            PracticePlan(name: "Shooting Warmup", drills: [
-                PracticePlanDrill(drill: BasketballDrillLibrary.all[1]),
-                PracticePlanDrill(drill: BasketballDrillLibrary.all[2]),
-                PracticePlanDrill(drill: BasketballDrillLibrary.all[10]),
-            ]),
-        ]
-    }
-
-    private func generateSampleShotChart() -> [ShotChartEntry] {
-        var entries: [ShotChartEntry] = []
-        let zones: [ShotZone] = [.paint, .freeThrow, .leftElbow, .rightElbow, .leftWing3, .rightWing3, .topArc3, .leftCorner3, .rightCorner3]
-        for zone in zones {
-            let attempts = Int.random(in: 1...4)
-            for _ in 0..<attempts {
-                let made = Double.random(in: 0...1) > (zone.isThreePointer ? 0.65 : 0.5)
-                entries.append(ShotChartEntry(zone: zone, made: made))
-            }
+        Task {
+            await BasketballGameService.shared.insert(game)
+            await Self.logCaloriesToActivity(durationMinutes: game.durationMinutes, calories: game.caloriesBurned)
         }
-        return entries
+    }
+
+    // MARK: - Calorie + weight helpers
+
+    static func userWeightKg() -> Double {
+        let cachedLbs = UserDefaults.standard.double(forKey: "cachedWeightLbs")
+        return cachedLbs > 0 ? cachedLbs * 0.453592 : 75.0
+    }
+
+    static func logCaloriesToActivity(durationMinutes: Int, calories: Int, notes: String? = nil) async {
+        guard calories > 0 else { return }
+        guard let uid = try? AuthService.shared.currentUserId() else { return }
+        try? await ActivityLogService.shared.logActivity(
+            userId: uid,
+            activityType: "sportSession",
+            sport: "Basketball",
+            durationMinutes: durationMinutes,
+            caloriesBurned: calories,
+            metValue: nil,
+            notes: notes
+        )
     }
 }

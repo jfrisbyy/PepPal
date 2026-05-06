@@ -130,6 +130,10 @@ struct TrainView: View {
                 RunningSettingsView(runVM: runVM)
                     .presentationDetents([.large])
             }
+            .sheet(isPresented: $bbVM.showRunLog) {
+                BasketballLogRunSheet(bbVM: bbVM)
+                    .presentationDetents([.large])
+            }
             .sheet(isPresented: $bbVM.showGameLog) {
                 BasketballGameLogSheet(bbVM: bbVM)
                     .presentationDetents([.large])
@@ -145,6 +149,30 @@ struct TrainView: View {
             .sheet(isPresented: $bbVM.showPracticePlanBuilder) {
                 BasketballDrillLibraryView(bbVM: bbVM)
                     .presentationDetents([.large])
+            }
+            .sheet(isPresented: $bbVM.showSettings) {
+                BasketballSettingsView(bbVM: bbVM)
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $bbVM.showGoalsEditor) {
+                BasketballGoalsEditorView(bbVM: bbVM)
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $bbVM.showWeeklyFocus) {
+                BasketballWeeklyFocusView(bbVM: bbVM)
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $bbVM.showDrillDetail) {
+                if let drill = bbVM.selectedDrill {
+                    BasketballDrillDetailView(drill: drill, bbVM: bbVM)
+                        .presentationDetents([.large])
+                }
+            }
+            .fullScreenCover(item: $bbVM.runningDrill) { drill in
+                BasketballGuidedDrillView(drill: drill, bbVM: bbVM)
+            }
+            .fullScreenCover(item: $bbVM.runningPlan) { plan in
+                BasketballPlanRunnerView(plan: plan, bbVM: bbVM)
             }
             .sheet(isPresented: $swimVM.showSwimSettings) {
                 SwimSettingsView(swimVM: swimVM)
@@ -186,6 +214,11 @@ struct TrainView: View {
             .navigationDestination(isPresented: $bbVM.showGameDetail) {
                 if let game = bbVM.selectedGame {
                     BasketballGameDetailView(game: game)
+                }
+            }
+            .navigationDestination(isPresented: $bbVM.showRunDetail) {
+                if let game = bbVM.selectedGame {
+                    BasketballRunDetailView(game: game, bbVM: bbVM)
                 }
             }
             .sheet(isPresented: $soccerVM.showGameLog) {
@@ -1229,7 +1262,8 @@ struct TrainView: View {
             case .basketball:
                 BasketballDashboardView(
                     bbVM: bbVM,
-                    accentColor: viewModel.currentMode.type.color
+                    accentColor: viewModel.currentMode.type.color,
+                    firstName: homeViewModel.userFirstName
                 )
             case .swimming:
                 SwimmingDashboardView(

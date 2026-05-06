@@ -1,63 +1,54 @@
-# Intelligent notification system with smart timing & controls
+# Reimagine Basketball mode for everyday hoopers
 
-## What we're building
+## The shift
 
-A unified, context-aware notification system that replaces the scattered reminders we have today (vials, titration, streaks) with one smart engine. It learns your day — when you train, sleep, eat, log — and only pings you when it actually helps.
+Today the basketball page leads with PPG / RPG / APG — numbers most casual hoopers don't track and don't relate to. We'll flip the experience so the everyday player feels seen first, while keeping a "Serious mode" toggle for the box-score crowd.
 
-## Features
+Every screen, card, sheet, and modal will be rebuilt in our editorial premium style: serif headlines, tracked uppercase eyebrows, hairline gradient borders, glass cards on a warm court-orange accent.
 
-**Smart, context-aware nudges**
-- **Training**: pre-session reminder timed to your usual workout window; "missed session" nudge only if today was a planned training day and nothing was logged by evening.
-- **Sleep**: wind-down ping ~45 min before your average bedtime; morning "log last night's sleep" only if Apple Health didn't auto-fill.
-- **Nutrition**: meal log reminders aligned to your eating pattern; hydration cue mid-afternoon; "macros off-track" alert in the evening only when meaningfully off.
-- **Supplements & doses**: time-of-day reminders pulled from your protocol schedule (consolidates today's per-feature reminders).
-- **Daily tasks & brief**: morning brief drop; one gentle reminder if tasks remain unchecked by late afternoon.
-- **Social**: real-time push for DMs, circle mentions, buddy invites, and reactions.
-- **Streaks & achievements**: milestone celebrations and a "save your streak" warning before the day ends.
+## What changes for the user
 
-**Intelligence rules (no random spam)**
-- Pulls from your training schedule, sleep average, meal log times, and time zone.
-- Suppresses anything already completed (no "log breakfast" if breakfast is logged).
-- Frequency cap: a max number per day across all categories, with priority ordering (social > supplement > training > sleep > nutrition > tasks > streak).
-- Respects quiet hours — anything that would fire inside the window gets dropped or rescheduled to the edge.
+- **Casual by default.** The dashboard talks about *runs*, *sessions*, *streaks*, and *how it felt* — not averages. Box-score stats live behind a quiet "Serious mode" toggle in settings.
+- **One-tap logging.** The primary action becomes "Log a Run." Default flow asks only: type of session, how long, vibe (energy / legs / confidence), and optional notes. Points/rebounds are tucked behind a "+ Add box score" expander for the days you want them.
+- **Run context.** Each session can record court / gym name, who you played with (free-text tags), and a vibe rating — turning your log into a journal of your hoop life, not a spreadsheet.  
+after logging a session based on the context given we should auto calculate the calories burned and add it to our activity card and logs for their total calorie burn 
+- 
 
-**User controls**
-- New **Notifications** screen in Settings:
-  - Master toggle.
-  - Per-category toggles (Training, Sleep, Nutrition, Supplements, Tasks, Social, Streaks).
-  - Quiet hours picker (default 10pm–7am).
-  - Daily frequency cap slider (3 / 5 / 8 / unlimited).
-  - "Send a test notification" button.
-- Permission re-prompt flow if denied.
+## New dashboard (top to bottom)
 
-**In-app notification center**
-- New bell icon in the home header with unread badge.
-- Full-screen list grouped by Today / This week / Earlier.
-- Each row: icon, category color, title, snippet, relative time, unread dot.
-- Tap → deep-links to the relevant screen (workout, sleep card, DM thread, etc.).
-- Swipe to dismiss; "Mark all read" action.
-- History persists for 30 days.
+1. **Hero card** — "Welcome back, [name]" with this week's run count, current streak, and a single editorial line ("3 runs this week — best in a month").
+2. **Hoop Streak & Consistency** — a 12-week heatmap calendar. Tap any cell to peek at that day's session.
+3. **Weekly Focus** — one skill in the spotlight ("This week: catch-and-shoot"). Pulls a recommended drill and shows your progress on it.
+4. **Goals** — set personal targets like "3 sessions a week" or "100 makes a week." Animated progress rings, celebratory haptic when you hit one.
+5. **Recent Runs feed** — editorial-style cards: court name, who you ran with, duration, vibe, a one-line note. Tappable for full detail.
+6. **Drill Progress** — small horizontal scroller of drills you've worked on, with mastery levels (Touched → Working → Sharp → Locked-in).
+7. **Practice Plans** — your saved plans + featured templates (Solo Shooting 30, Pre-Game Warmup, Handles 20, Conditioning Killer, Form Fix).
+8. **Drill Library entry** — expanded library with a guided runner.
+9. **Serious mode** (only when toggled on) — restores the PPG/FG%/3PT% rings, shot chart, scoring trend, and confidence-vs-FG insight cards.
 
-**Delivery**
-- **Local** for everything scheduled (training, sleep, supplements, tasks, daily brief).
-- **Remote push** via Supabase + APNs for social/real-time events (DMs, circle activity, buddy actions).
-- A daily background refresh re-plans the next 24h of local notifications based on the latest data.
+## New & redesigned screens
 
-## Design
+- **Log a Run sheet** — soft, editorial, single-screen (no 4-step wizard for casual mode). Session type chips, big duration dial, three vibe sliders (Energy, Legs, Confidence), location field, "ran with" chips, notes. "+ Add box score" reveals the existing stat counters; "+ Add shot chart" reveals the shot-chart tool.
+- **Run Detail** — replaces the box-score-heavy Game Detail for casual sessions. Shows court, partners, vibe arc, notes, drills completed if any. Editorial typography with a hero line summarizing the run.
+- **Drill Library (expanded)** — grow to ~50 drills across Shooting, Ball Handling, Defense, Conditioning, Finishing, Footwork, IQ. Filter by category, difficulty, duration, and equipment (hoop / no hoop / partner needed). Each drill gets a richer detail page: purpose, how-to steps, coaching cues, video placeholder, related drills, and a "personal best" tracker.
+- **Guided Drill Runner** — full-screen, distraction-free. Big timer, drill name in serif, coaching cue cycling underneath, set/rep counters, "Mark complete" → quick log of makes/attempts or reps. Haptics on each interval.
+- **Practice Plan Templates** — pre-built plans surfaced on a new "Templates" tab inside the library; tap to clone or run as-is.
+- **Plan Runner** — step through your plan one drill at a time with a progress rail, auto-advance with a rest timer between drills, end-of-plan summary screen.
+- **Goals editor** — pick from suggested goals or create custom (frequency, makes, drill mastery). Shown in dashboard rings.
+- **Weekly Focus detail** — why this skill, recommended drills, your progress, "swap focus" option.
+- **Serious Mode toggle** — lives in basketball settings, surfaces all the stat-heavy cards and the full 4-step game logger when on.
 
-- Notification copy follows your existing coach voice — short, direct, specific numbers, no emojis, no "Great job!" filler.
-- Notification center uses the same card aesthetic as the home cards: rounded corners, soft shadow, category accent color on the left edge (training=orange, sleep=indigo, nutrition=green, supplements=purple, social=blue, streak=amber).
-- Empty state: a calm illustration with "You're all caught up" and a subtle pulse animation.
-- Settings screen uses native iOS grouped list styling with inline pickers and a small preview card showing what a notification will look like.
-- Bell icon: subtle bounce + haptic when a new notification arrives while app is open.
+## Design language (every surface)
 
-## Screens
+- Court-orange accent on near-black with subtle warm gradient backgrounds
+- Serif display headlines, uppercase tracked eyebrows ("HOOP STREAK", "RECENT RUNS")
+- Hairline gradient borders around glass cards
+- Spring animations on number changes, streak fills, ring progress
+- Light haptics on log actions, milestone hits, drill completions
+- Empty states that feel curated, not blank — single illustration + one editorial line + clear primary action
 
-1. **Home header** — new bell icon with unread count badge.
-2. **Notification Center** — full list of past notifications with grouping, swipe actions, deep links, and empty state.
-3. **Notification Settings** (in Settings) — master toggle, category toggles, quiet hours, frequency cap, test button.
-4. **Permission prompt sheet** — friendly explainer shown once on first relevant action if permissions were denied, with a button to open system Settings.
+## What stays
 
-## Rollout note
+- Existing shot chart, full box-score logger, scoring trend, season averages, confidence insight — all preserved and resurfaced under Serious mode for users who want them.
+- Existing drills and Supabase sync continue to work; new fields (location, partners, vibe, mastery) layer on top.
 
-This consolidates the current vial, titration, and streak reminders under one engine so there's a single place users manage everything. Existing schedules will be migrated automatically — no setup required.
