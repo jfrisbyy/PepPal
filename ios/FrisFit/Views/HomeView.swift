@@ -99,6 +99,16 @@ struct HomeView: View {
                     .padding(.top, 6)
                     .padding(.trailing, 14)
             }
+            .overlay(alignment: .topLeading) {
+                EptiLogoMark(size: 20)
+                    .padding(.top, 16)
+                    .padding(.leading, 18)
+                    .scaleEffect(pillScale, anchor: .topLeading)
+                    .opacity(pillOpacity)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: pillScale)
+                    .animation(.easeOut(duration: 0.18), value: pillOpacity)
+                    .allowsHitTesting(false)
+            }
             .onAppear { performHomeAppear() }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active {
