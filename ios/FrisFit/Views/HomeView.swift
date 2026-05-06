@@ -33,6 +33,7 @@ struct HomeView: View {
     @State private var showStreakInfo: Bool = false
     @State private var showNotificationCenter: Bool = false
     @State private var notifStore = SmartNotificationStore.shared
+    @State private var isCalendarRevealExpanded: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -44,8 +45,14 @@ struct HomeView: View {
                 } else {
                     EditorialHeader(
                         eyebrow: editorialEyebrow,
-                        title: editorialGreeting
-                    )
+                        title: editorialGreeting,
+                        isRevealExpanded: $isCalendarRevealExpanded
+                    ) {
+                        EditorialCalendarReveal(
+                            viewModel: viewModel,
+                            isExpanded: $isCalendarRevealExpanded
+                        )
+                    }
                     .padding(.horizontal)
                     .padding(.top, 8)
                     .padding(.bottom, 6)
@@ -78,9 +85,6 @@ struct HomeView: View {
             .appBackground(accent: PepTheme.teal)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    dateHeaderButton
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 10) {
                         Button {
@@ -98,12 +102,6 @@ struct HomeView: View {
                         notificationsToolbarIcon
                         streakToolbarIcon
                     }
-                }
-            }
-            .safeAreaInset(edge: .top, spacing: 0) {
-                if viewModel.isDateSelectorExpanded {
-                    ExpandedDateSelectorView(viewModel: viewModel)
-                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
             .onAppear { performHomeAppear() }
