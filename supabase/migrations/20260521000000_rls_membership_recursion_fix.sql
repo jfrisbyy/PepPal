@@ -37,6 +37,176 @@
 BEGIN;
 
 -- ---------------------------------------------------------------------------
+-- 0) Helper functions (idempotent recreate).
+--
+--    Migration 20260520_rls_500_hotfix wraps everything in BEGIN/COMMIT and
+--    its smoke test failed (recursion on circle_members), which rolled back
+--    ALL of its DDL — including the SECURITY DEFINER helpers it created.
+--    This file references those helpers in policies and RPCs, so recreate
+--    them here. They're `create or replace` so it's safe if 20260520 did
+--    eventually apply on some other environment.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.is_conversation_member(
+    p_conversation_id uuid,
+    p_user_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+set row_security = off
+as $
+    select exists (
+        select 1
+        from public.conversation_participants
+        where conversation_id = p_conversation_id
+          and user_id = p_user_id
+    );
+$;
+
+create or replace function public.is_group_member(
+    p_group_id uuid,
+    p_user_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+set row_security = off
+as $
+    select exists (
+        select 1
+        from public.group_members
+        where group_id = p_group_id
+          and user_id = p_user_id
+    );
+$;
+
+create or replace function public.is_group_admin(
+    p_group_id uuid,
+    p_user_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+set row_security = off
+as $
+    select exists (
+        select 1
+        from public.group_members
+        where group_id = p_group_id
+          and user_id = p_user_id
+          and role in ('Owner', 'Admin')
+    );
+$;
+
+create or replace function public.is_group_public(
+    p_group_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+set row_security = off
+as $
+    select exists (
+        select 1
+        from public.groups
+        where id = p_group_id
+          and privacy = 'Public'
+    );
+$;
+
+create or replace function public.is_circle_member(
+    p_circle_id uuid,
+    p_user_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+set row_security = off
+as $
+    select exists (
+        select 1
+        from public.circle_members
+        where circle_id = p_circle_id
+          and user_id = p_user_id
+    );
+$;
+
+create or replace function public.is_circle_admin(
+    p_circle_id uuid,
+    p_user_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+set row_security = off
+as $
+    select exists (
+        select 1
+        from public.circle_members
+        where circle_id = p_circle_id
+          and user_id = p_user_id
+          and role in ('Owner', 'Admin')
+    );
+$;
+
+create or replace function public.is_circle_public(
+    p_circle_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+set row_security = off
+as $
+    select exists (
+        select 1
+        from public.circles
+        where id = p_circle_id
+          and coalesce(is_private, false) = false
+    );
+$;
+
+do $
+declare
+    fn text;
+    fns text[] := array[
+        'is_conversation_member(uuid,uuid)',
+        'is_group_member(uuid,uuid)',
+        'is_group_admin(uuid,uuid)',
+        'is_group_public(uuid)',
+        'is_circle_member(uuid,uuid)',
+        'is_circle_admin(uuid,uuid)',
+        'is_circle_public(uuid)'
+    ];
+begin
+    foreach fn in array fns loop
+        begin
+            execute format('alter function public.%s owner to postgres', fn);
+        exception when others then
+            raise notice 'RLS_RECURSION_FIX: could not transfer ownership of %: %', fn, SQLERRM;
+        end;
+        execute format('revoke all on function public.%s from public', fn);
+        execute format('revoke all on function public.%s from anon', fn);
+        execute format('grant execute on function public.%s to authenticated', fn);
+        execute format('grant execute on function public.%s to service_role', fn);
+    end loop;
+end $;
+
+-- ---------------------------------------------------------------------------
 -- 1) circle_members — strictly non-recursive policies.
 -- ---------------------------------------------------------------------------
 do $$
