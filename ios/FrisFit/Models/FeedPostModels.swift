@@ -29,6 +29,7 @@ nonisolated enum FeedTag: String, CaseIterable, Identifiable, Sendable {
     case swimming = "Swimming"
     case soccer = "Soccer"
     case tennis = "Tennis"
+    case volleyball = "Volleyball"
     case bodybuilding = "Bodybuilding"
     case progress = "Progress"
     case nutrition = "Nutrition"
@@ -57,6 +58,7 @@ nonisolated enum FeedTag: String, CaseIterable, Identifiable, Sendable {
         case .swimming: return "figure.pool.swim"
         case .soccer: return "soccerball"
         case .tennis: return "tennis.racket"
+        case .volleyball: return "figure.volleyball"
         case .bodybuilding: return "figure.strengthtraining.traditional"
         case .progress: return "chart.line.uptrend.xyaxis"
         case .nutrition: return "fork.knife"
@@ -89,7 +91,7 @@ nonisolated enum TagCategory: String, CaseIterable, Identifiable, Sendable {
         case .peptides:
             return [.bpc157, .tb500, .glp1, .growthHormone, .healing, .cognitive, .tanning]
         case .sports:
-            return [.basketball, .running, .cycling, .swimming, .soccer, .tennis]
+            return [.basketball, .running, .cycling, .swimming, .soccer, .tennis, .volleyball]
         case .research:
             return [.bloodwork, .vendors, .reconstitution, .sideEffects]
         case .fitness:

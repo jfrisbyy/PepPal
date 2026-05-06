@@ -11,6 +11,7 @@ final class SportSessionViewModel {
     var basketballStats = BasketballStats()
     var runningStats = RunningStats()
     var swimmingStats = SwimmingStats()
+    var volleyballStats = VolleyballSessionStats()
 
     func reset() {
         sessionType = .practice
@@ -20,6 +21,7 @@ final class SportSessionViewModel {
         basketballStats = BasketballStats()
         runningStats = RunningStats()
         swimmingStats = SwimmingStats()
+        volleyballStats = VolleyballSessionStats()
     }
 
     func createSession() -> SportSession {
@@ -31,6 +33,8 @@ final class SportSessionViewModel {
             stats = .running(runningStats)
         case .swimming:
             stats = .swimming(swimmingStats)
+        case .volleyball:
+            stats = .volleyball(volleyballStats)
         default:
             stats = .none
         }

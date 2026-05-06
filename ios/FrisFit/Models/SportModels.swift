@@ -7,10 +7,12 @@ nonisolated enum Sport: String, CaseIterable, Identifiable, Sendable {
     case soccer = "Soccer"
     case baseball = "Baseball"
     case tennis = "Tennis"
+    case volleyball = "Volleyball"
     case swimming = "Swimming"
     case running = "Running"
     case cycling = "Cycling"
     case custom = "Custom"
+
 
     var id: String { rawValue }
 
@@ -21,6 +23,7 @@ nonisolated enum Sport: String, CaseIterable, Identifiable, Sendable {
         case .soccer: "soccerball"
         case .baseball: "baseball.fill"
         case .tennis: "tennis.racket"
+        case .volleyball: "figure.volleyball"
         case .swimming: "figure.pool.swim"
         case .running: "figure.run"
         case .cycling: "figure.outdoor.cycle"
@@ -35,6 +38,7 @@ nonisolated enum Sport: String, CaseIterable, Identifiable, Sendable {
         case .soccer: Color(red: 0.2, green: 0.78, blue: 0.35)
         case .baseball: Color(red: 0.85, green: 0.25, blue: 0.25)
         case .tennis: Color(red: 0.85, green: 0.9, blue: 0.15)
+        case .volleyball: Color(red: 0.95, green: 0.30, blue: 0.20)
         case .swimming: Color(red: 0.2, green: 0.6, blue: 1.0)
         case .running: Color(red: 0.0, green: 0.9, blue: 1.0)
         case .cycling: Color(red: 0.95, green: 0.45, blue: 0.0)
@@ -44,7 +48,7 @@ nonisolated enum Sport: String, CaseIterable, Identifiable, Sendable {
 
     var hasSpecificStats: Bool {
         switch self {
-        case .basketball, .running, .swimming, .cycling, .soccer, .tennis: true
+        case .basketball, .running, .swimming, .cycling, .soccer, .tennis, .volleyball: true
         default: false
         }
     }
@@ -119,6 +123,7 @@ nonisolated enum SportSpecificStats: Sendable {
     case cycling(CyclingStats)
     case soccer(SoccerSessionStats)
     case tennis(TennisSessionStats)
+    case volleyball(VolleyballSessionStats)
     case none
 }
 

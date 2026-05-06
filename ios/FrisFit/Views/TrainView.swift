@@ -10,6 +10,7 @@ struct TrainView: View {
     @State private var swimVM = SwimmingViewModel.shared
     @State private var soccerVM = SoccerViewModel.shared
     @State private var tennisVM = TennisViewModel.shared
+    @State private var volleyballVM = VolleyballViewModel.shared
     @State private var showLibrary: Bool = false
     @State private var sessionManager = WorkoutSessionManager.shared
     @State private var showSportSelector: Bool = false
@@ -252,6 +253,27 @@ struct TrainView: View {
             .navigationDestination(isPresented: $tennisVM.showMatchDetail) {
                 if let match = tennisVM.selectedMatch {
                     TennisMatchDetailView(match: match)
+                }
+            }
+            .sheet(isPresented: $volleyballVM.showMatchLog) {
+                VolleyballGameLogSheet(volleyballVM: volleyballVM)
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $volleyballVM.showDrillLibrary) {
+                VolleyballDrillLibraryView()
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $volleyballVM.showSettings) {
+                VolleyballSettingsView(volleyballVM: volleyballVM)
+                    .presentationDetents([.large])
+            }
+            .sheet(isPresented: $volleyballVM.showWorkoutBuilder) {
+                VolleyballWorkoutBuilderView(volleyballVM: volleyballVM)
+                    .presentationDetents([.large])
+            }
+            .navigationDestination(isPresented: $volleyballVM.showMatchDetail) {
+                if let match = volleyballVM.selectedMatch {
+                    VolleyballMatchDetailView(match: match)
                 }
             }
             .sheet(isPresented: $showProgressSheet) {
@@ -1196,6 +1218,12 @@ struct TrainView: View {
                     sportStatCard(value: "\(stats.winners)", label: "Winners", color: session.sport.color)
                     sportStatCard(value: String(format: "%.0f%%", stats.firstServePercentage), label: "1st Srv%", color: session.sport.color)
                 }
+            case .volleyball(let stats):
+                HStack(spacing: 12) {
+                    sportStatCard(value: "\(stats.kills)", label: "Kills", color: session.sport.color)
+                    sportStatCard(value: "\(stats.aces)", label: "Aces", color: session.sport.color)
+                    sportStatCard(value: "\(stats.blocks)", label: "Blocks", color: session.sport.color)
+                }
             case .none:
                 EmptyView()
             }
@@ -1278,6 +1306,11 @@ struct TrainView: View {
             case .tennis:
                 TennisDashboardView(
                     tennisVM: tennisVM,
+                    accentColor: viewModel.currentMode.type.color
+                )
+            case .volleyball:
+                VolleyballDashboardView(
+                    volleyballVM: volleyballVM,
                     accentColor: viewModel.currentMode.type.color
                 )
             default:

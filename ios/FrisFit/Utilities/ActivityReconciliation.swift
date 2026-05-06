@@ -169,6 +169,7 @@ nonisolated enum ActivityReconciliation: Sendable {
         case .basketball: return "Basketball"
         case .soccer: return "Soccer"
         case .tennis: return "Tennis"
+        case .volleyball: return "Volleyball"
         case .americanFootball: return "Football"
         case .baseball: return "Baseball"
         case .dance, .socialDance, .cardioDance: return "Dancing"

@@ -287,8 +287,35 @@ struct SportSessionLogView: View {
             runningSection
         case .swimming:
             swimmingSection
+        case .volleyball:
+            volleyballSection
         default:
             EmptyView()
+        }
+    }
+
+    private var volleyballSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionLabel(text: "VOLLEYBALL STATS")
+
+            VStack(spacing: 12) {
+                SportStatRow(label: "Kills", value: $viewModel.volleyballStats.kills, icon: "bolt.fill", color: .orange)
+                Divider().overlay(PepTheme.glassBorderTop)
+                SportStatRow(label: "Aces", value: $viewModel.volleyballStats.aces, icon: "star.fill", color: .green)
+                Divider().overlay(PepTheme.glassBorderTop)
+                SportStatRow(label: "Blocks", value: $viewModel.volleyballStats.blocks, icon: "shield.lefthalf.filled", color: .purple)
+                Divider().overlay(PepTheme.glassBorderTop)
+                SportStatRow(label: "Digs", value: $viewModel.volleyballStats.digs, icon: "hand.tap.fill", color: .blue)
+                Divider().overlay(PepTheme.glassBorderTop)
+                SportStatRow(label: "Assists", value: $viewModel.volleyballStats.assists, icon: "hand.raised.fingers.spread.fill", color: .yellow)
+            }
+            .padding(16)
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+            .clipShape(.rect(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+            )
         }
     }
 

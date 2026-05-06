@@ -69,6 +69,13 @@ nonisolated struct SportSessionJSON: Codable, Sendable {
     let tennisWinners: Int?
     let tennisUnforcedErrors: Int?
     let tennisFirstServePercentage: Double?
+    let volleyballKills: Int?
+    let volleyballAces: Int?
+    let volleyballBlocks: Int?
+    let volleyballDigs: Int?
+    let volleyballAssists: Int?
+    let volleyballAttackAttempts: Int?
+    let volleyballAttackErrors: Int?
 }
 
 final class WorkoutService {
@@ -332,6 +339,10 @@ final class WorkoutService {
             if let aces = json.tennisAces {
                 stats = .tennis(TennisSessionStats(aces: aces, doubleFaults: json.tennisDoubleFaults ?? 0, winners: json.tennisWinners ?? 0, unforcedErrors: json.tennisUnforcedErrors ?? 0, firstServePercentage: json.tennisFirstServePercentage ?? 0))
             }
+        case .volleyball:
+            if let kills = json.volleyballKills {
+                stats = .volleyball(VolleyballSessionStats(kills: kills, aces: json.volleyballAces ?? 0, blocks: json.volleyballBlocks ?? 0, digs: json.volleyballDigs ?? 0, assists: json.volleyballAssists ?? 0, attackAttempts: json.volleyballAttackAttempts ?? 0, attackErrors: json.volleyballAttackErrors ?? 0))
+            }
         default:
             break
         }
@@ -359,7 +370,10 @@ final class WorkoutService {
             cyclingDistanceMiles: nil, cyclingAvgSpeed: nil, cyclingElevationGain: nil,
             soccerGoals: nil, soccerAssists: nil, soccerDistanceKm: nil,
             tennisAces: nil, tennisDoubleFaults: nil, tennisWinners: nil,
-            tennisUnforcedErrors: nil, tennisFirstServePercentage: nil
+            tennisUnforcedErrors: nil, tennisFirstServePercentage: nil,
+            volleyballKills: nil, volleyballAces: nil, volleyballBlocks: nil,
+            volleyballDigs: nil, volleyballAssists: nil,
+            volleyballAttackAttempts: nil, volleyballAttackErrors: nil
         )
 
         switch session.specificStats {
@@ -372,7 +386,10 @@ final class WorkoutService {
                 cyclingDistanceMiles: nil, cyclingAvgSpeed: nil, cyclingElevationGain: nil,
                 soccerGoals: nil, soccerAssists: nil, soccerDistanceKm: nil,
                 tennisAces: nil, tennisDoubleFaults: nil, tennisWinners: nil,
-                tennisUnforcedErrors: nil, tennisFirstServePercentage: nil
+                tennisUnforcedErrors: nil, tennisFirstServePercentage: nil,
+                volleyballKills: nil, volleyballAces: nil, volleyballBlocks: nil,
+                volleyballDigs: nil, volleyballAssists: nil,
+                volleyballAttackAttempts: nil, volleyballAttackErrors: nil
             )
         case .running(let s):
             json = SportSessionJSON(
@@ -383,7 +400,10 @@ final class WorkoutService {
                 cyclingDistanceMiles: nil, cyclingAvgSpeed: nil, cyclingElevationGain: nil,
                 soccerGoals: nil, soccerAssists: nil, soccerDistanceKm: nil,
                 tennisAces: nil, tennisDoubleFaults: nil, tennisWinners: nil,
-                tennisUnforcedErrors: nil, tennisFirstServePercentage: nil
+                tennisUnforcedErrors: nil, tennisFirstServePercentage: nil,
+                volleyballKills: nil, volleyballAces: nil, volleyballBlocks: nil,
+                volleyballDigs: nil, volleyballAssists: nil,
+                volleyballAttackAttempts: nil, volleyballAttackErrors: nil
             )
         case .swimming(let s):
             json = SportSessionJSON(
@@ -394,7 +414,10 @@ final class WorkoutService {
                 cyclingDistanceMiles: nil, cyclingAvgSpeed: nil, cyclingElevationGain: nil,
                 soccerGoals: nil, soccerAssists: nil, soccerDistanceKm: nil,
                 tennisAces: nil, tennisDoubleFaults: nil, tennisWinners: nil,
-                tennisUnforcedErrors: nil, tennisFirstServePercentage: nil
+                tennisUnforcedErrors: nil, tennisFirstServePercentage: nil,
+                volleyballKills: nil, volleyballAces: nil, volleyballBlocks: nil,
+                volleyballDigs: nil, volleyballAssists: nil,
+                volleyballAttackAttempts: nil, volleyballAttackErrors: nil
             )
         case .cycling(let s):
             json = SportSessionJSON(
@@ -405,7 +428,10 @@ final class WorkoutService {
                 cyclingDistanceMiles: s.distanceMiles, cyclingAvgSpeed: s.averageSpeed, cyclingElevationGain: s.elevationGain,
                 soccerGoals: nil, soccerAssists: nil, soccerDistanceKm: nil,
                 tennisAces: nil, tennisDoubleFaults: nil, tennisWinners: nil,
-                tennisUnforcedErrors: nil, tennisFirstServePercentage: nil
+                tennisUnforcedErrors: nil, tennisFirstServePercentage: nil,
+                volleyballKills: nil, volleyballAces: nil, volleyballBlocks: nil,
+                volleyballDigs: nil, volleyballAssists: nil,
+                volleyballAttackAttempts: nil, volleyballAttackErrors: nil
             )
         case .soccer(let s):
             json = SportSessionJSON(
@@ -416,7 +442,10 @@ final class WorkoutService {
                 cyclingDistanceMiles: nil, cyclingAvgSpeed: nil, cyclingElevationGain: nil,
                 soccerGoals: s.goals, soccerAssists: s.assists, soccerDistanceKm: s.distanceKm,
                 tennisAces: nil, tennisDoubleFaults: nil, tennisWinners: nil,
-                tennisUnforcedErrors: nil, tennisFirstServePercentage: nil
+                tennisUnforcedErrors: nil, tennisFirstServePercentage: nil,
+                volleyballKills: nil, volleyballAces: nil, volleyballBlocks: nil,
+                volleyballDigs: nil, volleyballAssists: nil,
+                volleyballAttackAttempts: nil, volleyballAttackErrors: nil
             )
         case .tennis(let s):
             json = SportSessionJSON(
@@ -427,7 +456,24 @@ final class WorkoutService {
                 cyclingDistanceMiles: nil, cyclingAvgSpeed: nil, cyclingElevationGain: nil,
                 soccerGoals: nil, soccerAssists: nil, soccerDistanceKm: nil,
                 tennisAces: s.aces, tennisDoubleFaults: s.doubleFaults, tennisWinners: s.winners,
-                tennisUnforcedErrors: s.unforcedErrors, tennisFirstServePercentage: s.firstServePercentage
+                tennisUnforcedErrors: s.unforcedErrors, tennisFirstServePercentage: s.firstServePercentage,
+                volleyballKills: nil, volleyballAces: nil, volleyballBlocks: nil,
+                volleyballDigs: nil, volleyballAssists: nil,
+                volleyballAttackAttempts: nil, volleyballAttackErrors: nil
+            )
+        case .volleyball(let s):
+            json = SportSessionJSON(
+                sport: json.sport, sessionType: json.sessionType, intensity: json.intensity, customSportName: json.customSportName,
+                basketballPoints: nil, basketballAssists: nil, basketballRebounds: nil,
+                runningDistanceMiles: nil, runningPace: nil,
+                swimmingLaps: nil, swimmingStroke: nil,
+                cyclingDistanceMiles: nil, cyclingAvgSpeed: nil, cyclingElevationGain: nil,
+                soccerGoals: nil, soccerAssists: nil, soccerDistanceKm: nil,
+                tennisAces: nil, tennisDoubleFaults: nil, tennisWinners: nil,
+                tennisUnforcedErrors: nil, tennisFirstServePercentage: nil,
+                volleyballKills: s.kills, volleyballAces: s.aces, volleyballBlocks: s.blocks,
+                volleyballDigs: s.digs, volleyballAssists: s.assists,
+                volleyballAttackAttempts: s.attackAttempts, volleyballAttackErrors: s.attackErrors
             )
         case .none:
             break

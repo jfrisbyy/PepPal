@@ -146,6 +146,7 @@ nonisolated enum TaskActionLink: String, CaseIterable, Identifiable, Sendable, C
     case soccerSession = "Soccer"
     case tennisSession = "Tennis"
     case footballSession = "Football"
+    case volleyballSession = "Volleyball"
     case yogaSession = "Yoga"
 
     var id: String { rawValue }
@@ -169,6 +170,7 @@ nonisolated enum TaskActionLink: String, CaseIterable, Identifiable, Sendable, C
         case .soccerSession: return "soccerball"
         case .tennisSession: return "tennis.racket"
         case .footballSession: return "football.fill"
+        case .volleyballSession: return "figure.volleyball"
         case .yogaSession: return "figure.yoga"
         }
     }
@@ -192,6 +194,7 @@ nonisolated enum TaskActionLink: String, CaseIterable, Identifiable, Sendable, C
         case .soccerSession: return "Auto-completes after soccer"
         case .tennisSession: return "Auto-completes after tennis"
         case .footballSession: return "Auto-completes after football"
+        case .volleyballSession: return "Auto-completes after volleyball"
         case .yogaSession: return "Auto-completes after yoga"
         }
     }
@@ -201,7 +204,7 @@ nonisolated enum TaskActionLink: String, CaseIterable, Identifiable, Sendable, C
         case .none: return .manual
         case .stepCounter, .workoutCompleted, .waterIntake: return .fitness
         case .proteinGoal, .calorieGoal, .carbGoal, .fatGoal, .fiberGoal, .sugarGoal: return .nutrition
-        case .runningSession, .cyclingSession, .swimmingSession, .basketballSession, .soccerSession, .tennisSession, .footballSession, .yogaSession: return .sports
+        case .runningSession, .cyclingSession, .swimmingSession, .basketballSession, .soccerSession, .tennisSession, .footballSession, .volleyballSession, .yogaSession: return .sports
         }
     }
 
@@ -217,7 +220,7 @@ nonisolated enum TaskActionLink: String, CaseIterable, Identifiable, Sendable, C
     var supportsGoalDescription: Bool {
         switch self {
         case .runningSession, .cyclingSession, .swimmingSession, .basketballSession,
-             .soccerSession, .tennisSession, .footballSession, .yogaSession,
+             .soccerSession, .tennisSession, .footballSession, .volleyballSession, .yogaSession,
              .workoutCompleted:
             return true
         default:
@@ -234,6 +237,7 @@ nonisolated enum TaskActionLink: String, CaseIterable, Identifiable, Sendable, C
         case .soccerSession: return "e.g. Play 90 min, Run 3 miles"
         case .tennisSession: return "e.g. Play 3 sets, Hit for 1 hour"
         case .footballSession: return "e.g. Practice 1 hour, Run drills"
+        case .volleyballSession: return "e.g. Play 3 sets, Hit 100 swings"
         case .yogaSession: return "e.g. 30 min session, Complete flow"
         case .workoutCompleted: return "e.g. Push day, Leg day, Full body"
         default: return "Describe your goal"
@@ -321,7 +325,7 @@ extension TaskActionLink {
         case .stepCounter:
             return .viewSteps
         case .runningSession, .cyclingSession, .swimmingSession, .basketballSession,
-             .soccerSession, .tennisSession, .footballSession, .yogaSession:
+             .soccerSession, .tennisSession, .footballSession, .volleyballSession, .yogaSession:
             return .logActivity
         case .none:
             return .none
@@ -340,7 +344,7 @@ extension TaskActionLink {
         case .workoutCompleted: return "This task auto-completes after you finish today's workout."
         case .stepCounter: return "This task auto-completes when you hit your step goal. Steps are tracked automatically via Apple Health."
         case .runningSession, .cyclingSession, .swimmingSession, .basketballSession,
-             .soccerSession, .tennisSession, .footballSession, .yogaSession:
+             .soccerSession, .tennisSession, .footballSession, .volleyballSession, .yogaSession:
             return "This task auto-completes after you log a matching activity."
         case .none: return ""
         }

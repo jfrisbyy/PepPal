@@ -426,6 +426,10 @@ final class HomeViewModel {
                 if todayActivities.contains(where: { $0.type == .sportSession && $0.sport == .football }) {
                     dailyTasks[index].isCompleted = true
                 }
+            case .volleyballSession:
+                if todayActivities.contains(where: { $0.type == .sportSession && $0.sport == .volleyball }) {
+                    dailyTasks[index].isCompleted = true
+                }
             case .yogaSession:
                 break
             }

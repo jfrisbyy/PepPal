@@ -166,8 +166,26 @@ struct SportModeContentView: View {
             soccerStatsContent
         case .tennis:
             tennisStatsContent
+        case .volleyball:
+            volleyballStatsContent
         default:
             generalStatsContent
+        }
+    }
+
+    private var volleyballStatsContent: some View {
+        let volleyballSessions = sessions.compactMap { session -> VolleyballSessionStats? in
+            if case .volleyball(let stats) = session.specificStats { return stats }
+            return nil
+        }
+        let totalKills = volleyballSessions.reduce(0) { $0 + $1.kills }
+        let totalAces = volleyballSessions.reduce(0) { $0 + $1.aces }
+        let totalBlocks = volleyballSessions.reduce(0) { $0 + $1.blocks }
+
+        return HStack(spacing: 10) {
+            statBubble(value: "\(totalKills)", label: "Kills", color: accentColor)
+            statBubble(value: "\(totalAces)", label: "Aces", color: .green)
+            statBubble(value: "\(totalBlocks)", label: "Blocks", color: PepTheme.violet)
         }
     }
 
@@ -504,6 +522,24 @@ struct SportModeContentView: View {
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundStyle(accentColor)
                 } else {
+                    Text("\(session.durationMinutes)m")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+        case .volleyball(let stats):
+            HStack(spacing: 4) {
+                if stats.kills > 0 {
+                    Text("\(stats.kills)K")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(accentColor)
+                }
+                if stats.aces > 0 {
+                    Text("\(stats.aces) ACE")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(.green)
+                }
+                if stats.kills == 0 && stats.aces == 0 {
                     Text("\(session.durationMinutes)m")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundStyle(PepTheme.textSecondary)
