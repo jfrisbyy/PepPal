@@ -214,7 +214,7 @@ final class ProfileViewModel {
 
     func loadProfile() async {
         guard let session = AuthService.shared.session else { return }
-        let userId = session.user.id.uuidString
+        let userId = session.user.id.uuidString.lowercased()
         isLoadingProfile = true
         profileError = nil
 
@@ -293,7 +293,7 @@ final class ProfileViewModel {
         tiktokHandle: String? = nil
     ) async -> Bool {
         guard let session = AuthService.shared.session else { return false }
-        let userId = session.user.id.uuidString
+        let userId = session.user.id.uuidString.lowercased()
         isSaving = true
         profileError = nil
 
@@ -342,7 +342,7 @@ final class ProfileViewModel {
 
     func uploadAvatar(imageData: Data) async -> String? {
         guard let session = AuthService.shared.session else { return nil }
-        let userId = session.user.id.uuidString
+        let userId = session.user.id.uuidString.lowercased()
         isSaving = true
         do {
             let url = try await ProfileService.shared.uploadAvatar(userId: userId, imageData: imageData)
@@ -359,7 +359,7 @@ final class ProfileViewModel {
 
     func uploadBanner(imageData: Data) async -> String? {
         guard let session = AuthService.shared.session else { return nil }
-        let userId = session.user.id.uuidString
+        let userId = session.user.id.uuidString.lowercased()
         isSaving = true
         do {
             let url = try await ProfileService.shared.uploadBanner(userId: userId, imageData: imageData)
@@ -377,7 +377,7 @@ final class ProfileViewModel {
 
     func removeBanner() async {
         guard let session = AuthService.shared.session else { return }
-        let userId = session.user.id.uuidString
+        let userId = session.user.id.uuidString.lowercased()
         isSaving = true
         do {
             try await ProfileService.shared.removeBanner(userId: userId)
@@ -395,7 +395,7 @@ final class ProfileViewModel {
             print("PROFILE_POSTS: No auth session, skipping post load")
             return
         }
-        let userId = session.user.id.uuidString
+        let userId = session.user.id.uuidString.lowercased()
         print("PROFILE_POSTS: Loading posts for user \(userId)")
         isLoadingPosts = true
 
