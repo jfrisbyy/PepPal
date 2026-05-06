@@ -54,6 +54,19 @@ final class BodyProgressPhotoService {
         return session.user.id.uuidString.lowercased()
     }
 
+    private func signedURL(for path: String?) async -> String? {
+        guard let path, !path.isEmpty else { return nil }
+        do {
+            let url = try await supabase.storage
+                .from(bucket)
+                .createSignedURL(path: path, expiresIn: 60 * 60)
+            return url.absoluteString
+        } catch {
+            print("[BodyProgressPhotoService] signed url error: \(error)")
+            return nil
+        }
+    }
+
     func fetchAll() async -> [ProgressPhoto] {
         guard let uid = await userId() else { return [] }
         do {
@@ -64,16 +77,21 @@ final class BodyProgressPhotoService {
                 .order("captured_at", ascending: false)
                 .execute()
                 .value
-            return rows.map { row in
-                ProgressPhoto(
+            var out: [ProgressPhoto] = []
+            out.reserveCapacity(rows.count)
+            for row in rows {
+                // Bucket is private; mint a fresh signed URL per fetch.
+                let signed = await signedURL(for: row.storage_path) ?? row.photo_url
+                out.append(ProgressPhoto(
                     date: parse(row.captured_at),
                     label: row.label ?? "",
-                    photoUrl: row.photo_url,
+                    photoUrl: signed,
                     category: row.orientation,
                     orientation: row.orientation,
                     supabaseId: row.id
-                )
+                ))
             }
+            return out
         } catch {
             print("[BodyProgressPhotoService] fetch error: \(error)")
             return []
@@ -92,8 +110,12 @@ final class BodyProgressPhotoService {
                 data: data,
                 options: FileOptions(cacheControl: "3600", contentType: "image/jpeg", upsert: false)
             )
-        let url = try supabase.storage.from(bucket).getPublicURL(path: fileName)
-        return (url.absoluteString, fileName)
+        // Bucket is private — return a signed URL for immediate display.
+        // The persistent reference is `storage_path`; signed URLs are minted on read.
+        let signed = try await supabase.storage
+            .from(bucket)
+            .createSignedURL(path: fileName, expiresIn: 60 * 60)
+        return (signed.absoluteString, fileName)
     }
 
     @discardableResult
