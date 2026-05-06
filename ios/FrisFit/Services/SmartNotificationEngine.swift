@@ -48,10 +48,12 @@ final class SmartNotificationEngine {
         let status = await authorizationStatus()
         guard status == .authorized || status == .provisional else { return }
 
+        async let trainingItems = planTraining()
+        async let nutritionItems = planNutrition()
         var planned: [PlannedNotification] = []
-        planned.append(contentsOf: planTraining())
+        planned.append(contentsOf: await trainingItems)
         planned.append(contentsOf: planSleep())
-        planned.append(contentsOf: planNutrition())
+        planned.append(contentsOf: await nutritionItems)
         planned.append(contentsOf: planSupplements())
         planned.append(contentsOf: planTasks())
         planned.append(contentsOf: planStreaks())
@@ -151,14 +153,16 @@ final class SmartNotificationEngine {
     }
 
     /// Pre-session reminder + missed-workout nudge.
-    private func planTraining() -> [PlannedNotification] {
+    /// Async so we can suppress the missed-session nudge when today's
+    /// workout has already been logged (HealthKit or manual activity).
+    private func planTraining() async -> [PlannedNotification] {
         var items: [PlannedNotification] = []
         let cal = Calendar.current
         let now = Date()
 
         // Pre-session: 30 min before usual workout window.
         let preferredHour = ReminderManager.shared.workoutTime
-        var preComps = cal.dateComponents([.hour, .minute], from: preferredHour)
+        let preComps = cal.dateComponents([.hour, .minute], from: preferredHour)
         var fire = cal.nextDate(after: now, matching: preComps, matchingPolicy: .nextTime) ?? now
         fire = fire.addingTimeInterval(-30 * 60)
         if fire > now {
@@ -172,21 +176,22 @@ final class SmartNotificationEngine {
             ))
         }
 
-        // Missed-session: 8pm if nothing logged today (best-effort: we don't
-        // know completion synchronously, so we schedule it and let receipt
-        // be a soft nudge — the user can disable the category if too noisy).
-        var evening = cal.dateComponents([.hour, .minute], from: now)
-        evening.hour = 20
-        evening.minute = 0
-        if let eveningDate = cal.nextDate(after: now, matching: evening, matchingPolicy: .nextTime) {
-            items.append(PlannedNotification(
-                id: "training.missed",
-                category: .training,
-                title: "Still time to move",
-                body: "Even 20 minutes today keeps the rhythm going.",
-                fireDate: eveningDate,
-                userInfo: ["tab": "train"]
-            ))
+        // Missed-session: 8pm — only if nothing logged today.
+        let alreadyTrained = await hasLoggedWorkoutToday()
+        if !alreadyTrained {
+            var evening = cal.dateComponents([.hour, .minute], from: now)
+            evening.hour = 20
+            evening.minute = 0
+            if let eveningDate = cal.nextDate(after: now, matching: evening, matchingPolicy: .nextTime) {
+                items.append(PlannedNotification(
+                    id: "training.missed",
+                    category: .training,
+                    title: "Still time to move",
+                    body: "Even 20 minutes today keeps the rhythm going.",
+                    fireDate: eveningDate,
+                    userInfo: ["tab": "train"]
+                ))
+            }
         }
 
         return items
@@ -229,12 +234,15 @@ final class SmartNotificationEngine {
         return items
     }
 
-    private func planNutrition() -> [PlannedNotification] {
+    /// Async so we can skip nutrition nudges when meals are already being logged today.
+    private func planNutrition() async -> [PlannedNotification] {
         var items: [PlannedNotification] = []
         let cal = Calendar.current
         let now = Date()
 
-        // Hydration nudge at 14:30
+        let mealsLoggedToday = await hasLoggedMealsToday()
+
+        // Hydration nudge at 14:30 — always useful regardless of meal logging.
         var hyd = cal.dateComponents([.hour, .minute], from: now)
         hyd.hour = 14
         hyd.minute = 30
@@ -248,44 +256,98 @@ final class SmartNotificationEngine {
             ))
         }
 
-        // Evening macro check at 19:30
-        var macro = cal.dateComponents([.hour, .minute], from: now)
-        macro.hour = 19
-        macro.minute = 30
-        if let date = cal.nextDate(after: now, matching: macro, matchingPolicy: .nextTime) {
-            items.append(PlannedNotification(
-                id: "nutrition.macros",
-                category: .nutrition,
-                title: "Macros check-in",
-                body: "Quick scan of today's intake before dinner closes the books.",
-                fireDate: date
-            ))
+        // Evening macro check-in at 19:30 — only if they haven't been logging today.
+        if !mealsLoggedToday {
+            var macro = cal.dateComponents([.hour, .minute], from: now)
+            macro.hour = 19
+            macro.minute = 30
+            if let date = cal.nextDate(after: now, matching: macro, matchingPolicy: .nextTime) {
+                items.append(PlannedNotification(
+                    id: "nutrition.macros",
+                    category: .nutrition,
+                    title: "Macros check-in",
+                    body: "Haven't seen any meals yet — log what you've eaten so today's totals stay honest.",
+                    fireDate: date
+                ))
+            }
         }
 
         return items
     }
 
     private func planSupplements() -> [PlannedNotification] {
-        // Best-effort fixed time of day. The richer per-protocol scheduling
-        // already lives in TitrationScheduleStore / VialBUDNotificationService —
-        // we add a single morning umbrella reminder so users with neither still
-        // get pinged.
+        // Per-dose nudges built from TitrationScheduleStore. Each protocol
+        // schedule contributes today's dose at its configured reminder time,
+        // so users with multiple compounds get one ping per compound.
+        // VialBUDNotificationService still owns expiry warnings.
         var items: [PlannedNotification] = []
         let cal = Calendar.current
         let now = Date()
-        var morning = cal.dateComponents([.hour, .minute], from: now)
-        morning.hour = 9
-        morning.minute = 0
-        if let date = cal.nextDate(after: now, matching: morning, matchingPolicy: .nextTime) {
+        let schedules = TitrationScheduleStore.shared.schedules
+
+        for sched in schedules where sched.remindersEnabled {
+            guard let step = sched.currentStep(on: now) else { continue }
+            var comps = cal.dateComponents([.year, .month, .day], from: now)
+            comps.hour = sched.reminderHour
+            comps.minute = sched.reminderMinute
+            guard let date = cal.date(from: comps), date > now else { continue }
+
+            let doseStr = CompoundUnitHelper.displayDoseShort(step.doseMcg, for: sched.compoundName)
             items.append(PlannedNotification(
-                id: "supplements.morning",
+                id: "supplements.dose.\(sched.protocolId.uuidString)",
                 category: .supplements,
-                title: "Morning protocol",
-                body: "Time for today's stack — log when done.",
-                fireDate: date
+                title: "\(sched.compoundName) — \(doseStr)",
+                body: "Time for today's dose. Log when done.",
+                fireDate: date,
+                userInfo: ["protocol_id": sched.protocolId.uuidString]
             ))
         }
+
+        // Fallback umbrella nudge at 9:00 only when the user has no protocol
+        // schedules configured — keeps brand-new users in the loop.
+        if schedules.isEmpty {
+            var morning = cal.dateComponents([.hour, .minute], from: now)
+            morning.hour = 9
+            morning.minute = 0
+            if let date = cal.nextDate(after: now, matching: morning, matchingPolicy: .nextTime) {
+                items.append(PlannedNotification(
+                    id: "supplements.morning",
+                    category: .supplements,
+                    title: "Morning protocol",
+                    body: "Time for today's stack — log when done.",
+                    fireDate: date
+                ))
+            }
+        }
+
         return items
+    }
+
+    // MARK: - Completion checks
+
+    /// True if any workout/sport activity has been logged for today via
+    /// HealthKit or manual activity logs.
+    private func hasLoggedWorkoutToday() async -> Bool {
+        let hkWorkouts = await HealthKitService.shared.fetchWorkouts(for: Date())
+        if !hkWorkouts.isEmpty { return true }
+
+        guard let userId = try? AuthService.shared.currentUserId() else { return false }
+        if let activities = try? await ActivityLogService.shared.fetchTodayActivities(userId: userId) {
+            let workoutTypes: Set<String> = ["workout", "sportSession", "activity", "cardio", "run", "ride", "swim"]
+            if activities.contains(where: { workoutTypes.contains($0.activity_type) }) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// True if the user has logged at least one meal today.
+    private func hasLoggedMealsToday() async -> Bool {
+        guard let userId = try? AuthService.shared.currentUserId() else { return false }
+        if let meals = try? await NutritionService.shared.fetchLoggedMeals(userId: userId, date: Date()) {
+            return !meals.isEmpty
+        }
+        return false
     }
 
     private func planTasks() -> [PlannedNotification] {
