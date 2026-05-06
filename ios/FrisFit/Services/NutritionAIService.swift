@@ -54,12 +54,7 @@ nonisolated struct PhotoFoodOverlay: Identifiable, Sendable {
 final class NutritionAIService {
     static let shared = NutritionAIService()
 
-    private let openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
     private let model = "openai/gpt-4o-2024-11-20"
-
-    private var apiKey: String {
-        Config.EXPO_PUBLIC_OPENROUTER_API_KEY
-    }
 
     private let systemPrompt = """
     You are a precise nutrition estimation AI used in a fitness tracking app. Your job is to analyze food photos or text descriptions and return accurate calorie and macronutrient estimates.
@@ -150,48 +145,18 @@ final class NutritionAIService {
             "temperature": 0.3
         ]
 
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-
-        guard let requestURL = URL(string: openRouterURL) else {
-            print("CRITICAL: Invalid OpenRouter URL in NutritionAIService: \(openRouterURL)")
-            throw NutritionAIError.apiError(0)
-        }
-        var request = URLRequest(url: requestURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue(Bundle.main.bundleIdentifier ?? "com.peppal.app", forHTTPHeaderField: "HTTP-Referer")
-        request.setValue("EPTI", forHTTPHeaderField: "X-Title")
-        request.httpBody = jsonData
-        request.timeoutInterval = 15
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        if let httpResponse = response as? HTTPURLResponse {
-            let statusCode = httpResponse.statusCode
-            if statusCode == 429 || (statusCode >= 500 && statusCode < 600) {
-                if !isRetry {
-                    try await Task.sleep(for: .seconds(2))
-                    return try await callOpenRouter(messages: messages, isRetry: true)
-                }
+        do {
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 15)
+            return try AIProxyClient.extractContent(data)
+        } catch let AIProxyError.http(code, _) {
+            if (code == 429 || (code >= 500 && code < 600)) && !isRetry {
+                try await Task.sleep(for: .seconds(2))
+                return try await callOpenRouter(messages: messages, isRetry: true)
             }
-
-            guard statusCode == 200 else {
-                let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
-                print("[NutritionAI] OpenRouter error \(statusCode): \(errorBody)")
-                throw NutritionAIError.apiError(statusCode)
-            }
-        }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let message = choices.first?["message"] as? [String: Any],
-              let content = message["content"] as? String else {
-            print("[NutritionAI] Unexpected response structure: \(String(data: data, encoding: .utf8) ?? "")")
+            throw NutritionAIError.apiError(code)
+        } catch {
             throw NutritionAIError.invalidResponse
         }
-
-        return content
     }
 
     private func parseDescriptionResponse(_ text: String) throws -> AIEstimationResult {

@@ -78,7 +78,23 @@
 - [ ] Add `ErrorLogger.shared.log(...)` calls at top-level catch sites
       (NetworkService, ViewModels). Currently only wired into PrivacyDataView.
 
-## 11. Schema bloat from JSON columns
+## 11. AI key hardening (server-side proxy)
+
+- [x] `supabase/functions/ai-proxy/index.ts` — JWT-authenticated proxy in front
+      of OpenRouter. Validates the user, enforces a per-user 1-min rate limit,
+      8 MB request cap, and a model allow-list, then forwards using the
+      server-only `OPENROUTER_API_KEY` env.
+- [x] `AIProxyClient` Swift helper — every chat-completion call routes through
+      `${SUPABASE_URL}/functions/v1/ai-proxy` with the user's Supabase JWT.
+- [x] Swapped call sites onto the proxy: `OpenRouterClient` (AIModelTier),
+      `TodaysPlanService`, `InsightsAgentService`, `LabParsingService`,
+      `NutritionAIService`, `AIProgramService`, `FinnChatViewModel`,
+      `PeptideAIChatViewModel`. No service references
+      `EXPO_PUBLIC_OPENROUTER_API_KEY` anymore.
+- [ ] Set `OPENROUTER_API_KEY` as a Supabase Function secret and rotate /
+      remove the bundled `EXPO_PUBLIC_OPENROUTER_API_KEY` value once verified.
+
+## 12. Schema bloat from JSON columns
 
 - [ ] Audit `jsonb` columns where we filter/aggregate (notes,
       `friend_activity_events.data`, `health_daily_snapshots.payload` etc.).

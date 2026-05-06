@@ -55,12 +55,7 @@ final class AIProgramService {
     static let shared = AIProgramService()
     private init() {}
 
-    private let openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
     private let model = "openai/gpt-4o"
-
-    private var apiKey: String {
-        Config.EXPO_PUBLIC_OPENROUTER_API_KEY
-    }
 
     func generateProgram(_ request: AIProgramRequest) async throws -> TrainingProgram {
         let exerciseNames = ExerciseLibrary.all.map(\.name).joined(separator: ", ")
@@ -146,35 +141,14 @@ final class AIProgramService {
             "temperature": 0.4
         ]
 
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-
-        guard let requestURL = URL(string: openRouterURL) else {
-            print("CRITICAL: Invalid OpenRouter URL in AIProgramService: \(openRouterURL)")
-            throw AIProgramError.apiError(0)
-        }
-        var request = URLRequest(url: requestURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue(Bundle.main.bundleIdentifier ?? "com.peppal.app", forHTTPHeaderField: "HTTP-Referer")
-        request.setValue("EPTI", forHTTPHeaderField: "X-Title")
-        request.httpBody = jsonData
-        request.timeoutInterval = 30
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-            throw AIProgramError.apiError(httpResponse.statusCode)
-        }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let message = choices.first?["message"] as? [String: Any],
-              let content = message["content"] as? String else {
+        do {
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30)
+            return try AIProxyClient.extractContent(data)
+        } catch let AIProxyError.http(code, _) {
+            throw AIProgramError.apiError(code)
+        } catch {
             throw AIProgramError.invalidResponse
         }
-
-        return content
     }
 
     private func parseResponse(_ text: String, daysPerWeek: Int) throws -> TrainingProgram {

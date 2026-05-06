@@ -9,12 +9,7 @@ nonisolated struct ParsedBiomarkerResult: Codable, Sendable {
 final class LabParsingService {
     static let shared = LabParsingService()
 
-    private let openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
     private let model = "openai/gpt-4o"
-
-    private var apiKey: String {
-        Config.EXPO_PUBLIC_OPENROUTER_API_KEY
-    }
 
     private let systemPrompt = """
     You are a medical lab results parser. Your job is to extract biomarker values from lab report images or documents.
@@ -78,41 +73,18 @@ final class LabParsingService {
             "temperature": 0.1
         ]
 
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-
-        guard let requestURL = URL(string: openRouterURL) else {
-            print("CRITICAL: Invalid OpenRouter URL in LabParsingService: \(openRouterURL)")
-            throw LabParsingError.apiError(0)
-        }
-        var request = URLRequest(url: requestURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue(Bundle.main.bundleIdentifier ?? "com.peppal.app", forHTTPHeaderField: "HTTP-Referer")
-        request.setValue("EPTI", forHTTPHeaderField: "X-Title")
-        request.httpBody = jsonData
-        request.timeoutInterval = 30
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        if let httpResponse = response as? HTTPURLResponse {
-            if (httpResponse.statusCode == 429 || httpResponse.statusCode >= 500) && !isRetry {
+        do {
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30)
+            return try AIProxyClient.extractContent(data)
+        } catch let AIProxyError.http(code, _) {
+            if (code == 429 || code >= 500) && !isRetry {
                 try await Task.sleep(for: .seconds(2))
                 return try await callOpenRouter(messages: messages, isRetry: true)
             }
-            guard httpResponse.statusCode == 200 else {
-                throw LabParsingError.apiError(httpResponse.statusCode)
-            }
-        }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let message = choices.first?["message"] as? [String: Any],
-              let content = message["content"] as? String else {
+            throw LabParsingError.apiError(code)
+        } catch {
             throw LabParsingError.invalidResponse
         }
-
-        return content
     }
 
     private func parseResponse(_ text: String) -> [BiomarkerResult] {

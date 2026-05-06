@@ -17,10 +17,6 @@ final class PeptideAIChatViewModel {
     private var conversationHistory: [[String: Any]] = []
     private var userContextBlock: String = ""
 
-    private var openRouterAPIKey: String {
-        Config.EXPO_PUBLIC_OPENROUTER_API_KEY
-    }
-
     private var compoundDatabaseContext: String {
         let compounds = CompoundDatabase.all
         var context = "COMPOUND DATABASE (you have access to all of these):\n"
@@ -251,24 +247,7 @@ final class PeptideAIChatViewModel {
         ]
 
         do {
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else {
-                appendFallback()
-                return
-            }
-
-            guard let url = URL(string: "https://openrouter.ai/api/v1/chat/completions") else {
-                appendFallback()
-                return
-            }
-
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("Bearer \(openRouterAPIKey)", forHTTPHeaderField: "Authorization")
-            request.httpBody = jsonData
-            request.timeoutInterval = 45
-
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 45)
             let responseText = extractText(from: data)
 
             conversationHistory.append(["role": "assistant", "content": responseText])

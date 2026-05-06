@@ -6,11 +6,8 @@ import Foundation
 final class InsightsAgentService {
     static let shared = InsightsAgentService()
 
-    private let openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
     private let model = "anthropic/claude-sonnet-4.6"
     private let maxToolRounds = 6
-
-    private var apiKey: String { Config.EXPO_PUBLIC_OPENROUTER_API_KEY }
 
     private init() {}
 
@@ -104,24 +101,15 @@ final class InsightsAgentService {
             body["tool_choice"] = "auto"
         }
 
-        let data = try JSONSerialization.data(withJSONObject: body)
-        guard let url = URL(string: openRouterURL) else {
+        let respData: Data
+        do {
+            respData = try await AIProxyClient.postChatCompletion(body: body, timeout: 45)
+        } catch let AIProxyError.http(code, _) {
+            throw InsightsAgentError.apiError(code)
+        } catch AIProxyError.notConfigured, AIProxyError.notAuthenticated {
             throw InsightsAgentError.invalidURL
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue(Bundle.main.bundleIdentifier ?? "com.peppal.app", forHTTPHeaderField: "HTTP-Referer")
-        request.setValue("EPTI", forHTTPHeaderField: "X-Title")
-        request.httpBody = data
-        request.timeoutInterval = 45
-
-        let (respData, resp) = try await URLSession.shared.data(for: request)
-        if let http = resp as? HTTPURLResponse, http.statusCode != 200 {
-            let errText = String(data: respData, encoding: .utf8) ?? ""
-            print("[InsightsAgent] \(http.statusCode): \(errText)")
-            throw InsightsAgentError.apiError(http.statusCode)
+        } catch {
+            throw InsightsAgentError.invalidResponse
         }
 
         guard

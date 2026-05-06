@@ -4,10 +4,7 @@ import HealthKit
 final class TodaysPlanService {
     static let shared = TodaysPlanService()
 
-    private let openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
     private let model = "anthropic/claude-haiku-4.5"
-
-    private var apiKey: String { Config.EXPO_PUBLIC_OPENROUTER_API_KEY }
 
     private let systemPrompt = """
     IDENTITY AND ROLE:
@@ -156,32 +153,13 @@ final class TodaysPlanService {
             "temperature": 0.7
         ]
 
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-
-        guard let requestURL = URL(string: openRouterURL) else {
-            throw TodaysPlanError.apiError(0)
-        }
-        var request = URLRequest(url: requestURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue(Bundle.main.bundleIdentifier ?? "com.peppal.app", forHTTPHeaderField: "HTTP-Referer")
-        request.setValue("EPTI", forHTTPHeaderField: "X-Title")
-        request.httpBody = jsonData
-        request.timeoutInterval = 30
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-            let errorBody = String(data: data, encoding: .utf8) ?? "Unknown"
-            print("[TodaysPlan] Module API error \(httpResponse.statusCode): \(errorBody)")
-            throw TodaysPlanError.apiError(httpResponse.statusCode)
-        }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let message = choices.first?["message"] as? [String: Any],
-              let content = message["content"] as? String else {
+        let content: String
+        do {
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30)
+            content = try AIProxyClient.extractContent(data)
+        } catch let AIProxyError.http(code, _) {
+            throw TodaysPlanError.apiError(code)
+        } catch {
             throw TodaysPlanError.invalidResponse
         }
 
@@ -240,33 +218,13 @@ final class TodaysPlanService {
             "temperature": 0.7
         ]
 
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-
-        guard let requestURL = URL(string: openRouterURL) else {
-            print("CRITICAL: Invalid OpenRouter URL in TodaysPlanService: \(openRouterURL)")
-            throw TodaysPlanError.apiError(0)
-        }
-        var request = URLRequest(url: requestURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue(Bundle.main.bundleIdentifier ?? "com.peppal.app", forHTTPHeaderField: "HTTP-Referer")
-        request.setValue("EPTI", forHTTPHeaderField: "X-Title")
-        request.httpBody = jsonData
-        request.timeoutInterval = 30
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-            let errorBody = String(data: data, encoding: .utf8) ?? "Unknown"
-            print("[TodaysPlan] API error \(httpResponse.statusCode): \(errorBody)")
-            throw TodaysPlanError.apiError(httpResponse.statusCode)
-        }
-
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let message = choices.first?["message"] as? [String: Any],
-              let content = message["content"] as? String else {
+        let content: String
+        do {
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30)
+            content = try AIProxyClient.extractContent(data)
+        } catch let AIProxyError.http(code, _) {
+            throw TodaysPlanError.apiError(code)
+        } catch {
             throw TodaysPlanError.invalidResponse
         }
 

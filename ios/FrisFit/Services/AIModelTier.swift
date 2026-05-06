@@ -21,7 +21,6 @@ nonisolated enum AIModelTier: String, Sendable {
 /// timeouts, and tiering rules. Kept minimal; each caller owns its prompt.
 nonisolated final class OpenRouterClient: Sendable {
     static let shared = OpenRouterClient()
-    private let endpoint = "https://openrouter.ai/api/v1/chat/completions"
 
     private init() {}
 
@@ -53,44 +52,22 @@ nonisolated final class OpenRouterClient: Sendable {
         temperature: Double = 0.5,
         timeout: TimeInterval = 30
     ) async throws -> String {
-        let apiKey = Config.EXPO_PUBLIC_OPENROUTER_API_KEY
-        guard !apiKey.isEmpty, let url = URL(string: endpoint) else {
-            throw OpenRouterError.invalidConfig
-        }
-
         let body: [String: Any] = [
             "model": tier.modelID,
             "messages": messages,
             "max_tokens": maxTokens,
             "temperature": temperature
         ]
-        let data = try JSONSerialization.data(withJSONObject: body)
-
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        req.setValue(Bundle.main.bundleIdentifier ?? "com.peppal.app", forHTTPHeaderField: "HTTP-Referer")
-        req.setValue("EPTI", forHTTPHeaderField: "X-Title")
-        req.httpBody = data
-        req.timeoutInterval = timeout
-
-        let (respData, resp) = try await URLSession.shared.data(for: req)
-        if let http = resp as? HTTPURLResponse, http.statusCode != 200 {
-            let text = String(data: respData, encoding: .utf8) ?? ""
-            print("[OpenRouter/\(tier.rawValue)] \(http.statusCode): \(text.prefix(400))")
-            throw OpenRouterError.apiError(http.statusCode)
-        }
-
-        guard
-            let json = try JSONSerialization.jsonObject(with: respData) as? [String: Any],
-            let choices = json["choices"] as? [[String: Any]],
-            let message = choices.first?["message"] as? [String: Any],
-            let content = message["content"] as? String
-        else {
+        do {
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: timeout)
+            return try AIProxyClient.extractContent(data)
+        } catch let AIProxyError.http(code, _) {
+            throw OpenRouterError.apiError(code)
+        } catch AIProxyError.notConfigured, AIProxyError.notAuthenticated {
+            throw OpenRouterError.invalidConfig
+        } catch AIProxyError.invalidResponse {
             throw OpenRouterError.invalidResponse
         }
-        return content
     }
 
     /// Strip common wrappers (```json, ```) and isolate the outer JSON object
