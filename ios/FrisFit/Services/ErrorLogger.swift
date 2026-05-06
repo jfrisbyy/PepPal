@@ -2,6 +2,22 @@ import Foundation
 import UIKit
 import Supabase
 import Functions
+import Sentry
+
+/// Maps `ErrorLogger.Severity` onto Sentry's `SentryLevel` without
+/// leaking the Sentry import into call sites.
+struct SentryLevelMapping {
+    let value: SentryLevel
+
+    static func from(_ s: ErrorLogger.Severity) -> SentryLevelMapping {
+        switch s {
+        case .info:    return .init(value: .info)
+        case .warning: return .init(value: .warning)
+        case .error:   return .init(value: .error)
+        case .fatal:   return .init(value: .fatal)
+        }
+    }
+}
 
 private nonisolated struct ClientErrorPayload: Encodable, Sendable {
     let message: String
@@ -63,6 +79,15 @@ final class ErrorLogger {
         ctx["domain"] = nsError.domain
         ctx["code"] = String(nsError.code)
         ctx["type"] = String(describing: type(of: error))
+        // Send the typed error to Sentry so it gets exception-style grouping;
+        // the `log(message:)` path below also fires breadcrumbs+client_errors.
+        let sentryLevel: SentryLevelMapping = .from(severity)
+        CrashReportingService.capture(
+            error: error,
+            screen: screen,
+            severity: sentryLevel.value,
+            context: ctx
+        )
         log(
             message: error.localizedDescription,
             screen: screen,
@@ -102,6 +127,18 @@ final class ErrorLogger {
             )
         )
 
+        // Forward to Sentry (real-time dashboards) — best effort, no-ops
+        // when DSN is unset.
+        let sentryLevel: SentryLevelMapping = .from(severity)
+        CrashReportingService.capture(
+            message: trimmed,
+            screen: screen,
+            severity: sentryLevel.value,
+            context: context
+        )
+
+        // Also persist to client_errors table via super-action so we have
+        // a queryable backup independent of the Sentry plan tier.
         Task.detached(priority: .background) {
             try? await SupabaseService.shared.client.functions.invoke(
                 "super-action",

@@ -1,107 +1,67 @@
-# Scale hardening — pagination, disk persistence, indexes
+# Lock down RLS, storage, edge functions, abuse limits, and crash reporting
 
-## 1. Per-user disk store helper
+## What you'll get
 
-- [x] Create `PerUserDiskStore` (Application Support / `users/<uid>/<file>.json`).
-- [x] Wire purge on user switch / sign-out via `LocalStateResetCoordinator`.
+A focused security pass that closes the six gaps you flagged, plus real crash/error reporting. One new database migration, edits to the two edge functions, a new Sentry integration on the iOS side, and a short audit document so you can verify nothing was missed.
 
-## 2. Move large blobs out of UserDefaults
+## 1. RLS spot-check on cross-user tables
 
-- [x] HealthKit series cache (`HealthKitCache`) → disk (per-user).
-- [x] Journey events cache (`JourneyEventService`) → disk (per-user).
-- [x] Food favorites store → disk (per-user).
-- [x] Story mode cache → disk (per-user).
+A new migration will hand-audit the tables where data crosses user boundaries and replace any generic policy with explicit, scoped rules:
 
-## 3. Pagination / limits on unbounded selects
+- **follows** — anyone authenticated can read (needed for follower counts), but insert/delete only when `auth.uid() = follower_id`.
+- **feed_posts / post_comments / post_likes / post_reposts** — public read stays, but we'll add visibility scoping for posts marked private (author or follower only) and confirm writes are author-only.
+- **circles / circle_members** — read only if the circle is public OR the caller is a member; join/leave only on own row; admin-only update for circle settings.
+- **circle_messages / circle_posts / circle_post_comments / group_messages** — read only if caller is a member of that circle/group; write only as self AND as a member.
+- **direct messages / conversations** — read only if caller is sender or recipient; insert only with `auth.uid() = sender_id` and an existing conversation membership row.
+- **friend_reactions / friend_nudges / cheerlines / circle_invites** — sender or recipient visibility only.
+- The migration will also flag (in a `do $$ raise notice` block) any `public.*` table whose only policy is the generic backstop, so you get a list to triage.
 
-- [x] `ActivityLogService` lists.
-- [x] `NutritionService.fetchMeals` window (already date-bounded, no change needed).
-- [x] `TrainingProgramService.fetchPrograms`.
-- [x] `MessagingService` follow / friend lists.
-- [x] `CircleService.list*`.
-- [x] `BasketballGameService.fetchAll`.
+## 2. Storage bucket policies
 
-## 4. Supabase indexes migration
+The same migration will assert per-user folder policies on every bucket and remove any "public read all" leftovers:
 
-- [x] `20260515000000_perf_indexes.sql` — composite indexes on hot tables.
+- **avatars / banners** — keep public read (profile pictures), but writes scoped to `auth.uid()` folder.
+- **dm-media** — private, read/write only when path's first folder = `auth.uid()` AND the caller is a participant in the referenced conversation. Files are already accessed via signed URLs, so nothing breaks for the app.
+- **protocol-note-photos** — switch to private bucket with per-user folder policy; client switches from `getPublicURL` to `createSignedURL`.
+- **body-progress / meal-photos / post-media** — verify existing per-user policies, no changes expected.
 
-## 5. Realtime fan-out
+## 3. JWT verification on every edge function
 
-- [x] `RealtimeFeedService` channel scoped per-user (was `feed-posts-global`).
-- [x] `RealtimeLifecycleCoordinator` registers every Realtime subscription, tears
-      them down on `UIApplication.didEnterBackground`, replays on foreground.
-- [x] `AuthService.signOut()` calls `RealtimeLifecycleCoordinator.unsubscribeAll()`.
-- [ ] Migrate `NotificationsRealtimeService` and `RealtimeMessagingService` to
-      register through the coordinator (currently still managed by their VMs).
+- **ai-proxy** — already verifies, no change.
+- **super-action** — entrypoint will require JWT for every action by default. Each existing action handler keeps its current authorization (admin gating, ownership checks, etc.) but anonymous callers get a 401 before any handler runs.
 
-## 6. Account deletion / GDPR export
+## 4. ai-proxy logging hygiene
 
-- [x] `super-action` edge function: `deleteAccount` action.
-- [x] `delete_user_data(uuid)` SQL helper iterates every `public.<table>` with a
-      `user_id` column.
-- [x] Wipes per-user storage folders (`avatars`, `banners`, `body-progress`,
-      `meal-photos`, `dm-media`, `protocol-note-photos`).
-- [x] Deletes `auth.users` row last; client signs out.
-- [x] `PrivacyDataView` now invokes `super-action.deleteAccount` (was missing
-      `delete_account` function).
+Confirmed and tightened: the proxy already does not log prompts or responses. We'll add a small logger that, on upstream failure, logs only `{ status, model, userId, errorBody }` — never the request body, never the response body, and never auth tokens. Successful calls log nothing.
 
-## 7. Migration safety
+## 5. Abuse limits beyond rate limit — daily token budget
 
-- [x] New migration `20260517000000_rls_audit_and_hardening.sql` uses
-      `BEGIN/COMMIT`, idempotent `if not exists` / `do $$ ... $$` blocks.
-- [x] Catalog-driven enable-RLS loop instead of hard-coded table list — picks
-      up new tables automatically.
+ai-proxy will get a per-user daily token cap of **50,000 tokens/day** on top of the existing 30 req/min:
 
-## 8. RLS policy audit
+- A new `ai_usage_daily` table tracks `(user_id, day, prompt_tokens, completion_tokens)`.
+- After each upstream call, the proxy parses `usage` from the OpenRouter response and atomically increments the row.
+- Before forwarding a request, the proxy checks today's total; if ≥ 50k, it returns `429 daily_budget_exceeded` with a friendly retry-at timestamp.
+- Cap is overridable per-user via a `daily_token_limit` column so you can comp power users without redeploying.
 
-- [x] Migration enables RLS on every public table.
-- [x] Backstop "owner_*" policies created for any `user_id` table that had no
-      existing policy (skipped if any policy already exists, so curated rules
-      on `follows`, `feed_posts`, etc. are preserved).
+## 6. Crash + error reporting (Sentry)
 
-## 9. Image / media pipeline
+Real Sentry SDK integration on iOS so you can see crashes, breadcrumbs, and abuse patterns in a real dashboard:
 
-- [x] `ImageCompressor` utility with kind-specific presets (avatar, banner,
-      meal, progress, feed, thumbnail).
-- [x] `ProfileService.uploadAvatar` / `uploadBanner` resize before upload.
-- [x] Storage bucket policies for `body-progress`, `meal-photos` (private,
-      per-user folder).
-- [ ] Sweep remaining call sites (PhotoMealView, ProgressPhotosView,
-      ChatConversationView etc.) onto `ImageCompressor` — they currently use
-      ad-hoc `jpegData(compressionQuality:)`.
+- Add Sentry Cocoa via Swift Package Manager.
+- Initialize in `FrisFitApp.swift` with DSN read from `Config.swift` (so it's an env-driven key, not hardcoded).
+- Wire breadcrumbs for screen transitions, network requests, and Supabase errors.
+- Pipe `ErrorLogger.shared.log(...)` to also forward to Sentry (keeps the existing `client_errors` table as a backup queryable store).
+- Strip PII from breadcrumbs (no message bodies, no auth tokens, no health values — just screen names and error types).
+- Add `SENTRY_DSN` to `Config.swift` and document it as a required public env var.
 
-## 10. Crash + error reporting
+## 7. Verification & follow-up
 
-- [x] `client_errors` table with RLS (owner insert/select), 30-day retention.
-- [x] `super-action.logClientError` action.
-- [x] `ErrorLogger` Swift service with dedupe + device/version/screen context.
-- [ ] Add `ErrorLogger.shared.log(...)` calls at top-level catch sites
-      (NetworkService, ViewModels). Currently only wired into PrivacyDataView.
+- New `RLS_AUDIT.md` document listing every public table, its read/write policy summary, and a ✅/⚠️ flag — committed alongside the migration so future migrations can be checked against it.
+- `runChecks` after the Swift changes.
+- Manual verification list at the end of the plan: deploy migration → smoke-test feed/circles/DMs as user A vs user B → confirm Sentry events appear → confirm 50k cap by simulating high usage.
 
-## 11. AI key hardening (server-side proxy)
+## Deferred (called out but not in this round)
 
-- [x] `supabase/functions/ai-proxy/index.ts` — JWT-authenticated proxy in front
-      of OpenRouter. Validates the user, enforces a per-user 1-min rate limit,
-      8 MB request cap, and a model allow-list, then forwards using the
-      server-only `OPENROUTER_API_KEY` env.
-- [x] `AIProxyClient` Swift helper — every chat-completion call routes through
-      `${SUPABASE_URL}/functions/v1/ai-proxy` with the user's Supabase JWT.
-- [x] Swapped call sites onto the proxy: `OpenRouterClient` (AIModelTier),
-      `TodaysPlanService`, `InsightsAgentService`, `LabParsingService`,
-      `NutritionAIService`, `AIProgramService`, `FinnChatViewModel`,
-      `PeptideAIChatViewModel`. No service references
-      `EXPO_PUBLIC_OPENROUTER_API_KEY` anymore.
-- [x] Set `OPENROUTER_API_KEY` as a Supabase Function secret. `ai-proxy` is
-      auto-deployed via Rork sync.
-- [x] Removed last `EXPO_PUBLIC_OPENROUTER_API_KEY` reference from
-      `FrisFitApp.swift`. Client no longer reads the bundled key; the env var
-      can be deleted from project settings.
-- [ ] Smoke-test a chat call end-to-end via the live app (edge-function logs
-      not reachable from this sandbox).
+- Schema bloat from `jsonb` columns (item 12 in PLAN.md) — separate pass.
+- Realtime channel teardown for `NotificationsRealtimeService` and `RealtimeMessagingService` — already on PLAN.md, separate pass.
 
-## 12. Schema bloat from JSON columns
-
-- [ ] Audit `jsonb` columns where we filter/aggregate (notes,
-      `friend_activity_events.data`, `health_daily_snapshots.payload` etc.).
-- [ ] Promote frequently-queried fields to typed columns + GIN index where the
-      blob stays.

@@ -4,8 +4,14 @@
 // we validate it, then forward the chat-completion body to OpenRouter
 // using the server-only OPENROUTER_API_KEY.
 //
-// Per-user rate limit (rolling 1-minute window) and request/response
-// size caps keep the key from being abused if a token leaks.
+// Hardening applied:
+//   - Per-user 30 req/min rate limit (rolling 1-minute window).
+//   - Per-user daily token budget (default 50_000 tokens/day, overridable
+//     per user via ai_usage_daily.daily_token_limit).
+//   - Model allow-list to prevent calling exotic / expensive models.
+//   - 8 MB request body cap (vision payloads).
+//   - Logging hygiene: NEVER log prompts/responses/tokens. On upstream
+//     failure we log only { status, model, userIdHash, errorBodySnippet }.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
@@ -19,6 +25,7 @@ const JSON_HEADERS = { ...CORS_HEADERS, "Content-Type": "application/json" };
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MAX_REQUEST_BYTES = 8 * 1024 * 1024; // 8 MB (vision payloads)
 const RATE_LIMIT_PER_MIN = 30;
+const DEFAULT_DAILY_TOKEN_LIMIT = 50_000;
 
 // Allow-list of models that may be requested through the proxy. Keeps
 // callers from billing exotic / expensive models against our key.
@@ -34,6 +41,16 @@ function json(status: number, body: unknown): Response {
     return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
 }
 
+// Hash a user id for log lines so we never write the raw uuid.
+async function hashUserId(userId: string): Promise<string> {
+    const data = new TextEncoder().encode(userId);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(digest))
+        .slice(0, 6)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+}
+
 // In-memory per-user counter — fine for a single instance; replace with
 // Redis if you scale to multiple isolates later.
 const counters = new Map<string, { resetAt: number; count: number }>();
@@ -47,6 +64,17 @@ function checkRateLimit(userId: string): boolean {
     if (entry.count >= RATE_LIMIT_PER_MIN) return false;
     entry.count += 1;
     return true;
+}
+
+function midnightUTCInSeconds(): number {
+    const now = new Date();
+    const tomorrow = Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + 1,
+        0, 0, 0, 0,
+    );
+    return Math.floor((tomorrow - now.getTime()) / 1000);
 }
 
 Deno.serve(async (req) => {
@@ -84,6 +112,29 @@ Deno.serve(async (req) => {
         return json(429, { error: "rate_limited" });
     }
 
+    // ---- Daily token budget --------------------------------------
+    try {
+        const { data: usageRow } = await admin
+            .rpc("ai_usage_today", { p_user_id: userId });
+        const row = Array.isArray(usageRow) ? usageRow[0] : usageRow;
+        const usedToday = Number(row?.total_tokens ?? 0);
+        const limit = Number(row?.daily_token_limit ?? DEFAULT_DAILY_TOKEN_LIMIT);
+        const effectiveLimit = Number.isFinite(limit) && limit > 0
+            ? limit
+            : DEFAULT_DAILY_TOKEN_LIMIT;
+        if (usedToday >= effectiveLimit) {
+            return json(429, {
+                error: "daily_budget_exceeded",
+                used: usedToday,
+                limit: effectiveLimit,
+                retry_after_seconds: midnightUTCInSeconds(),
+            });
+        }
+    } catch (_) {
+        // Soft-fail: if the budget check itself errors, allow the request
+        // through rather than locking everyone out. We still log nothing.
+    }
+
     // ---- Body -----------------------------------------------------
     const lengthHeader = req.headers.get("content-length");
     if (lengthHeader && Number(lengthHeader) > MAX_REQUEST_BYTES) {
@@ -106,6 +157,7 @@ Deno.serve(async (req) => {
     }
 
     // ---- Forward --------------------------------------------------
+    const userHash = await hashUserId(userId);
     try {
         const upstream = await fetch(OPENROUTER_URL, {
             method: "POST",
@@ -118,6 +170,43 @@ Deno.serve(async (req) => {
             body: JSON.stringify(body),
         });
         const text = await upstream.text();
+
+        // Best-effort token accounting. Only parse on success; never log
+        // the response body itself.
+        if (upstream.ok) {
+            try {
+                const parsed = JSON.parse(text) as {
+                    usage?: {
+                        prompt_tokens?: number;
+                        completion_tokens?: number;
+                    };
+                };
+                const prompt = Number(parsed?.usage?.prompt_tokens ?? 0);
+                const completion = Number(parsed?.usage?.completion_tokens ?? 0);
+                if (prompt > 0 || completion > 0) {
+                    await admin.rpc("ai_usage_increment", {
+                        p_user_id: userId,
+                        p_prompt_tokens: Math.max(0, Math.floor(prompt)),
+                        p_completion_tokens: Math.max(0, Math.floor(completion)),
+                    });
+                }
+            } catch (_) {
+                // Token usage is non-critical; don't fail the request.
+            }
+        } else {
+            // Log only the metadata + a trimmed snippet of the upstream
+            // error body (NOT the request body, NOT the response body of
+            // a successful call). 512-char cap to keep noise out of logs.
+            const snippet = text.length > 512 ? text.slice(0, 512) + "…" : text;
+            console.error(JSON.stringify({
+                event: "ai_proxy_upstream_error",
+                status: upstream.status,
+                model,
+                user: userHash,
+                error: snippet,
+            }));
+        }
+
         return new Response(text, {
             status: upstream.status,
             headers: {
@@ -126,7 +215,12 @@ Deno.serve(async (req) => {
             },
         });
     } catch (err) {
-        console.error("ai-proxy upstream error", err);
-        return json(502, { error: "upstream_error", detail: String(err) });
+        console.error(JSON.stringify({
+            event: "ai_proxy_fetch_failed",
+            model,
+            user: userHash,
+            error: String(err).slice(0, 256),
+        }));
+        return json(502, { error: "upstream_error" });
     }
 });

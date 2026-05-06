@@ -852,8 +852,12 @@ final class ProtocolService {
                 data: imageData,
                 options: FileOptions(cacheControl: "3600", contentType: "image/jpeg", upsert: false)
             )
-        let url = try supabase.storage.from("protocol-note-photos").getPublicURL(path: fileName)
-        return url.absoluteString
+        // Bucket is private; use a long-lived signed URL so the row stored
+        // in protocol_notes.photo_url remains directly displayable.
+        let signed = try await supabase.storage
+            .from("protocol-note-photos")
+            .createSignedURL(path: fileName, expiresIn: 60 * 60 * 24 * 365)
+        return signed.absoluteString
     }
 
     // MARK: - Daily Ratings

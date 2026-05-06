@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		XX04FAB0CA01CEF89A876DXX /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = XX89C640C59B7FAB13CD4EXX /* Sentry */; };
 		XX50D61ED0BAE05FA2F8E9XX /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = XX1C9FF110ABBCE8BF456CXX /* Supabase */; };
 /* End PBXBuildFile section */
 
@@ -39,6 +40,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				XX50D61ED0BAE05FA2F8E9XX /* Supabase in Frameworks */,
+				XX04FAB0CA01CEF89A876DXX /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +120,7 @@
 			name = FrisFit;
 			packageProductDependencies = (
 				XX1C9FF110ABBCE8BF456CXX /* Supabase */,
+				XX89C640C59B7FAB13CD4EXX /* Sentry */,
 			);
 			productName = FrisFit;
 			productReference = 105FC57A2E9EAD3100EA8BCF /* FrisFit.app */;
@@ -217,6 +220,7 @@
 			);
 			packageReferences = (
 				XX20EB7F6EA71E9F2E096CXX /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				XXE69ECA4809637C4BFBCAXX /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 			);
 		};
 /* End PBXProject section */
@@ -626,6 +630,14 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		XXE69ECA4809637C4BFBCAXX /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.36.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -633,6 +645,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = XX20EB7F6EA71E9F2E096CXX /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		XX89C640C59B7FAB13CD4EXX /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = XXE69ECA4809637C4BFBCAXX /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
