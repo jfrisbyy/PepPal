@@ -105,41 +105,37 @@ struct EditProfileView: View {
                     }
                 }
             }
-            .fullScreenCover(item: Binding(
-                get: { pendingBannerCropImage.map { CropImageWrapper(image: $0) } },
-                set: { newValue in pendingBannerCropImage = newValue?.image }
-            )) { wrapper in
-                BannerCropSheet(
-                    sourceImage: wrapper.image,
-                    onSave: { data in
-                        bannerStore.setBanner(data)
-                        pendingBannerData = data
-                        bannerRemoved = false
-                        pendingBannerCropImage = nil
-                        selectedBannerPhoto = nil
-                    },
-                    onCancel: {
-                        pendingBannerCropImage = nil
-                        selectedBannerPhoto = nil
-                    }
-                )
-            }
-            .fullScreenCover(item: Binding(
-                get: { pendingCropImage.map { CropImageWrapper(image: $0) } },
-                set: { newValue in pendingCropImage = newValue?.image }
-            )) { wrapper in
-                AvatarCropSheet(
-                    sourceImage: wrapper.image,
-                    onSave: { data in
-                        avatarImageData = data
-                        pendingCropImage = nil
-                        selectedPhoto = nil
-                    },
-                    onCancel: {
-                        pendingCropImage = nil
-                        selectedPhoto = nil
-                    }
-                )
+            .fullScreenCover(item: cropTargetBinding) { target in
+                switch target {
+                case .avatar(let wrapper):
+                    AvatarCropSheet(
+                        sourceImage: wrapper.image,
+                        onSave: { data in
+                            avatarImageData = data
+                            pendingCropImage = nil
+                            selectedPhoto = nil
+                        },
+                        onCancel: {
+                            pendingCropImage = nil
+                            selectedPhoto = nil
+                        }
+                    )
+                case .banner(let wrapper):
+                    BannerCropSheet(
+                        sourceImage: wrapper.image,
+                        onSave: { data in
+                            bannerStore.setBanner(data)
+                            pendingBannerData = data
+                            bannerRemoved = false
+                            pendingBannerCropImage = nil
+                            selectedBannerPhoto = nil
+                        },
+                        onCancel: {
+                            pendingBannerCropImage = nil
+                            selectedBannerPhoto = nil
+                        }
+                    )
+                }
             }
         }
     }
@@ -147,6 +143,43 @@ struct EditProfileView: View {
     private struct CropImageWrapper: Identifiable {
         let id = UUID()
         let image: UIImage
+    }
+
+    private enum CropTarget: Identifiable {
+        case avatar(CropImageWrapper)
+        case banner(CropImageWrapper)
+
+        var id: UUID {
+            switch self {
+            case .avatar(let w): return w.id
+            case .banner(let w): return w.id
+            }
+        }
+    }
+
+    private var cropTargetBinding: Binding<CropTarget?> {
+        Binding(
+            get: {
+                if let img = pendingCropImage {
+                    return .avatar(CropImageWrapper(image: img))
+                }
+                if let img = pendingBannerCropImage {
+                    return .banner(CropImageWrapper(image: img))
+                }
+                return nil
+            },
+            set: { newValue in
+                switch newValue {
+                case .none:
+                    pendingCropImage = nil
+                    pendingBannerCropImage = nil
+                case .avatar(let w):
+                    pendingCropImage = w.image
+                case .banner(let w):
+                    pendingBannerCropImage = w.image
+                }
+            }
+        )
     }
 
     private var bannerSection: some View {
