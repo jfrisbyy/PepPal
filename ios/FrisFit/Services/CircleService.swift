@@ -101,14 +101,54 @@ final class CircleService {
     }
 
     func fetchMembers(circleId: String, limit: Int = 200) async throws -> [SupabaseCircleMemberWithProfile] {
-        let response: [SupabaseCircleMemberWithProfile] = try await supabase
-            .from("circle_members")
-            .select("*, profiles!circle_members_user_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
-            .eq("circle_id", value: circleId)
-            .limit(limit)
+        // Membership listing goes through the SECURITY DEFINER RPC
+        // `list_circle_members` so the caller can see other members of
+        // private circles they belong to without the table policy needing
+        // to query itself (which would recurse). The RPC returns plain
+        // circle_members rows; we hydrate the profile column with a
+        // follow-up `in()` query.
+        struct RPCArgs: Encodable { let p_circle_id: String }
+        let baseRows: [SupabaseCircleMember] = (try? await supabase
+            .rpc("list_circle_members", params: RPCArgs(p_circle_id: circleId))
             .execute()
-            .value
-        return response
+            .value) ?? []
+
+        if baseRows.isEmpty {
+            // Either the caller isn't a member / circle isn't public,
+            // or the RPC isn't available yet — fall back to the direct
+            // table read which under the new policy still surfaces the
+            // caller's own row + any rows in public circles.
+            let fallback: [SupabaseCircleMemberWithProfile] = (try? await supabase
+                .from("circle_members")
+                .select("*, profiles!circle_members_user_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+                .eq("circle_id", value: circleId)
+                .limit(limit)
+                .execute()
+                .value) ?? []
+            return fallback
+        }
+
+        let userIds = Array(Set(baseRows.map { $0.user_id })).prefix(limit)
+        let profiles: [SupabasePostAuthor] = (try? await supabase
+            .from("profiles")
+            .select("id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak")
+            .in("id", values: Array(userIds))
+            .execute()
+            .value) ?? []
+        let profileById: [String: SupabasePostAuthor] = Dictionary(
+            uniqueKeysWithValues: profiles.map { ($0.id, $0) }
+        )
+
+        return Array(baseRows.prefix(limit)).map { row in
+            SupabaseCircleMemberWithProfile(
+                id: row.id,
+                circle_id: row.circle_id,
+                user_id: row.user_id,
+                role: row.role,
+                joined_at: row.joined_at,
+                profiles: profileById[row.user_id]
+            )
+        }
     }
 
     func createCircle(userId: String, name: String, description: String, isPrivate: Bool, accentColor: String?) async throws -> SupabaseCircle {
