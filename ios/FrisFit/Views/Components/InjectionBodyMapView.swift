@@ -233,27 +233,34 @@ struct InjectionBodyMapView: View {
         }
     }
 
-    // MARK: - Body silhouette (single unified path)
+    // MARK: - Body silhouette (SF Symbols)
 
     @ViewBuilder
     private func bodySilhouette(width w: CGFloat, height h: CGFloat, maskMode: Bool = false) -> some View {
-        let shape = HumanSilhouetteShape(showBack: showBack)
+        // Apple's native figure symbol — clinical, always crisp.
+        // Mirror horizontally on the back view as a subtle visual cue.
+        let symbol = Image(systemName: "figure.stand")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .scaleEffect(x: showBack ? -1 : 1, y: 1)
+            .frame(width: w * 0.62, height: h * 0.94)
+            .position(x: w * 0.5, y: h * 0.5)
 
         if maskMode {
-            shape.fill(.white)
+            symbol.foregroundStyle(.white)
         } else {
             ZStack {
-                // Outer rim glow
-                shape
-                    .stroke(PepTheme.teal.opacity(0.18), lineWidth: 1)
-                    .blur(radius: 4)
+                // Outer teal aura glow
+                symbol
+                    .foregroundStyle(PepTheme.teal.opacity(0.22))
+                    .blur(radius: 8)
 
-                // Body fill — gradient gives subtle volume
-                shape
-                    .fill(
+                // Main body fill — subtle volumetric gradient
+                symbol
+                    .foregroundStyle(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.16, green: 0.17, blue: 0.22),
+                                Color(red: 0.18, green: 0.19, blue: 0.24),
                                 Color(red: 0.10, green: 0.11, blue: 0.15)
                             ],
                             startPoint: .topLeading,
@@ -261,34 +268,10 @@ struct InjectionBodyMapView: View {
                         )
                     )
 
-                // Highlight edge
-                shape
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.22),
-                                Color.white.opacity(0.04)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.8
-                    )
-
-                // Centerline anatomical crease
-                if !showBack {
-                    Path { p in
-                        p.move(to: CGPoint(x: w * 0.5, y: h * 0.20))
-                        p.addLine(to: CGPoint(x: w * 0.5, y: h * 0.55))
-                    }
-                    .stroke(Color.black.opacity(0.35), lineWidth: 0.7)
-                } else {
-                    Path { p in
-                        p.move(to: CGPoint(x: w * 0.5, y: h * 0.18))
-                        p.addLine(to: CGPoint(x: w * 0.5, y: h * 0.60))
-                    }
-                    .stroke(Color.black.opacity(0.45), lineWidth: 0.8)
-                }
+                // Highlight pass for an edge sheen
+                symbol
+                    .foregroundStyle(Color.white.opacity(0.06))
+                    .blendMode(.plusLighter)
             }
         }
     }
@@ -357,11 +340,11 @@ struct InjectionBodyMapView: View {
     }
 }
 
-// MARK: - Human Silhouette Shape
+// MARK: - Legacy Human Silhouette Shape (unused, kept for reference)
 
 /// A single, anatomically-aware silhouette path that scales to any rect.
 /// All control points are normalized so the figure stays centered and proportional.
-struct HumanSilhouetteShape: Shape {
+private struct HumanSilhouetteShape: Shape {
     let showBack: Bool
 
     func path(in rect: CGRect) -> Path {

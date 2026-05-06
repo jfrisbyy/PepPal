@@ -1,51 +1,24 @@
-# Redesign the program builder as 'Design Your Program' — editorial, no AI talk
+# Replace the drawn body figure with native Apple silhouettes
 
 ## What changes
 
-A full editorial redesign of the multi-step program builder, with all "AI / generate / building" terminology replaced by quiet, confident editorial language. The flow will feel like a tailored atelier experience, not a chatbot.
+Swap the hand-drawn human silhouette on the injection site rotation view for Apple's native figure symbols, used in both the protocol detail view and the guided injection flow. The result feels clinical, crisp, and always renders perfectly at any size.
 
-### Naming & copy
+## How it will look
 
-- Title across all screens: **"Design Your Program"** (replaces "AI Program Builder" / "Smart Program Builder")
-- Primary action: **"Compose Program"** (replaces "Generate Program")
-- Secondary actions: **"Refine"** (replaces "Regenerate"), **"Begin Program"** (replaces "Start This Program")
-- Personalization callout: **"Personalized from your profile"** (replaces "Auto-filled from your profile" and "Your Data — Sending to AI")
-- Removes every visible mention of "AI", "generate", "build", "sparkles", "brain" iconography
+- **Front view** uses Apple's standing front-facing figure; **Back view** uses the rear-facing figure, with the same elegant Front/Back toggle as today.
+- The figure sits on the same dark editorial canvas with the soft floor shadow, vertical center beam, and ANTERIOR/POSTERIOR corner label preserved.
+- A subtle teal aura still glows behind the figure for premium depth.
+- **Heat zones stay** — the colored warmth blooms (cool / warm / hot / unused) continue to mask onto the figure so users instantly see which areas are overused.
+- **Tappable site dots stay** in the same anatomical positions (deltoids, abdomen, thighs, glutes), with the pulsing teal ring for the suggested next site and the white check for the selected site.
+- Legend (Cool / Warm / Hot / Unused / Suggested) and the labeled site row beneath the figure remain unchanged.
 
-### Editorial composition
+## Where it appears
 
-- **Hero step header** with a small uppercase kicker (e.g. "CHAPTER ONE · INTENT"), a serif headline, and a thin hairline divider — replacing the icon + bold title pattern
-- Step indicator becomes a slim numbered progression ("01 — 02 — 03 — 04") with a hairline rule
-- Cards adopt editorial whitespace: serif headlines, sentence-case labels, refined kickers, and softened violet accents
-- Replace checkmark/checkbox circles with elegant inline radio marks; selected state uses a thin violet hairline and subtle tint
-- Schedule + equipment selectors become refined pill rows with editorial spacing rather than chunky tab bars
+- **Protocol detail screen** — the "Injection sites" card.
+- **Guided injection flow** — the site picker step.
 
-### Composing screen (loading)
+## Notes
 
-- Removes the pulsing sparkle. Shows a quiet centered layout:
-  - Thin determinate-feeling progress line (animated)
-  - Serif headline: **"Composing your plan."**
-  - Single rotating subline of editorial phrases (e.g. "Considering your protocol.", "Sequencing your week.", "Selecting your movements.")
-- Errors render in the same editorial frame with a "Try again" link
-
-### Result screen
-
-- Replaces the green "Program Generated" badge with a small editorial label: **"YOUR PROGRAM"** in tracked uppercase
-- Program name styled as a serif display title, with a subtle pencil affordance for renaming
-- Stats row reframed as editorial metadata: "4 days · 22 movements · 4 of 4 placed"
-- Weekly schedule overview gets a refined typographic week strip with hairline cells
-- Day cards use editorial numbering ("I · Push", "II · Pull"), serif day names, and a quieter expand affordance
-- Action buttons restyled: a primary teal "Begin Program" with refined typography and a quiet "Refine" link below
-
-### Behind the scenes
-
-- Same underlying program-composition service and inputs — only the presentation, copy, and microcopy change
-- All tracked context (protocol, body goal, weights, history) still informs the result, just framed as "personalized from your profile"
-
-### Screens touched
-
-- The 4-step program designer (Intent, Cadence, Equipment, Refinements)
-- The composing/loading screen
-- The completed program review screen
-- Entry points referencing the old name updated to "Design Your Program"
-
+- The decorative silhouette path code is removed; everything else (heat map, dots, recency logic, suggestions) is untouched.
+- Falls back gracefully on older iOS versions since the figure symbols are standard SF Symbols.
