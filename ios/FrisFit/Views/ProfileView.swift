@@ -259,6 +259,8 @@ struct ProfileView: View {
             }
             .padding(.top, 6)
 
+            socialIconsRow
+
             HStack(spacing: 20) {
                 NavigationLink(value: FollowListDestination.following(userId: viewModel.profile.id.uuidString, username: viewModel.profile.displayName)) {
                     followStat(count: viewModel.profile.followingCount, label: "Following")
@@ -274,6 +276,40 @@ struct ProfileView: View {
                     followStat(count: viewModel.profile.friendCount, label: "Friends")
                 }
                 .buttonStyle(.plain)
+            }
+            .padding(.top, 8)
+        }
+    }
+
+    @ViewBuilder
+    private var socialIconsRow: some View {
+        let entries: [(SocialPlatform, String?)] = [
+            (.instagram, viewModel.profile.instagramHandle),
+            (.twitter, viewModel.profile.twitterHandle),
+            (.tiktok, viewModel.profile.tiktokHandle),
+            (.facebook, viewModel.profile.facebookHandle)
+        ]
+        let active = entries.compactMap { item -> (SocialPlatform, URL)? in
+            guard let url = SocialLink.url(for: item.0, handle: item.1) else { return nil }
+            return (item.0, url)
+        }
+        if !active.isEmpty {
+            HStack(spacing: 10) {
+                ForEach(active, id: \.0) { entry in
+                    Link(destination: entry.1) {
+                        Image(systemName: entry.0.iconName)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(entry.0.color)
+                            .frame(width: 32, height: 32)
+                            .background(entry.0.color.opacity(0.14))
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle().strokeBorder(entry.0.color.opacity(0.35), lineWidth: 0.5)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(entry.0.displayName)
+                }
             }
             .padding(.top, 8)
         }

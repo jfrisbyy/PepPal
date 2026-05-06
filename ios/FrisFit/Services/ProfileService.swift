@@ -23,6 +23,10 @@ nonisolated struct SupabaseProfile: Codable, Sendable {
     let height_cm: Double?
     let is_private: Bool?
     let medical_disclaimer_accepted_at: String?
+    let instagram_handle: String?
+    let twitter_handle: String?
+    let facebook_handle: String?
+    let tiktok_handle: String?
 }
 
 nonisolated struct ProfileUpdate: Codable, Sendable {
@@ -38,6 +42,10 @@ nonisolated struct ProfileUpdate: Codable, Sendable {
     let height_cm: Double?
     let is_private: Bool?
     let medical_disclaimer_accepted_at: String?
+    let instagram_handle: String?
+    let twitter_handle: String?
+    let facebook_handle: String?
+    let tiktok_handle: String?
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -53,6 +61,10 @@ nonisolated struct ProfileUpdate: Codable, Sendable {
         if let v = height_cm { try container.encode(v, forKey: .height_cm) }
         if let v = is_private { try container.encode(v, forKey: .is_private) }
         if let v = medical_disclaimer_accepted_at { try container.encode(v, forKey: .medical_disclaimer_accepted_at) }
+        if let v = instagram_handle { try container.encode(v, forKey: .instagram_handle) }
+        if let v = twitter_handle { try container.encode(v, forKey: .twitter_handle) }
+        if let v = facebook_handle { try container.encode(v, forKey: .facebook_handle) }
+        if let v = tiktok_handle { try container.encode(v, forKey: .tiktok_handle) }
     }
 }
 
@@ -156,7 +168,11 @@ final class ProfileService {
             biological_sex: nil,
             height_cm: nil,
             is_private: nil,
-            medical_disclaimer_accepted_at: nil
+            medical_disclaimer_accepted_at: nil,
+            instagram_handle: nil,
+            twitter_handle: nil,
+            facebook_handle: nil,
+            tiktok_handle: nil
         ))
 
         return urlString
@@ -191,7 +207,11 @@ final class ProfileService {
             biological_sex: nil,
             height_cm: nil,
             is_private: nil,
-            medical_disclaimer_accepted_at: nil
+            medical_disclaimer_accepted_at: nil,
+            instagram_handle: nil,
+            twitter_handle: nil,
+            facebook_handle: nil,
+            tiktok_handle: nil
         ))
 
         return urlString
@@ -210,7 +230,11 @@ final class ProfileService {
             biological_sex: nil,
             height_cm: nil,
             is_private: nil,
-            medical_disclaimer_accepted_at: nil
+            medical_disclaimer_accepted_at: nil,
+            instagram_handle: nil,
+            twitter_handle: nil,
+            facebook_handle: nil,
+            tiktok_handle: nil
         ))
     }
 }

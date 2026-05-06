@@ -259,7 +259,11 @@ final class ProfileViewModel {
                 dateOfBirth: dob,
                 biologicalSex: sex,
                 heightCm: sp.height_cm,
-                isPrivate: sp.is_private ?? false
+                isPrivate: sp.is_private ?? false,
+                instagramHandle: sp.instagram_handle,
+                twitterHandle: sp.twitter_handle,
+                facebookHandle: sp.facebook_handle,
+                tiktokHandle: sp.tiktok_handle
             )
 
             loadMockMarketItems()
@@ -281,7 +285,11 @@ final class ProfileViewModel {
         dateOfBirth: Date? = nil,
         biologicalSex: BiologicalSex? = nil,
         heightCm: Double? = nil,
-        isPrivate: Bool? = nil
+        isPrivate: Bool? = nil,
+        instagramHandle: String? = nil,
+        twitterHandle: String? = nil,
+        facebookHandle: String? = nil,
+        tiktokHandle: String? = nil
     ) async {
         guard let session = AuthService.shared.session else { return }
         let userId = session.user.id.uuidString
@@ -303,7 +311,11 @@ final class ProfileViewModel {
             biological_sex: biologicalSex?.rawValue,
             height_cm: heightCm,
             is_private: isPrivate,
-            medical_disclaimer_accepted_at: nil
+            medical_disclaimer_accepted_at: nil,
+            instagram_handle: instagramHandle ?? "",
+            twitter_handle: twitterHandle ?? "",
+            facebook_handle: facebookHandle ?? "",
+            tiktok_handle: tiktokHandle ?? ""
         )
 
         do {

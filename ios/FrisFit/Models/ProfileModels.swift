@@ -38,6 +38,10 @@ nonisolated struct UserProfile: Sendable {
     let biologicalSex: BiologicalSex?
     let heightCm: Double?
     var isPrivate: Bool
+    let instagramHandle: String?
+    let twitterHandle: String?
+    let facebookHandle: String?
+    let tiktokHandle: String?
 
     init(
         id: UUID = UUID(),
@@ -62,7 +66,11 @@ nonisolated struct UserProfile: Sendable {
         dateOfBirth: Date? = nil,
         biologicalSex: BiologicalSex? = nil,
         heightCm: Double? = nil,
-        isPrivate: Bool = false
+        isPrivate: Bool = false,
+        instagramHandle: String? = nil,
+        twitterHandle: String? = nil,
+        facebookHandle: String? = nil,
+        tiktokHandle: String? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -87,6 +95,10 @@ nonisolated struct UserProfile: Sendable {
         self.biologicalSex = biologicalSex
         self.heightCm = heightCm
         self.isPrivate = isPrivate
+        self.instagramHandle = instagramHandle
+        self.twitterHandle = twitterHandle
+        self.facebookHandle = facebookHandle
+        self.tiktokHandle = tiktokHandle
     }
 
     var isBiometricProfileComplete: Bool {

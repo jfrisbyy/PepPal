@@ -256,7 +256,11 @@ enum MedicalDisclaimerManager {
             biological_sex: nil,
             height_cm: nil,
             is_private: nil,
-            medical_disclaimer_accepted_at: iso
+            medical_disclaimer_accepted_at: iso,
+            instagram_handle: nil,
+            twitter_handle: nil,
+            facebook_handle: nil,
+            tiktok_handle: nil
         )
         try? await ProfileService.shared.updateProfile(userId: userId, update: update)
     }

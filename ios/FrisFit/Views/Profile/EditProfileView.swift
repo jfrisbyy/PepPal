@@ -30,6 +30,11 @@ struct EditProfileView: View {
     @State private var heightCmText: String = ""
     @State private var isPrivate: Bool = false
 
+    @State private var instagramHandle: String = ""
+    @State private var twitterHandle: String = ""
+    @State private var facebookHandle: String = ""
+    @State private var tiktokHandle: String = ""
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -37,6 +42,7 @@ struct EditProfileView: View {
                     bannerSection
                     avatarSection
                     fieldsSection
+                    socialLinksSection
                     privacySection
                     biometricSection
                 }
@@ -79,6 +85,10 @@ struct EditProfileView: View {
                 }
                 biologicalSex = viewModel.profile.biologicalSex
                 isPrivate = viewModel.profile.isPrivate
+                instagramHandle = viewModel.profile.instagramHandle ?? ""
+                twitterHandle = viewModel.profile.twitterHandle ?? ""
+                facebookHandle = viewModel.profile.facebookHandle ?? ""
+                tiktokHandle = viewModel.profile.tiktokHandle ?? ""
                 if let h = viewModel.profile.heightCm {
                     hasHeight = true
                     let totalInches = h / 2.54
@@ -353,6 +363,66 @@ struct EditProfileView: View {
         }
     }
 
+    private var socialLinksSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: "link")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PepTheme.teal)
+                Text("Social Links")
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+
+            Text("Add your handles so others can find you. Leave blank to hide an icon.")
+                .font(.caption)
+                .foregroundStyle(PepTheme.textSecondary)
+
+            socialField(platform: .instagram, text: $instagramHandle)
+            socialField(platform: .twitter, text: $twitterHandle)
+            socialField(platform: .tiktok, text: $tiktokHandle)
+            socialField(platform: .facebook, text: $facebookHandle)
+        }
+        .padding(16)
+        .background(PepTheme.cardSurface)
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    private func socialField(platform: SocialPlatform, text: Binding<String>) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: platform.iconName)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(platform.color)
+                .frame(width: 28, height: 28)
+                .background(platform.color.opacity(0.15))
+                .clipShape(.rect(cornerRadius: 8))
+
+            HStack(spacing: 4) {
+                Text(platform.prefix)
+                    .font(.subheadline)
+                    .foregroundStyle(PepTheme.textSecondary)
+                TextField(platform.placeholder, text: text)
+                    .font(.body)
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(PepTheme.elevated)
+            .clipShape(.rect(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+            )
+        }
+    }
+
     private var privacySection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
@@ -617,7 +687,11 @@ struct EditProfileView: View {
             dateOfBirth: hasDOB ? dateOfBirth : viewModel.profile.dateOfBirth,
             biologicalSex: biologicalSex ?? viewModel.profile.biologicalSex,
             heightCm: computedHeightCm ?? viewModel.profile.heightCm,
-            isPrivate: isPrivate
+            isPrivate: isPrivate,
+            instagramHandle: SocialLink.normalize(instagramHandle),
+            twitterHandle: SocialLink.normalize(twitterHandle),
+            facebookHandle: SocialLink.normalize(facebookHandle),
+            tiktokHandle: SocialLink.normalize(tiktokHandle)
         )
         dismiss()
     }
