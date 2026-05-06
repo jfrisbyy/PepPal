@@ -48,7 +48,10 @@ struct ContentView: View {
     @State private var showPepChat: Bool = false
     @State private var showNutrition: Bool = false
     @State private var showCreatePost: Bool = false
+    @State private var showLogDose: Bool = false
+    @State private var showLogBloodwork: Bool = false
     @State private var fabExpanded: Bool = false
+    @State private var socialViewModel = SocialViewModel()
     @State private var showActiveWorkoutWarning: Bool = false
     @State private var previousTab: AppTab = .home
     @State private var workoutState = WorkoutState.shared
@@ -180,6 +183,17 @@ struct ContentView: View {
         .sheet(isPresented: $showNutrition) {
             NavigationStack {
                 NutritionView()
+            }
+        }
+        .sheet(isPresented: $showCreatePost) {
+            PostComposerView(socialViewModel: socialViewModel)
+        }
+        .sheet(isPresented: $showLogDose) {
+            QuickLogDoseSheet()
+        }
+        .sheet(isPresented: $showLogBloodwork) {
+            NavigationStack {
+                BloodworkTrackingView()
             }
         }
         .fullScreenCover(isPresented: $sessionManager.showActiveWorkout) {
@@ -327,8 +341,8 @@ struct ContentView: View {
             }),
             FABAction(icon: "bubble.left.fill", label: "Chat with Pep", color: PepTheme.violet, action: { showPepChat = true }),
             FABAction(icon: "square.and.pencil", label: "Make a Post", color: PepTheme.blue, action: { showCreatePost = true }),
-            FABAction(icon: "pill.fill", label: "Log Dose", color: Color.pink, action: {}),
-            FABAction(icon: "drop.fill", label: "Log Bloodwork", color: .red, action: {}),
+            FABAction(icon: "pill.fill", label: "Log Dose", color: Color.pink, action: { showLogDose = true }),
+            FABAction(icon: "drop.fill", label: "Log Bloodwork", color: .red, action: { showLogBloodwork = true }),
         ]
     }
 
