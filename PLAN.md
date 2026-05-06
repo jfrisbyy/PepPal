@@ -1,44 +1,64 @@
-# Add a Sleep card to the homepage with manual logging + Apple Health sync
+# Enhance the Sleep card with a night-sky scene, goal tracking & peptide insights
 
-## What you'll get
+## What you'll see
 
-A new **Sleep** card lives in the Activity section of the home page, right alongside Energy, Training, Nutrition, and Water. It shows last night at a glance, lets you log a night yourself in seconds, and expands into a full Sleep & Recovery page when you want the deeper picture.
+The Sleep card on the home page becomes a small, atmospheric "night sky" panel that feels alive even before you've logged anything — and gets richer with every night you track.
 
-### Features
-- See last night's hours and quality on the home card with a tiny 7-night bar trail.
-- Auto-pulls from Apple Health when connected — no manual entry needed.
-- If Apple Health isn't connected (or last night is missing), the card invites you to log manually.
-- Quick "Log sleep" button opens a sheet to enter bedtime, wake time, quality, and an optional note.
-- Quality captured as a 1–10 slider with a descriptive label (Restless → Excellent).
-- Hours auto-calculate from bedtime/wake time, but you can override.
-- Source badge shows whether the night came from Apple Health or you logged it.
-- Tapping the card opens the full Sleep & Recovery page.
-- Manual entries sync to your account so they show up across devices and feed into trends, the daily brief, and correlations.
+### Hero visual
+- A custom **night sky scene** as the card backdrop: deep indigo→violet gradient, a soft glowing crescent moon, and a scatter of subtle twinkling stars.
+- The moon gently breathes (slow scale + glow pulse). A few stars twinkle on a long, calm cycle so the card feels alive without being distracting.
+- When you have data, the moon position shifts subtly based on hours slept (low/empty = lower horizon, full goal = high in the sky).
 
-### Design (compact card)
-- Same dark glass card styling as the Energy and Nutrition cards — rounded, subtle border, soft shadow.
-- Top row: moon icon, "Sleep" title, small "Log" pill button on the right (violet accent).
-- Big rounded number for hours slept last night with a small "h" suffix, plus a quality chip ("Good · 7/10") next to it.
-- Tiny 7-bar mini chart underneath showing the last week, with last night highlighted.
-- Bottom row: source badge ("Apple Health" or "Logged") and a chevron hinting at the detail page.
-- Empty state: friendly "Log last night's sleep" prompt with a single tap-to-open button.
+### Empty state — rotating "stacked" hook
+A single tappable hero block that rotates through three messages every few seconds, with smooth crossfades:
+1. **Why sleep matters** — "Growth peptides peak in deep sleep. Track nights to see the impact."
+2. **Connect Apple Health** — "Import last night automatically" with a quick connect button.
+3. **Set a sleep goal** — "Aim for 7–9 hrs. Tap to set your target."
 
-### Design (manual log sheet)
-- Bedtime and wake-time pickers stacked, with auto-calculated total hours shown live.
-- 1–10 quality slider with color gradient (red → amber → green) and dynamic label.
-- Optional notes field (multi-line, "How did you feel?").
-- Save button pinned to bottom; haptic confirm on save.
+Each message has its own icon + accent. A row of three tiny dots shows which message is active; users can tap a dot to jump.
 
-### Design (full Sleep & Recovery page — already exists, enhanced)
-- Reuses the existing Sleep & Recovery view with a new "Log a night" button in the toolbar.
-- Manually-logged nights blend into the same chart and stages breakdown as Apple Health nights.
-- Adds a small "Recent entries" list so you can edit or delete a night you logged.
+Below the hook: a primary **"Going to bed"** button (see Quick action) and a smaller **"Log past night"** secondary link.
 
-### Where it appears
-- **Home → Activity section**: between the Training card and Nutrition card.
-- **Sleep & Recovery page**: opens when you tap the card (already exists, lightly upgraded).
-- **Manual log sheet**: opens when you tap the "Log" pill or the empty-state button.
+### "Going to bed" quick action
+- Tapping starts a **sleep window** — the card switches to a calm "Sleeping…" state with the moon centered, stars dimmed, and a live elapsed-hours counter.
+- Tomorrow morning (or when reopened), it prompts: "How did you sleep?" → quick quality slider + hours auto-filled from the window → one-tap save.
+- A small "Cancel sleep" option is always available.
 
-### Behind-the-scenes touches
-- Manually-logged sleep flows into the daily brief, weekly summary, training correlations, and biomarker trends just like Apple Health data.
-- Cached locally so the card renders instantly, then refreshes from Apple Health and the cloud.
+### Once you have data (1+ nights)
+The card fills with three layered pieces of information, each compact:
+
+**1. Hours vs Goal (hero readout)**
+- Big rounded "7:42 h" number on the left.
+- A slim **goal progress bar** underneath: filled portion = last night, faint marker line at goal (e.g. 8h).
+- Quality chip stays where it is.
+
+**2. Week strip — richer**
+- The 7 mini bars stay, but now with:
+  - A horizontal **goal line** drawn across at your target hours.
+  - **Sleep debt this week** label below: e.g. "−2.3 h debt this week" (red) or "On track" (teal).
+  - Today's bar pulses softly.
+
+**3. Insight rotator (one line at a time, swaps every ~5s)**
+Rotates through context-aware insights:
+- 💊 **Peptide tie-in**: "GH peaks in deep sleep — your 7.5h last night supports recovery."
+- 🏋️ **Training correlation teaser**: "You sleep 0.6h more on training days." (only if enough data)
+- 📉 **Sleep debt nudge**: "You're 2.3h short this week — aim for 8h tonight."
+- ✨ **Streak**: "4 nights logged in a row"
+
+Tapping the insight line opens the full Sleep & Recovery detail view scrolled to the relevant section.
+
+### Footer
+- Source badge (Apple Health / Logged) on the left.
+- "Going to bed" or "Log" button stays accessible on the right depending on state.
+- Chevron to open full detail view.
+
+## Card states summary
+
+- **Empty / no data**: night sky scene + rotating 3-message hook + "Going to bed" CTA + small "Log past night" link.
+- **Sleeping (window active)**: calm scene, centered moon, live elapsed hours, "Wake up & log" + "Cancel" options.
+- **Has data**: night sky scene (subtler), hours vs goal, richer week strip with goal line + sleep debt, rotating insight line.
+
+## Notes
+- The night sky is a layered, performance-friendly visual (gradient + moon shape + a handful of star points), not a heavy effect — it stays smooth even on the home feed.
+- Sleep goal defaults to 8 h; tappable to change in the empty-state hook or from the detail view.
+- All animations respect Reduce Motion (scene becomes static; insight rotator becomes a static stack).
