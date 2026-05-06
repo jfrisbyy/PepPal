@@ -4,13 +4,11 @@ import CryptoKit
 import Supabase
 import Auth
 
-/// Shared Apple + Google sign-in buttons used by both LoginView and SignUpView.
+/// Apple sign-in button used by both LoginView and SignUpView.
 ///
-/// Both flows resolve to the same Supabase session — `signInWithIdToken` for
-/// Apple (native flow, no web view) and `signInWithOAuth` over an
-/// ASWebAuthenticationSession for Google. After a successful sign-in we
-/// best-effort backfill the profile's display name (only when the row is
-/// brand-new and has no name yet).
+/// Uses `signInWithIdToken` (native flow, no web view). After a successful
+/// sign-in we best-effort backfill the profile's display name (only when the
+/// row is brand-new and has no name yet).
 struct SocialSignInButtonsView: View {
     enum Mode {
         case signIn
@@ -28,7 +26,6 @@ struct SocialSignInButtonsView: View {
     var onCompletion: () -> Void
     var onError: (String) -> Void
     @State private var currentNonce: String?
-    @State private var isGoogleLoading: Bool = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -43,32 +40,6 @@ struct SocialSignInButtonsView: View {
             .signInWithAppleButtonStyle(.white)
             .frame(height: 50)
             .clipShape(.rect(cornerRadius: 14))
-
-            Button {
-                Task { await signInWithGoogle() }
-            } label: {
-                HStack(spacing: 10) {
-                    if isGoogleLoading {
-                        ProgressView()
-                            .tint(.black)
-                    } else {
-                        Image(systemName: "globe")
-                            .font(.body.weight(.semibold))
-                    }
-                    Text(isGoogleLoading ? "Connecting…" : "Continue with Google")
-                        .font(.body.weight(.semibold))
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .foregroundStyle(.black)
-                .background(Color.white)
-                .clipShape(.rect(cornerRadius: 14))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.black.opacity(0.12), lineWidth: 1)
-                )
-            }
-            .disabled(isGoogleLoading)
         }
     }
 
@@ -109,38 +80,6 @@ struct SocialSignInButtonsView: View {
                     onError(error.localizedDescription)
                 }
             }
-        }
-    }
-
-    // MARK: - Google
-
-    private func signInWithGoogle() async {
-        isGoogleLoading = true
-        defer { isGoogleLoading = false }
-        do {
-            let session = try await SupabaseService.shared.client.auth.signInWithOAuth(
-                provider: .google,
-                redirectTo: URL(string: "epti://login-callback")
-            ) { (asSession: ASWebAuthenticationSession) in
-                asSession.prefersEphemeralWebBrowserSession = false
-            }
-            let nameSeed = session.user.userMetadata["full_name"]?.stringValue
-                ?? session.user.userMetadata["name"]?.stringValue
-                ?? session.user.email?.split(separator: "@").first.map(String.init)
-                ?? ""
-            await Self.backfillProfileNameIfMissing(displayName: nameSeed)
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-            onCompletion()
-        } catch is CancellationError {
-            // User dismissed the web sheet — silent.
-        } catch {
-            let nsError = error as NSError
-            // ASWebAuthenticationSession user-cancel: code 1.
-            if nsError.domain == "com.apple.AuthenticationServices.WebAuthenticationSession",
-               nsError.code == 1 {
-                return
-            }
-            onError(error.localizedDescription)
         }
     }
 
