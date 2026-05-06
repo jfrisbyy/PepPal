@@ -17,7 +17,6 @@ struct ProfileView: View {
     enum ProfileTab: String, CaseIterable {
         case posts = "Posts"
         case health = "Health"
-        case stats = "Stats"
     }
 
     var body: some View {
@@ -341,8 +340,6 @@ struct ProfileView: View {
                 postsTab
             case .health:
                 healthTab
-            case .stats:
-                statsTab
             }
         }
     }
@@ -436,31 +433,6 @@ struct ProfileView: View {
 
             NavigationLink(value: ProfileDestination.appleHealth) {
                 ProfileMenuRow(icon: "heart.text.square.fill", title: "Apple Health Sync", subtitle: "Auto-import weight, HR, HRV, sleep into your trends")
-            }
-            .buttonStyle(.scale)
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-    }
-
-    private var statsTab: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SectionEyebrow("Stats", number: "01", accent: PepTheme.violet)
-                .padding(.horizontal, 4)
-                .padding(.bottom, 6)
-
-            NavigationLink(value: ProfileDestination.analytics) {
-                ProfileMenuRow(icon: "chart.xyaxis.line", title: "Workout Analytics", subtitle: "Volume trends, muscle map, PRs")
-            }
-            .buttonStyle(.scale)
-
-            NavigationLink(value: ProfileDestination.achievements) {
-                ProfileMenuRow(icon: "trophy.fill", title: "Achievements", subtitle: "\(viewModel.unlockedCount) of \(viewModel.allAchievements.count) unlocked")
-            }
-            .buttonStyle(.scale)
-
-            NavigationLink(value: ProfileDestination.workoutHistory) {
-                ProfileMenuRow(icon: "clock.arrow.circlepath", title: "Workout History", subtitle: "\(viewModel.workoutHistory.count) workouts logged")
             }
             .buttonStyle(.scale)
         }
