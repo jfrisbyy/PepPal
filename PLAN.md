@@ -91,8 +91,10 @@
       `NutritionAIService`, `AIProgramService`, `FinnChatViewModel`,
       `PeptideAIChatViewModel`. No service references
       `EXPO_PUBLIC_OPENROUTER_API_KEY` anymore.
-- [ ] Set `OPENROUTER_API_KEY` as a Supabase Function secret and rotate /
-      remove the bundled `EXPO_PUBLIC_OPENROUTER_API_KEY` value once verified.
+- [x] Set `OPENROUTER_API_KEY` as a Supabase Function secret. `ai-proxy` is
+      auto-deployed via Rork sync.
+- [ ] Smoke-test a chat call end-to-end, then rotate / remove the bundled
+      `EXPO_PUBLIC_OPENROUTER_API_KEY` value.
 
 ## 12. Schema bloat from JSON columns
 
