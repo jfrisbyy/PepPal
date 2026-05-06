@@ -114,7 +114,7 @@ enum CrashReportingService {
             || lower.contains("email")
     }
 
-    private static func scrubString(_ s: String) -> String {
+    nonisolated private static func scrubString(_ s: String) -> String {
         // Strip eyJ-prefixed JWTs and "Bearer ..." headers.
         var out = s
         if let regex = try? NSRegularExpression(pattern: "eyJ[A-Za-z0-9_\\-]+\\.[A-Za-z0-9_\\-]+\\.[A-Za-z0-9_\\-]+") {
@@ -134,7 +134,7 @@ enum CrashReportingService {
         return out
     }
 
-    private static func scrub(event: Event) {
+    nonisolated private static func scrub(event: Event) {
         if let msg = event.message?.formatted {
             event.message = SentryMessage(formatted: scrubString(msg))
         }
