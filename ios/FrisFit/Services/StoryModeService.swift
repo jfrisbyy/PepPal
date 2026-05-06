@@ -341,22 +341,41 @@ final class StoryModeService {
 
     // MARK: - Cache persistence
 
-    private var cacheKey: String {
+    private static let diskFile = "storymode.cache.v1"
+
+    private var cacheUserId: String {
+        ((try? AuthService.shared.currentUserId()) ?? "").lowercased()
+    }
+
+    /// Legacy UserDefaults key for one-shot migration to disk.
+    private var legacyDefaultsKey: String {
         let uid = (try? AuthService.shared.currentUserId()) ?? "anon"
         return "peppal.storymode.cache.v1.\(uid)"
     }
 
     private func loadCache() -> StoryNarrationCache {
-        guard let data = UserDefaults.standard.data(forKey: cacheKey),
-              let decoded = try? JSONDecoder().decode(StoryNarrationCache.self, from: data) else {
-            return .empty
+        let uid = cacheUserId
+        if !uid.isEmpty,
+           let cache = PerUserDiskStore.load(StoryNarrationCache.self, userId: uid, name: Self.diskFile) {
+            return cache
         }
-        return decoded
+        // Legacy migration from UserDefaults — promote to disk and clear the
+        // original key so the next read is purely disk-backed.
+        if let data = UserDefaults.standard.data(forKey: legacyDefaultsKey),
+           let decoded = try? JSONDecoder().decode(StoryNarrationCache.self, from: data) {
+            UserDefaults.standard.removeObject(forKey: legacyDefaultsKey)
+            if !uid.isEmpty {
+                PerUserDiskStore.save(decoded, userId: uid, name: Self.diskFile)
+            }
+            return decoded
+        }
+        return .empty
     }
 
     private func persist(_ cache: StoryNarrationCache) {
-        guard let data = try? JSONEncoder().encode(cache) else { return }
-        UserDefaults.standard.set(data, forKey: cacheKey)
+        let uid = cacheUserId
+        guard !uid.isEmpty else { return }
+        PerUserDiskStore.save(cache, userId: uid, name: Self.diskFile)
     }
 
     private func signature(for events: [JourneyEvent], firstName: String?) -> String {

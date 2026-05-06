@@ -73,6 +73,7 @@ final class ActivityLogService {
             .eq("user_id", value: userId)
             .eq("activity_date", value: todayStr)
             .order("created_at", ascending: false)
+            .limit(200)
             .execute()
             .value
         return rows
@@ -89,6 +90,7 @@ final class ActivityLogService {
             .eq("user_id", value: userId)
             .gte("activity_date", value: startStr)
             .order("created_at", ascending: false)
+            .limit(500)
             .execute()
             .value
         return rows
@@ -128,6 +130,7 @@ final class ActivityLogService {
             .eq("user_id", value: userId)
             .gte("activity_date", value: startStr)
             .order("activity_date", ascending: true)
+            .limit(2000)
             .execute()
             .value
 

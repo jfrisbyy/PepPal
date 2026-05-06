@@ -76,6 +76,7 @@ final class TrainingProgramService {
             .select()
             .eq("user_id", value: userId)
             .order("created_at", ascending: false)
+            .limit(50)
             .execute()
             .value
 

@@ -91,29 +91,69 @@ nonisolated struct HealthDetailCacheSnapshot: Codable, Sendable {
     var savedAt: Date = Date()
 }
 
+/// Per-user, disk-backed cache for HealthKit scalars and detail series.
+///
+/// Series payloads can be large (~hundreds of KB across all metrics × periods),
+/// which makes them poor citizens of `UserDefaults` — every read pages the
+/// entire prefs plist into memory. Storing them on disk under the per-user
+/// folder also gives us a clean atomic purge on sign-out.
+///
+/// Calls without a signed-in user fall back to a sentinel folder so no-op
+/// pre-auth reads still work; the sentinel is purged alongside everything
+/// else by `LocalStateResetCoordinator.purgeUserScopedState`.
 nonisolated enum HealthKitCache {
-    private static let scalarKey = "healthkit.cache.scalars.v1"
-    private static func seriesKey(for period: String) -> String {
-        "healthkit.cache.series.v1.\(period)"
+    private static let scalarsFile = "healthkit.scalars.v1"
+    private static func seriesFile(for period: String) -> String {
+        "healthkit.series.v1.\(period)"
+    }
+
+    private static func currentUserId() -> String {
+        ((try? AuthService.shared.currentUserId()) ?? "").lowercased()
     }
 
     static func loadScalars() -> HealthKitScalarSnapshot? {
-        guard let data = UserDefaults.standard.data(forKey: scalarKey) else { return nil }
-        return try? JSONDecoder().decode(HealthKitScalarSnapshot.self, from: data)
+        let uid = currentUserId()
+        guard !uid.isEmpty else { return nil }
+        return PerUserDiskStore.load(HealthKitScalarSnapshot.self, userId: uid, name: scalarsFile)
     }
 
     static func saveScalars(_ snapshot: HealthKitScalarSnapshot) {
-        guard let data = try? JSONEncoder().encode(snapshot) else { return }
-        UserDefaults.standard.set(data, forKey: scalarKey)
+        let uid = currentUserId()
+        guard !uid.isEmpty else { return }
+        PerUserDiskStore.save(snapshot, userId: uid, name: scalarsFile)
     }
 
     static func loadDetail(period: String) -> HealthDetailCacheSnapshot? {
-        guard let data = UserDefaults.standard.data(forKey: seriesKey(for: period)) else { return nil }
-        return try? JSONDecoder().decode(HealthDetailCacheSnapshot.self, from: data)
+        let uid = currentUserId()
+        guard !uid.isEmpty else { return nil }
+        return PerUserDiskStore.load(HealthDetailCacheSnapshot.self, userId: uid, name: seriesFile(for: period))
     }
 
     static func saveDetail(_ snapshot: HealthDetailCacheSnapshot, period: String) {
-        guard let data = try? JSONEncoder().encode(snapshot) else { return }
-        UserDefaults.standard.set(data, forKey: seriesKey(for: period))
+        let uid = currentUserId()
+        guard !uid.isEmpty else { return }
+        PerUserDiskStore.save(snapshot, userId: uid, name: seriesFile(for: period))
+    }
+
+    /// One-time migration: pull legacy UserDefaults blobs forward to disk and
+    /// drop the originals. Idempotent — safe to call on every launch.
+    static func migrateFromUserDefaultsIfNeeded() {
+        let defaults = UserDefaults.standard
+        let uid = currentUserId()
+        guard !uid.isEmpty else { return }
+        let scalarKey = "healthkit.cache.scalars.v1"
+        if let data = defaults.data(forKey: scalarKey),
+           let snap = try? JSONDecoder().decode(HealthKitScalarSnapshot.self, from: data) {
+            PerUserDiskStore.save(snap, userId: uid, name: scalarsFile)
+            defaults.removeObject(forKey: scalarKey)
+        }
+        for period in ["D", "W", "M", "6M", "Y"] {
+            let key = "healthkit.cache.series.v1.\(period)"
+            if let data = defaults.data(forKey: key),
+               let snap = try? JSONDecoder().decode(HealthDetailCacheSnapshot.self, from: data) {
+                PerUserDiskStore.save(snap, userId: uid, name: seriesFile(for: period))
+                defaults.removeObject(forKey: key)
+            }
+        }
     }
 }

@@ -250,6 +250,17 @@ enum LocalStateResetCoordinator {
             defaults.removeObject(forKey: key)
         }
 
+        // Drop the per-user disk folder owned by `PerUserDiskStore` (HealthKit
+        // series, journey events, story narrations, food favorites). Bytes
+        // there are larger than UserDefaults could handle and contain
+        // user-private cached data, so they must be scrubbed on every switch.
+        if let previousUserId, !previousUserId.isEmpty {
+            PerUserDiskStore.purge(userId: previousUserId.lowercased())
+        } else {
+            // Cold sign-out without a known userId — wipe every user folder.
+            PerUserDiskStore.purgeAll()
+        }
+
         // Defense-in-depth: scrub every namespaced key that matches one of the
         // known per-user prefixes. This guarantees that a switch from user A
         // to user B drops A's pins / onboarding flag / HealthKit toggle even

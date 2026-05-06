@@ -129,6 +129,7 @@ final class BasketballGameService {
                 .select()
                 .eq("user_id", value: uid)
                 .order("played_at", ascending: false)
+                .limit(500)
                 .execute()
                 .value
             return rows.map { row in

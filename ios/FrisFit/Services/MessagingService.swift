@@ -248,24 +248,26 @@ final class MessagingService {
         )
     }
 
-    func fetchPendingFollowRequests(userId: String) async throws -> [SupabaseFollowRequestWithProfile] {
+    func fetchPendingFollowRequests(userId: String, limit: Int = 200) async throws -> [SupabaseFollowRequestWithProfile] {
         let response: [SupabaseFollowRequestWithProfile] = try await supabase
             .from("follow_requests")
             .select("*, profiles!follow_requests_requester_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .eq("target_id", value: userId)
             .eq("status", value: "pending")
             .order("created_at", ascending: false)
+            .limit(limit)
             .execute()
             .value
         return response
     }
 
-    func fetchSentFollowRequests(userId: String) async throws -> [SupabaseFollowRequest] {
+    func fetchSentFollowRequests(userId: String, limit: Int = 200) async throws -> [SupabaseFollowRequest] {
         let response: [SupabaseFollowRequest] = try await supabase
             .from("follow_requests")
             .select()
             .eq("requester_id", value: userId)
             .eq("status", value: "pending")
+            .limit(limit)
             .execute()
             .value
         return response
@@ -322,21 +324,23 @@ final class MessagingService {
         return !response.isEmpty
     }
 
-    func fetchFollowing(userId: String) async throws -> [String] {
+    func fetchFollowing(userId: String, limit: Int = 1000, offset: Int = 0) async throws -> [String] {
         let response: [SupabaseFollow] = try await supabase
             .from("follows")
             .select("following_id")
             .eq("follower_id", value: userId)
+            .range(from: offset, to: offset + limit - 1)
             .execute()
             .value
         return response.map { $0.following_id }
     }
 
-    func fetchFollowers(userId: String) async throws -> [String] {
+    func fetchFollowers(userId: String, limit: Int = 1000, offset: Int = 0) async throws -> [String] {
         let response: [SupabaseFollow] = try await supabase
             .from("follows")
             .select("follower_id")
             .eq("following_id", value: userId)
+            .range(from: offset, to: offset + limit - 1)
             .execute()
             .value
         return response.map { $0.follower_id }
@@ -377,24 +381,26 @@ final class MessagingService {
             .execute()
     }
 
-    func fetchPendingRequests(userId: String) async throws -> [SupabaseFriendRequestWithProfile] {
+    func fetchPendingRequests(userId: String, limit: Int = 200) async throws -> [SupabaseFriendRequestWithProfile] {
         let response: [SupabaseFriendRequestWithProfile] = try await supabase
             .from("friend_requests")
             .select("*, profiles!friend_requests_sender_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak), profiles!friend_requests_receiver_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .eq("receiver_id", value: userId)
             .eq("status", value: "pending")
             .order("created_at", ascending: false)
+            .limit(limit)
             .execute()
             .value
         return response
     }
 
-    func fetchSentRequests(userId: String) async throws -> [SupabaseFriendRequest] {
+    func fetchSentRequests(userId: String, limit: Int = 200) async throws -> [SupabaseFriendRequest] {
         let response: [SupabaseFriendRequest] = try await supabase
             .from("friend_requests")
             .select()
             .eq("sender_id", value: userId)
             .eq("status", value: "pending")
+            .limit(limit)
             .execute()
             .value
         return response

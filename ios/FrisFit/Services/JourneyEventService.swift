@@ -107,7 +107,11 @@ final class JourneyEventService {
 
     // MARK: - Auth-aware cache
 
-    private static func cacheKey(for userId: String) -> String {
+    /// Disk filename used by `PerUserDiskStore` for this user's pin cache.
+    /// (Old UserDefaults key kept around as `legacyDefaultsKey` for migration.)
+    private static let cacheFile = "journeyEvents.v1"
+
+    private static func legacyDefaultsKey(for userId: String) -> String {
         "peppal.journeyEvents.v1.\(userId)"
     }
 
@@ -136,12 +140,14 @@ final class JourneyEventService {
         }
     }
 
-    /// Wipe every journey- and story-mode-related UserDefaults key for the
-    /// signed-out user so leftover bytes can never leak across accounts.
+    /// Wipe every journey- and story-mode-related cache for the signed-out
+    /// user so leftover bytes can never leak across accounts. Drops both the
+    /// per-user disk folder (current path) and any legacy UserDefaults blobs.
     private static func wipeAllJourneyCaches(forUserId userId: String?) {
         let defaults = UserDefaults.standard
         if let userId, !userId.isEmpty {
-            defaults.removeObject(forKey: cacheKey(for: userId))
+            PerUserDiskStore.purge(userId: userId)
+            defaults.removeObject(forKey: legacyDefaultsKey(for: userId))
             defaults.removeObject(forKey: "peppal.storymode.cache.v1.\(userId)")
         }
         // Defense-in-depth: scrub any other peppal.journeyEvents.* /
@@ -161,21 +167,31 @@ final class JourneyEventService {
     }
 
     private func loadCache(for userId: String) {
-        guard let data = UserDefaults.standard.data(forKey: Self.cacheKey(for: userId)) else { return }
-        // Preferred path: stamped envelope. Only trust the cache if its stamp
-        // matches the requested user.
-        if let envelope = try? makeDecoder().decode(JourneyCacheEnvelope.self, from: data) {
+        // Preferred path: per-user disk envelope.
+        if let envelope = PerUserDiskStore.load(JourneyCacheEnvelope.self, userId: userId, name: Self.cacheFile) {
             guard envelope.cacheUserId == userId else {
-                UserDefaults.standard.removeObject(forKey: Self.cacheKey(for: userId))
+                PerUserDiskStore.remove(userId: userId, name: Self.cacheFile)
                 return
             }
             events = envelope.events.filter { $0.userId.uuidString.lowercased() == userId }
             fetchedRanges = envelope.fetchedRanges
             return
         }
-        // Legacy path: bare [JourneyEvent] arrays from older app versions.
+        // Legacy migration: older builds wrote the envelope (or a bare array)
+        // to UserDefaults. Pull it forward to disk and drop the original.
+        let legacyKey = Self.legacyDefaultsKey(for: userId)
+        guard let data = UserDefaults.standard.data(forKey: legacyKey) else { return }
+        defer { UserDefaults.standard.removeObject(forKey: legacyKey) }
+        if let envelope = try? makeDecoder().decode(JourneyCacheEnvelope.self, from: data) {
+            guard envelope.cacheUserId == userId else { return }
+            events = envelope.events.filter { $0.userId.uuidString.lowercased() == userId }
+            fetchedRanges = envelope.fetchedRanges
+            persistCache()
+            return
+        }
         if let decoded = try? makeDecoder().decode([JourneyEvent].self, from: data) {
             events = decoded.filter { $0.userId.uuidString.lowercased() == userId }
+            persistCache()
         }
     }
 
@@ -186,8 +202,7 @@ final class JourneyEventService {
             events: events,
             fetchedRanges: fetchedRanges
         )
-        guard let data = try? makeEncoder().encode(envelope) else { return }
-        UserDefaults.standard.set(data, forKey: Self.cacheKey(for: uid))
+        PerUserDiskStore.save(envelope, userId: uid, name: Self.cacheFile)
     }
 
     private func makeEncoder() -> JSONEncoder {

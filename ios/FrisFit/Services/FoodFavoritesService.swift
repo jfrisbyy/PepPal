@@ -73,7 +73,11 @@ final class FoodFavoritesStore {
 
     var favorites: [FavoriteFood] = []
 
-    private let key = "com.frisfit.foodFavorites"
+    /// Legacy global UserDefaults key — read once on first launch after the
+    /// disk migration ships, then the value is rewritten under the per-user
+    /// disk folder and the original key is removed.
+    private let legacyKey = "com.frisfit.foodFavorites"
+    private static let diskFile = "foodFavorites.v1"
     private static let iso: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -85,15 +89,31 @@ final class FoodFavoritesStore {
         Task { await self.hydrateFromSupabase() }
     }
 
+    private func currentUserId() -> String {
+        ((try? AuthService.shared.currentUserId()) ?? "").lowercased()
+    }
+
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let decoded = try? JSONDecoder().decode([FavoriteFood].self, from: data) else { return }
-        favorites = decoded
+        let uid = currentUserId()
+        if !uid.isEmpty,
+           let decoded = PerUserDiskStore.load([FavoriteFood].self, userId: uid, name: Self.diskFile) {
+            favorites = decoded
+            return
+        }
+        // Legacy migration: pull the old global UserDefaults blob forward to
+        // the per-user disk folder once, then drop it.
+        if let data = UserDefaults.standard.data(forKey: legacyKey),
+           let decoded = try? JSONDecoder().decode([FavoriteFood].self, from: data) {
+            favorites = decoded
+            persist()
+            UserDefaults.standard.removeObject(forKey: legacyKey)
+        }
     }
 
     private func persist() {
-        guard let data = try? JSONEncoder().encode(favorites) else { return }
-        UserDefaults.standard.set(data, forKey: key)
+        let uid = currentUserId()
+        guard !uid.isEmpty else { return }
+        PerUserDiskStore.save(favorites, userId: uid, name: Self.diskFile)
     }
 
     func isFavorite(_ food: FoodItem) -> Bool {

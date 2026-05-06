@@ -1,39 +1,26 @@
-# Tone down streaks across the app and hide them from friends
+# Scale hardening — pagination, disk persistence, indexes
 
-## Changes
+## 1. Per-user disk store helper
 
-**1. Sport dashboard empty-state nudges**
+- [x] Create `PerUserDiskStore` (Application Support / `users/<uid>/<file>.json`).
+- [x] Wire purge on user switch / sign-out via `LocalStateResetCoordinator`.
 
-- [x] Replace streak-focused empty copy in Swimming, Soccer, Pickleball, Running.
+## 2. Move large blobs out of UserDefaults
 
-**2. Per-sport streak sections**
+- [x] HealthKit series cache (`HealthKitCache`) → disk (per-user).
+- [x] Journey events cache (`JourneyEventService`) → disk (per-user).
+- [x] Food favorites store → disk (per-user).
+- [x] Story mode cache → disk (per-user).
 
-- [x] Remove dedicated "Streak" section from Running dashboard.
-- [x] Remove "STREAK" hero stat from Sleep & Recovery.
-- [x] Remove "Current Streak" row from Martial Arts settings.
+## 3. Pagination / limits on unbounded selects
 
-**3. Health detail & monthly recap**
+- [x] `ActivityLogService` lists.
+- [x] `NutritionService.fetchMeals` window (already date-bounded, no change needed).
+- [x] `TrainingProgramService.fetchPrograms`.
+- [x] `MessagingService` follow / friend lists.
+- [x] `CircleService.list*`.
+- [x] `BasketballGameService.fetchAll`.
 
-- [x] Remove per-metric streak chips strip from Health Detail.
-- [x] Remove "Best streak" stats from Monthly Summary.
-- [x] Remove streak badge/tile from Weekly Recap card.
+## 4. Supabase indexes migration
 
-**4. Profile cleanup**
-
-- [x] Removed streak from About row (was in UserProfileView).
-
-**5. Home screen**
-
-- [x] Toolbar flame icon kept.
-- [x] Removed large dedicated Streak section.
-- [x] Paused/freeze banners kept (now inline in transient banners).
-
-**6. Notifications**
-
-- [x] streakWarningNotifs default flipped to false.
-
-**7. Hide streaks from friends and public profiles**
-
-- [x] Removed streak stat tile + about row from UserProfileView.
-- [x] Removed `.streak` case from StatShareCategory.
-- [x] Removed streak from FriendDashboardView, FriendComparisonView, FriendStatDetailSheet, FollowListView, FriendsStatsView card, BorrowProgramSheet, GroupStatMetric, GroupStatsView copy.
+- [x] `20260515000000_perf_indexes.sql` — composite indexes on hot tables.

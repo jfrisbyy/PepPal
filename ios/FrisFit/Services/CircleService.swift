@@ -67,6 +67,7 @@ final class CircleService {
             .from("circle_members")
             .select("id, circle_id, user_id, role, joined_at")
             .eq("user_id", value: userId)
+            .limit(500)
             .execute()
             .value
 
@@ -78,6 +79,7 @@ final class CircleService {
             .select()
             .in("id", values: circleIds)
             .order("created_at", ascending: false)
+            .limit(500)
             .execute()
             .value
         return circles
@@ -98,11 +100,12 @@ final class CircleService {
         return circles.filter { !myIds.contains($0.id ?? "") }
     }
 
-    func fetchMembers(circleId: String) async throws -> [SupabaseCircleMemberWithProfile] {
+    func fetchMembers(circleId: String, limit: Int = 200) async throws -> [SupabaseCircleMemberWithProfile] {
         let response: [SupabaseCircleMemberWithProfile] = try await supabase
             .from("circle_members")
             .select("*, profiles!circle_members_user_id_fkey(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .eq("circle_id", value: circleId)
+            .limit(limit)
             .execute()
             .value
         return response
