@@ -21,6 +21,7 @@ final class RealtimeFeedService {
     private var onDelete: DeleteHandler?
 
     func subscribe(
+        userId: String,
         onInsert: @escaping InsertHandler,
         onUpdate: @escaping UpdateHandler,
         onDelete: @escaping DeleteHandler
@@ -31,7 +32,11 @@ final class RealtimeFeedService {
         self.onDelete = onDelete
 
         let supabase = SupabaseService.shared.client
-        let ch = supabase.realtimeV2.channel("feed-posts-global")
+        // Per-user channel name so each device holds its own connection slot
+        // rather than fanning out from one shared global channel. Combined
+        // with `RealtimeLifecycleCoordinator` teardown on background, this
+        // keeps us under Supabase Realtime's per-project connection cap.
+        let ch = supabase.realtimeV2.channel("feed-posts-\(userId)")
 
         insertSub = ch.onPostgresChange(
             InsertAction.self,

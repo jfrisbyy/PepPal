@@ -751,6 +751,76 @@ async function sendPushAction(
     return json(200, { ok: true, ...result });
 }
 
+// ---- Handler: deleteAccount (GDPR / App Store requirement) -----------
+
+async function deleteAccount(
+    admin: SupabaseClient,
+    userId: string,
+): Promise<Response> {
+    // 1) Wipe every public.<table> row keyed to the user via the SECURITY
+    //    DEFINER helper. Catches every table that has a `user_id` column,
+    //    so we don't have to maintain a hand-curated list as the schema grows.
+    try {
+        const { error: rpcErr } = await admin.rpc("delete_user_data", { target_user_id: userId });
+        if (rpcErr) {
+            console.error("delete_user_data rpc failed", rpcErr);
+            return json(500, { error: rpcErr.message });
+        }
+    } catch (e) {
+        console.error("delete_user_data threw", e);
+        return json(500, { error: String(e) });
+    }
+
+    // 2) Storage objects in per-user folders.
+    const buckets = ["avatars", "banners", "body-progress", "meal-photos", "dm-media", "protocol-note-photos"];
+    for (const bucket of buckets) {
+        try {
+            const { data: files } = await admin.storage.from(bucket).list(userId, { limit: 1000 });
+            if (!files || files.length === 0) continue;
+            const paths = files.map((f) => `${userId}/${f.name}`);
+            const { error: rmErr } = await admin.storage.from(bucket).remove(paths);
+            if (rmErr) console.error(`storage remove ${bucket} failed`, rmErr);
+        } catch (e) {
+            console.error(`storage cleanup ${bucket} threw`, e);
+        }
+    }
+
+    // 3) Delete the auth.users row last so the client gets signed out.
+    const { error: authErr } = await admin.auth.admin.deleteUser(userId);
+    if (authErr) {
+        console.error("auth deleteUser failed", authErr);
+        return json(500, { error: authErr.message });
+    }
+
+    return json(200, { ok: true, deleted_user_id: userId });
+}
+
+// ---- Handler: logClientError -----------------------------------------
+
+async function logClientError(
+    admin: SupabaseClient,
+    userId: string,
+    payload: Record<string, unknown>,
+): Promise<Response> {
+    const message = String(payload.message ?? "").slice(0, 4000);
+    if (!message) return json(400, { error: "missing_message" });
+    const row = {
+        user_id: userId,
+        platform: String(payload.platform ?? "ios"),
+        app_version: payload.app_version == null ? null : String(payload.app_version),
+        os_version: payload.os_version == null ? null : String(payload.os_version),
+        device_model: payload.device_model == null ? null : String(payload.device_model),
+        screen: payload.screen == null ? null : String(payload.screen),
+        severity: String(payload.severity ?? "error"),
+        message,
+        stack: payload.stack == null ? null : String(payload.stack).slice(0, 8000),
+        context: (payload.context && typeof payload.context === "object") ? payload.context : {},
+    };
+    const { error } = await admin.from("client_errors").insert(row);
+    if (error) return json(500, { error: error.message });
+    return json(200, { ok: true });
+}
+
 // ---- Entry point ------------------------------------------------------
 
 Deno.serve(async (req) => {
@@ -809,6 +879,10 @@ Deno.serve(async (req) => {
                 return await weeklyRecapAll(admin, payload);
             case "sendPush":
                 return await sendPushAction(admin, auth.userId, payload);
+            case "deleteAccount":
+                return await deleteAccount(admin, auth.userId);
+            case "logClientError":
+                return await logClientError(admin, auth.userId, payload);
             default:
                 return json(400, { error: "unknown_action", action });
         }

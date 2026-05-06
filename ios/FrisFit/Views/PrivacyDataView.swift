@@ -251,12 +251,22 @@ struct PrivacyDataView: View {
         isDeleting = true
         defer { isDeleting = false }
 
+        struct DeleteAccountBody: Encodable, Sendable { let action: String }
         do {
+            // Server-side wipe via super-action edge function. Removes every
+            // public.<table> row keyed to user_id, storage objects under each
+            // per-user folder, and finally the auth.users row.
             try await SupabaseService.shared.client.functions
-                .invoke("delete_account")
+                .invoke(
+                    "super-action",
+                    options: FunctionInvokeOptions(
+                        body: DeleteAccountBody(action: "deleteAccount")
+                    )
+                )
             try? await AuthService.shared.signOut()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         } catch {
+            ErrorLogger.shared.log(error, screen: "PrivacyDataView.delete")
             deleteError = error.localizedDescription
             UINotificationFeedbackGenerator().notificationOccurred(.error)
         }

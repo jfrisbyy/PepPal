@@ -142,9 +142,12 @@ final class ProfileService {
     func uploadAvatar(userId: String, imageData: Data) async throws -> String {
         let fileName = "\(userId)/avatar_\(Int(Date().timeIntervalSince1970)).jpg"
 
+        // Always downsize before upload — raw camera images are 8–12 MB.
+        let payload = ImageCompressor.compress(data: imageData, kind: .avatar) ?? imageData
+
         try await supabase.storage
             .from("avatars")
-            .upload(fileName, data: imageData, options: FileOptions(
+            .upload(fileName, data: payload, options: FileOptions(
                 cacheControl: "3600",
                 contentType: "image/jpeg",
                 upsert: true
@@ -181,9 +184,11 @@ final class ProfileService {
     func uploadBanner(userId: String, imageData: Data) async throws -> String {
         let fileName = "\(userId)/banner_\(Int(Date().timeIntervalSince1970)).jpg"
 
+        let payload = ImageCompressor.compress(data: imageData, kind: .banner) ?? imageData
+
         try await supabase.storage
             .from("banners")
-            .upload(fileName, data: imageData, options: FileOptions(
+            .upload(fileName, data: payload, options: FileOptions(
                 cacheControl: "3600",
                 contentType: "image/jpeg",
                 upsert: true

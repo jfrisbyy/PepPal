@@ -118,6 +118,9 @@ final class AuthService {
         // wipe their per-user caches even if the auth-state listener fires
         // before our continuation resumes.
         let previousUserId = try? currentUserId()
+        // Tear down every Realtime subscription before we sign out so we never
+        // leave the previous user's channels open under a new session.
+        await RealtimeLifecycleCoordinator.shared.unsubscribeAll()
         try await supabase.auth.signOut()
         LocalStateResetCoordinator.purgeUserScopedState(previousUserId: previousUserId)
     }

@@ -116,7 +116,9 @@ final class SocialViewModel {
     }
 
     private func startRealtime() async {
+        guard let userId = try? AuthService.shared.currentUserId() else { return }
         await realtimeFeed.subscribe(
+            userId: userId,
             onInsert: { [weak self] inserted in
                 guard let self else { return }
                 if self.feedPosts.contains(where: { $0.supabaseId == inserted.id }) { return }
