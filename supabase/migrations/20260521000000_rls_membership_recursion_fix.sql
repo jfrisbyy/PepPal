@@ -180,7 +180,7 @@ as $fn$
     );
 $fn$;
 
-do $
+do $$
 declare
     fn text;
     fns text[] := array[
@@ -204,7 +204,7 @@ begin
         execute format('grant execute on function public.%s to authenticated', fn);
         execute format('grant execute on function public.%s to service_role', fn);
     end loop;
-end $;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- 1) circle_members — strictly non-recursive policies.
