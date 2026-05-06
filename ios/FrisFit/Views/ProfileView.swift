@@ -584,20 +584,12 @@ struct ProfilePostRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [profile.avatarColor.opacity(0.8), PepTheme.violet.opacity(0.5)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 40, height: 40)
-                .overlay {
-                    Text(profile.initials)
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                }
+            ProfileAvatarView(
+                avatarUrl: profile.avatarUrl,
+                initials: profile.initials,
+                avatarColor: profile.avatarColor,
+                size: 40
+            )
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
