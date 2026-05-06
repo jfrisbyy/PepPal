@@ -2,9 +2,14 @@ import SwiftUI
 import Charts
 
 struct StepDetailView: View {
+    let stepsCaloriesOverride: Int?
     @State private var viewModel = StepDetailViewModel()
     @State private var animateProgress: Bool = false
     @State private var selectedDate: Date? = nil
+
+    init(stepsCaloriesOverride: Int? = nil) {
+        self.stepsCaloriesOverride = stepsCaloriesOverride
+    }
 
     var body: some View {
         ScrollView {
@@ -103,7 +108,7 @@ struct StepDetailView: View {
                 Divider().overlay(PepTheme.separatorColor).frame(height: 30)
                 heroMetric(label: "Floors", value: "\(viewModel.todayFlights)", unit: "climbed")
                 Divider().overlay(PepTheme.separatorColor).frame(height: 30)
-                heroMetric(label: "Active", value: "\(Int(viewModel.healthKit.activeCalories))", unit: "cal")
+                heroMetric(label: "Active", value: "\(activeCaloriesDisplay)", unit: "cal")
             }
         }
         .padding(20)
@@ -132,6 +137,11 @@ struct StepDetailView: View {
                 .padding(.top, 20)
         }
         .shadow(color: PepTheme.teal.opacity(0.12), radius: 16, x: 0, y: 6)
+    }
+
+    private var activeCaloriesDisplay: Int {
+        if let override = stepsCaloriesOverride { return override }
+        return Int(viewModel.healthKit.activeCalories)
     }
 
     private var heroRing: some View {

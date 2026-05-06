@@ -2,72 +2,145 @@ import SwiftUI
 
 struct StepsModuleCardView: View {
     let healthKit: HealthKitService
+    let stepsCalories: Int
     @Binding var showStepDetail: Bool
+    @State private var animateProgress: Bool = false
+
+    private var goal: Int {
+        let stored = UserDefaults.standard.integer(forKey: "step_goal")
+        return stored > 0 ? stored : 10000
+    }
+
+    private var progress: Double {
+        min(Double(healthKit.steps) / Double(max(goal, 1)), 1.0)
+    }
 
     var body: some View {
         Button {
             showStepDetail = true
         } label: {
-            VStack(spacing: 0) {
-                HStack(alignment: .top) {
-                    stepsInfo
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                        StepProgressRing(steps: healthKit.steps)
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .top, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("TODAY")
+                            .font(.system(size: 10, weight: .heavy))
+                            .tracking(2.4)
+                            .foregroundStyle(PepTheme.teal)
+
+                        Text(Self.formattedStepsNumber(healthKit.steps))
+                            .font(.system(size: 48, weight: .semibold, design: .serif))
+                            .kerning(-1.2)
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .contentTransition(.numericText())
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+
+                        Text("of \(Self.formattedStepsNumber(goal)) goal \u{00b7} \(Int(progress * 100))%")
+                            .font(.system(.caption, design: .serif))
+                            .italic()
+                            .foregroundStyle(PepTheme.textSecondary)
                     }
+                    Spacer(minLength: 0)
+                    heroRing
                 }
-                StepHourlyMiniChart()
-                    .padding(.top, 12)
+
+                Rectangle()
+                    .fill(LinearGradient(colors: [PepTheme.teal.opacity(0.5), PepTheme.teal.opacity(0)], startPoint: .leading, endPoint: .trailing))
+                    .frame(height: 0.75)
+
+                HStack(spacing: 0) {
+                    heroMetric(label: "Distance", value: String(format: "%.2f", healthKit.distanceMiles), unit: "mi")
+                    Divider().overlay(PepTheme.separatorColor).frame(height: 30)
+                    heroMetric(label: "Floors", value: "\(healthKit.flightsClimbed)", unit: "climbed")
+                    Divider().overlay(PepTheme.separatorColor).frame(height: 30)
+                    heroMetric(label: "Active", value: "\(stepsCalories)", unit: "cal")
+                }
             }
-            .padding(16)
+            .padding(20)
             .background(
-                PepTheme.teal.opacity(0.06)
-                    .overlay(PepTheme.cardSurface.opacity(0.88))
-                    .overlay(PepTheme.cardOverlay)
+                ZStack {
+                    PepTheme.cardSurface
+                    LinearGradient(
+                        colors: [PepTheme.teal.opacity(0.10), Color.clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
             )
-            .clipShape(.rect(cornerRadius: 16))
+            .clipShape(.rect(cornerRadius: 20))
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 20)
                     .strokeBorder(
-                        LinearGradient(
-                            colors: [PepTheme.teal.opacity(0.2), PepTheme.teal.opacity(0.06)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
+                        LinearGradient(colors: [PepTheme.teal.opacity(0.28), PepTheme.teal.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        lineWidth: 0.6
                     )
             )
-            .shadow(color: PepTheme.teal.opacity(0.1), radius: 12, x: 0, y: 4)
+            .overlay(alignment: .topLeading) {
+                Rectangle()
+                    .fill(PepTheme.teal)
+                    .frame(width: 2, height: 44)
+                    .padding(.top, 20)
+            }
+            .shadow(color: PepTheme.teal.opacity(0.12), radius: 16, x: 0, y: 6)
         }
         .buttonStyle(.scale)
+        .onAppear {
+            withAnimation(.spring(response: 0.85, dampingFraction: 0.75)) {
+                animateProgress = true
+            }
+        }
         .navigationDestination(isPresented: $showStepDetail) {
-            StepDetailView()
+            StepDetailView(stepsCaloriesOverride: stepsCalories)
         }
     }
 
-    private var stepsInfo: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: "figure.walk")
-                    .font(.subheadline)
-                    .foregroundStyle(PepTheme.teal)
-                SubheadText(text: "Steps")
-            }
+    private var heroRing: some View {
+        ZStack {
+            Circle()
+                .stroke(PepTheme.elevated, lineWidth: 8)
+                .frame(width: 84, height: 84)
 
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(Self.formattedStepsNumber(healthKit.steps))
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+            Circle()
+                .trim(from: 0, to: animateProgress ? progress : 0)
+                .stroke(
+                    AngularGradient(
+                        colors: [PepTheme.teal, PepTheme.tealDeep, PepTheme.teal],
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                )
+                .frame(width: 84, height: 84)
+                .rotationEffect(.degrees(-90))
+
+            VStack(spacing: 2) {
+                Image(systemName: "figure.walk")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(PepTheme.teal)
+                Text("\(Int(progress * 100))%")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundStyle(PepTheme.textPrimary)
                     .contentTransition(.numericText())
             }
-
-            Text("\(String(format: "%.1f", healthKit.distanceMiles)) mi \u{00b7} \(healthKit.flightsClimbed) floors")
-                .font(.system(.caption, weight: .medium))
-                .foregroundStyle(PepTheme.textSecondary)
         }
+    }
+
+    private func heroMetric(label: String, value: String, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .heavy))
+                .tracking(1.6)
+                .foregroundStyle(PepTheme.textTertiary)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(value)
+                    .font(.system(size: 18, weight: .semibold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .contentTransition(.numericText())
+                Text(unit)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     static func formattedStepsNumber(_ steps: Int) -> String {

@@ -321,7 +321,7 @@ struct HomeView: View {
             if viewModel.healthKit.isAuthorized {
                 CollapsibleEditorialSection(eyebrow: "04 \u{2014} Apple Health", storageKey: "appleHealth") {
                     VStack(spacing: 14) {
-                        StepsModuleCardView(healthKit: viewModel.healthKit, showStepDetail: $showStepDetail)
+                        StepsModuleCardView(healthKit: viewModel.healthKit, stepsCalories: energyBalanceViewModel.stepsCalories, showStepDetail: $showStepDetail)
                         HomeAppleHealthSection(healthKit: viewModel.healthKit)
                     }
                 }
