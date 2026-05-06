@@ -85,7 +85,7 @@ struct SoccerDashboardView: View {
     private var heroLine: String {
         let runs = soccerVM.thisWeekSessions
         if runs == 0 {
-            return "No sessions this week — even a 20-minute kickabout starts the streak."
+            return "No sessions this week — even a 20-minute kickabout puts touches on the ball."
         }
         if soccerVM.totalGoalContributions == 0 && soccerVM.totalGamesPlayed > 0 {
             return "Sharpen the final ball — the chances are coming."

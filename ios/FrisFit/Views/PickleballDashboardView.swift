@@ -79,7 +79,7 @@ struct PickleballDashboardView: View {
     private var heroTitle: String {
         let sessions = pickleVM.thisWeekSessions
         if sessions == 0 { return "Grab the paddle." }
-        if let recent = pickleVM.matches.first, recent.result == .win { return "Riding the streak." }
+        if let recent = pickleVM.matches.first, recent.result == .win { return "Riding the win." }
         if pickleVM.thisWeekMatches.contains(where: { $0.result == .win }) { return "Stacking dubs." }
         if sessions >= 4 { return "Living at the kitchen." }
         return "Find the soft game."

@@ -279,7 +279,6 @@ struct MartialArtsSettingsView: View {
                     if maVM.competitions.count > 0 {
                         summaryRow(label: "Competition", value: "\(maVM.competitionWins)W · \(maVM.competitionLosses)L")
                     }
-                    summaryRow(label: "Current Streak", value: "\(maVM.currentStreak) day\(maVM.currentStreak == 1 ? "" : "s")")
                 }
             }
         }

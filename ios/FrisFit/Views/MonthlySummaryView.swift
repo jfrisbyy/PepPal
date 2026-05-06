@@ -143,12 +143,6 @@ struct MonthlySummaryView: View {
                         highlightTile(icon: "trophy.fill", color: .orange, value: "—", label: "Best step day")
                     }
                     highlightTile(
-                        icon: "flame.fill",
-                        color: PepTheme.amber,
-                        value: "\(summary.bestStepStreak)",
-                        label: "Day step-goal streak"
-                    )
-                    highlightTile(
                         icon: "figure.strengthtraining.traditional",
                         color: PepTheme.teal,
                         value: String(format: "%.1f/wk", Double(summary.totalWorkouts) / Double(max(summary.weeklyWorkouts.count, 1))),
@@ -352,9 +346,6 @@ struct MonthlySummaryView: View {
                         .font(.system(.caption2, weight: .medium))
                         .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
-                    Text("Best streak: \(summary.bestStepStreak) days")
-                        .font(.system(.caption2, design: .rounded, weight: .semibold))
-                        .foregroundStyle(.green)
                 }
             }
         }

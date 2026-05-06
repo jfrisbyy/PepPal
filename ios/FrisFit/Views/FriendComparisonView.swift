@@ -263,7 +263,6 @@ struct FriendComparisonView: View {
             ))
         }
 
-        add(.streak, mine: Double(mySnapshot?.streak ?? 0), theirs: Double(friend.streak), formatter: { "\(Int($0))" }, unit: "days")
         add(.workouts, mine: Double(mySnapshot?.weeklyWorkouts ?? 0), theirs: Double(friend.weeklyWorkouts), formatter: { "\(Int($0))" }, unit: "this week")
         add(.volume, mine: Double(mySnapshot?.weeklyVolume ?? 0), theirs: Double(friend.weeklyVolume), formatter: { formatVolume($0) })
         add(.steps, mine: Double(mySnapshot?.weeklySteps ?? 0), theirs: Double(friend.weeklySteps), formatter: { formatThousands(Int($0)) })

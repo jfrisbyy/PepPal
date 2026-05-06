@@ -239,6 +239,11 @@ struct HomeView: View {
                 if !profileNudgeState.isComplete && !profileNudgeState.isDismissed {
                     profileCompletionNudge
                 }
+                if viewModel.streakManager.streakState == .paused {
+                    streakPausedBanner
+                } else if viewModel.streakManager.freezeRecentlyUsed {
+                    streakFreezeUsedBanner
+                }
             }
             .padding(.bottom, hasTransientBanners ? 24 : 0)
 
@@ -330,20 +335,6 @@ struct HomeView: View {
                 .padding(.bottom, 40)
             }
 
-            // 05 — Streak
-            CollapsibleEditorialSection(eyebrow: streakSectionEyebrow, storageKey: "streak") {
-                VStack(spacing: 16) {
-                    if viewModel.streakManager.streakState == .paused {
-                        streakPausedBanner
-                    } else if viewModel.streakManager.freezeRecentlyUsed {
-                        streakFreezeUsedBanner
-                    }
-                    if let encouragement = viewModel.streakEncouragement {
-                        streakEncouragementCard(message: encouragement)
-                    }
-                    quickStatsBar
-                }
-            }
         }
         .monospacedDigit()
         .padding(.horizontal)
@@ -382,6 +373,8 @@ struct HomeView: View {
         !viewModel.isSelectedDateToday
             || showOnboardingSuccessCard
             || (!profileNudgeState.isComplete && !profileNudgeState.isDismissed)
+            || viewModel.streakManager.streakState == .paused
+            || viewModel.streakManager.freezeRecentlyUsed
     }
 
     private var profileCompletionNudge: some View {

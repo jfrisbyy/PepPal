@@ -69,27 +69,7 @@ struct WeeklyRecapCard: View {
                     .foregroundStyle(PepTheme.textSecondary)
             }
             Spacer()
-            streakBadge
         }
-    }
-
-    private var streakBadge: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 4) {
-                Image(systemName: "flame.fill")
-                    .foregroundStyle(PepTheme.amber)
-                Text("\(recap.streak)")
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .fontWeight(.bold)
-            }
-            .font(.system(.title3, design: .rounded))
-            Text("day streak")
-                .font(.caption2)
-                .foregroundStyle(PepTheme.textSecondary)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(PepTheme.amber.opacity(0.12), in: .rect(cornerRadius: 14))
     }
 
     private var deltaRow: some View {
@@ -216,7 +196,6 @@ struct WeeklyRecapDetailView: View {
             statTile(icon: "figure.walk", color: PepTheme.teal, label: "Steps", value: formatThousands(recap.steps), delta: recap.stepsDelta)
             statTile(icon: "bolt.fill", color: .orange, label: "Calories", value: "\(recap.calories)", delta: nil)
             statTile(icon: "drop.fill", color: PepTheme.blue, label: "Water", value: "\(recap.waterMl / 1000)L", delta: nil)
-            statTile(icon: "flame.fill", color: PepTheme.amber, label: "Streak", value: "\(recap.streak)d", delta: nil)
         }
         .padding(.horizontal)
     }

@@ -14,7 +14,7 @@ struct StatSharingOnboardingSheet: View {
                     VStack(alignment: .leading, spacing: 0) {
                         SectionEyebrow("What gets shared", number: "01", accent: PepTheme.teal)
                             .padding(.bottom, 14)
-                        bulletRow(index: "01", title: "Streaks & workouts", text: "Friends can see your day streak and weekly training activity.")
+                        bulletRow(index: "01", title: "Workouts", text: "Friends can see your weekly training activity and sessions.")
                         Divider().overlay(PepTheme.separatorColor)
                         bulletRow(index: "02", title: "Personal records", text: "Share your biggest lifts and recent PRs with the people cheering you on.")
                         Divider().overlay(PepTheme.separatorColor)

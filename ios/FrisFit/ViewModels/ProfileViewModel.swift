@@ -171,7 +171,7 @@ final class ProfileViewModel {
     var streakMilestoneNotifs: Bool = true
     var weeklyProgressNotifs: Bool = true
     var restDayRecoveryNotifs: Bool = true
-    var streakWarningNotifs: Bool = true
+    var streakWarningNotifs: Bool = false
 
     var memberSinceFormatted: String {
         let formatter = DateFormatter()

@@ -10,7 +10,6 @@ struct RunningDashboardView: View {
             heroCard
             startRunCard
             trainingLoadCard
-            consistencyCard
             nextRunSuggestionCard
             SportCoachCard(sport: .running, accent: accentColor)
             weeklyMileageChart
@@ -88,7 +87,7 @@ struct RunningDashboardView: View {
         let runs = runVM.thisWeekRuns.count
         let miles = runVM.thisWeekMiles
         if runs == 0 {
-            return "No runs this week — even an easy 2 miles starts the streak."
+            return "No runs this week — even an easy 2 miles gets the legs moving."
         }
         if runs == 1 {
             return String(format: "One run down — %.1f mi already in the legs.", miles)
@@ -371,7 +370,6 @@ struct RunningDashboardView: View {
 
     private func consistencyLine(days: [(day: Date, distance: Double)], streak: Int) -> String {
         let activeDays = days.filter { $0.distance > 0 }.count
-        if streak >= 5 { return "On fire — \(streak) day streak. Don't break the chain." }
         if activeDays == 0 { return "Empty week — a 20-minute run is enough to start it." }
         if activeDays >= 5 { return "\(activeDays) days active this week — elite frequency." }
         return "\(activeDays) of 7 days active. One more would round it out."

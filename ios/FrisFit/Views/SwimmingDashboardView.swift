@@ -585,7 +585,7 @@ struct SwimmingDashboardView: View {
             )
 
             if swimVM.completedSwims.isEmpty {
-                noDataPlaceholder("No swims logged yet — your first one starts the streak.")
+                noDataPlaceholder("No swims logged yet — log your first one to see your progress.")
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(swimVM.completedSwims.prefix(5).enumerated()), id: \.element.id) { idx, swim in

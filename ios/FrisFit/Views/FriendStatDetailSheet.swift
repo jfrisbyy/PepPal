@@ -151,7 +151,6 @@ struct FriendStatDetailSheet: View {
 
     private func rawValue(snapshot: FriendStatSnapshot, category: StatShareCategory) -> Double {
         switch category {
-        case .streak: return Double(snapshot.streak)
         case .workouts: return Double(snapshot.weeklyWorkouts)
         case .volume: return Double(snapshot.weeklyVolume)
         case .steps: return Double(snapshot.weeklySteps)
@@ -163,7 +162,6 @@ struct FriendStatDetailSheet: View {
 
     private func formatted(_ value: Double, category: StatShareCategory) -> String {
         switch category {
-        case .streak: return "\(Int(value)) days"
         case .workouts: return "\(Int(value))"
         case .volume:
             if value >= 1000 { return String(format: "%.1fk kg", value / 1000) }

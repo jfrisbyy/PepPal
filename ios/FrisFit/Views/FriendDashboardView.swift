@@ -180,9 +180,6 @@ struct FriendDashboardView: View {
             }
 
             HStack(spacing: 8) {
-                if shares(.streak) {
-                    statChip(value: "\(friend.streak)", label: "STREAK")
-                }
                 if let program = friend.activeProgram, !program.isEmpty, shares(.programs) {
                     statChip(value: program, label: nil)
                 }
@@ -303,11 +300,13 @@ struct FriendDashboardView: View {
                 }
 
                 HStack(spacing: 10) {
-                    miniRow(label: "Streak", mine: Double(mySnapshot?.streak ?? 0), theirs: Double(friend.streak), formatter: { "\(Int($0))" }, share: shares(.streak))
                     miniRow(label: "Workouts", mine: Double(mySnapshot?.weeklyWorkouts ?? 0), theirs: Double(friend.weeklyWorkouts), formatter: { "\(Int($0))" }, share: shares(.workouts))
                     miniRow(label: "Volume", mine: Double(mySnapshot?.weeklyVolume ?? 0), theirs: Double(friend.weeklyVolume), formatter: { v in
                         v >= 1000 ? String(format: "%.1fk", v / 1000) : "\(Int(v))"
                     }, share: shares(.volume))
+                    miniRow(label: "Steps", mine: Double(mySnapshot?.weeklySteps ?? 0), theirs: Double(friend.weeklySteps), formatter: { v in
+                        v >= 1000 ? String(format: "%.1fk", v / 1000) : "\(Int(v))"
+                    }, share: shares(.steps))
                 }
             }
             .padding(14)
@@ -375,9 +374,6 @@ struct FriendDashboardView: View {
                 }
                 if shares(.water) {
                     statTile(.water, value: String(format: "%.1fL", Double(friend.weeklyWaterMl) / 1000), subtitle: "water")
-                }
-                if shares(.streak) {
-                    statTile(.streak, value: "\(friend.streak)", subtitle: "day streak")
                 }
             }
         }

@@ -11,7 +11,6 @@ struct HealthDetailView: View {
             VStack(spacing: 18) {
                 if viewModel.healthKit.isAuthorized {
                     HealthHeroView(viewModel: viewModel) { showSync = true }
-                    streakStrip
                 } else {
                     connectPrompt
                 }
@@ -63,44 +62,6 @@ struct HealthDetailView: View {
         .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
         .clipShape(.rect(cornerRadius: 10))
         .transition(.opacity)
-    }
-
-    @ViewBuilder
-    private var streakStrip: some View {
-        let streaks = buildStreaks()
-        if !streaks.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(streaks, id: \.text) { s in
-                        HStack(spacing: 5) {
-                            Image(systemName: s.icon)
-                                .font(.system(size: 10, weight: .heavy))
-                            Text(s.text)
-                                .font(.system(size: 11, weight: .bold))
-                        }
-                        .foregroundStyle(s.color)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(s.color.opacity(0.14), in: .capsule)
-                        .overlay(Capsule().strokeBorder(s.color.opacity(0.25), lineWidth: 0.5))
-                    }
-                }
-            }
-            .contentMargins(.horizontal, 0)
-        }
-    }
-
-    private func buildStreaks() -> [(icon: String, text: String, color: Color)] {
-        var out: [(String, String, Color)] = []
-        let stepsStreak = viewModel.stepsTrend.streakDays
-        if stepsStreak >= 2 { out.append(("flame.fill", "\(stepsStreak)-day step streak", .orange)) }
-        let hrvStreak = viewModel.hrvTrend.streakDays
-        if hrvStreak >= 2 { out.append(("waveform.path.ecg", "\(hrvStreak) days HRV holding", .pink)) }
-        let goalHit = viewModel.sleepNights.reversed().prefix { $0.asleep >= viewModel.sleepGoalHours - 0.5 }.count
-        if goalHit >= 2 { out.append(("moon.stars.fill", "\(goalHit) nights ≥ \(Int(viewModel.sleepGoalHours))h", PepTheme.violet)) }
-        if viewModel.stepsTrend.isPersonalBest { out.append(("trophy.fill", "Steps PB", PepTheme.amber)) }
-        if viewModel.hrvTrend.isPersonalBest { out.append(("trophy.fill", "HRV PB", PepTheme.amber)) }
-        return out.map { ($0.0, $0.1, $0.2) }
     }
 
     private var connectPrompt: some View {

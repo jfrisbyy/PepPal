@@ -1,18 +1,39 @@
-# Fix social media links not saving to your profile
+# Tone down streaks across the app and hide them from friends
 
-**The problem**
+## Changes
 
-The fields exist in the edit screen, but the database hasn't been told to store them yet — so when you tap Save, the handles silently get dropped on the way to the server. When the profile reloads, those fields come back empty and no icons show.
+**1. Sport dashboard empty-state nudges**
 
-**What I'll do**
+- [x] Replace streak-focused empty copy in Swimming, Soccer, Pickleball, Running.
 
-- Apply the missing database update so your Instagram, X, TikTok, and Facebook handles actually have a place to live on the server.
-- Surface a clear error message if a profile save ever fails, instead of silently dismissing the screen — so you'll see what's going wrong next time.
-- Double-check that handles get cleaned up properly (handles pasted as full URLs like `instagram.com/yourname` will be trimmed down to just the handle).
-- After saving, the colorful social icons will appear right under your bio, and tapping any one will open that platform directly to your page.
+**2. Per-sport streak sections**
 
-**What you'll see after**
+- [x] Remove dedicated "Streak" section from Running dashboard.
+- [x] Remove "STREAK" hero stat from Sleep & Recovery.
+- [x] Remove "Current Streak" row from Martial Arts settings.
 
-- Type your handles in Edit Profile → Save → return to your profile → icons appear instantly.
-- Each icon opens Instagram, X, TikTok, or Facebook to your page in one tap.
-- Empty fields stay hidden (no broken icons).
+**3. Health detail & monthly recap**
+
+- [x] Remove per-metric streak chips strip from Health Detail.
+- [x] Remove "Best streak" stats from Monthly Summary.
+- [x] Remove streak badge/tile from Weekly Recap card.
+
+**4. Profile cleanup**
+
+- [x] Removed streak from About row (was in UserProfileView).
+
+**5. Home screen**
+
+- [x] Toolbar flame icon kept.
+- [x] Removed large dedicated Streak section.
+- [x] Paused/freeze banners kept (now inline in transient banners).
+
+**6. Notifications**
+
+- [x] streakWarningNotifs default flipped to false.
+
+**7. Hide streaks from friends and public profiles**
+
+- [x] Removed streak stat tile + about row from UserProfileView.
+- [x] Removed `.streak` case from StatShareCategory.
+- [x] Removed streak from FriendDashboardView, FriendComparisonView, FriendStatDetailSheet, FollowListView, FriendsStatsView card, BorrowProgramSheet, GroupStatMetric, GroupStatsView copy.

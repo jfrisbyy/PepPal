@@ -108,7 +108,7 @@ struct BorrowProgramSheet: View {
             Rectangle()
                 .fill(PepTheme.amber)
                 .frame(width: 2, height: 28)
-            Text("\(friend.streak)-day streak · \(friend.weeklyWorkouts) workouts this week")
+            Text("\(friend.weeklyWorkouts) workouts this week")
                 .font(.system(.subheadline, design: .serif).italic())
                 .foregroundStyle(PepTheme.textPrimary)
             Spacer(minLength: 0)

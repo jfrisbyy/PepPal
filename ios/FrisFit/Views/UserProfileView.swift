@@ -38,9 +38,6 @@ struct UserProfileView: View {
                 bannerHeader
                 profileInfo
                     .padding(.horizontal, 16)
-                quickStats
-                    .padding(.top, 16)
-                    .padding(.horizontal, 16)
                 tabSection
                     .padding(.top, 20)
             }
@@ -380,26 +377,6 @@ struct UserProfileView: View {
         }
     }
 
-    private var quickStats: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text("\(user.streak)")
-                .font(.system(size: 34, weight: .light, design: .serif))
-                .foregroundStyle(PepTheme.textPrimary)
-            Text("DAY STREAK")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(1.6)
-                .foregroundStyle(PepTheme.textSecondary)
-            Spacer()
-        }
-        .padding(.vertical, 14)
-        .overlay(alignment: .top) {
-            Rectangle().fill(PepTheme.separatorColor).frame(height: 0.5)
-        }
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(PepTheme.separatorColor).frame(height: 0.5)
-        }
-    }
-
     private var tabSection: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
@@ -627,7 +604,6 @@ struct UserProfileView: View {
             if let program = user.activeProgramName {
                 aboutRow(label: "Active Program", value: program)
             }
-            aboutRow(label: "Current Streak", value: "\(user.streak) days")
         }
     }
 

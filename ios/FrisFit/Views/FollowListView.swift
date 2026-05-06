@@ -141,17 +141,6 @@ struct FollowListView: View {
 
             Spacer()
 
-            if user.streak > 0 {
-                HStack(spacing: 3) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(PepTheme.amber)
-                    Text("\(user.streak)")
-                        .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-            }
-
             Image(systemName: "chevron.right")
                 .font(.caption2)
                 .foregroundStyle(PepTheme.textSecondary.opacity(0.5))

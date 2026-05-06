@@ -731,16 +731,6 @@ struct HomeSleepCard: View {
             }
         }
 
-        // Streak
-        let streak = currentStreak()
-        if streak >= 2 {
-            items.append(InsightItem(
-                icon: "flame.fill",
-                accent: PepTheme.amber,
-                text: "\(streak) nights logged in a row — keep the streak alive."
-            ))
-        }
-
         // Training correlation teaser
         if let corr = sleepService.correlation {
             let icon: String

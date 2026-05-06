@@ -296,9 +296,9 @@ struct FriendStatCard: View {
         .onLongPressGesture(minimumDuration: 0.35) {
             guard friend.isSharing else { return }
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            let label = presence != nil ? "workout" : (friend.streak > 0 ? "\(friend.streak)-day streak" : "progress")
+            let label = presence != nil ? "workout" : (friend.weeklyWorkouts > 0 ? "\(friend.weeklyWorkouts) workouts this week" : "progress")
             onLongPress?(ReactionTarget(
-                id: "\(friend.id.uuidString)-streak",
+                id: "\(friend.id.uuidString)-progress",
                 friendId: friend.id.uuidString,
                 friendName: friend.user.name,
                 statLabel: label
@@ -378,10 +378,10 @@ struct FriendStatCard: View {
     private var sharingBody: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("\(friend.streak)")
+                Text("\(friend.weeklyWorkouts)")
                     .font(.system(.title, design: .serif, weight: .regular))
                     .foregroundStyle(PepTheme.textPrimary)
-                Text("DAY STREAK")
+                Text("WORKOUTS / WK")
                     .font(.system(size: 9, weight: .semibold))
                     .tracking(1.2)
                     .foregroundStyle(PepTheme.textSecondary)

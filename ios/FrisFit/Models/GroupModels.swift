@@ -73,7 +73,6 @@ nonisolated enum GroupStatMetric: String, CaseIterable, Sendable, Identifiable, 
     case runMiles = "Run Distance"
     case activeMinutes = "Active Minutes"
     case calories = "Calories Burned"
-    case streak = "Day Streak"
 
     var id: String { rawValue }
 
@@ -84,7 +83,6 @@ nonisolated enum GroupStatMetric: String, CaseIterable, Sendable, Identifiable, 
         case .runMiles: return "figure.run"
         case .activeMinutes: return "flame.fill"
         case .calories: return "bolt.fill"
-        case .streak: return "flame"
         }
     }
 
@@ -95,7 +93,6 @@ nonisolated enum GroupStatMetric: String, CaseIterable, Sendable, Identifiable, 
         case .runMiles: return "mi"
         case .activeMinutes: return "min"
         case .calories: return "kcal"
-        case .streak: return "days"
         }
     }
 
@@ -106,7 +103,6 @@ nonisolated enum GroupStatMetric: String, CaseIterable, Sendable, Identifiable, 
         case .runMiles: return "Miles"
         case .activeMinutes: return "Active"
         case .calories: return "Calories"
-        case .streak: return "Streak"
         }
     }
 
@@ -114,7 +110,7 @@ nonisolated enum GroupStatMetric: String, CaseIterable, Sendable, Identifiable, 
         switch self {
         case .steps, .calories:
             return value.formatted(.number.notation(.compactName))
-        case .workouts, .activeMinutes, .streak:
+        case .workouts, .activeMinutes:
             return Int(value).formatted()
         case .runMiles:
             return String(format: "%.1f", value)

@@ -558,7 +558,7 @@ struct GroupStatsAdminSheet: View {
                 .fill(PepTheme.separatorColor)
                 .frame(height: 0.6)
                 .padding(.top, 4)
-            Text("Pick the metrics that fit \(group.name)'s vibe — for a run club it might be miles and active minutes, for a lift crew it could be workouts and streak.")
+            Text("Pick the metrics that fit \(group.name)'s vibe — for a run club it might be miles and active minutes, for a lift crew it could be workouts and volume.")
                 .font(.system(size: 13))
                 .foregroundStyle(PepTheme.textSecondary)
                 .lineSpacing(2)

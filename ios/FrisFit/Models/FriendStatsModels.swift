@@ -1,7 +1,6 @@
 import SwiftUI
 
 nonisolated enum StatShareCategory: String, CaseIterable, Identifiable, Sendable, Codable {
-    case streak
     case workouts
     case volume
     case steps
@@ -17,7 +16,6 @@ nonisolated enum StatShareCategory: String, CaseIterable, Identifiable, Sendable
 
     var title: String {
         switch self {
-        case .streak: return "Day Streak"
         case .workouts: return "Workouts"
         case .volume: return "Training Volume"
         case .steps: return "Steps"
@@ -33,7 +31,6 @@ nonisolated enum StatShareCategory: String, CaseIterable, Identifiable, Sendable
 
     var icon: String {
         switch self {
-        case .streak: return "flame.fill"
         case .workouts: return "dumbbell.fill"
         case .volume: return "chart.bar.fill"
         case .steps: return "figure.walk"
@@ -49,7 +46,6 @@ nonisolated enum StatShareCategory: String, CaseIterable, Identifiable, Sendable
 
     var color: Color {
         switch self {
-        case .streak: return PepTheme.amber
         case .workouts: return PepTheme.violet
         case .volume: return PepTheme.teal
         case .steps: return PepTheme.teal
@@ -65,7 +61,7 @@ nonisolated enum StatShareCategory: String, CaseIterable, Identifiable, Sendable
 
     var group: StatShareGroup {
         switch self {
-        case .streak, .workouts, .volume, .prs, .programs, .sets: return .training
+        case .workouts, .volume, .prs, .programs, .sets: return .training
         case .steps, .calories, .water: return .activity
         case .nutrition: return .nutritionGroup
         case .protocols: return .protocolsGroup

@@ -129,8 +129,6 @@ struct SleepRecoveryView: View {
                 heroStat(value: hrvDisplay, unit: hrvUnit, label: "HRV")
                 statDivider
                 heroStat(value: rhrDisplay, unit: rhrUnit, label: "RESTING HR")
-                statDivider
-                heroStat(value: "\(streakNights())", unit: "", label: "STREAK")
             }
         }
         .padding(18)
