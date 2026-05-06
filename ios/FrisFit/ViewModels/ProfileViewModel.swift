@@ -276,6 +276,7 @@ final class ProfileViewModel {
         }
     }
 
+    @discardableResult
     func saveProfileEdits(
         displayName: String,
         username: String,
@@ -290,10 +291,11 @@ final class ProfileViewModel {
         twitterHandle: String? = nil,
         facebookHandle: String? = nil,
         tiktokHandle: String? = nil
-    ) async {
-        guard let session = AuthService.shared.session else { return }
+    ) async -> Bool {
+        guard let session = AuthService.shared.session else { return false }
         let userId = session.user.id.uuidString
         isSaving = true
+        profileError = nil
 
         let dobFormatter = DateFormatter()
         dobFormatter.dateFormat = "yyyy-MM-dd"
@@ -321,11 +323,21 @@ final class ProfileViewModel {
         do {
             try await ProfileService.shared.updateProfile(userId: userId, update: update)
             ProfileService.shared.cachedDisplayName = displayName
+            // Optimistically apply social handles locally so UI updates instantly
+            // even if the subsequent loadProfile is slow.
+            profile.instagramHandle = instagramHandle
+            profile.twitterHandle = twitterHandle
+            profile.facebookHandle = facebookHandle
+            profile.tiktokHandle = tiktokHandle
             await loadProfile()
+            isSaving = false
+            return true
         } catch {
-            profileError = error.localizedDescription
+            print("PROFILE_SAVE: error: \(error)")
+            profileError = "Couldn't save profile: \(error.localizedDescription)"
+            isSaving = false
+            return false
         }
-        isSaving = false
     }
 
     func uploadAvatar(imageData: Data) async -> String? {

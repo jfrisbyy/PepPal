@@ -38,10 +38,10 @@ nonisolated struct UserProfile: Sendable {
     let biologicalSex: BiologicalSex?
     let heightCm: Double?
     var isPrivate: Bool
-    let instagramHandle: String?
-    let twitterHandle: String?
-    let facebookHandle: String?
-    let tiktokHandle: String?
+    var instagramHandle: String?
+    var twitterHandle: String?
+    var facebookHandle: String?
+    var tiktokHandle: String?
 
     init(
         id: UUID = UUID(),

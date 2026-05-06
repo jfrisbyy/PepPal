@@ -35,6 +35,9 @@ struct EditProfileView: View {
     @State private var facebookHandle: String = ""
     @State private var tiktokHandle: String = ""
 
+    @State private var showSaveError: Bool = false
+    @State private var saveErrorMessage: String = ""
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -114,6 +117,11 @@ struct EditProfileView: View {
                         pendingBannerCropImage = image
                     }
                 }
+            }
+            .alert("Save Failed", isPresented: $showSaveError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(saveErrorMessage)
             }
             .fullScreenCover(item: cropTargetBinding) { target in
                 switch target {
@@ -678,7 +686,7 @@ struct EditProfileView: View {
         }
 
         let program = activeProgram.trimmingCharacters(in: .whitespaces).isEmpty ? nil : activeProgram.trimmingCharacters(in: .whitespaces)
-        await viewModel.saveProfileEdits(
+        let success = await viewModel.saveProfileEdits(
             displayName: displayName.trimmingCharacters(in: .whitespaces),
             username: username.trimmingCharacters(in: .whitespaces),
             bio: bio.trimmingCharacters(in: .whitespaces),
@@ -693,6 +701,11 @@ struct EditProfileView: View {
             facebookHandle: SocialLink.normalize(facebookHandle),
             tiktokHandle: SocialLink.normalize(tiktokHandle)
         )
-        dismiss()
+        if success {
+            dismiss()
+        } else {
+            saveErrorMessage = viewModel.profileError ?? "Couldn't save your profile. Please try again."
+            showSaveError = true
+        }
     }
 }
