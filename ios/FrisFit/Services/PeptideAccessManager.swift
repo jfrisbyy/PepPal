@@ -92,6 +92,19 @@ final class PeptideAccessManager {
         }
     }
 
+    /// Called by `LocalStateResetCoordinator` on sign-out / account switch.
+    /// The backing UserDefaults keys have already been wiped at that point;
+    /// here we just clear the in-memory mirrors so observing views render
+    /// the empty/locked state until the new account hydrates from Supabase.
+    func handleSignOutOrUserSwitch() {
+        isPregnantOrNursing = false
+        dateOfBirth = nil
+        biologicalSex = nil
+        personaTrack = nil
+        pregnancyAnsweredAt = nil
+        pregnancyRecheckSnoozedUntil = nil
+    }
+
     /// True when the user is on Track A — peptide-related surfaces should render
     /// an educational empty state with an activation CTA instead of real content.
     var shouldShowTrackAEmptyState: Bool {

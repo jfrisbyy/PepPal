@@ -170,6 +170,10 @@ final class OnboardingState {
 }
 
 enum OnboardingManager {
+    /// Legacy global key. Per-user completion state is now keyed by
+    /// `LocalStateResetCoordinator.onboardingCompletedKey(for:)` so two
+    /// accounts on the same device can't share the flag. Kept as a public
+    /// constant for any straggler call sites that read it directly.
     static let completedKey = "peppal.onboarding.completed.v1"
     static let disclaimerVersion = "v1"
     static let draftKey = "peppal.onboarding.draft.v1"
@@ -207,12 +211,20 @@ enum OnboardingManager {
         UserDefaults.standard.set(false, forKey: successCardPendingKey)
     }
 
+    /// True when the *currently signed-in* user has finished onboarding on
+    /// this device. Returns false when no user is signed in (so a fresh
+    /// account is always routed through the flow).
     static var hasCompleted: Bool {
-        UserDefaults.standard.bool(forKey: completedKey)
+        LocalStateResetCoordinator.isOnboardingCompleted(
+            forUserId: LocalStateResetCoordinator.currentUserId()
+        )
     }
 
     static func markCompleted() {
-        UserDefaults.standard.set(true, forKey: completedKey)
+        LocalStateResetCoordinator.setOnboardingCompleted(
+            true,
+            forUserId: LocalStateResetCoordinator.currentUserId()
+        )
         clearDraft()
     }
 
@@ -244,6 +256,11 @@ enum OnboardingManager {
     }
 
     static func reset() {
+        LocalStateResetCoordinator.resetOnboardingCompleted(
+            forUserId: LocalStateResetCoordinator.currentUserId()
+        )
+        // Drop the legacy global key too, in case it's lingering from an
+        // older build before completion was per-user.
         UserDefaults.standard.removeObject(forKey: completedKey)
         clearDraft()
     }
@@ -322,12 +339,17 @@ enum OnboardingManager {
         switch remote {
         case .complete:
             // Existing fully-onboarded account — trust it, mark local cache.
-            UserDefaults.standard.set(true, forKey: completedKey)
+            LocalStateResetCoordinator.setOnboardingCompleted(
+                true,
+                forUserId: LocalStateResetCoordinator.currentUserId()
+            )
             clearDraft()
             return false
         case .incomplete:
             // Pre-onboarding account or cross-device fresh install — force onboarding.
-            UserDefaults.standard.removeObject(forKey: completedKey)
+            LocalStateResetCoordinator.resetOnboardingCompleted(
+                forUserId: LocalStateResetCoordinator.currentUserId()
+            )
             return true
         case .unknown:
             // Network/decoding hiccup — fall back to local cache.
@@ -739,9 +761,11 @@ enum OnboardingManager {
         } catch {
             print("OnboardingManager.persistDisclaimerAcknowledgement failed (queued for retry): \(error)")
         }
-        UserDefaults.standard.set(true, forKey: MedicalDisclaimerManager.acceptedKey)
-        UserDefaults.standard.set(acceptedAt, forKey: MedicalDisclaimerManager.acceptedDateKey)
-        UserDefaults.standard.set(version, forKey: MedicalDisclaimerManager.acceptedVersionKey)
+        LocalStateResetCoordinator.setDisclaimerAccepted(
+            date: acceptedAt,
+            version: version,
+            forUserId: userId
+        )
         await MedicalDisclaimerManager.persistAcceptance(at: acceptedAt)
     }
 }

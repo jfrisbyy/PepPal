@@ -82,9 +82,16 @@ final class HealthKitService {
     private var heartRateSamplesCollected: [(bpm: Int, date: Date)] = []
     private var workoutStartDate: Date?
 
-    var isHealthKitEnabled: Bool = UserDefaults.standard.bool(forKey: "healthkit_enabled") {
+    /// Per-user enabled flag. Mirrored to `healthkit_enabled.<userId>` in
+    /// UserDefaults so two accounts on the same device don't share a toggle.
+    var isHealthKitEnabled: Bool = LocalStateResetCoordinator.isHealthKitEnabled(
+        forUserId: LocalStateResetCoordinator.currentUserId()
+    ) {
         didSet {
-            UserDefaults.standard.set(isHealthKitEnabled, forKey: "healthkit_enabled")
+            LocalStateResetCoordinator.setHealthKitEnabled(
+                isHealthKitEnabled,
+                forUserId: LocalStateResetCoordinator.currentUserId()
+            )
             if isHealthKitEnabled && !oldValue {
                 print("[HealthKit] Toggle turned ON, requesting authorization")
                 Task { await requestAuthorization() }
@@ -210,19 +217,58 @@ final class HealthKitService {
         return types
     }()
 
+    private var authObserver: NSObjectProtocol?
+
     private init() {
         hydrateFromCache()
-        if UserDefaults.standard.bool(forKey: "healthkit_enabled"), HKHealthStore.isHealthDataAvailable() {
+        let uid = LocalStateResetCoordinator.currentUserId()
+        if LocalStateResetCoordinator.isHealthKitEnabled(forUserId: uid),
+           HKHealthStore.isHealthDataAvailable() {
             isAuthorized = true
             Task { await resumeIfAuthorized() }
         }
+        observeAuthChanges()
+    }
+
+    private func observeAuthChanges() {
+        authObserver = NotificationCenter.default.addObserver(
+            forName: .authUserChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            // Re-evaluate the per-user toggle for the now-current account.
+            // Using the silent path so flipping the published property
+            // doesn't fire `didSet` and re-prompt for authorization.
+            let uid = LocalStateResetCoordinator.currentUserId()
+            let enabled = LocalStateResetCoordinator.isHealthKitEnabled(forUserId: uid)
+            if self.isHealthKitEnabled != enabled {
+                self.isHealthKitEnabled = enabled
+            }
+            if enabled, HKHealthStore.isHealthDataAvailable() {
+                Task { await self.resumeIfAuthorized() }
+            } else {
+                self.isAuthorized = false
+                self.stopAllLiveStreaming()
+            }
+        }
+    }
+
+    /// Called by `LocalStateResetCoordinator` when the user signs out or
+    /// switches accounts. Drops the in-memory authorization + live streams
+    /// so the next signed-in user starts cleanly.
+    func handleSignOutOrUserSwitch() {
+        isAuthorized = false
+        stopAllLiveStreaming()
     }
 
     /// Re-reads the enabled flag from UserDefaults and silently re-attaches
     /// to HealthKit if the user previously connected on another device /
     /// before a rebuild. Called after cloud preferences are hydrated.
     func reloadEnabledFlagFromDefaults() {
-        let remoteEnabled = UserDefaults.standard.bool(forKey: "healthkit_enabled")
+        let remoteEnabled = LocalStateResetCoordinator.isHealthKitEnabled(
+            forUserId: LocalStateResetCoordinator.currentUserId()
+        )
         guard remoteEnabled, HKHealthStore.isHealthDataAvailable() else { return }
         guard !isAuthorized else { return }
         Task { await resumeIfAuthorized() }
@@ -314,7 +360,9 @@ final class HealthKitService {
             return
         }
         isAvailable = true
-        guard UserDefaults.standard.bool(forKey: "healthkit_enabled") else { return }
+        guard LocalStateResetCoordinator.isHealthKitEnabled(
+            forUserId: LocalStateResetCoordinator.currentUserId()
+        ) else { return }
 
         do {
             let status = try await healthStore.statusForAuthorizationRequest(toShare: writeTypes, read: readTypes)
@@ -371,7 +419,10 @@ final class HealthKitService {
         let writeStatus = writeTypes.contains { healthStore.authorizationStatus(for: $0) == .sharingAuthorized }
         let granted = writeStatus || willPrompt
         isAuthorized = granted
-        UserDefaults.standard.set(granted, forKey: "healthkit_enabled")
+        LocalStateResetCoordinator.setHealthKitEnabled(
+            granted,
+            forUserId: LocalStateResetCoordinator.currentUserId()
+        )
         if granted {
             enableBackgroundDelivery()
             await fetchAllData()
@@ -395,7 +446,10 @@ final class HealthKitService {
             try await healthStore.requestAuthorization(toShare: writeTypes, read: readTypes)
             print("[HealthKit] authorization succeeded")
             isAuthorized = true
-            UserDefaults.standard.set(true, forKey: "healthkit_enabled")
+            LocalStateResetCoordinator.setHealthKitEnabled(
+                true,
+                forUserId: LocalStateResetCoordinator.currentUserId()
+            )
             enableBackgroundDelivery()
             await fetchAllData()
             startLiveStepStreaming()

@@ -208,6 +208,16 @@ final class PreferencesSyncService {
 
     private func applyValue(_ value: PrefValue, for key: PrefKey) {
         let defaults = UserDefaults.standard
+        // The HealthKit toggle is per-user locally (so two accounts on the
+        // same device don't share a toggle). Route writes through the
+        // user-scoped store. The Supabase row keeps the unscoped column name.
+        if key == .healthKitEnabled, case .bool(let b) = value {
+            LocalStateResetCoordinator.setHealthKitEnabled(
+                b,
+                forUserId: LocalStateResetCoordinator.currentUserId()
+            )
+            return
+        }
         switch (key.type, value) {
         case (.bool, .bool(let b)):
             defaults.set(b, forKey: key.rawValue)
@@ -228,8 +238,18 @@ final class PreferencesSyncService {
 
     private func currentSnapshot() -> [String: PrefValue] {
         let defaults = UserDefaults.standard
+        let uid = LocalStateResetCoordinator.currentUserId()
         var out: [String: PrefValue] = [:]
         for key in PrefKey.allCases {
+            // HealthKit toggle is stored under a per-user key locally; mirror
+            // it to the shared column name so cross-device hydrate still works.
+            if key == .healthKitEnabled {
+                let scopedKey = LocalStateResetCoordinator.healthKitEnabledKey(for: uid)
+                if defaults.object(forKey: scopedKey) != nil {
+                    out[key.rawValue] = .bool(defaults.bool(forKey: scopedKey))
+                }
+                continue
+            }
             guard defaults.object(forKey: key.rawValue) != nil else { continue }
             switch key.type {
             case .bool:

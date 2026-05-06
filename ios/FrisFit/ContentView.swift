@@ -233,14 +233,16 @@ struct ContentView: View {
                 }
             }
         }
-        .task {
+        .task(id: (try? authService.currentUserId()) ?? "") {
             print("APP_INIT: mainAppView .task started")
-            if !didSyncDisclaimer {
-                didSyncDisclaimer = true
-                await MedicalDisclaimerManager.syncFromRemote()
-                if MedicalDisclaimerManager.hasAccepted && showMedicalDisclaimer {
-                    showMedicalDisclaimer = false
-                }
+            // The disclaimer flag is per-user now — re-evaluate whenever the
+            // signed-in user id changes so a switched account doesn't see
+            // the prior account's accepted state.
+            showMedicalDisclaimer = !MedicalDisclaimerManager.hasAccepted
+            didSyncDisclaimer = true
+            await MedicalDisclaimerManager.syncFromRemote()
+            if MedicalDisclaimerManager.hasAccepted && showMedicalDisclaimer {
+                showMedicalDisclaimer = false
             }
             try? await Task.sleep(for: .milliseconds(500))
             print("APP_INIT: Checking HealthKit availability")

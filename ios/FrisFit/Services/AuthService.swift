@@ -58,9 +58,20 @@ final class AuthService {
                     }
                     let newUserId = session?.user.id.uuidString.lowercased()
                     if newUserId != self.lastBroadcastUserId {
+                        let previousUserId = self.lastBroadcastUserId
                         self.lastBroadcastUserId = newUserId
+                        // Account switch (or sign-out): scrub the previous
+                        // user's locally-persisted state before broadcasting
+                        // so observers reload fresh data for the new id.
+                        // Skip the very first transition from `nil → user`
+                        // on app launch (initialSession) — there's no prior
+                        // user to clean up after.
+                        if previousUserId != nil {
+                            LocalStateResetCoordinator.purgeUserScopedState(previousUserId: previousUserId)
+                        }
                         var info: [AnyHashable: Any] = [:]
                         if let newUserId { info["userId"] = newUserId }
+                        if let previousUserId { info["previousUserId"] = previousUserId }
                         NotificationCenter.default.post(name: .authUserChanged, object: nil, userInfo: info)
                     }
                 }
@@ -103,7 +114,12 @@ final class AuthService {
 
     func signOut() async throws {
         errorMessage = nil
+        // Capture the current user id BEFORE the network round-trip so we can
+        // wipe their per-user caches even if the auth-state listener fires
+        // before our continuation resumes.
+        let previousUserId = try? currentUserId()
         try await supabase.auth.signOut()
+        LocalStateResetCoordinator.purgeUserScopedState(previousUserId: previousUserId)
     }
 
     func resetPassword(email: String) async throws {

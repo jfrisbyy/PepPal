@@ -86,9 +86,11 @@ struct MedicalDisclaimerGateView: View {
     private func accept() {
         guard canAccept else { return }
         let now = Date()
-        UserDefaults.standard.set(true, forKey: MedicalDisclaimerManager.acceptedKey)
-        UserDefaults.standard.set(now, forKey: MedicalDisclaimerManager.acceptedDateKey)
-        UserDefaults.standard.set(MedicalDisclaimerManager.currentVersion, forKey: MedicalDisclaimerManager.acceptedVersionKey)
+        LocalStateResetCoordinator.setDisclaimerAccepted(
+            date: now,
+            version: MedicalDisclaimerManager.currentVersion,
+            forUserId: LocalStateResetCoordinator.currentUserId()
+        )
         // Always append a row to disclaimer_acknowledgements so version bumps
         // accumulate an audit trail instead of overwriting the prior ack.
         Task {
@@ -212,6 +214,8 @@ struct MedicalDisclaimerDetailView: View {
 }
 
 enum MedicalDisclaimerManager {
+    /// Legacy global keys. Per-user state lives under
+    /// `LocalStateResetCoordinator.disclaimerAcceptedKey(for:)` etc.
     static let acceptedKey = "peppal.medicalDisclaimer.accepted.v1"
     static let acceptedDateKey = "peppal.medicalDisclaimer.acceptedDate.v1"
     static let acceptedVersionKey = "peppal.medicalDisclaimer.acceptedVersion.v1"
@@ -220,22 +224,31 @@ enum MedicalDisclaimerManager {
     static let currentVersion = "v1"
 
     static var hasAccepted: Bool {
-        guard UserDefaults.standard.bool(forKey: acceptedKey) else { return false }
-        let storedVersion = UserDefaults.standard.string(forKey: acceptedVersionKey) ?? "v1"
+        let uid = LocalStateResetCoordinator.currentUserId()
+        guard LocalStateResetCoordinator.isDisclaimerAccepted(forUserId: uid) else { return false }
+        let storedVersion = LocalStateResetCoordinator.disclaimerAcceptedVersion(forUserId: uid) ?? "v1"
         return storedVersion == currentVersion
     }
 
     static var acceptedVersion: String? {
-        UserDefaults.standard.string(forKey: acceptedVersionKey)
+        LocalStateResetCoordinator.disclaimerAcceptedVersion(
+            forUserId: LocalStateResetCoordinator.currentUserId()
+        )
     }
 
     static var needsReprompt: Bool {
-        guard UserDefaults.standard.bool(forKey: acceptedKey) else { return false }
-        let storedVersion = UserDefaults.standard.string(forKey: acceptedVersionKey) ?? "v1"
+        let uid = LocalStateResetCoordinator.currentUserId()
+        guard LocalStateResetCoordinator.isDisclaimerAccepted(forUserId: uid) else { return false }
+        let storedVersion = LocalStateResetCoordinator.disclaimerAcceptedVersion(forUserId: uid) ?? "v1"
         return storedVersion != currentVersion
     }
 
     static func reset() {
+        LocalStateResetCoordinator.resetDisclaimer(
+            forUserId: LocalStateResetCoordinator.currentUserId()
+        )
+        // Also drop the legacy global keys so a stale ack from an older build
+        // can't satisfy the gate after reset.
         UserDefaults.standard.removeObject(forKey: acceptedKey)
         UserDefaults.standard.removeObject(forKey: acceptedDateKey)
         UserDefaults.standard.removeObject(forKey: acceptedVersionKey)
@@ -271,11 +284,13 @@ enum MedicalDisclaimerManager {
         guard let profile = try? await ProfileService.shared.fetchProfile(userId: userId) else { return }
         if let acceptedAt = profile.medical_disclaimer_accepted_at,
            !acceptedAt.isEmpty,
-           !UserDefaults.standard.bool(forKey: acceptedKey) {
-            UserDefaults.standard.set(true, forKey: acceptedKey)
-            if let date = ISO8601DateFormatter().date(from: acceptedAt) {
-                UserDefaults.standard.set(date, forKey: acceptedDateKey)
-            }
+           !LocalStateResetCoordinator.isDisclaimerAccepted(forUserId: userId) {
+            let date = ISO8601DateFormatter().date(from: acceptedAt) ?? Date()
+            LocalStateResetCoordinator.setDisclaimerAccepted(
+                date: date,
+                version: currentVersion,
+                forUserId: userId
+            )
             NotificationCenter.default.post(name: .medicalDisclaimerSynced, object: nil)
         }
     }

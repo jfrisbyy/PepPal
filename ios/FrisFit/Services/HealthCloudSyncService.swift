@@ -119,7 +119,9 @@ final class HealthCloudSyncService {
     /// Foreground sync: pushes today's snapshot + new workouts, debounced to once / hour.
     func syncIfNeeded(force: Bool = false) async {
         guard HealthKitService.shared.isAuthorized else { return }
-        guard UserDefaults.standard.bool(forKey: "healthkit_enabled") else { return }
+        guard LocalStateResetCoordinator.isHealthKitEnabled(
+            forUserId: LocalStateResetCoordinator.currentUserId()
+        ) else { return }
         if !force, let last = lastSyncedAt, Date().timeIntervalSince(last) < Self.syncDebounceSeconds {
             return
         }
