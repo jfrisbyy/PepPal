@@ -14,7 +14,8 @@ struct RunDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: 18) {
+                editorialHero
                 routeMapSection
                 primaryStatsGrid
                 splitTableSection
@@ -47,6 +48,97 @@ struct RunDetailView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Editorial Hero
+
+    private var editorialHero: some View {
+        PepSportCard(accent: accentColor) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(run.runType.rawValue.uppercased())
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(2.0)
+                        .foregroundStyle(run.runType.color)
+                    Spacer()
+                    Text(run.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+
+                Text(heroSummary)
+                    .font(.system(size: 24, weight: .semibold, design: .serif))
+                    .kerning(-0.4)
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(heroLine)
+                    .font(.system(size: 12, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+
+                LinearGradient(
+                    colors: [PepTheme.textPrimary.opacity(0.16), PepTheme.textPrimary.opacity(0)],
+                    startPoint: .leading, endPoint: .trailing
+                )
+                .frame(height: 0.5)
+
+                HStack(spacing: 0) {
+                    heroStat(value: String(format: "%.2f", run.distanceMiles), label: "MILES")
+                    heroDivider
+                    heroStat(value: run.durationFormatted, label: "DURATION")
+                    heroDivider
+                    heroStat(value: run.averagePaceFormatted, label: "AVG /MI")
+                }
+            }
+        }
+    }
+
+    private var heroSummary: String {
+        let pace = run.averagePace
+        if run.distanceMiles >= 13 { return "A long one in the books." }
+        if pace > 0 && pace < 7 { return "Sharp, fast, focused." }
+        if run.runType == .recoveryRun { return "Easy effort, full recovery." }
+        if run.runType == .intervalSession { return "Hard reps, real work." }
+        if run.totalElevationGain >= 200 { return "Climbing legs showed up." }
+        return "Another mile in the bank."
+    }
+
+    private var heroLine: String {
+        var bits: [String] = []
+        if run.totalElevationGain > 0 {
+            bits.append(String(format: "%.0f ft climbed", run.totalElevationGain))
+        }
+        if run.averageHeartRate > 0 {
+            bits.append("avg \(run.averageHeartRate) bpm")
+        }
+        if run.caloriesBurned > 0 {
+            bits.append("\(run.caloriesBurned) kcal")
+        }
+        if bits.isEmpty { return "A clean session — keep stacking them." }
+        return bits.joined(separator: "  ·  ")
+    }
+
+    private var heroDivider: some View {
+        Rectangle()
+            .fill(PepTheme.shimmerHighlight)
+            .frame(width: 0.5, height: 28)
+    }
+
+    private func heroStat(value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(.title3, design: .serif, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Route Map
@@ -299,10 +391,17 @@ struct RunDetailView: View {
     private var splitTableSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "list.number")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Mile Splits")
-                Spacer()
+                EditorialSectionHeading(
+                    kicker: "PER MILE",
+                    title: "Mile Splits",
+                    accent: accentColor,
+                    trailing: AnyView(
+                        Image(systemName: "list.number")
+                            .font(.system(size: 12))
+                            .foregroundStyle(accentColor.opacity(0.7))
+                    )
+                )
+                EmptyView()
             }
 
             if run.splits.isEmpty {
@@ -364,10 +463,17 @@ struct RunDetailView: View {
     private var splitChartSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Split Visualization")
-                Spacer()
+                EditorialSectionHeading(
+                    kicker: "PACE",
+                    title: "Split Visualization",
+                    accent: accentColor,
+                    trailing: AnyView(
+                        Image(systemName: "chart.bar.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(accentColor.opacity(0.7))
+                    )
+                )
+                EmptyView()
             }
 
             if run.splits.isEmpty {
@@ -431,18 +537,22 @@ struct RunDetailView: View {
     private var elevationSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "mountain.2.fill")
-                    .foregroundStyle(.green)
-                HeadlineText(text: "Elevation")
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("↑ \(String(format: "%.0f", run.totalElevationGain)) ft")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.green)
-                    Text("↓ \(String(format: "%.0f", run.totalElevationLoss)) ft")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.orange)
-                }
+                EditorialSectionHeading(
+                    kicker: "TERRAIN",
+                    title: "Elevation",
+                    accent: .green,
+                    trailing: AnyView(
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("↑ \(String(format: "%.0f", run.totalElevationGain)) ft")
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .foregroundStyle(.green)
+                            Text("↓ \(String(format: "%.0f", run.totalElevationLoss)) ft")
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .foregroundStyle(.orange)
+                        }
+                    )
+                )
+                EmptyView()
             }
 
             if run.routeCoordinates.count >= 2 {
@@ -502,18 +612,22 @@ struct RunDetailView: View {
     private var heartRateZoneSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "heart.fill")
-                    .foregroundStyle(.red)
-                HeadlineText(text: "Heart Rate Zones")
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("Avg \(run.averageHeartRate) bpm")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.red.opacity(0.8))
-                    Text("Max \(run.maxHeartRate) bpm")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
+                EditorialSectionHeading(
+                    kicker: "EFFORT",
+                    title: "Heart Rate Zones",
+                    accent: .red,
+                    trailing: AnyView(
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("Avg \(run.averageHeartRate) bpm")
+                                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.red.opacity(0.85))
+                            Text("Max \(run.maxHeartRate) bpm")
+                                .font(.system(size: 10, weight: .medium, design: .rounded))
+                                .foregroundStyle(PepTheme.textSecondary)
+                        }
+                    )
+                )
+                EmptyView()
             }
 
             if run.heartRateZones.isEmpty {
@@ -567,10 +681,17 @@ struct RunDetailView: View {
     private var additionalMetrics: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "chart.xyaxis.line")
-                    .foregroundStyle(PepTheme.violet)
-                HeadlineText(text: "Advanced Metrics")
-                Spacer()
+                EditorialSectionHeading(
+                    kicker: "ADVANCED",
+                    title: "Form & Metrics",
+                    accent: PepTheme.violet,
+                    trailing: AnyView(
+                        Image(systemName: "chart.xyaxis.line")
+                            .font(.system(size: 12))
+                            .foregroundStyle(PepTheme.violet.opacity(0.7))
+                    )
+                )
+                EmptyView()
             }
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
@@ -643,11 +764,16 @@ struct RunDetailView: View {
 
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "note.text")
-                    .foregroundStyle(PepTheme.textSecondary)
-                HeadlineText(text: "Notes")
-            }
+            EditorialSectionHeading(
+                kicker: "FROM THE LOG",
+                title: "Notes",
+                accent: PepTheme.textSecondary,
+                trailing: AnyView(
+                    Image(systemName: "note.text")
+                        .font(.system(size: 12))
+                        .foregroundStyle(PepTheme.textSecondary)
+                )
+            )
             Text(run.notes)
                 .font(.subheadline)
                 .foregroundStyle(PepTheme.textSecondary)

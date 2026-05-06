@@ -34,15 +34,16 @@ struct RunningWorkoutBuilderView: View {
 
     private var savedWorkoutsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "tray.full.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Saved Workouts")
-                Spacer()
-                Text("\(runVM.savedRunWorkouts.count)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(accentColor)
-            }
+            EditorialSectionHeading(
+                kicker: "LIBRARY",
+                title: "Saved Workouts",
+                accent: accentColor,
+                trailing: AnyView(
+                    Text("\(runVM.savedRunWorkouts.count)")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(accentColor)
+                )
+            )
 
             if runVM.savedRunWorkouts.isEmpty {
                 HStack {
@@ -112,12 +113,16 @@ struct RunningWorkoutBuilderView: View {
 
     private var builderSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "plus.square.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Build New Workout")
-                Spacer()
-            }
+            EditorialSectionHeading(
+                kicker: "BUILD",
+                title: "New Workout",
+                accent: accentColor,
+                trailing: AnyView(
+                    Image(systemName: "plus.square.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(accentColor.opacity(0.7))
+                )
+            )
 
             TextField("Workout Name", text: $workoutName)
                 .font(.system(size: 14, weight: .medium))

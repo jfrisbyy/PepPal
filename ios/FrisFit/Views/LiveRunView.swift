@@ -368,12 +368,16 @@ struct LiveRunView: View {
 
     private var liveSplitsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: "list.number")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Splits")
-                Spacer()
-            }
+            EditorialSectionHeading(
+                kicker: "LIVE",
+                title: "Splits",
+                accent: accentColor,
+                trailing: AnyView(
+                    Image(systemName: "list.number")
+                        .font(.system(size: 12))
+                        .foregroundStyle(accentColor.opacity(0.7))
+                )
+            )
 
             if runVM.currentSplits.isEmpty {
                 HStack {
@@ -513,18 +517,72 @@ struct RunSummarySheet: View {
     }
 
     private var summaryHeader: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(.green)
+        PepSportCard(accent: accentColor) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("COMPLETE")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(2.0)
+                        .foregroundStyle(.green)
+                    Spacer()
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.green)
+                }
 
-            Text(run.runType.rawValue)
-                .font(.title2.weight(.bold))
-                .foregroundStyle(PepTheme.textPrimary)
+                Text(summaryHeroTitle)
+                    .font(.system(size: 24, weight: .semibold, design: .serif))
+                    .kerning(-0.4)
+                    .foregroundStyle(PepTheme.textPrimary)
 
+                Text(run.runType.rawValue)
+                    .font(.system(size: 13, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
 
+                LinearGradient(
+                    colors: [PepTheme.textPrimary.opacity(0.16), PepTheme.textPrimary.opacity(0)],
+                    startPoint: .leading, endPoint: .trailing
+                )
+                .frame(height: 0.5)
+
+                HStack(spacing: 0) {
+                    summaryStat(value: String(format: "%.2f", run.distanceMiles), label: "MILES")
+                    summaryDivider
+                    summaryStat(value: run.durationFormatted, label: "DURATION")
+                    summaryDivider
+                    summaryStat(value: run.averagePaceFormatted, label: "AVG /MI")
+                }
+            }
         }
-        .padding(.top, 12)
+    }
+
+    private var summaryHeroTitle: String {
+        if run.distanceMiles >= 13 { return "A long one in the books." }
+        if run.runType == .intervalSession { return "Reps banked." }
+        if run.averagePace > 0 && run.averagePace < 7 { return "Sharp and fast." }
+        return "Another mile in the bank."
+    }
+
+    private var summaryDivider: some View {
+        Rectangle()
+            .fill(PepTheme.shimmerHighlight)
+            .frame(width: 0.5, height: 28)
+    }
+
+    private func summaryStat(value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(.title3, design: .serif, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var mainStats: some View {
@@ -554,8 +612,12 @@ struct RunSummarySheet: View {
     }
 
     private var splitsSummary: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HeadlineText(text: "Splits")
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(
+                kicker: "PER MILE",
+                title: "Splits",
+                accent: accentColor
+            )
             ForEach(run.splits) { split in
                 HStack {
                     Text("Mile \(split.splitNumber)")
@@ -574,8 +636,12 @@ struct RunSummarySheet: View {
     }
 
     private var heartRateZoneSummary: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HeadlineText(text: "Heart Rate Zones")
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(
+                kicker: "EFFORT",
+                title: "Heart Rate Zones",
+                accent: .red
+            )
             ForEach(run.heartRateZones, id: \.zone.id) { dist in
                 HStack(spacing: 10) {
                     Text("Z\(dist.zone.rawValue)")
