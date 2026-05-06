@@ -5,6 +5,7 @@ import UIKit
 struct SettingsView: View {
     @Bindable var viewModel: ProfileViewModel
     @State private var showDeleteConfirm: Bool = false
+    @State private var showDeleteFinalConfirm: Bool = false
     @State private var showLogOutConfirm: Bool = false
     @State private var isDeletingAccount: Bool = false
     @State private var deleteAccountError: String?
@@ -47,11 +48,19 @@ struct SettingsView: View {
         
         .alert("Delete Account", isPresented: $showDeleteConfirm) {
             Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                Task { await performDeleteAccount() }
+            Button("Continue", role: .destructive) {
+                showDeleteFinalConfirm = true
             }
         } message: {
             Text("This will permanently delete your account and all data. This action cannot be undone.")
+        }
+        .alert("Are you sure?", isPresented: $showDeleteFinalConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete My Account", role: .destructive) {
+                Task { await performDeleteAccount() }
+            }
+        } message: {
+            Text("This is your last chance to cancel. Your account, posts, messages, photos, and all tracked data will be permanently erased.")
         }
         .alert("Couldn't delete account", isPresented: Binding(
             get: { deleteAccountError != nil },
