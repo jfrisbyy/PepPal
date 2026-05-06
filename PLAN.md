@@ -93,8 +93,11 @@
       `EXPO_PUBLIC_OPENROUTER_API_KEY` anymore.
 - [x] Set `OPENROUTER_API_KEY` as a Supabase Function secret. `ai-proxy` is
       auto-deployed via Rork sync.
-- [ ] Smoke-test a chat call end-to-end, then rotate / remove the bundled
-      `EXPO_PUBLIC_OPENROUTER_API_KEY` value.
+- [x] Removed last `EXPO_PUBLIC_OPENROUTER_API_KEY` reference from
+      `FrisFitApp.swift`. Client no longer reads the bundled key; the env var
+      can be deleted from project settings.
+- [ ] Smoke-test a chat call end-to-end via the live app (edge-function logs
+      not reachable from this sandbox).
 
 ## 12. Schema bloat from JSON columns
 

@@ -9,7 +9,7 @@ struct EPTIApp: App {
         print("APP_INIT: EPTIApp init starting")
         print("APP_INIT: Supabase URL configured: \(!Config.EXPO_PUBLIC_SUPABASE_URL.isEmpty)")
         print("APP_INIT: Supabase Key configured: \(!Config.EXPO_PUBLIC_SUPABASE_ANON_KEY.isEmpty)")
-        print("APP_INIT: OpenRouter Key configured: \(!Config.EXPO_PUBLIC_OPENROUTER_API_KEY.isEmpty)")
+        print("APP_INIT: AI calls route through ai-proxy edge function")
         print("APP_INIT: Triggering SupabaseService.shared init")
         _ = SupabaseService.shared
         print("APP_INIT: SupabaseService.shared initialized successfully")
