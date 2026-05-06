@@ -94,7 +94,7 @@ select public._exec_if_table('circles',
 select public._exec_if_table('circles',
     $sql$create policy "circles_creator_insert" on public.circles
         for insert to authenticated
-        with check (auth.uid() = creator_id)$sql$);
+        with check (auth.uid() = owner_id)$sql$);
 
 -- Update only by admins/owners (recorded as role in circle_members).
 select public._exec_if_table('circles',
@@ -107,7 +107,7 @@ select public._exec_if_table('circles',
                 select 1 from public.circle_members cm
                 where cm.circle_id = circles.id
                   and cm.user_id = auth.uid()
-                  and (cm.role in ('Owner','Admin') or auth.uid() = circles.creator_id)
+                  and (cm.role in ('Owner','Admin') or auth.uid() = circles.owner_id)
             )
         )$sql$);
 
@@ -116,7 +116,7 @@ select public._exec_if_table('circles',
 select public._exec_if_table('circles',
     $sql$create policy "circles_owner_delete" on public.circles
         for delete to authenticated
-        using (auth.uid() = creator_id)$sql$);
+        using (auth.uid() = owner_id)$sql$);
 
 -- circle_members
 select public._exec_if_table('circle_members',
