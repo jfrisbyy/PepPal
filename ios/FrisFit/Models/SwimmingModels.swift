@@ -290,8 +290,24 @@ nonisolated struct SwimDrill: Identifiable, Sendable {
     let description: String
     let purpose: String
     let targetStroke: SwimStrokeType?
+    let equipment: String
+    let setsReps: String?
+    let steps: [String]
+    let cues: [String]
 
-    init(name: String, category: SwimDrillCategory, difficulty: SwimDrillDifficulty, durationMinutes: Int, description: String, purpose: String, targetStroke: SwimStrokeType? = nil) {
+    init(
+        name: String,
+        category: SwimDrillCategory,
+        difficulty: SwimDrillDifficulty,
+        durationMinutes: Int,
+        description: String,
+        purpose: String,
+        targetStroke: SwimStrokeType? = nil,
+        equipment: String = "Pool",
+        setsReps: String? = nil,
+        steps: [String] = [],
+        cues: [String] = []
+    ) {
         self.id = UUID()
         self.name = name
         self.category = category
@@ -300,7 +316,64 @@ nonisolated struct SwimDrill: Identifiable, Sendable {
         self.description = description
         self.purpose = purpose
         self.targetStroke = targetStroke
+        self.equipment = equipment
+        self.setsReps = setsReps
+        self.steps = steps
+        self.cues = cues
     }
+}
+
+nonisolated struct SwimInsight: Identifiable, Sendable {
+    let id: UUID
+    let kind: SwimInsightKind
+    let title: String
+    let message: String
+
+    init(kind: SwimInsightKind, title: String, message: String) {
+        self.id = UUID()
+        self.kind = kind
+        self.title = title
+        self.message = message
+    }
+}
+
+nonisolated enum SwimInsightKind: Sendable {
+    case progress, suggestion, warning, recovery
+
+    var icon: String {
+        switch self {
+        case .progress: "arrow.up.right.circle.fill"
+        case .suggestion: "lightbulb.fill"
+        case .warning: "exclamationmark.triangle.fill"
+        case .recovery: "leaf.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .progress: .green
+        case .suggestion: Color(red: 0.2, green: 0.6, blue: 1.0)
+        case .warning: .orange
+        case .recovery: Color(red: 0.55, green: 0.36, blue: 0.96)
+        }
+    }
+
+    var kicker: String {
+        switch self {
+        case .progress: "Progress"
+        case .suggestion: "Try This"
+        case .warning: "Heads Up"
+        case .recovery: "Recovery"
+        }
+    }
+}
+
+nonisolated struct SwimWeeklyFocus: Sendable {
+    let kicker: String
+    let title: String
+    let rationale: String
+    let drillName: String?
+    let targetStroke: SwimStrokeType?
 }
 
 nonisolated enum SwimDrillCategory: String, CaseIterable, Identifiable, Sendable {
@@ -461,23 +534,395 @@ nonisolated enum SwimFormatters {
 
 nonisolated enum SwimDrillLibraryData {
     static let all: [SwimDrill] = [
-        SwimDrill(name: "Catch-Up Drill", category: .technique, difficulty: .beginner, durationMinutes: 5, description: "One arm stays extended while the other completes a full stroke cycle. Arms 'catch up' at the front.", purpose: "Develop proper catch position, timing, and body rotation.", targetStroke: .freestyle),
-        SwimDrill(name: "Fingertip Drag", category: .technique, difficulty: .beginner, durationMinutes: 5, description: "Drag fingertips along the water surface during the recovery phase of freestyle.", purpose: "Encourage high elbow recovery and relaxed arm return.", targetStroke: .freestyle),
-        SwimDrill(name: "Single-Arm Freestyle", category: .technique, difficulty: .intermediate, durationMinutes: 5, description: "Swim freestyle using only one arm while the other stays at your side. Switch every 25m.", purpose: "Isolate and improve each arm's pull mechanics and body rotation.", targetStroke: .freestyle),
-        SwimDrill(name: "Fist Drill", category: .pull, difficulty: .intermediate, durationMinutes: 5, description: "Swim freestyle with closed fists to remove hand paddle effect. Focus on forearm catch.", purpose: "Develop forearm catch awareness and improve feel for the water.", targetStroke: .freestyle),
-        SwimDrill(name: "Kickboard Kick Sets", category: .kick, difficulty: .beginner, durationMinutes: 10, description: "Hold a kickboard with arms extended and kick freestyle for distance. Keep a steady, rhythmic kick.", purpose: "Build leg strength, endurance, and kicking technique.", targetStroke: .freestyle),
-        SwimDrill(name: "Vertical Kick", category: .kick, difficulty: .advanced, durationMinutes: 5, description: "Tread water vertically using only kick (arms crossed on chest). 30 seconds on, 15 seconds rest.", purpose: "Develop powerful kick and core stability in deep water.", targetStroke: nil),
-        SwimDrill(name: "Pull Buoy Sets", category: .pull, difficulty: .beginner, durationMinutes: 10, description: "Place pull buoy between thighs and swim freestyle, focusing only on upper body pull.", purpose: "Isolate upper body pull mechanics and improve arm strength.", targetStroke: .freestyle),
-        SwimDrill(name: "Paddle Pull Sets", category: .pull, difficulty: .intermediate, durationMinutes: 10, description: "Swim with hand paddles and pull buoy. Focus on a strong catch and powerful pull-through.", purpose: "Build upper body power and develop a strong pull pattern.", targetStroke: .freestyle),
-        SwimDrill(name: "Backstroke Rotation Drill", category: .technique, difficulty: .intermediate, durationMinutes: 5, description: "Swim backstroke with exaggerated hip rotation, pausing on each side for 3 kicks.", purpose: "Improve body rotation and streamlined backstroke position.", targetStroke: .backstroke),
-        SwimDrill(name: "Breaststroke Glide Drill", category: .technique, difficulty: .beginner, durationMinutes: 5, description: "After each breaststroke pull, hold a streamlined glide position for a 3-count before the next stroke.", purpose: "Improve glide efficiency and reduce drag in breaststroke.", targetStroke: .breaststroke),
-        SwimDrill(name: "Butterfly Single-Arm", category: .technique, difficulty: .advanced, durationMinutes: 5, description: "Swim butterfly with one arm while the other stays extended. Alternate every 25m.", purpose: "Break down butterfly timing and develop arm-specific power.", targetStroke: .butterfly),
-        SwimDrill(name: "25m Sprint Sets", category: .speed, difficulty: .intermediate, durationMinutes: 10, description: "8x25m all-out sprints with 30 seconds rest between each. Maximum effort on every rep.", purpose: "Develop top-end swimming speed and explosive power.", targetStroke: nil),
-        SwimDrill(name: "50m Descending Sets", category: .speed, difficulty: .advanced, durationMinutes: 10, description: "6x50m with each swim faster than the last. Start at 70% effort, finish at 100%.", purpose: "Build pace awareness and the ability to negative split.", targetStroke: .freestyle),
-        SwimDrill(name: "200m Steady Swim", category: .endurance, difficulty: .beginner, durationMinutes: 8, description: "Continuous 200m swim at a comfortable, sustainable pace. Focus on breathing rhythm.", purpose: "Build aerobic base and swimming endurance.", targetStroke: .freestyle),
-        SwimDrill(name: "400m Threshold Set", category: .endurance, difficulty: .advanced, durationMinutes: 12, description: "3x400m at CSS pace with 45 seconds rest. Maintain consistent pace throughout.", purpose: "Develop lactate threshold and race-pace sustainability.", targetStroke: .freestyle),
-        SwimDrill(name: "Easy 100m Warm-Up", category: .warmUpCoolDown, difficulty: .beginner, durationMinutes: 3, description: "4x25m easy swim mixing strokes. Focus on loosening up shoulders and finding rhythm.", purpose: "Prepare the body for the main swim set.", targetStroke: nil),
-        SwimDrill(name: "Cool-Down 200m", category: .warmUpCoolDown, difficulty: .beginner, durationMinutes: 5, description: "Easy 200m mixing backstroke and freestyle. Gradually reduce effort to bring heart rate down.", purpose: "Aid recovery and flush lactic acid after a hard session.", targetStroke: nil),
-        SwimDrill(name: "Underwater Dolphin Kicks", category: .kick, difficulty: .advanced, durationMinutes: 5, description: "Push off the wall and dolphin kick underwater for as far as possible. 8 reps with 20 sec rest.", purpose: "Develop powerful underwater kick for turns and starts.", targetStroke: .butterfly),
+        SwimDrill(
+            name: "Catch-Up Drill",
+            category: .technique,
+            difficulty: .beginner,
+            durationMinutes: 5,
+            description: "One arm stays extended while the other completes a full stroke cycle. Arms 'catch up' at the front.",
+            purpose: "Develop proper catch position, timing, and body rotation.",
+            targetStroke: .freestyle,
+            equipment: "Pool · optional snorkel",
+            setsReps: "4 × 50m",
+            steps: [
+                "Push off in streamline with both arms extended in front.",
+                "Pull with one arm while the other stays extended forward.",
+                "Touch the extended hand before starting the next pull.",
+                "Breathe to the side of the recovering arm only."
+            ],
+            cues: [
+                "Front hand stays patient — wait for the catch.",
+                "Drive rotation from the hips, not the shoulders.",
+                "Long, glide-y strokes — quality over turnover."
+            ]
+        ),
+        SwimDrill(
+            name: "Fingertip Drag",
+            category: .technique,
+            difficulty: .beginner,
+            durationMinutes: 5,
+            description: "Drag fingertips along the water surface during the recovery phase of freestyle.",
+            purpose: "Encourage high elbow recovery and relaxed arm return.",
+            targetStroke: .freestyle,
+            equipment: "Pool",
+            setsReps: "6 × 50m easy",
+            steps: [
+                "Swim freestyle at an easy aerobic pace.",
+                "As your arm exits, lift the elbow first and let the fingertips trail.",
+                "Drag fingertips along the surface from hip to ear.",
+                "Enter clean — fingertips first, no slap."
+            ],
+            cues: [
+                "High elbow, soft hand.",
+                "Recovery is rest — let the arm dangle.",
+                "Feel the rotation — shoulder up, opposite hip down."
+            ]
+        ),
+        SwimDrill(
+            name: "Single-Arm Freestyle",
+            category: .technique,
+            difficulty: .intermediate,
+            durationMinutes: 5,
+            description: "Swim freestyle using only one arm while the other stays at your side. Switch every 25m.",
+            purpose: "Isolate and improve each arm's pull mechanics and body rotation.",
+            targetStroke: .freestyle,
+            equipment: "Pool · optional fins",
+            setsReps: "6 × 50m (alternate arms)",
+            steps: [
+                "Push off in streamline, then place one arm at your side.",
+                "Pull with the working arm only, keeping the other glued to your hip.",
+                "Breathe to the non-working side to force rotation.",
+                "Switch arms every 25m."
+            ],
+            cues: [
+                "Rotate the resting hip up out of the water.",
+                "High elbow catch — feel the press straight back.",
+                "Long body line — chin tucked."
+            ]
+        ),
+        SwimDrill(
+            name: "Fist Drill",
+            category: .pull,
+            difficulty: .intermediate,
+            durationMinutes: 5,
+            description: "Swim freestyle with closed fists to remove hand paddle effect. Focus on forearm catch.",
+            purpose: "Develop forearm catch awareness and improve feel for the water.",
+            targetStroke: .freestyle,
+            equipment: "Pool",
+            setsReps: "4 × 50m fists, 50m open hand",
+            steps: [
+                "Make tight fists and push off in streamline.",
+                "Swim freestyle, pressing water with the forearm.",
+                "After each fist 50, swim one with open hands and feel the difference."
+            ],
+            cues: [
+                "Lead the catch with your elbow.",
+                "Press water back, not down.",
+                "Smooth tempo — don't rush the recovery."
+            ]
+        ),
+        SwimDrill(
+            name: "Kickboard Kick Sets",
+            category: .kick,
+            difficulty: .beginner,
+            durationMinutes: 10,
+            description: "Hold a kickboard with arms extended and kick freestyle for distance. Keep a steady, rhythmic kick.",
+            purpose: "Build leg strength, endurance, and kicking technique.",
+            targetStroke: .freestyle,
+            equipment: "Kickboard",
+            setsReps: "8 × 50m kick",
+            steps: [
+                "Hold the kickboard at the front edge with arms extended.",
+                "Kick from the hips with a steady, narrow flutter.",
+                "Face down with regular breaths to the side.",
+                "Keep heels just breaking the surface."
+            ],
+            cues: [
+                "Quick ankles, soft feet.",
+                "Press the chest down to lift the legs.",
+                "Tempo, not splash."
+            ]
+        ),
+        SwimDrill(
+            name: "Vertical Kick",
+            category: .kick,
+            difficulty: .advanced,
+            durationMinutes: 5,
+            description: "Tread water vertically using only kick (arms crossed on chest). 30 seconds on, 15 seconds rest.",
+            purpose: "Develop powerful kick and core stability in deep water.",
+            equipment: "Deep end · optional fins",
+            setsReps: "6 × 30s on / 15s rest",
+            steps: [
+                "Tread to deep water and assume a vertical position.",
+                "Cross arms over your chest.",
+                "Kick hard for 30s, keeping shoulders out of the water.",
+                "Rest 15s on the wall, repeat."
+            ],
+            cues: [
+                "Tight core — no hip break.",
+                "Small, fast kicks from the hip.",
+                "Stay tall, don't lean."
+            ]
+        ),
+        SwimDrill(
+            name: "Pull Buoy Sets",
+            category: .pull,
+            difficulty: .beginner,
+            durationMinutes: 10,
+            description: "Place pull buoy between thighs and swim freestyle, focusing only on upper body pull.",
+            purpose: "Isolate upper body pull mechanics and improve arm strength.",
+            targetStroke: .freestyle,
+            equipment: "Pull buoy",
+            setsReps: "4 × 100m pull",
+            steps: [
+                "Place pull buoy high between the thighs.",
+                "Swim freestyle without kicking — legs stay buoyed.",
+                "Maintain a long, balanced body line."
+            ],
+            cues: [
+                "Anchor the catch — pull yourself past the hand.",
+                "Don't drop the hips.",
+                "Breathe early, exhale fully underwater."
+            ]
+        ),
+        SwimDrill(
+            name: "Paddle Pull Sets",
+            category: .pull,
+            difficulty: .intermediate,
+            durationMinutes: 10,
+            description: "Swim with hand paddles and pull buoy. Focus on a strong catch and powerful pull-through.",
+            purpose: "Build upper body power and develop a strong pull pattern.",
+            targetStroke: .freestyle,
+            equipment: "Paddles + pull buoy",
+            setsReps: "5 × 100m strong",
+            steps: [
+                "Wear paddles loosely — only one strap if available.",
+                "Insert pull buoy between thighs.",
+                "Swim with intention; feel the paddle press straight back.",
+                "If shoulders feel sharp, drop the paddles."
+            ],
+            cues: [
+                "Slow tempo, strong press.",
+                "Elbow leads, hand follows.",
+                "Stop if shoulders ache — form first."
+            ]
+        ),
+        SwimDrill(
+            name: "Backstroke Rotation",
+            category: .technique,
+            difficulty: .intermediate,
+            durationMinutes: 5,
+            description: "Swim backstroke with exaggerated hip rotation, pausing on each side for 3 kicks.",
+            purpose: "Improve body rotation and streamlined backstroke position.",
+            targetStroke: .backstroke,
+            equipment: "Pool",
+            setsReps: "6 × 50m",
+            steps: [
+                "Push off on your back in streamline.",
+                "Pull with one arm and rotate so the opposite shoulder breaks the surface.",
+                "Pause on the side and kick three times.",
+                "Pull through with the other arm and repeat."
+            ],
+            cues: [
+                "Eyes on the ceiling — head still.",
+                "Reach long with the gliding arm.",
+                "Kick connects to the rotation."
+            ]
+        ),
+        SwimDrill(
+            name: "Breaststroke Glide",
+            category: .technique,
+            difficulty: .beginner,
+            durationMinutes: 5,
+            description: "After each breaststroke pull, hold a streamlined glide position for a 3-count before the next stroke.",
+            purpose: "Improve glide efficiency and reduce drag in breaststroke.",
+            targetStroke: .breaststroke,
+            equipment: "Pool",
+            setsReps: "6 × 50m",
+            steps: [
+                "Take a normal breaststroke pull and kick.",
+                "On the recovery, lock into streamline.",
+                "Hold and count 1-2-3 before the next stroke.",
+                "Aim to reach further on each glide."
+            ],
+            cues: [
+                "Tight streamline — hands stacked.",
+                "Stop kicking once you're gliding.",
+                "Make the pool longer."
+            ]
+        ),
+        SwimDrill(
+            name: "Butterfly Single-Arm",
+            category: .technique,
+            difficulty: .advanced,
+            durationMinutes: 5,
+            description: "Swim butterfly with one arm while the other stays extended. Alternate every 25m.",
+            purpose: "Break down butterfly timing and develop arm-specific power.",
+            targetStroke: .butterfly,
+            equipment: "Pool · fins recommended",
+            setsReps: "4 × 50m (alternate arms)",
+            steps: [
+                "Push off with both arms extended.",
+                "Pull with one arm using a full butterfly stroke; other arm stays in front.",
+                "Two dolphin kicks per pull — one on entry, one on exit.",
+                "Switch arms every 25m."
+            ],
+            cues: [
+                "Two kicks: kick-pull, kick-recover.",
+                "Drive the chest down on entry.",
+                "Breathe early, head down before the recovery lands."
+            ]
+        ),
+        SwimDrill(
+            name: "25m Sprint Sets",
+            category: .speed,
+            difficulty: .intermediate,
+            durationMinutes: 10,
+            description: "8x25m all-out sprints with 30 seconds rest between each. Maximum effort on every rep.",
+            purpose: "Develop top-end swimming speed and explosive power.",
+            equipment: "Pace clock",
+            setsReps: "8 × 25m max effort",
+            steps: [
+                "Warm up 200m easy first.",
+                "Push off hard with a strong streamline.",
+                "Sprint 25m at 100% effort.",
+                "Rest 30 seconds on the wall, repeat."
+            ],
+            cues: [
+                "Underwater kicks set the rep.",
+                "High tempo — turnover wins sprints.",
+                "Finish into the wall — don't glide."
+            ]
+        ),
+        SwimDrill(
+            name: "50m Descending",
+            category: .speed,
+            difficulty: .advanced,
+            durationMinutes: 10,
+            description: "6x50m with each swim faster than the last. Start at 70% effort, finish at 100%.",
+            purpose: "Build pace awareness and the ability to negative split.",
+            targetStroke: .freestyle,
+            equipment: "Pace clock",
+            setsReps: "6 × 50m descend",
+            steps: [
+                "Start the first 50 at relaxed effort.",
+                "Each 50, drop the time by 1–2 seconds.",
+                "50 seconds rest between reps.",
+                "Final 50 should be all-out."
+            ],
+            cues: [
+                "Negative split each rep — back half faster.",
+                "Keep stroke length even as tempo rises.",
+                "Read the clock honestly."
+            ]
+        ),
+        SwimDrill(
+            name: "200m Steady Swim",
+            category: .endurance,
+            difficulty: .beginner,
+            durationMinutes: 8,
+            description: "Continuous 200m swim at a comfortable, sustainable pace. Focus on breathing rhythm.",
+            purpose: "Build aerobic base and swimming endurance.",
+            targetStroke: .freestyle,
+            equipment: "Pool",
+            setsReps: "1 × 200m steady",
+            steps: [
+                "Push off at conversational pace.",
+                "Hold steady breathing every 3 strokes.",
+                "Stay relaxed — don't chase the clock.",
+                "Finish feeling like you could swim 100 more."
+            ],
+            cues: [
+                "Smooth, repeatable rhythm.",
+                "Long body, soft kick.",
+                "Exhale fully underwater."
+            ]
+        ),
+        SwimDrill(
+            name: "400m Threshold Set",
+            category: .endurance,
+            difficulty: .advanced,
+            durationMinutes: 12,
+            description: "3x400m at CSS pace with 45 seconds rest. Maintain consistent pace throughout.",
+            purpose: "Develop lactate threshold and race-pace sustainability.",
+            targetStroke: .freestyle,
+            equipment: "Pace clock",
+            setsReps: "3 × 400m @ CSS · 45s rest",
+            steps: [
+                "Warm up 400m mixed.",
+                "Hold CSS pace for each 400, no faster.",
+                "Rest 45 seconds between each 400.",
+                "Cool down 200m easy after the set."
+            ],
+            cues: [
+                "Same split every lap.",
+                "Strong, steady — not heroic.",
+                "Last 100 should match the first."
+            ]
+        ),
+        SwimDrill(
+            name: "Easy 100m Warm-Up",
+            category: .warmUpCoolDown,
+            difficulty: .beginner,
+            durationMinutes: 3,
+            description: "4x25m easy swim mixing strokes. Focus on loosening up shoulders and finding rhythm.",
+            purpose: "Prepare the body for the main swim set.",
+            equipment: "Pool",
+            setsReps: "4 × 25m mixed",
+            steps: [
+                "25 freestyle easy.",
+                "25 backstroke easy.",
+                "25 breaststroke easy.",
+                "25 your choice, building speed."
+            ],
+            cues: [
+                "Loosen the shoulders before pushing.",
+                "Find the breath rhythm.",
+                "Don't skip the warm-up — it's the set's foundation."
+            ]
+        ),
+        SwimDrill(
+            name: "Cool-Down 200m",
+            category: .warmUpCoolDown,
+            difficulty: .beginner,
+            durationMinutes: 5,
+            description: "Easy 200m mixing backstroke and freestyle. Gradually reduce effort to bring heart rate down.",
+            purpose: "Aid recovery and flush lactic acid after a hard session.",
+            equipment: "Pool",
+            setsReps: "1 × 200m easy",
+            steps: [
+                "50 backstroke easy — open chest, breathe.",
+                "50 breaststroke gliding.",
+                "50 freestyle relaxed.",
+                "50 backstroke, even slower."
+            ],
+            cues: [
+                "Drop the effort with every 50.",
+                "Long arms, no rush.",
+                "Breathe like you've finished."
+            ]
+        ),
+        SwimDrill(
+            name: "Underwater Dolphin Kicks",
+            category: .kick,
+            difficulty: .advanced,
+            durationMinutes: 5,
+            description: "Push off the wall and dolphin kick underwater for as far as possible. 8 reps with 20 sec rest.",
+            purpose: "Develop powerful underwater kick for turns and starts.",
+            targetStroke: .butterfly,
+            equipment: "Pool · optional fins",
+            setsReps: "8 × max-distance underwater · 20s rest",
+            steps: [
+                "Push off in tight streamline at least one body length under.",
+                "Dolphin kick from the chest — undulate through the hips.",
+                "Hold breath as long as comfortable, don't strain.",
+                "Surface smoothly into freestyle for the remainder of the lap."
+            ],
+            cues: [
+                "Both legs together — locked feet.",
+                "Drive from the core, not the knees.",
+                "Streamline tight — no daylight."
+            ]
+        ),
     ]
 }

@@ -274,6 +274,151 @@ final class SwimmingViewModel {
         }.sorted { $0.laps > $1.laps }
     }
 
+    var insights: [SwimInsight] {
+        var result: [SwimInsight] = []
+        let recent = completedSwims.prefix(8)
+        guard !recent.isEmpty else {
+            result.append(SwimInsight(
+                kind: .suggestion,
+                title: "Log your first swim",
+                message: "Sync from Apple Watch or tap a session type to start your story in the lane."
+            ))
+            return result
+        }
+
+        // Volume trend
+        let volume = weeklyVolumeHistory
+        if volume.count >= 2 {
+            let last = volume.last?.totalMeters ?? 0
+            let prev = volume[volume.count - 2].totalMeters
+            if prev > 0 {
+                let delta = (last - prev) / prev
+                if delta > 0.15 {
+                    result.append(SwimInsight(
+                        kind: .progress,
+                        title: "Volume trending up",
+                        message: "You’re up \(Int(delta * 100))% over last week. Keep one swim genuinely easy to hold the trend."
+                    ))
+                } else if delta < -0.25 {
+                    result.append(SwimInsight(
+                        kind: .warning,
+                        title: "Volume dropped this week",
+                        message: "\(SwimFormatters.formatDistance(last)) so far. A quick technique swim is enough to keep the rhythm."
+                    ))
+                }
+            }
+        }
+
+        // SWOLF improvement
+        let swolfData = swolfOverTimeData
+        if swolfData.count >= 4 {
+            let earlyAvg = swolfData.prefix(2).map(\.swolf).reduce(0, +) / 2
+            let recentAvg = swolfData.suffix(2).map(\.swolf).reduce(0, +) / 2
+            if earlyAvg - recentAvg >= 1.0 {
+                result.append(SwimInsight(
+                    kind: .progress,
+                    title: "SWOLF dropping",
+                    message: "Average down \(String(format: "%.1f", earlyAvg - recentAvg)). Your stroke is buying you more distance."
+                ))
+            }
+        }
+
+        // Stroke balance
+        let dist = strokeDistribution
+        if let free = dist.first(where: { $0.strokeType == .freestyle }), free.percentage > 0.85, completedSwims.count >= 4 {
+            result.append(SwimInsight(
+                kind: .suggestion,
+                title: "Mostly freestyle",
+                message: "\(Int(free.percentage * 100))% of your laps are free. Sprinkle 4×50 IM kick or backstroke to stay balanced."
+            ))
+        }
+
+        // CSS suggestion
+        if currentCSS == nil {
+            result.append(SwimInsight(
+                kind: .suggestion,
+                title: "Set your CSS",
+                message: "A 400 + 200 time trial unlocks pace zones and threshold sets. Takes ~12 minutes."
+            ))
+        } else if let css = currentCSS, Date().timeIntervalSince(css.date) > 60 * 60 * 24 * 60 {
+            result.append(SwimInsight(
+                kind: .suggestion,
+                title: "Time to retest CSS",
+                message: "Your last test was \(Int(Date().timeIntervalSince(css.date) / 86400)) days ago. Pace zones drift — retest to recalibrate."
+            ))
+        }
+
+        // Recovery
+        let last24h = completedSwims.filter { Date().timeIntervalSince($0.date) < 24 * 3600 }
+        let totalToday = last24h.reduce(0) { $0 + $1.totalDistanceMeters }
+        if totalToday >= 2500 {
+            result.append(SwimInsight(
+                kind: .recovery,
+                title: "Big day in the water",
+                message: "\(SwimFormatters.formatDistance(totalToday)) today. Hydrate, stretch shoulders, and consider an easy 1000m tomorrow."
+            ))
+        }
+
+        if result.isEmpty {
+            result.append(SwimInsight(
+                kind: .suggestion,
+                title: "Pick a focus",
+                message: "Try a drill set this week — small technique gains compound into big SWOLF drops."
+            ))
+        }
+
+        return Array(result.prefix(4))
+    }
+
+    var weeklyFocus: SwimWeeklyFocus {
+        let dist = strokeDistribution
+        let weakStroke: SwimStrokeType?
+        if let underused = dist.min(by: { $0.percentage < $1.percentage }), underused.percentage < 0.15 {
+            weakStroke = underused.strokeType
+        } else {
+            weakStroke = nil
+        }
+
+        if let stroke = weakStroke {
+            let drill = SwimDrillLibraryData.all.first { $0.targetStroke == stroke } ?? SwimDrillLibraryData.all.first
+            return SwimWeeklyFocus(
+                kicker: "This Week",
+                title: "Round out your \(stroke.rawValue.lowercased())",
+                rationale: "Only \(Int((dist.first { $0.strokeType == stroke }?.percentage ?? 0) * 100))% of recent laps. A balanced swimmer is a faster swimmer.",
+                drillName: drill?.name,
+                targetStroke: stroke
+            )
+        }
+
+        if currentCSS == nil {
+            return SwimWeeklyFocus(
+                kicker: "This Week",
+                title: "Find your threshold",
+                rationale: "Run a CSS test — it sets every pace zone in this app. 12 minutes well spent.",
+                drillName: "400m Threshold Set",
+                targetStroke: .freestyle
+            )
+        }
+
+        if averageSwolfAllTime > 38 {
+            return SwimWeeklyFocus(
+                kicker: "This Week",
+                title: "Drop your SWOLF",
+                rationale: "Average is \(Int(averageSwolfAllTime)). Three drill swims this week can shave 2–3 points.",
+                drillName: "Catch-Up Drill",
+                targetStroke: .freestyle
+            )
+        }
+
+        return SwimWeeklyFocus(
+            kicker: "This Week",
+            title: "Build the aerobic base",
+            rationale: "You're swimming clean. A long, steady swim this week pays off in race fitness.",
+            drillName: "200m Steady Swim",
+            targetStroke: .freestyle
+        )
+    }
+
     func addCSSResult(time400m: TimeInterval, time200m: TimeInterval) {
         let pace = CSSResult.calculate(time400m: time400m, time200m: time200m)
         let result = CSSResult(date: Date(), time400m: time400m, time200m: time200m, cssPacePer100m: pace)

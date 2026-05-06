@@ -18,8 +18,8 @@ struct SwimSettingsView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .appBackground()
-            .navigationTitle("Swim Settings")
+            .appBackground(accent: accentColor)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -32,12 +32,7 @@ struct SwimSettingsView: View {
 
     private var poolConfigSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "ruler")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Pool Configuration")
-                Spacer()
-            }
+            EditorialSectionHeading(kicker: "Setup", title: "Pool configuration", accent: accentColor)
 
             VStack(spacing: 10) {
                 HStack {
@@ -95,12 +90,7 @@ struct SwimSettingsView: View {
 
     private var preferencesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "gearshape.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Preferences")
-                Spacer()
-            }
+            EditorialSectionHeading(kicker: "Workout", title: "Preferences", accent: accentColor)
 
             VStack(spacing: 10) {
                 Toggle(isOn: $swimVM.settings.autoDetectStrokes) {
@@ -149,16 +139,11 @@ struct SwimSettingsView: View {
 
     private var cssTestSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "speedometer")
-                    .foregroundStyle(PepTheme.amber)
-                HeadlineText(text: "Critical Swim Speed Test")
-                Spacer()
-            }
+            EditorialSectionHeading(kicker: "Threshold", title: "Critical swim speed test", accent: PepTheme.amber)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("How it works:")
-                    .font(.system(size: 12, weight: .bold))
+                Text("How it works")
+                    .font(.system(size: 13, weight: .semibold, design: .serif))
                     .foregroundStyle(PepTheme.textPrimary)
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -169,7 +154,7 @@ struct SwimSettingsView: View {
                     stepRow(number: 5, text: "Enter both times below to calculate CSS")
                 }
 
-                Text("CSS = (T400 - T200) / (D400 - D200) × 100")
+                Text("CSS = (T400 − T200) / (D400 − D200) × 100")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundStyle(PepTheme.textSecondary)
                     .padding(.top, 4)
@@ -177,10 +162,7 @@ struct SwimSettingsView: View {
 
             CSSInputForm(swimVM: swimVM)
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
+        .editorialCard(accent: PepTheme.amber)
     }
 
     private func stepRow(number: Int, text: String) -> some View {
@@ -199,12 +181,7 @@ struct SwimSettingsView: View {
 
     private var cssHistorySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "clock.arrow.circlepath")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "CSS History")
-                Spacer()
-            }
+            EditorialSectionHeading(kicker: "Logbook", title: "CSS history", accent: accentColor)
 
             if swimVM.cssHistory.isEmpty {
                 HStack {
@@ -220,7 +197,7 @@ struct SwimSettingsView: View {
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(result.cssFormatted + " /100m")
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .font(.system(size: 16, weight: .semibold, design: .serif))
                                 .foregroundStyle(accentColor)
                             Text(result.date.formatted(.dateTime.month(.abbreviated).day().year()))
                                 .font(.system(size: 10, weight: .medium))

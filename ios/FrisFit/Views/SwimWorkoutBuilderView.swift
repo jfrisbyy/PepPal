@@ -20,8 +20,8 @@ struct SwimWorkoutBuilderView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .appBackground()
-            .navigationTitle("Swim Workouts")
+            .appBackground(accent: accentColor)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -34,15 +34,16 @@ struct SwimWorkoutBuilderView: View {
 
     private var savedWorkoutsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "tray.full.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Saved Workouts")
-                Spacer()
-                Text("\(swimVM.savedWorkouts.count)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(accentColor)
-            }
+            EditorialSectionHeading(
+                kicker: "Library",
+                title: "Saved workouts",
+                accent: accentColor,
+                trailing: AnyView(
+                    Text("\(swimVM.savedWorkouts.count)")
+                        .font(.system(size: 12, weight: .semibold, design: .serif))
+                        .foregroundStyle(accentColor)
+                )
+            )
 
             if swimVM.savedWorkouts.isEmpty {
                 HStack {
@@ -64,10 +65,7 @@ struct SwimWorkoutBuilderView: View {
                 }
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
+        .editorialCard(accent: accentColor)
     }
 
     private func savedWorkoutRow(_ workout: StructuredSwimWorkout) -> some View {
@@ -83,14 +81,14 @@ struct SwimWorkoutBuilderView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(workout.name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold, design: .serif))
                     .foregroundStyle(PepTheme.textPrimary)
                 HStack(spacing: 8) {
                     Label("\(workout.totalDistance)m", systemImage: "water.waves")
                     Label("\(workout.intervals.count) sets", systemImage: "repeat")
                     Label("~\(workout.estimatedDurationMinutes) min", systemImage: "clock")
                 }
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(PepTheme.textSecondary)
             }
 
@@ -112,12 +110,7 @@ struct SwimWorkoutBuilderView: View {
 
     private var builderSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "plus.square.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Build New Workout")
-                Spacer()
-            }
+            EditorialSectionHeading(kicker: "Build", title: "New workout", accent: accentColor)
 
             TextField("Workout Name", text: $workoutName)
                 .font(.system(size: 14, weight: .medium))
@@ -196,10 +189,7 @@ struct SwimWorkoutBuilderView: View {
             .opacity(workoutName.trimmingCharacters(in: .whitespaces).isEmpty || intervals.isEmpty ? 0.5 : 1)
             .disabled(workoutName.trimmingCharacters(in: .whitespaces).isEmpty || intervals.isEmpty)
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
+        .editorialCard(accent: accentColor)
     }
 
     private func intervalEditor(index: Int, interval: SwimInterval) -> some View {
