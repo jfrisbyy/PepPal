@@ -1,14 +1,55 @@
-# Move training into its own card in Activity
+# Pre-Session command center — full-screen detail view
 
-## What changes
+## Overview
+A full-screen pre-session brief that opens when you tap the Training card on the home page. It's your editorial "before the lift" command center — readiness, fuel, history, warmup, and today's exercises — all wrapped in the same premium feel as the rest of the app, ending in a Review-then-Start flow.
 
-- The training block currently nested inside the Today's Plan card on the home page will be lifted out and shown as its own standalone card.
-- The new Training card will appear in the **Activity** section of the home page, sitting between the Activity card and the Nutrition card.
-- The Today's Plan card will become slimmer — keeping the daily brief, header, and daily tasks, but no longer carrying the training block inside it.
-- All existing training behavior (program chip, day position, edit program, start workout, expanded program content, protocol training suggestion) will continue to work exactly as before — just from its new home.
-- The section eyebrow stays as **03 — Activity**.
+## How you get there
+- Tapping the Training card on the home page pushes the new pre-session view as a full-screen detail page (same navigation pattern as Program Detail).
+- The card itself stays as a glanceable summary; deeper context lives on this page.
+- A clear back button returns you home; a floating bottom bar carries the primary action.
 
-## Look & feel
+## What you'll see (top to bottom)
 
-- The Training card uses the same premium editorial card styling as the surrounding Activity and Nutrition cards so the section feels cohesive.
-- Smooth collapse/expand and start-workout interactions are preserved.
+**1. Editorial header**
+- Program name, week & day position (e.g. "W3 · DAY 4/6"), today's split name in serif type, and a focus tag (Push / Pull / Legs / etc).
+- Subtle progress bar showing where today sits in the current mesocycle.
+
+**2. Readiness check**
+- Quick read of sleep, soreness, energy, and current peptide level in your body (pulled from the chart calculation, not just dosage).
+- Each metric shown as a compact ring or bar with a single-line interpretation ("Recovery looking strong — push intensity").
+- Tap to log today's readiness if missing.
+
+**3. Today's focus & coaching cue**
+- One AI-generated sentence framing the session ("Strength block — top set on bench, accessories at RPE 7").
+
+**4. Estimated timeline**
+- Visual stacked timeline: Warmup → Main work → Cooldown, with minute estimates and total session duration.
+
+**5. Warmup & mobility flow**
+- 3–5 suggested warmup movements specific to today's split (e.g. band pull-aparts before push day).
+- Each as a small row with reps/duration; tap to expand technique notes.
+
+**6. Last time you trained this**
+- Date of last identical session, total volume, any PRs hit, and a one-line trend ("+8% volume vs last week").
+
+**7. Today's exercises**
+- Clean list with target sets × reps and the working weight pulled from your last session.
+- Each row shows last-session performance inline ("Last: 185×5,5,4").
+- Swipe or tap to edit target weight, swap exercise, or add notes before starting.
+
+**8. Fueling & hydration**
+- Short pre-workout tips: suggested carbs, hydration target, caffeine timing, and a peptide-aware note when relevant (e.g. timing around current compound levels).
+
+## Primary action
+- Sticky bottom bar with a single button: **"Review & Start"**.
+- Tapping it opens a quick-edit step (confirm/adjust today's exercises, weights, set count) then drops you straight into the active workout flow.
+
+## Design language
+- Matches the existing premium editorial style: serif headlines, monospaced micro-labels with tracking, glass cards, blue accent for the Train surface.
+- Subtle entrance: sections fade and rise in sequence on appear.
+- Haptic tap on Review & Start; spring transitions throughout.
+- Empty/missing states are graceful (e.g. no last-session data → "First time running this split — set your starting weights").
+
+## Out of scope for this pass
+- Music / playlist suggestions (deferred).
+- Real-time biometric polling during the session itself.
