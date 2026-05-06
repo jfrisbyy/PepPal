@@ -13,6 +13,9 @@ final class SoccerViewModel {
     var showSettings: Bool = false
     var showWorkoutBuilder: Bool = false
     var savedSoccerSessions: [CustomSoccerSession] = []
+    var selectedDrill: SoccerDrill? = nil
+    var showDrillDetail: Bool = false
+    var drillCompletions: [UUID: Int] = [:]
 
     var selectedSessionType: SoccerSessionType = .game
     var currentStats = SoccerGameStats()

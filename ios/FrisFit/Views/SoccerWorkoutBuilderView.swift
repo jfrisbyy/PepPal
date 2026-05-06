@@ -12,15 +12,16 @@ struct SoccerWorkoutBuilderView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 18) {
+                    heroCard
                     savedSessionsSection
                     builderSection
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-            .appBackground()
-            .navigationTitle("Training Sessions")
+            .appBackground(accent: accentColor)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -31,27 +32,49 @@ struct SoccerWorkoutBuilderView: View {
         }
     }
 
-    private var savedSessionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "tray.full.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Saved Sessions")
-                Spacer()
-                Text("\(soccerVM.savedSoccerSessions.count)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(accentColor)
+    private var heroCard: some View {
+        PepSportCard(accent: accentColor) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("TRAINING SESSIONS")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(2.0)
+                    .foregroundStyle(accentColor.opacity(0.9))
+                Text("Build your circuit.")
+                    .font(.system(size: 24, weight: .semibold, design: .serif))
+                    .kerning(-0.5)
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("Stack drills into a session you'll actually run — the engine behind every match.")
+                    .font(.system(size: 12, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    private var savedSessionsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(
+                kicker: "Saved",
+                title: "Your Sessions",
+                accent: accentColor,
+                trailing: AnyView(
+                    Text("\(soccerVM.savedSoccerSessions.count)")
+                        .font(.system(size: 12, weight: .bold, design: .serif))
+                        .foregroundStyle(accentColor)
+                )
+            )
 
             if soccerVM.savedSoccerSessions.isEmpty {
                 HStack {
                     Spacer()
-                    VStack(spacing: 6) {
+                    VStack(spacing: 8) {
                         Image(systemName: "soccerball")
-                            .font(.title2)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.4))
-                        Text("No saved training sessions yet")
-                            .font(.caption)
+                            .font(.title3)
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                        Text("No saved sessions yet — build one below.")
+                            .font(.system(size: 12, design: .serif))
+                            .italic()
                             .foregroundStyle(PepTheme.textSecondary)
                     }
                     .padding(.vertical, 14)
@@ -63,17 +86,14 @@ struct SoccerWorkoutBuilderView: View {
                 }
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
+        .editorialCard(accent: accentColor)
     }
 
     private func savedSessionRow(_ session: CustomSoccerSession) -> some View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(accentColor.opacity(0.12))
+                    .fill(accentColor.opacity(0.14))
                     .frame(width: 40, height: 40)
                 Image(systemName: "soccerball")
                     .font(.system(size: 16))
@@ -82,13 +102,14 @@ struct SoccerWorkoutBuilderView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(session.name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold, design: .serif))
                     .foregroundStyle(PepTheme.textPrimary)
                 HStack(spacing: 8) {
                     Label("\(session.drills.count) drills", systemImage: "list.bullet")
                     Label("~\(session.totalDuration) min", systemImage: "clock")
                 }
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 10, design: .serif))
+                .italic()
                 .foregroundStyle(PepTheme.textSecondary)
             }
 
@@ -104,22 +125,19 @@ struct SoccerWorkoutBuilderView: View {
                     .background(PepTheme.elevated.opacity(0.5))
                     .clipShape(Circle())
             }
+            .buttonStyle(.plain)
         }
         .padding(.vertical, 4)
     }
 
     private var builderSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "plus.square.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Build Training Session")
-                Spacer()
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(kicker: "Build", title: "New Session", accent: accentColor)
 
-            TextField("Session Name", text: $sessionName)
-                .font(.system(size: 14, weight: .medium))
+            TextField("Session name", text: $sessionName)
+                .font(.system(size: 14, weight: .medium, design: .serif))
                 .foregroundStyle(PepTheme.textPrimary)
+                .tint(accentColor)
                 .padding(12)
                 .background(PepTheme.elevated.opacity(0.5))
                 .clipShape(.rect(cornerRadius: 10))
@@ -134,15 +152,17 @@ struct SoccerWorkoutBuilderView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 14))
-                    Text("Add Drill")
-                        .font(.system(size: 12, weight: .semibold))
+                    Text("ADD DRILL")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(1.4)
                 }
                 .foregroundStyle(accentColor)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(accentColor.opacity(0.08))
+                .padding(.vertical, 12)
+                .background(accentColor.opacity(0.10))
                 .clipShape(.rect(cornerRadius: 10))
             }
+            .buttonStyle(.plain)
 
             if !drills.isEmpty {
                 sessionSummary
@@ -150,17 +170,15 @@ struct SoccerWorkoutBuilderView: View {
 
             saveButton
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(cardBorder())
+        .editorialCard(accent: accentColor)
     }
 
     private func drillEditor(index: Int) -> some View {
-        VStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Drill \(index + 1)")
-                    .font(.system(size: 11, weight: .bold))
+                Text(String(format: "DRILL %02d", index + 1))
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.6)
                     .foregroundStyle(accentColor)
                 Spacer()
                 if drills.count > 1 {
@@ -171,20 +189,23 @@ struct SoccerWorkoutBuilderView: View {
                             .font(.system(size: 14))
                             .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
                     }
+                    .buttonStyle(.plain)
                 }
             }
 
             TextField("Drill name", text: $drills[index].name)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 13, weight: .medium, design: .serif))
                 .foregroundStyle(PepTheme.textPrimary)
+                .tint(accentColor)
                 .padding(10)
                 .background(PepTheme.elevated.opacity(0.4))
                 .clipShape(.rect(cornerRadius: 8))
 
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Category")
-                        .font(.system(size: 9, weight: .medium))
+                    Text("CATEGORY")
+                        .font(.system(size: 8, weight: .bold))
+                        .tracking(1.2)
                         .foregroundStyle(PepTheme.textSecondary)
                     Picker("", selection: $drills[index].category) {
                         ForEach(SoccerDrillCategory.allCases) { cat in
@@ -199,8 +220,9 @@ struct SoccerWorkoutBuilderView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Duration")
-                        .font(.system(size: 9, weight: .medium))
+                    Text("DURATION")
+                        .font(.system(size: 8, weight: .bold))
+                        .tracking(1.2)
                         .foregroundStyle(PepTheme.textSecondary)
                     Stepper("\(drills[index].durationMinutes) min", value: $drills[index].durationMinutes, in: 1...60, step: 5)
                         .font(.system(size: 12, weight: .semibold))
@@ -209,8 +231,9 @@ struct SoccerWorkoutBuilderView: View {
             }
 
             TextField("Notes (optional)", text: $drills[index].notes)
-                .font(.system(size: 12))
+                .font(.system(size: 12, design: .serif))
                 .foregroundStyle(PepTheme.textPrimary)
+                .tint(accentColor)
                 .padding(8)
                 .background(PepTheme.elevated.opacity(0.3))
                 .clipShape(.rect(cornerRadius: 8))
@@ -221,71 +244,58 @@ struct SoccerWorkoutBuilderView: View {
     }
 
     private var sessionSummary: some View {
-        HStack(spacing: 16) {
-            let totalMin = drills.reduce(0) { $0 + $1.durationMinutes }
-            let categories = Set(drills.map(\.category)).count
-            VStack(spacing: 2) {
-                Text("~\(totalMin) min")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(accentColor)
-                Text("Total Duration")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-            VStack(spacing: 2) {
-                Text("\(drills.count)")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Text("Drills")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-            VStack(spacing: 2) {
-                Text("\(categories)")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Text("Categories")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
+        let totalMin = drills.reduce(0) { $0 + $1.durationMinutes }
+        let categories = Set(drills.map(\.category)).count
+        return HStack(spacing: 0) {
+            summaryCol(value: "~\(totalMin)", unit: "min", label: "TOTAL")
+            divider
+            summaryCol(value: "\(drills.count)", unit: "", label: "DRILLS")
+            divider
+            summaryCol(value: "\(categories)", unit: "", label: "CATEGORIES")
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
         .background(PepTheme.elevated.opacity(0.3))
         .clipShape(.rect(cornerRadius: 10))
     }
 
+    private var divider: some View {
+        Rectangle()
+            .fill(PepTheme.shimmerHighlight)
+            .frame(width: 0.5, height: 26)
+    }
+
+    private func summaryCol(value: String, unit: String, label: String) -> some View {
+        VStack(spacing: 3) {
+            HStack(spacing: 2) {
+                Text(value)
+                    .font(.system(.subheadline, design: .serif, weight: .semibold))
+                    .foregroundStyle(accentColor)
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(accentColor.opacity(0.7))
+                }
+            }
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     private var saveButton: some View {
-        let canSave = !sessionName.trimmingCharacters(in: .whitespaces).isEmpty && drills.allSatisfy({ !$0.name.trimmingCharacters(in: .whitespaces).isEmpty })
-        return Button {
+        let canSave = !sessionName.trimmingCharacters(in: .whitespaces).isEmpty
+            && drills.allSatisfy({ !$0.name.trimmingCharacters(in: .whitespaces).isEmpty })
+        return EditorialPrimaryButton("Save Session", icon: "checkmark.circle.fill", accent: accentColor) {
             guard canSave else { return }
             let session = CustomSoccerSession(name: sessionName, drills: drills)
             soccerVM.savedSoccerSessions.append(session)
             sessionName = ""
             drills = [SoccerDrillItem()]
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 16))
-                Text("Save Session")
-                    .font(.subheadline.weight(.bold))
-            }
-            .foregroundStyle(.black)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(accentColor)
-            .clipShape(.rect(cornerRadius: 12))
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         }
-        .buttonStyle(.scalePrimary)
         .opacity(canSave ? 1 : 0.5)
         .disabled(!canSave)
-    }
-
-    private func cardBorder() -> some View {
-        RoundedRectangle(cornerRadius: 16)
-            .strokeBorder(
-                LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
-                lineWidth: 0.5
-            )
     }
 }

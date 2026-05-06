@@ -1,0 +1,460 @@
+import SwiftUI
+
+struct SoccerDrillDetailView: View {
+    let drill: SoccerDrill
+    @Environment(\.dismiss) private var dismiss
+    @State private var heroAppeared: Bool = false
+    @State private var soccerVM = SoccerViewModel.shared
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 18) {
+                    heroCard
+                    videoPreviewCard
+                    aboutCard
+                    if !drill.steps.isEmpty {
+                        stepsCard
+                    }
+                    if !drill.cues.isEmpty {
+                        cuesCard
+                    }
+                    equipmentCard
+                    commonMistakesCard
+                    progressionsCard
+                    relatedCard
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 24)
+            }
+            .appBackground(accent: drill.category.color)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                        .foregroundStyle(drill.category.color)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                runBar
+            }
+            .task {
+                withAnimation(.spring(duration: 0.6)) { heroAppeared = true }
+            }
+        }
+    }
+
+    private var heroCard: some View {
+        PepSportCard(accent: drill.category.color) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    HStack(spacing: 6) {
+                        Image(systemName: drill.category.icon)
+                            .font(.system(size: 9, weight: .bold))
+                        Text(drill.category.rawValue.uppercased())
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(2.0)
+                    }
+                    .foregroundStyle(drill.category.color)
+
+                    Spacer()
+
+                    Text(drill.difficulty.rawValue.uppercased())
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1.4)
+                        .foregroundStyle(drill.difficulty.color)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(drill.difficulty.color.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+
+                Text(drill.name)
+                    .font(.system(size: 28, weight: .semibold, design: .serif))
+                    .kerning(-0.5)
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .lineLimit(3)
+
+                Text(drill.purpose)
+                    .font(.system(size: 13, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                LinearGradient(
+                    colors: [PepTheme.textPrimary.opacity(0.16), PepTheme.textPrimary.opacity(0)],
+                    startPoint: .leading, endPoint: .trailing
+                )
+                .frame(height: 0.5)
+
+                HStack(spacing: 0) {
+                    statCol(value: "\(drill.durationMinutes)", label: "MIN")
+                    divider
+                    statCol(value: drill.setsReps ?? "—", label: "VOLUME")
+                    divider
+                    statCol(value: drill.equipment.split(separator: ",").first.map(String.init) ?? "Any", label: "GEAR")
+                    divider
+                    statCol(value: "\(soccerVM.drillCompletions[drill.id] ?? 0)", label: "RUN")
+                }
+            }
+        }
+        .opacity(heroAppeared ? 1 : 0)
+        .offset(y: heroAppeared ? 0 : 8)
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(PepTheme.shimmerHighlight)
+            .frame(width: 0.5, height: 28)
+    }
+
+    private func statCol(value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var videoPreviewCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            EditorialSectionHeading(kicker: "Watch", title: "Demo", accent: drill.category.color)
+
+            ZStack {
+                LinearGradient(
+                    colors: [drill.category.color.opacity(0.22), Color.black.opacity(0.5)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                GeometryReader { geo in
+                    Path { path in
+                        let w = geo.size.width
+                        let h = geo.size.height
+                        path.move(to: CGPoint(x: 0, y: h * 0.5))
+                        path.addLine(to: CGPoint(x: w, y: h * 0.5))
+                    }
+                    .stroke(PepTheme.textPrimary.opacity(0.06), lineWidth: 0.5)
+
+                    Circle()
+                        .stroke(PepTheme.textPrimary.opacity(0.06), lineWidth: 0.5)
+                        .frame(width: 90, height: 90)
+                        .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                }
+
+                VStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 56, height: 56)
+                        Circle()
+                            .strokeBorder(drill.category.color.opacity(0.5), lineWidth: 0.5)
+                            .frame(width: 56, height: 56)
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(drill.category.color)
+                            .offset(x: 1)
+                    }
+                    Text("VIDEO COMING SOON")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1.6)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+            .frame(height: 160)
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(drill.category.color.opacity(0.18), lineWidth: 0.5)
+            )
+        }
+        .editorialCard(accent: drill.category.color)
+    }
+
+    private var aboutCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            EditorialSectionHeading(kicker: "About", title: "The Why", accent: drill.category.color)
+            Text(drill.description)
+                .font(.system(size: 14, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .editorialCard(accent: drill.category.color)
+    }
+
+    private var stepsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(kicker: "How To", title: "Steps", accent: drill.category.color)
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(Array(drill.steps.enumerated()), id: \.offset) { idx, step in
+                    HStack(alignment: .top, spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(drill.category.color.opacity(0.12))
+                                .frame(width: 26, height: 26)
+                            Text(String(format: "%02d", idx + 1))
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundStyle(drill.category.color)
+                        }
+                        Text(step)
+                            .font(.system(size: 13, design: .serif))
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+        .editorialCard(accent: drill.category.color)
+    }
+
+    private var cuesCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(kicker: "Coaching", title: "Cues", accent: PepTheme.amber)
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(drill.cues, id: \.self) { cue in
+                    HStack(alignment: .top, spacing: 10) {
+                        Rectangle()
+                            .fill(PepTheme.amber)
+                            .frame(width: 2)
+                            .frame(maxHeight: .infinity)
+                        Text(cue)
+                            .font(.system(size: 13, design: .serif))
+                            .italic()
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .editorialCard(accent: PepTheme.amber)
+    }
+
+    private var equipmentCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            EditorialSectionHeading(kicker: "What You Need", title: "Setup", accent: PepTheme.amber)
+
+            HStack(spacing: 8) {
+                Image(systemName: "sportscourt.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(PepTheme.amber)
+                    .frame(width: 26, height: 26)
+                    .background(PepTheme.amber.opacity(0.12))
+                    .clipShape(Circle())
+                Text(drill.equipment)
+                    .font(.system(size: 13, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Spacer()
+            }
+
+            HStack(spacing: 6) {
+                Image(systemName: "clock")
+                    .font(.system(size: 10))
+                    .foregroundStyle(PepTheme.textSecondary)
+                Text("Plan around \(drill.durationMinutes) minutes")
+                    .font(.system(size: 11, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+                if let sr = drill.setsReps {
+                    Text("·")
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Text(sr)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                Spacer()
+            }
+        }
+        .editorialCard(accent: PepTheme.amber)
+    }
+
+    private var commonMistakesCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(
+                kicker: "Watch Out",
+                title: "Common Mistakes",
+                accent: Color(red: 0.92, green: 0.46, blue: 0.42)
+            )
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(commonMistakes(for: drill.category), id: \.self) { mistake in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color(red: 0.92, green: 0.46, blue: 0.42))
+                            .padding(.top, 2)
+                        Text(mistake)
+                            .font(.system(size: 13, design: .serif))
+                            .foregroundStyle(PepTheme.textPrimary)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+        }
+        .editorialCard(accent: Color(red: 0.92, green: 0.46, blue: 0.42))
+    }
+
+    private func commonMistakes(for category: SoccerDrillCategory) -> [String] {
+        switch category {
+        case .dribbling:
+            return [
+                "Eyes locked on the ball — keep your head up between touches.",
+                "Heavy first touch that pushes the ball outside your stride.",
+                "Standing too tall — stay low to change direction quickly."
+            ]
+        case .passing:
+            return [
+                "Plant foot pointing at the ball, not the target.",
+                "Loose ankle on contact — lock it for accuracy.",
+                "Stabbing at the receive instead of cushioning the ball."
+            ]
+        case .shooting:
+            return [
+                "Leaning back through the strike — the ball balloons over.",
+                "Striking with the toe instead of the laces.",
+                "Choosing the corner after planting — pick early and commit."
+            ]
+        case .defending:
+            return [
+                "Diving in with the front foot and getting beat.",
+                "Reaching with your hands instead of moving your feet.",
+                "Crossing your feet on the slide instead of shuffling."
+            ]
+        case .goalkeeping:
+            return [
+                "Stepping forward into the save instead of pushing off the back foot.",
+                "Hands too low at set position — react late on high balls.",
+                "Parrying back into danger instead of wide and out."
+            ]
+        case .conditioning:
+            return [
+                "Pacing the early reps and finishing slow — every sprint is full.",
+                "Skipping the warm-up and risking a tweak.",
+                "Holding your breath through the work — breathe rhythmically."
+            ]
+        }
+    }
+
+    private var progressionsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(kicker: "Level Up", title: "Progressions", accent: drill.category.color)
+
+            VStack(spacing: 8) {
+                progressionRow(
+                    label: "Easier",
+                    body: "Halve the pace or reps. Focus on form before speed.",
+                    icon: "arrow.down.right.circle.fill",
+                    color: SoccerDrillDifficulty.beginner.color
+                )
+                progressionRow(
+                    label: "Match",
+                    body: drill.setsReps.map { "Run as written: \($0)." } ?? "Run \(drill.durationMinutes) minutes at game pace.",
+                    icon: "equal.circle.fill",
+                    color: drill.difficulty.color
+                )
+                progressionRow(
+                    label: "Harder",
+                    body: progressionUp(for: drill),
+                    icon: "arrow.up.right.circle.fill",
+                    color: SoccerDrillDifficulty.advanced.color
+                )
+            }
+        }
+        .editorialCard(accent: drill.category.color)
+    }
+
+    private func progressionRow(label: String, body: String, icon: String, color: Color) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(color)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(label.uppercased())
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.4)
+                    .foregroundStyle(color)
+                Text(body)
+                    .font(.system(size: 12, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(color.opacity(0.05))
+        .clipShape(.rect(cornerRadius: 10))
+    }
+
+    private func progressionUp(for drill: SoccerDrill) -> String {
+        switch drill.category {
+        case .dribbling: "Add a defender, shorten cone spacing, or run on a clock."
+        case .passing: "Add a moving target, shrink the window, or limit to one-touch."
+        case .shooting: "Add a closeout defender, pre-action move, or first-time only."
+        case .defending: "Live attacker, longer recovery sprints, or team pressing reps."
+        case .goalkeeping: "Add deflections, blind shots, or a 1v1 finishing element."
+        case .conditioning: "Add a ball, shorten rest, or extend the work block."
+        }
+    }
+
+    private var relatedCard: some View {
+        let related = SoccerDrillLibrary.all.filter { $0.category == drill.category && $0.id != drill.id }.prefix(4)
+        return VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(kicker: "More like this", title: drill.category.rawValue, accent: drill.category.color)
+            VStack(spacing: 6) {
+                ForEach(Array(related), id: \.id) { rel in
+                    HStack(spacing: 10) {
+                        Image(systemName: rel.category.icon)
+                            .font(.system(size: 11))
+                            .foregroundStyle(rel.category.color)
+                            .frame(width: 26, height: 26)
+                            .background(rel.category.color.opacity(0.12))
+                            .clipShape(Circle())
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(rel.name)
+                                .font(.system(size: 12, weight: .semibold, design: .serif))
+                                .foregroundStyle(PepTheme.textPrimary)
+                            Text(rel.difficulty.rawValue)
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(PepTheme.textSecondary)
+                        }
+                        Spacer()
+                        Text("\(rel.durationMinutes)m")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .editorialCard(accent: drill.category.color)
+    }
+
+    private var runBar: some View {
+        EditorialPrimaryButton("Mark Drill Run", icon: "checkmark.circle.fill", accent: drill.category.color) {
+            soccerVM.drillCompletions[drill.id, default: 0] += 1
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            dismiss()
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+        .background(
+            PepTheme.background
+                .shadow(color: .black.opacity(0.5), radius: 20, y: -8)
+                .ignoresSafeArea()
+        )
+    }
+}

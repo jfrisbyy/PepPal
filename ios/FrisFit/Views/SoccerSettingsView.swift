@@ -9,15 +9,16 @@ struct SoccerSettingsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 18) {
+                    heroCard
                     positionSection
                     seasonSummarySection
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 32)
             }
-            .appBackground()
-            .navigationTitle("Soccer Settings")
+            .appBackground(accent: accentColor)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -28,18 +29,39 @@ struct SoccerSettingsView: View {
         }
     }
 
-    private var positionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "person.fill")
-                    .foregroundStyle(accentColor)
-                HeadlineText(text: "Primary Position")
-                Spacer()
+    private var heroCard: some View {
+        PepSportCard(accent: accentColor) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("SOCCER · SETTINGS")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(2.0)
+                    .foregroundStyle(accentColor.opacity(0.9))
+                Text("Tune your game.")
+                    .font(.system(size: 24, weight: .semibold, design: .serif))
+                    .kerning(-0.5)
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("Pick your primary role and we'll surface the stats that actually matter for it.")
+                    .font(.system(size: 12, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
 
-            Text("Your dashboard will show stats tailored to your position.")
-                .font(.caption)
-                .foregroundStyle(PepTheme.textSecondary)
+    private var positionSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(
+                kicker: "Role",
+                title: "Primary Position",
+                accent: accentColor,
+                trailing: AnyView(
+                    Text(soccerVM.primaryPosition.shortName)
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1.4)
+                        .foregroundStyle(accentColor)
+                )
+            )
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                 ForEach(SoccerPosition.allCases) { pos in
@@ -62,32 +84,19 @@ struct SoccerSettingsView: View {
                         .foregroundStyle(isSelected ? .black : PepTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(isSelected ? accentColor : PepTheme.elevated)
+                        .background(isSelected ? accentColor : PepTheme.elevated.opacity(0.5))
                         .clipShape(.rect(cornerRadius: 12))
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(
-                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    lineWidth: 0.5
-                )
-        )
+        .editorialCard(accent: accentColor)
     }
 
     private var seasonSummarySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(PepTheme.amber)
-                HeadlineText(text: "Season Summary")
-                Spacer()
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(kicker: "Season", title: "Summary", accent: PepTheme.amber)
 
             let gm = soccerVM.gameMatches
             if gm.isEmpty {
@@ -97,48 +106,45 @@ struct SoccerSettingsView: View {
                         Image(systemName: "soccerball")
                             .font(.title2)
                             .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                        Text("No matches played yet")
-                            .font(.caption)
+                        Text("No matches played yet.")
+                            .font(.system(size: 12, design: .serif))
+                            .italic()
                             .foregroundStyle(PepTheme.textSecondary)
                     }
                     .padding(.vertical, 16)
                     Spacer()
                 }
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: 10) {
                     summaryRow(label: "Matches Played", value: "\(soccerVM.totalGamesPlayed)")
                     summaryRow(label: "Record", value: "\(soccerVM.totalWins)W · \(soccerVM.totalDraws)D · \(soccerVM.totalLosses)L")
                     summaryRow(label: "Win Rate", value: String(format: "%.0f%%", soccerVM.winPercentage))
                     summaryRow(label: "Total Goals", value: "\(soccerVM.totalGoals)")
                     summaryRow(label: "Total Assists", value: "\(soccerVM.totalAssists)")
                     summaryRow(label: "Goal Contributions", value: "\(soccerVM.totalGoalContributions)")
-                    summaryRow(label: "Avg Rating", value: String(format: "%.1f/10", soccerVM.averageRating))
-
+                    summaryRow(label: "Avg Rating", value: String(format: "%.1f / 10", soccerVM.averageRating))
                 }
             }
         }
-        .padding(16)
-        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-        .clipShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(
-                    LinearGradient(colors: [PepTheme.glassBorderTop, PepTheme.glassBorderBottom], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    lineWidth: 0.5
-                )
-        )
+        .editorialCard(accent: PepTheme.amber)
     }
 
     private func summaryRow(label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 13, design: .serif))
                 .foregroundStyle(PepTheme.textSecondary)
             Spacer()
             Text(value)
-                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .font(.system(size: 13, weight: .semibold, design: .serif))
                 .foregroundStyle(PepTheme.textPrimary)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(PepTheme.glassBorderTop)
+                .frame(height: 0.5)
+                .offset(y: 2)
+        }
     }
 }

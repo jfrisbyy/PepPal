@@ -248,8 +248,22 @@ nonisolated struct SoccerDrill: Identifiable, Sendable {
     let description: String
     let purpose: String
     let equipment: String
+    let steps: [String]
+    let cues: [String]
+    let setsReps: String?
 
-    init(name: String, category: SoccerDrillCategory, difficulty: SoccerDrillDifficulty, durationMinutes: Int, description: String, purpose: String, equipment: String = "Ball, Cones") {
+    init(
+        name: String,
+        category: SoccerDrillCategory,
+        difficulty: SoccerDrillDifficulty,
+        durationMinutes: Int,
+        description: String,
+        purpose: String,
+        equipment: String = "Ball, Cones",
+        steps: [String] = [],
+        cues: [String] = [],
+        setsReps: String? = nil
+    ) {
         self.id = UUID()
         self.name = name
         self.category = category
@@ -258,26 +272,353 @@ nonisolated struct SoccerDrill: Identifiable, Sendable {
         self.description = description
         self.purpose = purpose
         self.equipment = equipment
+        self.steps = steps
+        self.cues = cues
+        self.setsReps = setsReps
     }
 }
 
 nonisolated enum SoccerDrillLibrary {
     static let all: [SoccerDrill] = [
-        SoccerDrill(name: "Cone Dribbling Slalom", category: .dribbling, difficulty: .beginner, durationMinutes: 10, description: "Weave through a line of 8-10 cones spaced 2 yards apart using both feet.", purpose: "Improve close ball control and agility at speed."),
-        SoccerDrill(name: "1v1 Dribble Attack", category: .dribbling, difficulty: .intermediate, durationMinutes: 10, description: "Face a passive defender and practice beating them with stepovers, body feints, and changes of direction.", purpose: "Develop confidence taking on defenders in game situations."),
-        SoccerDrill(name: "Speed Dribble Circuit", category: .dribbling, difficulty: .advanced, durationMinutes: 15, description: "Dribble at full speed through a complex cone pattern with direction changes, pull-backs, and Cruyff turns.", purpose: "Build elite-level dribbling speed and technique under pressure."),
-        SoccerDrill(name: "Wall Pass Combos", category: .passing, difficulty: .beginner, durationMinutes: 10, description: "Pass against a wall alternating between inside foot, outside foot, and instep. Receive and control with both feet.", purpose: "Develop consistent passing technique and first touch.", equipment: "Ball, Wall"),
-        SoccerDrill(name: "Triangle Passing", category: .passing, difficulty: .intermediate, durationMinutes: 15, description: "Set up 3 cones in a triangle. Move around the triangle passing to each cone, mixing one-touch and two-touch passes.", purpose: "Improve passing accuracy and movement off the ball."),
-        SoccerDrill(name: "Long Ball Accuracy", category: .passing, difficulty: .advanced, durationMinutes: 15, description: "Hit long diagonal passes to target zones 30-40 yards away. Alternate between driven passes and lofted balls.", purpose: "Develop range of passing for switching play and through balls."),
-        SoccerDrill(name: "Finishing from Crosses", category: .shooting, difficulty: .intermediate, durationMinutes: 15, description: "Receive crosses from both sides and finish with headers, volleys, and one-touch shots.", purpose: "Improve finishing from wide deliveries and build composure in the box."),
-        SoccerDrill(name: "Shooting Accuracy Drill", category: .shooting, difficulty: .beginner, durationMinutes: 10, description: "Shoot from 18 yards at targets placed in all four corners of the goal. 10 shots per corner.", purpose: "Develop accuracy and consistent shooting technique."),
-        SoccerDrill(name: "Quick-Fire Finishing", category: .shooting, difficulty: .advanced, durationMinutes: 10, description: "Receive rapid passes from different angles and shoot first-time. Emphasize body shape and shot selection.", purpose: "Build quick decision-making and clinical finishing under pressure."),
-        SoccerDrill(name: "Defensive Slides", category: .defending, difficulty: .beginner, durationMinutes: 10, description: "Lateral shuffle between cones in a defensive stance, staying low and balanced.", purpose: "Build lateral quickness and proper defensive positioning.", equipment: "Cones"),
-        SoccerDrill(name: "1v1 Defending", category: .defending, difficulty: .intermediate, durationMinutes: 10, description: "Defend against an attacker in a 10x10 yard box. Focus on jockeying, body position, and timing tackles.", purpose: "Improve 1v1 defending technique and reading attackers."),
-        SoccerDrill(name: "Pressing Triggers", category: .defending, difficulty: .advanced, durationMinutes: 15, description: "Practice coordinated pressing patterns: when to press, when to hold, and how to cut passing lanes.", purpose: "Develop tactical awareness and team pressing discipline."),
-        SoccerDrill(name: "GK Reaction Saves", category: .goalkeeping, difficulty: .intermediate, durationMinutes: 15, description: "Face rapid shots from 12 yards. Focus on set position, reaction time, and hand positioning.", purpose: "Sharpen reflexes and shot-stopping ability.", equipment: "Ball, Goal"),
-        SoccerDrill(name: "GK Distribution", category: .goalkeeping, difficulty: .beginner, durationMinutes: 10, description: "Practice goal kicks, throws, and punt kicks to targets at various distances.", purpose: "Improve accuracy and range of goalkeeper distribution.", equipment: "Ball, Goal, Cones"),
-        SoccerDrill(name: "Shuttle Runs", category: .conditioning, difficulty: .intermediate, durationMinutes: 10, description: "Sprint 10-20-30-40 yard shuttles with walk-back recovery. 6-8 sets.", purpose: "Build match-specific endurance and repeated sprint ability.", equipment: "Cones"),
-        SoccerDrill(name: "Box-to-Box Intervals", category: .conditioning, difficulty: .advanced, durationMinutes: 15, description: "Sprint from one penalty box to the other, jog back. 10-12 reps with 30-second rest between.", purpose: "Simulate match intensity for midfielders and develop cardiovascular capacity.", equipment: "Pitch"),
+        SoccerDrill(
+            name: "Cone Dribbling Slalom",
+            category: .dribbling,
+            difficulty: .beginner,
+            durationMinutes: 10,
+            description: "Weave through a line of 8-10 cones spaced two yards apart using both feet, alternating inside and outside touches.",
+            purpose: "Improve close ball control and agility at speed.",
+            steps: [
+                "Set 8-10 cones in a straight line about 2 yards apart.",
+                "Start at the first cone, ball at your feet.",
+                "Touch with the inside of the foot, then the outside on the next cone.",
+                "Keep the ball within a half-step of your body the whole way through.",
+                "Sprint back to the start with the ball — that’s one rep."
+            ],
+            cues: [
+                "Eyes up between touches.",
+                "Soft knees, low center of gravity.",
+                "Push the ball — don’t kick it."
+            ],
+            setsReps: "6 sets of 1 length"
+        ),
+        SoccerDrill(
+            name: "1v1 Dribble Attack",
+            category: .dribbling,
+            difficulty: .intermediate,
+            durationMinutes: 10,
+            description: "Face a passive defender and practice beating them with stepovers, body feints, and changes of direction.",
+            purpose: "Develop confidence taking on defenders in game situations.",
+            steps: [
+                "Mark a 10x10 yard square with cones.",
+                "Defender starts passive, then progresses to half-pace.",
+                "Attacker has 6 seconds to beat the defender to the end line.",
+                "Use one feint per rep — commit fully.",
+                "Switch roles every 3 reps."
+            ],
+            cues: [
+                "Sell the feint with your hips, not just feet.",
+                "Explode after the move — first 3 steps decide it.",
+                "Attack the front foot of the defender."
+            ],
+            setsReps: "3 sets of 6 reps"
+        ),
+        SoccerDrill(
+            name: "Speed Dribble Circuit",
+            category: .dribbling,
+            difficulty: .advanced,
+            durationMinutes: 15,
+            description: "Dribble at full speed through a complex cone pattern with direction changes, pull-backs, and Cruyff turns.",
+            purpose: "Build elite-level dribbling speed and technique under pressure.",
+            steps: [
+                "Lay a Z-pattern of 12 cones across 30 yards.",
+                "Sprint-dribble through with outside foot only on straights.",
+                "Pull-back at every direction change.",
+                "Finish with a Cruyff turn at the last cone.",
+                "Walk back, repeat 4-6 times."
+            ],
+            cues: [
+                "Push, don’t tap — stride length matters.",
+                "Drop your shoulder before the turn.",
+                "Accelerate out of every change of direction."
+            ],
+            setsReps: "4-6 reps, 60s rest"
+        ),
+        SoccerDrill(
+            name: "Wall Pass Combos",
+            category: .passing,
+            difficulty: .beginner,
+            durationMinutes: 10,
+            description: "Pass against a wall alternating between inside foot, outside foot, and instep. Receive and control with both feet.",
+            purpose: "Develop consistent passing technique and first touch.",
+            equipment: "Ball, Wall",
+            steps: [
+                "Stand 5 yards from a flat wall.",
+                "Pass with the inside of your right foot, control with the inside of your left.",
+                "Alternate feet every 5 reps.",
+                "Add an outside-foot variation, then a laces drive.",
+                "Step back to 10 yards for the final 2 minutes."
+            ],
+            cues: [
+                "Plant foot pointed at the target.",
+                "Lock the ankle on contact.",
+                "Cushion the receive — don’t stab at it."
+            ],
+            setsReps: "4 minutes per foot"
+        ),
+        SoccerDrill(
+            name: "Triangle Passing",
+            category: .passing,
+            difficulty: .intermediate,
+            durationMinutes: 15,
+            description: "Set up 3 cones in a triangle. Move around the triangle passing to each cone, mixing one-touch and two-touch passes.",
+            purpose: "Improve passing accuracy and movement off the ball.",
+            steps: [
+                "Set 3 cones in a 10-yard triangle, you at one cone.",
+                "Pass two-touch to the next cone, then jog to receive.",
+                "After 1 lap, switch to one-touch passing.",
+                "Reverse direction every 90 seconds.",
+                "Add a take-and-turn variation in the final round."
+            ],
+            cues: [
+                "Open your hips before the ball arrives.",
+                "First touch into space, not under your body.",
+                "Communicate even alone — call your move."
+            ],
+            setsReps: "3 rounds of 4 minutes"
+        ),
+        SoccerDrill(
+            name: "Long Ball Accuracy",
+            category: .passing,
+            difficulty: .advanced,
+            durationMinutes: 15,
+            description: "Hit long diagonal passes to target zones 30-40 yards away. Alternate between driven passes and lofted balls.",
+            purpose: "Develop range of passing for switching play and through balls.",
+            steps: [
+                "Mark 3 target zones 30, 35, and 40 yards away.",
+                "10 driven passes per zone with the laces.",
+                "10 lofted passes per zone, opening the body.",
+                "Track makes vs. attempts in your head.",
+                "Finish with 5 ‘switch of play’ passes off a moving touch."
+            ],
+            cues: [
+                "Lean back to lift, lean over to drive.",
+                "Strike through the bottom third of the ball for height.",
+                "Follow through toward the target."
+            ],
+            setsReps: "30 reps per technique"
+        ),
+        SoccerDrill(
+            name: "Finishing from Crosses",
+            category: .shooting,
+            difficulty: .intermediate,
+            durationMinutes: 15,
+            description: "Receive crosses from both sides and finish with headers, volleys, and one-touch shots.",
+            purpose: "Improve finishing from wide deliveries and build composure in the box.",
+            steps: [
+                "Position a server on each wing.",
+                "Make a near-post run, finish first-time.",
+                "Reset, make a back-post run for the next ball.",
+                "Alternate sides every 3 reps.",
+                "Add a defender shadow in the final round."
+            ],
+            cues: [
+                "Attack the ball — don’t wait for it.",
+                "Eyes on the ball through contact.",
+                "Redirect, don’t blast — angle beats power."
+            ],
+            setsReps: "3 rounds of 6 finishes"
+        ),
+        SoccerDrill(
+            name: "Shooting Accuracy",
+            category: .shooting,
+            difficulty: .beginner,
+            durationMinutes: 10,
+            description: "Shoot from 18 yards at targets placed in all four corners of the goal. 10 shots per corner.",
+            purpose: "Develop accuracy and consistent shooting technique.",
+            steps: [
+                "Place targets (cones or bottles) in each corner of the goal.",
+                "Set the ball 18 yards out.",
+                "10 shots aiming at the bottom corners first.",
+                "10 shots at the top corners next.",
+                "Track makes — chase 6/10 to each side."
+            ],
+            cues: [
+                "Plant foot 6 inches beside the ball.",
+                "Strike with the laces, toe down.",
+                "Head over the ball to keep it low."
+            ],
+            setsReps: "40 shots total"
+        ),
+        SoccerDrill(
+            name: "Quick-Fire Finishing",
+            category: .shooting,
+            difficulty: .advanced,
+            durationMinutes: 10,
+            description: "Receive rapid passes from different angles and shoot first-time. Emphasize body shape and shot selection.",
+            purpose: "Build quick decision-making and clinical finishing under pressure.",
+            steps: [
+                "Server feeds a ball every 6 seconds from a new angle.",
+                "Finish first-time — no second touch.",
+                "Mix near-post, far-post, and across-keeper finishes.",
+                "Run 12 reps, walk-back recovery between sets."
+            ],
+            cues: [
+                "Pre-scan the goal before the ball arrives.",
+                "Open your body — shape decides the finish.",
+                "Pick a corner before you swing."
+            ],
+            setsReps: "3 sets of 12"
+        ),
+        SoccerDrill(
+            name: "Defensive Slides",
+            category: .defending,
+            difficulty: .beginner,
+            durationMinutes: 10,
+            description: "Lateral shuffle between cones in a defensive stance, staying low and balanced.",
+            purpose: "Build lateral quickness and proper defensive positioning.",
+            equipment: "Cones",
+            steps: [
+                "Set two cones 8 yards apart.",
+                "Drop into defensive stance — knees bent, weight on balls of feet.",
+                "Shuffle to the right cone, touch it, shuffle back.",
+                "Don’t cross your feet at any point.",
+                "Add a backpedal between rounds for variation."
+            ],
+            cues: [
+                "Stay low — if you stand up you’re slow.",
+                "Quick, choppy steps. Don’t over-stride.",
+                "Shoulders square to the attacker."
+            ],
+            setsReps: "6 rounds of 30s"
+        ),
+        SoccerDrill(
+            name: "1v1 Defending",
+            category: .defending,
+            difficulty: .intermediate,
+            durationMinutes: 10,
+            description: "Defend against an attacker in a 10x10 yard box. Focus on jockeying, body position, and timing tackles.",
+            purpose: "Improve 1v1 defending technique and reading attackers.",
+            steps: [
+                "Create a 10x10 yard square.",
+                "Attacker tries to dribble across the line you’re defending.",
+                "Jockey — stay on your toes, don’t commit early.",
+                "Force them to their weak side.",
+                "Time your tackle when their head goes down."
+            ],
+            cues: [
+                "Patience over panic — don’t dive in.",
+                "Show them outside, force the bad angle.",
+                "Win the tackle through the ball, not the leg."
+            ],
+            setsReps: "2 rounds of 5 reps"
+        ),
+        SoccerDrill(
+            name: "Pressing Triggers",
+            category: .defending,
+            difficulty: .advanced,
+            durationMinutes: 15,
+            description: "Practice coordinated pressing patterns: when to press, when to hold, and how to cut passing lanes.",
+            purpose: "Develop tactical awareness and team pressing discipline.",
+            steps: [
+                "Set up a 4v4+2 in a 25x25 yard grid.",
+                "Identify pressing triggers: bad first touch, back-pass, ball in the air.",
+                "On the trigger, the nearest player presses, others cover the lanes.",
+                "Reset every 90 seconds.",
+                "Coach calls the trigger — react fast."
+            ],
+            cues: [
+                "Press as a unit — first man cuts the line, second man supports.",
+                "Sprint the first 5 yards, jockey the rest.",
+                "Talk — silent presses break."
+            ],
+            setsReps: "4 rounds of 3 minutes"
+        ),
+        SoccerDrill(
+            name: "GK Reaction Saves",
+            category: .goalkeeping,
+            difficulty: .intermediate,
+            durationMinutes: 15,
+            description: "Face rapid shots from 12 yards. Focus on set position, reaction time, and hand positioning.",
+            purpose: "Sharpen reflexes and shot-stopping ability.",
+            equipment: "Ball, Goal",
+            steps: [
+                "Server feeds 10 shots from 12 yards.",
+                "Set position before each shot — hands ready.",
+                "After 10 shots, take 30 seconds rest.",
+                "Run 5 sets, vary shot height and angle.",
+                "Add a deflection screen for the final set."
+            ],
+            cues: [
+                "Hands at hip height, slightly forward.",
+                "Push off the back foot, don’t step into the save.",
+                "Strong wrists — catch when you can, parry wide when you can’t."
+            ],
+            setsReps: "5 sets of 10 shots"
+        ),
+        SoccerDrill(
+            name: "GK Distribution",
+            category: .goalkeeping,
+            difficulty: .beginner,
+            durationMinutes: 10,
+            description: "Practice goal kicks, throws, and punt kicks to targets at various distances.",
+            purpose: "Improve accuracy and range of goalkeeper distribution.",
+            equipment: "Ball, Goal, Cones",
+            steps: [
+                "Place targets at 15, 25, and 40 yards.",
+                "5 rolls and overarm throws to the close target.",
+                "5 driven goal kicks to the mid target.",
+                "5 punt kicks to the long target.",
+                "Track on-target percentage to each."
+            ],
+            cues: [
+                "Step into every distribution — don’t flick.",
+                "Eye on the target before release.",
+                "Lower body drives the long balls."
+            ],
+            setsReps: "15 reps per technique"
+        ),
+        SoccerDrill(
+            name: "Shuttle Runs",
+            category: .conditioning,
+            difficulty: .intermediate,
+            durationMinutes: 10,
+            description: "Sprint 10-20-30-40 yard shuttles with walk-back recovery. 6-8 sets.",
+            purpose: "Build match-specific endurance and repeated sprint ability.",
+            equipment: "Cones",
+            steps: [
+                "Set cones at 10, 20, 30, 40 yards.",
+                "Sprint to 10 and back, 20 and back, 30 and back, 40 and back.",
+                "That’s one set. Walk-back rest 60 seconds.",
+                "Repeat for 6-8 total sets."
+            ],
+            cues: [
+                "Drive your knees on the acceleration.",
+                "Plant low and explode out of every turn.",
+                "Don’t pace yourself — every sprint is full."
+            ],
+            setsReps: "6-8 sets"
+        ),
+        SoccerDrill(
+            name: "Box-to-Box Intervals",
+            category: .conditioning,
+            difficulty: .advanced,
+            durationMinutes: 15,
+            description: "Sprint from one penalty box to the other, jog back. 10-12 reps with 30-second rest between.",
+            purpose: "Simulate match intensity for midfielders and develop cardiovascular capacity.",
+            equipment: "Pitch",
+            steps: [
+                "Start on the edge of one penalty box.",
+                "Sprint to the far penalty box.",
+                "Jog back at recovery pace.",
+                "Rest 30 seconds at the start.",
+                "Repeat for 10-12 total intervals."
+            ],
+            cues: [
+                "Run tall — don’t slump as you fatigue.",
+                "Breathe in 2, out 2 through the sprint.",
+                "Save just enough for the last rep."
+            ],
+            setsReps: "10-12 intervals"
+        ),
     ]
 }
