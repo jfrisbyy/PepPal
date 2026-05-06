@@ -78,6 +78,23 @@ struct SignUpView: View {
                 .disabled(!isFormValid || isLoading)
                 .opacity(isFormValid ? 1 : 0.6)
 
+                HStack(spacing: 10) {
+                    Rectangle().fill(PepTheme.glassBorderBottom).frame(height: 0.5)
+                    Text("or")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Rectangle().fill(PepTheme.glassBorderBottom).frame(height: 0.5)
+                }
+
+                SocialSignInButtonsView(
+                    mode: .signUp,
+                    onCompletion: { dismiss() },
+                    onError: { message in
+                        errorMessage = message
+                        showError = true
+                    }
+                )
+
                 HStack(spacing: 4) {
                     Text("Already have an account?")
                         .foregroundStyle(PepTheme.textSecondary)

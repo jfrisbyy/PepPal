@@ -101,6 +101,23 @@ struct LoginView: View {
                     .disabled(isLoading || email.isEmpty || password.isEmpty)
                     .opacity(email.isEmpty || password.isEmpty ? 0.6 : 1)
 
+                    HStack(spacing: 10) {
+                        Rectangle().fill(PepTheme.glassBorderBottom).frame(height: 0.5)
+                        Text("or")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Rectangle().fill(PepTheme.glassBorderBottom).frame(height: 0.5)
+                    }
+
+                    SocialSignInButtonsView(
+                        mode: .signIn,
+                        onCompletion: {},
+                        onError: { message in
+                            errorMessage = message
+                            showError = true
+                        }
+                    )
+
                     HStack(spacing: 4) {
                         Text("Don't have an account?")
                             .foregroundStyle(PepTheme.textSecondary)
