@@ -16,9 +16,11 @@ nonisolated enum SearchRanker: Sendable {
             if c.hasPrefix(q) { best = max(best, 850) ; continue }
             if hasWordBoundaryPrefix(c, q) { best = max(best, 700) ; continue }
             if c.contains(q) { best = max(best, 550) ; continue }
-            if let dist = bestEditDistance(query: q, in: c), dist <= max(1, q.count / 4) {
+            let tolerance = max(1, q.count / 4)
+            if let dist = bestEditDistance(query: q, in: c), dist <= tolerance {
                 // Closer match = higher score; cap so it ranks below substring matches.
-                let bonus = max(0, 400 - dist * 80)
+                let cappedDist = min(dist, 5)
+                let bonus = max(0, 400 - cappedDist * 80)
                 best = max(best, bonus)
             }
         }
@@ -52,7 +54,10 @@ nonisolated enum SearchRanker: Sendable {
         if qLen > hChars.count + 2 { return nil }
         let windowMin = max(qLen - 1, 1)
         let windowMax = min(qLen + 1, hChars.count)
-        var bestDist: Int = .max
+        guard windowMin <= windowMax else { return nil }
+        // Use a bounded ceiling instead of Int.max to avoid overflow downstream.
+        let hardCeiling = max(qLen, 16)
+        var bestDist: Int = hardCeiling
         // Slide windows of length qLen-1, qLen, qLen+1
         for wLen in windowMin...windowMax {
             if wLen > hChars.count { continue }
@@ -65,11 +70,12 @@ nonisolated enum SearchRanker: Sendable {
                 i += 1
             }
         }
-        return bestDist == .max ? nil : bestDist
+        return bestDist >= hardCeiling ? nil : bestDist
     }
 
     private static func levenshtein(_ a: [Character], _ b: [Character], ceiling: Int) -> Int {
         let n = a.count, m = b.count
+        guard n > 0, m > 0 else { return max(n, m) }
         if abs(n - m) > ceiling { return ceiling }
         var prev = Array(0...m)
         var curr = [Int](repeating: 0, count: m + 1)
