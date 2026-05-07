@@ -237,12 +237,60 @@ final class BodyGoalsService {
                 payload: JourneyEventPayload(weightLbs: weightValue, note: weightNote.isEmpty ? nil : weightNote)
             )
         }
+        // Long-horizon memory: flag a milestone when the user crosses a 5%
+        // bodyweight threshold vs. the last milestone (or starting weight).
+        await Self.detectWeightMilestone(currentWeight: weightValue, date: weightDate)
         return WeightEntry(
             id: UUID(uuidString: result.id ?? "") ?? UUID(),
             weight: result.weight,
             date: parseDate(result.logged_at),
             note: result.note ?? "",
             supabaseId: result.id
+        )
+    }
+
+    /// Detect a >=5% weight delta vs the last recorded milestone (or the
+    /// starting weight if no milestones exist yet) and append a
+    /// `weight_milestone` event. Best-effort — silent on failure so a logged
+    /// weight is never blocked.
+    private static func detectWeightMilestone(currentWeight: Double, date: Date) async {
+        let snapshot = await LongTermMemoryService.shared.fetch()
+        let priorMilestones = snapshot.events.filter { $0.type == "weight_milestone" }
+        let baseline: Double?
+        if let last = priorMilestones.first, let v = last.values?["weight_lbs"], let parsed = Double(v) {
+            baseline = parsed
+        } else if let v = snapshot.events.first(where: { $0.type == "starting_weight" })?.values?["weight_lbs"], let parsed = Double(v) {
+            baseline = parsed
+        } else {
+            // First weight ever — stamp it as the starting baseline.
+            await LongTermMemoryService.shared.appendEvent(
+                type: "starting_weight",
+                summary: String(format: "Starting weight recorded: %.1f lbs", currentWeight),
+                values: ["weight_lbs": String(format: "%.1f", currentWeight)],
+                source: "weight",
+                at: date
+            )
+            return
+        }
+        guard let base = baseline, base > 0 else { return }
+        let deltaPct = abs(currentWeight - base) / base
+        guard deltaPct >= 0.05 else { return }
+        let direction = currentWeight < base ? "down" : "up"
+        let summary = String(
+            format: "Weight milestone: %.1f lbs (%@ %.1f%% from %.1f baseline)",
+            currentWeight, direction, deltaPct * 100, base
+        )
+        await LongTermMemoryService.shared.appendEvent(
+            type: "weight_milestone",
+            summary: summary,
+            values: [
+                "weight_lbs": String(format: "%.1f", currentWeight),
+                "baseline_lbs": String(format: "%.1f", base),
+                "delta_pct": String(format: "%.1f", deltaPct * 100),
+                "direction": direction
+            ],
+            source: "weight",
+            at: date
         )
     }
 

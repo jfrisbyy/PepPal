@@ -128,6 +128,33 @@ final class BloodworkService {
         for result in results {
             _ = try await addBiomarkerResult(entryId: entryId, biomarker: result.biomarker.rawValue, value: result.value)
         }
+        // Long-horizon memory: record this panel as a significant event so the
+        // AI can reference "your March 12 lipid panel…" months from now.
+        let summary: String
+        if results.isEmpty {
+            summary = "Bloodwork panel uploaded"
+        } else {
+            let preview = results.prefix(6).map { r in
+                "\(r.biomarker.rawValue)=\(formatValue(r.value))"
+            }.joined(separator: ", ")
+            let suffix = results.count > 6 ? ", +\(results.count - 6) more" : ""
+            summary = "Bloodwork: \(preview)\(suffix)"
+        }
+        var values: [String: String] = [:]
+        for r in results {
+            values[r.biomarker.rawValue] = formatValue(r.value)
+        }
+        await LongTermMemoryService.shared.appendEvent(
+            type: "bloodwork_uploaded",
+            summary: summary,
+            values: values.isEmpty ? nil : values,
+            source: "bloodwork"
+        )
+    }
+
+    private func formatValue(_ v: Double) -> String {
+        if v.truncatingRemainder(dividingBy: 1) == 0 { return String(format: "%.0f", v) }
+        return String(format: "%.2f", v)
     }
 
     func deleteEntry(entryId: String) async throws {

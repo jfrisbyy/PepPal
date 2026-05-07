@@ -391,6 +391,31 @@ final class ProtocolService {
 
         Task { await MainActor.run { Task { await CompoundStatsService.shared.refresh() } } }
 
+        // Long-horizon memory: stamp the protocol start so the AI can
+        // reference it months later ("started Reta on Feb 4").
+        let mainCompound = proto.compounds.first?.compoundName ?? proto.name
+        let protoTotalWeeks = proto.totalWeeks ?? 0
+        let goal = proto.goal.rawValue
+        let compoundList = proto.compounds.map(\.compoundName).joined(separator: ", ")
+        let summary = compoundList.isEmpty
+            ? "Started protocol: \(proto.name) (\(goal))"
+            : "Started protocol: \(proto.name) — \(compoundList) (\(goal)\(protoTotalWeeks > 0 ? ", \(protoTotalWeeks)wk" : ""))"
+        var values: [String: String] = [
+            "protocol_name": proto.name,
+            "goal": goal,
+            "compound": mainCompound
+        ]
+        if protoTotalWeeks > 0 { values["total_weeks"] = String(protoTotalWeeks) }
+        Task.detached {
+            await LongTermMemoryService.shared.appendEvent(
+                type: "protocol_started",
+                summary: summary,
+                values: values,
+                source: "protocol",
+                at: proto.startDate
+            )
+        }
+
         // Fan out to friends if sharing protocols is enabled
         let sharePrefs = await StatSharingService.shared.currentUserPrefs
         if sharePrefs.isEnabled, sharePrefs.categories.contains(.protocols) {

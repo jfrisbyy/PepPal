@@ -219,6 +219,13 @@ final class TodaysPlanService {
     ) async throws -> TodaysPlanResponse {
         let resolvedTier: AIModelTier = (tier == .fast && (previousMemo?.isEmpty ?? true)) ? .deep : tier
         let contextString = context.toPromptString()
+
+        // Long-horizon memory — the curated profile memo + significant events
+        // that span the user's full history. Both tiers READ this; only the
+        // deep tier WRITES it back at the end of the run.
+        let longTerm = await LongTermMemoryService.shared.fetch()
+        let longTermSection = LongTermMemoryService.promptSection(from: longTerm)
+
         let systemPrompt: String
         let userPrompt: String
         let maxTokens: Int
@@ -226,7 +233,7 @@ final class TodaysPlanService {
         switch resolvedTier {
         case .deep:
             systemPrompt = systemPromptWithMemory() + "\n\n" + Self.deepMemoAddendum
-            userPrompt = "Generate today's plan dashboard based on this user data:\n\n\(contextString)"
+            userPrompt = Self.deepUserPrompt(longTermSection: longTermSection, contextString: contextString)
             // p95 plan output ~900 tokens; 1400 leaves buffer for the new
             // patternsMemo on outlier days.
             maxTokens = 1400
@@ -234,6 +241,7 @@ final class TodaysPlanService {
             systemPrompt = systemPromptWithMemory() + "\n\n" + Self.fastUpdateAddendum
             userPrompt = Self.fastUserPrompt(
                 memo: previousMemo ?? "",
+                longTermSection: longTermSection,
                 previousBrief: previousBrief,
                 contextString: contextString
             )
@@ -264,7 +272,7 @@ final class TodaysPlanService {
         // Carry the memo forward when Haiku ran but didn't restate it (allowed
         // by the prompt — saves output tokens). Stamp the model tier inline.
         let memoOut = parsed.patternsMemo?.isEmpty == false ? parsed.patternsMemo : previousMemo
-        return TodaysPlanResponse(
+        let response = TodaysPlanResponse(
             summary: parsed.summary,
             modules: parsed.modules,
             actionItems: parsed.actionItems,
@@ -272,6 +280,101 @@ final class TodaysPlanService {
             patternsMemo: memoOut,
             modelTier: resolvedTier.rawValue
         )
+
+        // Deep path: kick off the memo updater in the background so the brief
+        // surfaces to the user immediately. The updater runs Sonnet again with
+        // a tiny prompt (current memo + events + today's brief) and writes the
+        // rewritten memo back to Supabase. Failures are swallowed — the brief
+        // already returned successfully.
+        if resolvedTier == .deep {
+            let snapshot = longTerm
+            Task.detached { [response] in
+                await Self.runMemoUpdater(
+                    previous: snapshot,
+                    contextString: contextString,
+                    brief: response
+                )
+            }
+        }
+
+        return response
+    }
+
+    // MARK: - Memo updater (deep path only)
+
+    /// Rewrites the durable `profile_memo` after each deep (Sonnet) run.
+    /// Input: current memo + significant events + today's context + today's
+    /// brief. Output: a new memo (plain text, capped) that incorporates any
+    /// new durable signals from the past day. Best-effort — failures don't
+    /// affect the brief that already shipped to the user.
+    private static func runMemoUpdater(
+        previous: LongTermMemoryService.LongTermMemorySnapshot,
+        contextString: String,
+        brief: TodaysPlanResponse
+    ) async {
+        let priorBlock = previous.memo.isEmpty
+            ? "(none — this is the first memo for this user; create one from scratch using the context and today's brief)"
+            : previous.memo
+        let rawEvents = LongTermMemoryService.promptSection(from: previous, includeMemo: false)
+        let eventsBlock = rawEvents.isEmpty ? "(no recorded significant events yet)" : rawEvents
+
+        var briefSummary = brief.summary
+        if let body = brief.narrative?.body, !body.isEmpty {
+            briefSummary += "\n\nNarrative body:\n" + body
+        }
+        if !brief.modules.isEmpty {
+            let mods = brief.modules.map { "- [\($0.type)] \($0.title): \($0.content)" }.joined(separator: "\n")
+            briefSummary += "\n\nModules:\n" + mods
+        }
+
+        let system = """
+        You are the long-horizon memory curator for a health and protocol tracking app. You maintain a single, compact, plain-text profile memo per user — the durable cross-session understanding the next deep brief will read. Quality bar: a coach reading the memo cold should be able to write a high-quality brief without ever seeing the user's raw logs.
+
+        REWRITE RULES:
+        - Output ONLY the new memo text. No preamble, no JSON, no markdown, no headings, no bullets — plain prose, short paragraphs separated by blank lines is fine.
+        - Hard cap: 900 words. Aim for ~600. Density over coverage.
+        - Keep every still-relevant fact from the prior memo. Drop facts that are clearly superseded by newer data.
+        - Add new durable signals from today's context + today's brief: trends, what worked, what failed, recurring side effects, prior PRs, prior bloodwork, prior protocols/programs tried, behavioral patterns, dietary preferences, equipment, injuries, voice/tone preferences.
+        - Reference significant events by their dates when they matter ("March 12 lipid panel showed…", "started Reta on Feb 4").
+        - Never restate ephemeral single-day numbers (today's calorie count, today's dose). Those belong in the brief, not the memo.
+        - Do not address the user. This text is internal coaching context.
+        - No emojis. No markdown. No section headers like "Background:".
+        """
+
+        let userPrompt = """
+        PRIOR MEMO (rewrite, don't append):
+        \(priorBlock)
+
+        SIGNIFICANT EVENTS (chronological, newest first — keep references to anything still relevant):
+        \(eventsBlock)
+
+        TODAY'S CONTEXT (raw data the brief was built from):
+        \(contextString)
+
+        TODAY'S BRIEF (what the user just saw — extract any durable insight worth carrying forward):
+        \(briefSummary)
+
+        Produce the new memo now.
+        """
+
+        let body: [String: Any] = [
+            "model": AIModelTier.deep.modelID,
+            "messages": [
+                ["role": "system", "content": system],
+                ["role": "user", "content": userPrompt]
+            ],
+            "max_tokens": 1100,
+            "temperature": 0.4
+        ]
+        do {
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 45)
+            let content = try AIProxyClient.extractContent(data)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !content.isEmpty else { return }
+            await LongTermMemoryService.shared.saveMemo(content, model: AIModelTier.deep.modelID)
+        } catch {
+            print("[TodaysPlan] memo updater failed: \(error)")
+        }
     }
 
     // MARK: - Tier-specific prompt addenda
@@ -314,10 +417,24 @@ final class TodaysPlanService {
     - You MAY include the patternsMemo field unchanged in your output (echoing it is fine), or omit it — either way the orchestration layer will carry the prior memo forward.
     """
 
-    private static func fastUserPrompt(memo: String, previousBrief: TodaysPlanResponse?, contextString: String) -> String {
+    private static func deepUserPrompt(longTermSection: String, contextString: String) -> String {
+        var sections: [String] = []
+        if !longTermSection.isEmpty {
+            sections.append(longTermSection)
+        }
+        sections.append("TODAY'S CONTEXT (live data — every number in your output must match this):")
+        sections.append(contextString)
+        sections.append("Generate today's plan dashboard. Reference the long-term memo and significant events wherever they add depth — do not rediscover patterns the memo already captures. Update them only when today's data clearly contradicts.")
+        return sections.joined(separator: "\n\n")
+    }
+
+    private static func fastUserPrompt(memo: String, longTermSection: String, previousBrief: TodaysPlanResponse?, contextString: String) -> String {
         var sections: [String] = []
         sections.append("PATTERN MEMO (from latest deep pass — authoritative for cross-domain context):")
         sections.append(memo.isEmpty ? "(none — derive patterns from CURRENT CONTEXT only)" : memo)
+        if !longTermSection.isEmpty {
+            sections.append(longTermSection)
+        }
         if let prev = previousBrief, let prevJSON = encodePreviousBrief(prev) {
             sections.append("PREVIOUS BRIEF (currently on the user's screen — match its voice):")
             sections.append(prevJSON)
