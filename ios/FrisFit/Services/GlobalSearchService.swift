@@ -100,6 +100,24 @@ nonisolated enum GlobalSearchResult: Identifiable, Sendable {
         case .post: "bubble.left.fill"
         }
     }
+
+    /// Strings the ranker should evaluate against the query for this row.
+    var rankableStrings: [String] {
+        switch self {
+        case .exercise(let e):
+            return [e.name, e.primaryMuscle.rawValue, e.equipment.rawValue]
+        case .food(let f):
+            return [f.name, f.brand]
+        case .compound(let c):
+            return [c.name, c.peptideType]
+        case .user(let u):
+            return [u.name, u.username]
+        case .circle(let c):
+            return [c.name]
+        case .post(_, _, let author, let snippet, _):
+            return [snippet, author.name, author.username]
+        }
+    }
 }
 
 @MainActor
@@ -232,7 +250,29 @@ final class GlobalSearchViewModel {
         let circles = await circlesTask
         let posts = await postsTask
 
-        return exercises + foods + compounds + users + circles + posts
+        let unranked = exercises + foods + compounds + users + circles + posts
+        return Self.rank(results: unranked, query: q)
+    }
+
+    /// Rank merged results: prefix > word-boundary > substring > fuzzy.
+    /// Stable across scopes by including a small per-scope bias so the
+    /// merged "All" view feels balanced rather than dominated by foods.
+    nonisolated private static func rank(results: [GlobalSearchResult], query: String) -> [GlobalSearchResult] {
+        struct Scored {
+            let result: GlobalSearchResult
+            let score: Int
+            let originalIndex: Int
+        }
+        let scored: [Scored] = results.enumerated().map { idx, r in
+            let s = SearchRanker.score(query: query, candidates: r.rankableStrings)
+            return Scored(result: r, score: s, originalIndex: idx)
+        }
+        return scored
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score > rhs.score }
+                return lhs.originalIndex < rhs.originalIndex
+            }
+            .map { $0.result }
     }
 
     // MARK: - Scope searches

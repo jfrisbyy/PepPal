@@ -174,7 +174,7 @@ final class SocialViewModel {
         }
     }
 
-    private func buildFeedPost(from sp: SupabaseFeedPostWithProfile) -> FeedPost? {
+    func buildFeedPost(from sp: SupabaseFeedPostWithProfile) -> FeedPost? {
         let user = socialService.socialUserFromAuthor(sp.profiles)
         let tags = (sp.tags ?? []).compactMap { FeedTag(rawValue: $0) }
         var mediaItems: [FeedMediaItem] = (sp.media_urls ?? []).map { url in
