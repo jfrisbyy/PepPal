@@ -27,21 +27,25 @@ struct UserProfileView: View {
     private let profileService = ProfileService.shared
     private let likeManager = LikeManager.shared
 
-    enum UserProfileTab: String, CaseIterable {
+    enum UserProfileTab: String, CaseIterable, Hashable {
         case posts = "Posts"
+        case activity = "Activity"
         case about = "About"
     }
 
-
+    private var availableTabs: [UserProfileTab] {
+        if friendStatus == .accepted {
+            return [.posts, .activity, .about]
+        }
+        return [.posts, .about]
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                bannerHeader
-                profileInfo
-                    .padding(.horizontal, 16)
+                unifiedHeader
                 tabSection
-                    .padding(.top, 20)
+                    .padding(.top, 22)
             }
             .padding(.bottom, 32)
         }
@@ -162,85 +166,114 @@ struct UserProfileView: View {
         }
     }
 
-    private var bannerHeader: some View {
-        ZStack(alignment: .bottomLeading) {
-            Group {
-                if let urlString = bannerUrlString, let url = URL(string: urlString) {
-                    Color(.secondarySystemBackground)
-                        .frame(height: 130)
-                        .overlay {
-                            AsyncImage(url: url) { phase in
-                                if let image = phase.image {
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .allowsHitTesting(false)
-                                }
-                            }
-                        }
-                        .clipped()
-                } else {
-                    LinearGradient(
-                        colors: [
-                            user.avatarColor.opacity(0.18),
-                            PepTheme.background
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .frame(height: 130)
-                    .overlay(alignment: .bottom) {
-                        Rectangle()
-                            .fill(PepTheme.separatorColor)
-                            .frame(height: 0.5)
-                    }
-                }
+    private var unifiedHeader: some View {
+        UnifiedProfileHeader(
+            bannerUrl: bannerUrlString,
+            avatarUrl: user.avatarURL,
+            avatarInitials: user.avatarInitial,
+            avatarColor: user.avatarColor,
+            displayName: user.name,
+            username: user.username,
+            userIdString: user.id.uuidString,
+            followingCount: followingCount,
+            followerCount: followerCount,
+            friendCount: nil,
+            isUploadingAvatar: false
+        ) {
+            if !isLoadingRelationship {
+                headerActions
             }
-
-            Circle()
-                .fill(PepTheme.background)
-                .frame(width: 88, height: 88)
-                .overlay {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [user.avatarColor.opacity(0.8), user.avatarColor.opacity(0.4)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 80, height: 80)
-                        .overlay {
-                            if let urlString = user.avatarURL,
-                               let url = URL(string: urlString),
-                               !urlString.isEmpty {
-                                AsyncImage(url: url) { phase in
-                                    switch phase {
-                                    case .success(let image):
-                                        image.resizable().aspectRatio(contentMode: .fill)
-                                    default:
-                                        Text(user.avatarInitial)
-                                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                                            .foregroundStyle(.white)
-                                    }
-                                }
-                                .frame(width: 80, height: 80)
-                                .clipShape(Circle())
-                                .allowsHitTesting(false)
-                            } else {
-                                Text(user.avatarInitial)
-                                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.white)
-                            }
-                        }
-                        .clipShape(Circle())
-                }
-                .offset(x: 16, y: 44)
         }
-        .padding(.bottom, 48)
     }
 
-    private var profileInfo: some View {
+    @ViewBuilder
+    private var headerActions: some View {
+        HStack(spacing: 8) {
+            Button {
+                let wasFollowing = isFollowing
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                    isFollowing.toggle()
+                    followerCount += isFollowing ? 1 : -1
+                    followBounce += 1
+                }
+                Task {
+                    do {
+                        if wasFollowing {
+                            try await messagingService.unfollowUser(
+                                followerId: AuthService.shared.currentUserId(),
+                                followingId: user.id.uuidString
+                            )
+                        } else {
+                            try await messagingService.followUser(
+                                followerId: AuthService.shared.currentUserId(),
+                                followingId: user.id.uuidString
+                            )
+                        }
+                    } catch {
+                        isFollowing = wasFollowing
+                        followerCount += wasFollowing ? 1 : -1
+                    }
+                }
+            } label: {
+                Text(isFollowing ? "Following" : "Follow")
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(isFollowing ? PepTheme.textPrimary : .black)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(isFollowing ? PepTheme.elevated : PepTheme.teal)
+                    .clipShape(.capsule)
+                    .overlay(
+                        Capsule().strokeBorder(
+                            isFollowing ? PepTheme.glassBorderTop : .clear,
+                            lineWidth: 0.5
+                        )
+                    )
+            }
+            .sensoryFeedback(.impact(weight: .medium), trigger: followBounce)
+
+            Button {
+                guard friendStatus == .none else { return }
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                    friendStatus = .pending
+                    friendBounce += 1
+                }
+                Task {
+                    do {
+                        try await messagingService.sendFriendRequest(
+                            senderId: AuthService.shared.currentUserId(),
+                            receiverId: user.id.uuidString
+                        )
+                    } catch {
+                        friendStatus = .none
+                    }
+                }
+            } label: {
+                Image(systemName: friendIcon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(friendIconColor)
+                    .frame(width: 34, height: 34)
+                    .background(PepTheme.elevated)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                    )
+            }
+            .sensoryFeedback(.impact(weight: .light), trigger: friendBounce)
+            .disabled(friendStatus == .accepted)
+        }
+    }
+
+    private var contextStrip: some View {
+        ProfileContextStrip(
+            bio: "",
+            activeProgram: user.activeProgramName,
+            phase: nil,
+            memberSinceText: nil,
+            socialLinks: []
+        )
+    }
+
+    private var legacyProfileInfo: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -369,7 +402,7 @@ struct UserProfileView: View {
             }
             .padding(.top, 8)
 
-            friendStatusBadge
+            EmptyView()
         }
     }
 
@@ -389,30 +422,10 @@ struct UserProfileView: View {
         }
     }
 
-    @ViewBuilder
-    private var friendStatusBadge: some View {
-        switch friendStatus {
-        case .none:
-            EmptyView()
-        case .pending:
-            Text("REQUEST PENDING")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(1.4)
-                .foregroundStyle(PepTheme.amber.opacity(0.9))
-                .padding(.top, 6)
-        case .accepted:
-            Text("FRIENDS")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(1.4)
-                .foregroundStyle(PepTheme.textSecondary)
-                .padding(.top, 6)
-        }
-    }
-
     private var tabSection: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                ForEach(UserProfileTab.allCases, id: \.self) { tab in
+                ForEach(availableTabs, id: \.self) { tab in
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             selectedTab = tab
@@ -425,15 +438,19 @@ struct UserProfileView: View {
                                 .frame(maxWidth: .infinity)
 
                             Rectangle()
-                                .fill(selectedTab == tab ? PepTheme.teal : .clear)
-                                .frame(height: 2)
-                                .clipShape(.capsule)
+                                .fill(selectedTab == tab ? PepTheme.textPrimary : .clear)
+                                .frame(height: 1)
                         }
                     }
                     .sensoryFeedback(.selection, trigger: selectedTab)
                 }
             }
             .padding(.horizontal, 16)
+            .onChange(of: friendStatus) { _, _ in
+                if !availableTabs.contains(selectedTab) {
+                    selectedTab = .posts
+                }
+            }
 
             Divider()
                 .overlay(PepTheme.separatorColor)
@@ -441,14 +458,51 @@ struct UserProfileView: View {
             switch selectedTab {
             case .posts:
                 postsContent
+            case .activity:
+                activityContent
             case .about:
                 aboutContent
             }
         }
     }
 
+    private var activityContent: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            SectionEyebrow("Recent Activity", number: "01", accent: PepTheme.violet)
+                .padding(.horizontal, 16)
+                .padding(.top, 18)
+
+            let events = MockFriendsService.shared.activityEvents().filter { $0.user.id == user.id }
+
+            if events.isEmpty {
+                emptyState(
+                    icon: "sparkles",
+                    title: "Quiet for now",
+                    message: "\(user.name) hasn't logged anything new yet. Check back soon."
+                )
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(events.prefix(8).enumerated()), id: \.element.id) { idx, event in
+                        FriendActivityRow(event: event)
+                        if idx < min(events.count, 8) - 1 {
+                            Divider().overlay(PepTheme.separatorColor).padding(.leading, 52)
+                        }
+                    }
+                }
+                .background(PepTheme.cardSurface, in: .rect(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                )
+                .padding(.horizontal, 16)
+            }
+        }
+        .padding(.bottom, 12)
+    }
+
     private var postsContent: some View {
         LazyVStack(spacing: 0) {
+            contextStrip
             if isLoadingPosts {
                 ProgressView()
                     .padding(.vertical, 32)

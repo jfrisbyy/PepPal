@@ -30,11 +30,9 @@ struct ProfileView: View {
                         .transition(.opacity)
                 } else {
                     VStack(spacing: 0) {
-                        bannerHeader
-                        profileInfo
-                            .padding(.horizontal, 16)
+                        unifiedHeader
                         tabSection
-                            .padding(.top, 20)
+                            .padding(.top, 22)
                     }
                     .padding(.bottom, 32)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
@@ -121,87 +119,45 @@ struct ProfileView: View {
         }
     }
 
-    private var bannerHeader: some View {
-        ZStack(alignment: .bottomLeading) {
-            Group {
-                if let image = bannerStore.bannerImage {
-                    Color(.secondarySystemBackground)
-                        .frame(height: 130)
-                        .overlay {
-                            Image(uiImage: image)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .allowsHitTesting(false)
-                        }
-                        .clipped()
-                } else if let urlString = viewModel.profile.bannerUrl, let url = URL(string: urlString) {
-                    Color(.secondarySystemBackground)
-                        .frame(height: 130)
-                        .overlay {
-                            AsyncImage(url: url) { phase in
-                                if let image = phase.image {
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .allowsHitTesting(false)
-                                }
-                            }
-                        }
-                        .clipped()
-                } else {
-                    LinearGradient(
-                        colors: [
-                            PepTheme.teal.opacity(0.10),
-                            PepTheme.background
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
+    private var unifiedHeader: some View {
+        UnifiedProfileHeader(
+            bannerImage: bannerStore.bannerImage,
+            bannerUrl: viewModel.profile.bannerUrl,
+            avatarUrl: viewModel.profile.avatarUrl,
+            avatarInitials: viewModel.profile.initials,
+            avatarColor: viewModel.profile.avatarColor,
+            displayName: viewModel.profile.displayName,
+            username: viewModel.profile.username,
+            userIdString: viewModel.profile.id.uuidString,
+            followingCount: viewModel.profile.followingCount,
+            followerCount: viewModel.profile.followerCount,
+            friendCount: viewModel.profile.friendCount,
+            isUploadingAvatar: isUploadingAvatar
+        ) {
+            Button {
+                showEditProfile = true
+            } label: {
+                Text("Edit Profile")
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(PepTheme.elevated)
+                    .clipShape(.capsule)
+                    .overlay(
+                        Capsule().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
                     )
-                    .frame(height: 130)
-                    .overlay(alignment: .bottom) {
-                        Rectangle()
-                            .fill(PepTheme.separatorColor)
-                            .frame(height: 0.5)
-                    }
-                }
             }
-
-            ZStack(alignment: .bottomTrailing) {
-                Circle()
-                    .fill(PepTheme.background)
-                    .frame(width: 88, height: 88)
-                    .overlay {
-                        if isUploadingAvatar {
-                            Circle()
-                                .fill(PepTheme.background)
-                                .frame(width: 80, height: 80)
-                                .overlay {
-                                    ProgressView()
-                                        .controlSize(.regular)
-                                        .tint(PepTheme.teal)
-                                }
-                        } else {
-                            ProfileAvatarView(
-                                avatarUrl: viewModel.profile.avatarUrl,
-                                initials: viewModel.profile.initials,
-                                avatarColor: viewModel.profile.avatarColor,
-                                size: 80
-                            )
-                        }
-                    }
-
-                PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                    Image(systemName: "camera")
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .frame(width: 26, height: 26)
-                        .background(PepTheme.background)
-                        .clipShape(Circle())
-                        .overlay(Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5))
-                }
-                .offset(x: -2, y: -2)
+        } avatarBadge: {
+            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                Image(systemName: "camera")
+                    .font(.system(size: 10, weight: .regular))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .frame(width: 26, height: 26)
+                    .background(PepTheme.background)
+                    .clipShape(Circle())
+                    .overlay(Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5))
             }
-            .offset(x: 16, y: 44)
             .onChange(of: selectedPhoto) { _, newValue in
                 guard let newValue else { return }
                 Task {
@@ -213,132 +169,26 @@ struct ProfileView: View {
                 }
             }
         }
-        .padding(.bottom, 48)
     }
 
-    private var profileInfo: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(viewModel.profile.displayName)
-                        .font(.system(.title2, design: .rounded, weight: .bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-
-                    Text("@\(viewModel.profile.username)")
-                        .font(.subheadline)
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-
-                Spacer()
-
-                Button {
-                    showEditProfile = true
-                } label: {
-                    Text("Edit Profile")
-                        .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(PepTheme.elevated)
-                        .clipShape(.capsule)
-                        .overlay(
-                            Capsule().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
-                        )
-                }
-            }
-
-            if !viewModel.profile.bio.isEmpty {
-                Text(viewModel.profile.bio)
-                    .font(.subheadline)
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .lineSpacing(3)
-                    .padding(.top, 4)
-            }
-
-            HStack(spacing: 10) {
-                if let program = viewModel.profile.activeProgram {
-                    Text(program.uppercased())
-                        .font(.system(size: 10, weight: .semibold))
-                        .tracking(1.6)
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
-
-                    Text("—")
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundStyle(PepTheme.textSecondary.opacity(0.45))
-                }
-
-                Text(viewModel.memberSinceFormatted.uppercased())
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(1.6)
-                    .foregroundStyle(PepTheme.textSecondary.opacity(0.9))
-            }
-            .padding(.top, 6)
-
-            socialIconsRow
-
-            HStack(spacing: 20) {
-                NavigationLink(value: FollowListDestination.following(userId: viewModel.profile.id.uuidString, username: viewModel.profile.displayName)) {
-                    followStat(count: viewModel.profile.followingCount, label: "Following")
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(value: FollowListDestination.followers(userId: viewModel.profile.id.uuidString, username: viewModel.profile.displayName)) {
-                    followStat(count: viewModel.profile.followerCount, label: "Followers")
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(value: FollowListDestination.friends(userId: viewModel.profile.id.uuidString, username: viewModel.profile.displayName)) {
-                    followStat(count: viewModel.profile.friendCount, label: "Friends")
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.top, 8)
-        }
-    }
-
-    @ViewBuilder
-    private var socialIconsRow: some View {
+    private var contextStrip: some View {
         let entries: [(SocialPlatform, String?)] = [
             (.instagram, viewModel.profile.instagramHandle),
             (.twitter, viewModel.profile.twitterHandle),
             (.tiktok, viewModel.profile.tiktokHandle),
             (.facebook, viewModel.profile.facebookHandle)
         ]
-        let active = entries.compactMap { item -> (SocialPlatform, URL)? in
+        let links = entries.compactMap { item -> ProfileContextStrip.SocialLinkEntry? in
             guard let url = SocialLink.url(for: item.0, handle: item.1) else { return nil }
-            return (item.0, url)
+            return ProfileContextStrip.SocialLinkEntry(platform: item.0, url: url)
         }
-        if !active.isEmpty {
-            HStack(spacing: 10) {
-                ForEach(active, id: \.0) { entry in
-                    Link(destination: entry.1) {
-                        Image(systemName: entry.0.iconName)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(entry.0.color)
-                            .frame(width: 32, height: 32)
-                            .background(entry.0.color.opacity(0.14))
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle().strokeBorder(entry.0.color.opacity(0.35), lineWidth: 0.5)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(entry.0.displayName)
-                }
-            }
-            .padding(.top, 8)
-        }
-    }
-
-    private func followStat(count: Int, label: String) -> some View {
-        HStack(spacing: 4) {
-            Text(formatCount(count))
-                .font(.system(.subheadline, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
-            Text(label)
-                .font(.subheadline)
-                .foregroundStyle(PepTheme.textSecondary)
-        }
+        return ProfileContextStrip(
+            bio: viewModel.profile.bio,
+            activeProgram: viewModel.profile.activeProgram,
+            phase: nil,
+            memberSinceText: viewModel.memberSinceFormatted,
+            socialLinks: links
+        )
     }
 
     private var statsBar: some View {
@@ -397,6 +247,7 @@ struct ProfileView: View {
 
     private var postsTab: some View {
         LazyVStack(spacing: 0) {
+            contextStrip
             let posts = viewModel.postsForUser(viewModel.profile.id)
             if posts.isEmpty {
                 profileEmptyState(icon: "text.bubble", title: "No Posts Yet", message: "Share your workouts and thoughts with the community.")
@@ -507,13 +358,6 @@ struct ProfileView: View {
         .padding(.vertical, 48)
         .padding(.horizontal, 32)
         .frame(maxWidth: .infinity)
-    }
-
-    private func formatNumber(_ n: Int) -> String {
-        if n >= 1000 {
-            return String(format: "%.1fk", Double(n) / 1000.0)
-        }
-        return "\(n)"
     }
 
     private func deletePost(_ post: UserPost) {
