@@ -929,6 +929,7 @@ struct CirclePostCommentsSheet: View {
     @State private var showReportAlert: Bool = false
     @FocusState private var isCommentFocused: Bool
     @State private var suggestions = MentionHashtagSuggestionController()
+    @State private var selectedCommentUser: SocialUser?
 
     private var currentUserId: String? {
         try? AuthService.shared.currentUserId()
@@ -953,19 +954,25 @@ struct CirclePostCommentsSheet: View {
                         LazyVStack(alignment: .leading, spacing: 14) {
                             ForEach(post.comments) { comment in
                                 HStack(alignment: .top, spacing: 10) {
-                                    Circle()
-                                        .fill(comment.author.avatarColor.opacity(0.2))
-                                        .frame(width: 30, height: 30)
-                                        .overlay {
-                                            Text(comment.author.avatarInitial)
-                                                .font(.system(size: 11, weight: .bold))
-                                                .foregroundStyle(comment.author.avatarColor)
-                                        }
+                                    Button { selectedCommentUser = comment.author } label: {
+                                        Circle()
+                                            .fill(comment.author.avatarColor.opacity(0.2))
+                                            .frame(width: 30, height: 30)
+                                            .overlay {
+                                                Text(comment.author.avatarInitial)
+                                                    .font(.system(size: 11, weight: .bold))
+                                                    .foregroundStyle(comment.author.avatarColor)
+                                            }
+                                    }
+                                    .buttonStyle(.plain)
                                     VStack(alignment: .leading, spacing: 3) {
                                         HStack(spacing: 6) {
-                                            Text(comment.author.name)
-                                                .font(.system(.caption, weight: .semibold))
-                                                .foregroundStyle(PepTheme.textPrimary)
+                                            Button { selectedCommentUser = comment.author } label: {
+                                                Text(comment.author.name)
+                                                    .font(.system(.caption, weight: .semibold))
+                                                    .foregroundStyle(PepTheme.textPrimary)
+                                            }
+                                            .buttonStyle(.plain)
                                             Text(comment.createdAt.timeAgoDisplay())
                                                 .font(.caption2)
                                                 .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
@@ -1039,6 +1046,9 @@ struct CirclePostCommentsSheet: View {
                     Button("Done") { dismiss() }
                         .foregroundStyle(PepTheme.teal)
                 }
+            }
+            .navigationDestination(item: $selectedCommentUser) { user in
+                UserProfileView(user: user, viewModel: ProfileViewModel())
             }
         }
         .presentationDetents([.medium, .large])

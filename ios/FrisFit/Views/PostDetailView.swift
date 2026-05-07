@@ -26,6 +26,7 @@ struct PostDetailView: View {
     @State private var selectedHashtag: String?
     @State private var replyingTo: PostComment?
     @State private var expandedThreads: Set<UUID> = []
+    @State private var selectedCommentUser: SocialUser?
 
     private var currentUserId: String? {
         try? AuthService.shared.currentUserId()
@@ -55,6 +56,9 @@ struct PostDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: Binding(get: { selectedHashtag.map(HashtagDestination.init) }, set: { selectedHashtag = $0?.tag })) { dest in
             HashtagFeedView(tag: dest.tag)
+        }
+        .navigationDestination(item: $selectedCommentUser) { user in
+            UserProfileView(user: user, viewModel: ProfileViewModel())
         }
         .fullScreenCover(item: $selectedPhotoURL) { urlString in
             PhotoViewerOverlay(urlString: urlString) {
@@ -611,7 +615,8 @@ struct PostDetailView: View {
                 replyCount: replies.count,
                 onDelete: { commentToDelete = comment },
                 onReport: { showCommentReportAlert = true },
-                onReply: { startReply(to: comment) }
+                onReply: { startReply(to: comment) },
+                onOpenProfile: { selectedCommentUser = comment.user }
             )
             .padding(.horizontal)
             .padding(.vertical, 10)
@@ -625,7 +630,8 @@ struct PostDetailView: View {
                             replyCount: 0,
                             onDelete: { commentToDelete = reply },
                             onReport: { showCommentReportAlert = true },
-                            onReply: { startReply(to: comment) }
+                            onReply: { startReply(to: comment) },
+                            onOpenProfile: { selectedCommentUser = reply.user }
                         )
                         .padding(.vertical, 8)
                     }
@@ -732,23 +738,30 @@ private struct DetailCommentRow: View {
     let onDelete: () -> Void
     let onReport: () -> Void
     let onReply: () -> Void
+    let onOpenProfile: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Circle()
-                .fill(comment.user.avatarColor.opacity(0.2))
-                .frame(width: 36, height: 36)
-                .overlay {
-                    Text(comment.user.avatarInitial)
-                        .font(.system(.caption, design: .rounded, weight: .bold))
-                        .foregroundStyle(comment.user.avatarColor)
-                }
+            Button(action: onOpenProfile) {
+                Circle()
+                    .fill(comment.user.avatarColor.opacity(0.2))
+                    .frame(width: 36, height: 36)
+                    .overlay {
+                        Text(comment.user.avatarInitial)
+                            .font(.system(.caption, design: .rounded, weight: .bold))
+                            .foregroundStyle(comment.user.avatarColor)
+                    }
+            }
+            .buttonStyle(.plain)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(comment.user.name)
-                        .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
+                    Button(action: onOpenProfile) {
+                        Text(comment.user.name)
+                            .font(.system(.caption, weight: .semibold))
+                            .foregroundStyle(PepTheme.textPrimary)
+                    }
+                    .buttonStyle(.plain)
 
                     Text(comment.timestamp.formattedPostDate())
                         .font(.caption2)
