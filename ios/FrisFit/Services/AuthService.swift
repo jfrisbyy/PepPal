@@ -104,7 +104,13 @@ final class AuthService {
                 )
             }
         }
-        return newUserId.uuidString.lowercased()
+        let lowerId = newUserId.uuidString.lowercased()
+        // Fire-and-forget: bootstrap the fake-persona follow graph so the
+        // new user's feed, Following list, and counts populate immediately.
+        Task.detached {
+            _ = try? await TestFriendsService.shared.bootstrapFollows()
+        }
+        return lowerId
     }
 
     func signIn(email: String, password: String) async throws {

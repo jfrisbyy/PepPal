@@ -45,6 +45,16 @@ final class TestFriendsService {
         return res
     }
 
+    /// Lightweight call right after signup. Ensures caller is mutually
+    /// followed with every fake persona that already exists, and triggers a
+    /// full seed if the global pool is empty. Safe to call repeatedly.
+    func bootstrapFollows() async throws -> SeedTestFriendsResponse {
+        let body = SuperActionRequest(action: "bootstrapFakeFollows", payload: nil)
+        let res: SeedTestFriendsResponse = try await supabase.functions
+            .invoke("super-action", options: FunctionInvokeOptions(body: body))
+        return res
+    }
+
     func remove() async throws -> SeedTestFriendsResponse {
         let body = SuperActionRequest(action: "clearTestFriends", payload: nil)
         let res: SeedTestFriendsResponse = try await supabase.functions

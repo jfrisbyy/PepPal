@@ -14,7 +14,7 @@ struct DeveloperSettingsView: View {
                 .foregroundStyle(PepTheme.textSecondary)
                 .tracking(0.8)
 
-            Text("Tools for testing. Seeds real Supabase users mutually followed to you. Visible to you only.")
+            Text("Tools for testing. Manages the shared pool of 25 realistic fake personas everyone follows.")
                 .font(.caption)
                 .foregroundStyle(PepTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -61,11 +61,11 @@ struct DeveloperSettingsView: View {
                     lineWidth: 0.5
                 )
         )
-        .alert("Remove test friends?", isPresented: $showRemoveConfirm) {
+        .alert("Remove fake personas?", isPresented: $showRemoveConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Remove", role: .destructive) { Task { await remove() } }
         } message: {
-            Text("This deletes all test user accounts seeded for you, along with their profiles, activity logs and follow rows.")
+            Text("Deletes every fake persona globally — their auth users, profiles, posts, and follow rows. Affects all users.")
         }
     }
 
@@ -77,10 +77,10 @@ struct DeveloperSettingsView: View {
                     .foregroundStyle(PepTheme.teal)
                     .frame(width: 24)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Seed 15 test friends")
+                    Text("Seed 25 fake personas")
                         .font(.body)
                         .foregroundStyle(PepTheme.textPrimary)
-                    Text("Creates mutually-followed test profiles with workouts, streaks, and programs")
+                    Text("Curated profiles with avatars, banners, posts, streaks, and a follow graph")
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
                         .multilineTextAlignment(.leading)
@@ -105,10 +105,10 @@ struct DeveloperSettingsView: View {
                     .foregroundStyle(PepTheme.violet)
                     .frame(width: 24)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Refresh friend data")
+                    Text("Refresh fake personas")
                         .font(.body)
                         .foregroundStyle(PepTheme.textPrimary)
-                    Text("Replays the seed to bump workouts & streaks without creating duplicates")
+                    Text("Re-runs the seed idempotently — syncs profiles, posts, and follows")
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
                         .multilineTextAlignment(.leading)
@@ -133,7 +133,7 @@ struct DeveloperSettingsView: View {
                     .foregroundStyle(.red)
                     .frame(width: 24)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Remove test friends")
+                    Text("Remove fake personas")
                         .font(.body)
                         .foregroundStyle(.red)
                     Text("Deletes every seeded profile, their auth user, and their data")
@@ -298,9 +298,9 @@ struct DeveloperSettingsView: View {
             let existed = res.existed ?? 0
             let total = res.total_test_profiles ?? (created + existed)
             if refresh {
-                statusMessage = "Refreshed \(total) test friends."
+                statusMessage = "Refreshed \(total) fake personas."
             } else {
-                statusMessage = "\(total) test friends ready — \(created) new, \(existed) existing."
+                statusMessage = "\(total) fake personas ready — \(created) new, \(existed) existing."
             }
             statusIsError = false
             UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -317,7 +317,7 @@ struct DeveloperSettingsView: View {
         defer { isRemoving = false }
         do {
             let res = try await TestFriendsService.shared.remove()
-            statusMessage = "Removed \(res.deleted ?? 0) test friends."
+            statusMessage = "Removed \(res.deleted ?? 0) fake personas."
             statusIsError = false
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         } catch {

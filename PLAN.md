@@ -1,46 +1,44 @@
-# Twitter-style dense feed redesign
+# Replace test users with 25 realistic, fully-behaving fake accounts
 
-## Goal
+## Problem
 
-Make the feed page show more posts at once and feel cleaner — without touching the logo, mode picker, or filter bar at the top.
+The current seeded test accounts feel fake — they don't show up correctly in follower/following counts, have no posts, no avatars or banners, and aren't truly discoverable. We'll replace them with a curated set of 25 realistic accounts that behave exactly like real users everywhere in the app.
 
-## What changes
+## What changes for users
 
-**Post layout — edge-to-edge rows**
+- **A shared global pool of 25 realistic personas** — every signed-in user discovers the same set, so the app feels alive on day one.
+- **Real-looking profiles**: distinct names, handles, bios, avatar photos, banner images, current streaks, active programs, total points.
+- **They count as real**:
+  - Show up in your Following list and Following count.
+  - Show up in their own Followers count (each fake follows you back, plus follows several other fakes — so their numbers look organic).
+  - Appear in Community Discover, search results, suggested users, and leaderboards.
+- **Realistic feed activity**: each persona has 3–6 recent posts (workout updates, PRs, meal photos, reflections, hashtags) spread across the last 2 weeks, so the feed always has fresh content - ensure this does not sound like random ai generated content - have it be extremely realistic and human like 
+- **Recent activity & workouts**: each has a streak, a few logged workouts, and an active program reference so their profile pages look lived-in.
+- **Messageable**: you can open a DM thread with any of them like any other user (replies stay quiet — no fake bot responses).
 
-- Replace the boxed "card with shadow" look with edge-to-edge rows separated by a single hairline divider, like X/Twitter or Threads.
-- Avatar moves to a left rail (smaller, ~36pt) with the post content flowing to its right, so the username, timestamp, text, and media all share one tight column.
-- Username, handle, "·", and relative time sit on a single line. The "edited" tag becomes a tiny dot indicator instead of its own line.
-- Tighter vertical rhythm between posts — roughly 30–40% more posts visible per screen.
+## Design
 
-**Media — shorter and smaller**
+- 25 hand-crafted personas spanning the app's audiences — strength, hybrid, running, cycling, basketball, peptide protocols, recomp, yoga/mobility — each with a unique voice in their bio and posts.
+- Avatars and banners use AI-generated portraits + scenic/gym/outdoor cover images so the grid looks editorial, not stock.
+- Inter-fake follow graph (each fake follows ~6–10 others) so their profiles show realistic follower counts even before any real user joins.
 
-- Single photo: capped to a shorter 5:4-ish ratio (instead of 16:9 letterbox), rounded but no heavy padding.
-- Multi-photo grid: smaller cells, tighter gaps.
-- Voice message, workout log, and shared program cards: shrunk to a compact pill row with a smaller icon, single-line title, and inline meta — about 40% less vertical space.
+## How it works
 
-**Action bar — tighter**
+- A one-time global seed runs server-side and is idempotent — safe to re-run, won't duplicate.
+- New real signups automatically get all 25 fakes added to their Following list (and the fakes follow them back), so counts and feed populate immediately.
+- Developer Settings keeps the manual "Seed/Refresh/Clear" controls for testing.
+- The old `peppal-test-*` accounts are migrated/cleared and replaced by the new persona set with stable IDs.
 
-- Remove the divider line above the actions.
-- Smaller icons (13–14pt) with counts in caption weight.
-- Like / comment / repost / share spaced evenly across the row in a single compact line, sitting flush under the content with minimal padding.
-- Keep all existing behavior: heart bounce, haptics, repost toggle, share sheet, menu.  
-  
-we will also add a subtle search button on the right side on the same line as the "all, following, tags" pills, this search allows you to search by user, tag, keyword, etc , when clicking the search icon it should animate into a full search bar 
+## Pages affected
 
-**Cleanliness touches**
+- **Profile (yours and theirs)** — counts, follower/following lists, banner + avatar render.
+- **Community Discover & Search** — fakes appear as suggested and searchable.
+- **Feed** — populated with posts from fakes you follow.
+- **Messages** — fakes appear in new-conversation picker and can be opened as threads.
+- **Friends/Stats** — fakes show real stats pulled from their seeded data (no more in-memory mock overlay needed).
 
-- Hairline divider color tuned to be subtle in both light and dark mode.
-- Post tap target stays the whole content area; avatar and username remain their own tap targets to the profile.
-- The three-dot menu shrinks and aligns to the timestamp row instead of taking its own column.
+## Out of scope
 
-## What stays the same
+- Fakes won't reply to DMs or react to your posts (would require background jobs / look spammy).
+- No live presence simulation beyond the existing two demo personas.
 
-- EPTI logo header, community mode picker, and filter chips above the feed — untouched.
-- hashtag taps, mention taps, report/block/mute, skeleton loader, empty states, "you're all caught up" footer, infinite scroll.
-- All post types (text, photo, voice, workout, market link) still render — just more compactly.
-- Pull to refresh, like/comment/repost/share logic, and deep-link routing.
-
-## Result
-
-A feed that reads like a clean editorial timeline: roughly 1.5× the posts visible per screen, less visual noise between rows, and media that supports the post instead of dominating it.
