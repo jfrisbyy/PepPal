@@ -5,6 +5,7 @@ struct DirectMessagesView: View {
     @State private var searchQuery: String = ""
     @State private var selectedConversationID: UUID?
     @State private var navigateToConversation: Bool = false
+    @Environment(\.dismiss) private var dismiss
 
     init(viewModel: MessagesViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -58,7 +59,20 @@ struct DirectMessagesView: View {
                     .foregroundStyle(PepTheme.textTertiary)
             }
 
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+                        .clipShape(Circle())
+                        .overlay { Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5) }
+                }
+                .buttonStyle(.plain)
+
                 Text("Messages")
                     .font(.system(size: 34, weight: .semibold, design: .serif))
                     .kerning(-0.5)
