@@ -9,12 +9,17 @@ struct FriendsStatsView<TopHeader: View>: View {
 
     @State private var viewModel = FriendsStatsViewModel()
     @State private var profileViewModel = ProfileViewModel()
+    @State private var groupsViewModel = GroupsViewModel()
     @State private var showOnboarding: Bool = false
     @State private var showSettings: Bool = false
     @State private var selectedFriend: FriendStatSnapshot?
     @State private var hasEnabledSharing: Bool = false
     @State private var reactionTarget: ReactionTarget?
     @State private var nudgeTarget: FriendStatSnapshot?
+    @State private var isGroupsExpanded: Bool = true
+    @State private var selectedGroupID: UUID?
+    @State private var showCreateGroup: Bool = false
+    @State private var showDiscoverGroups: Bool = false
 
     private let social = FriendSocialService.shared
 
@@ -22,6 +27,9 @@ struct FriendsStatsView<TopHeader: View>: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 topHeader()
+
+                groupsSection
+                    .padding(.horizontal)
 
                 header
 
@@ -72,6 +80,15 @@ struct FriendsStatsView<TopHeader: View>: View {
         .navigationDestination(item: $selectedFriend) { friend in
             FriendDashboardView(friend: friend, mySnapshot: viewModel.mySnapshot())
         }
+        .navigationDestination(item: $selectedGroupID) { id in
+            GroupDetailView(viewModel: groupsViewModel, groupID: id)
+        }
+        .navigationDestination(isPresented: $showDiscoverGroups) {
+            GroupsListView(viewModel: groupsViewModel)
+        }
+        .sheet(isPresented: $showCreateGroup) {
+            CreateGroupSheet(viewModel: groupsViewModel)
+        }
         .navigationDestination(for: String.self) { recapId in
             if let recap = viewModel.weeklyRecap, recap.id == recapId {
                 WeeklyRecapDetailView(recap: recap)
@@ -96,7 +113,255 @@ struct FriendsStatsView<TopHeader: View>: View {
                 showOnboarding = true
             }
             await viewModel.load()
+            await groupsViewModel.refresh()
         }
+    }
+
+    // MARK: - Groups Section
+
+    private var groupsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Button {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
+                    isGroupsExpanded.toggle()
+                }
+            } label: {
+                HStack(alignment: .center, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 8) {
+                            Text("00")
+                                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(PepTheme.amber.opacity(0.9))
+                            Text("\u{2014}")
+                                .font(.system(size: 9))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
+                            Text("THE COLLECTIVE")
+                                .font(.system(size: 10, weight: .semibold))
+                                .tracking(1.6)
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.85))
+                        }
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("Groups")
+                                .font(.system(.title2, design: .serif, weight: .regular))
+                                .foregroundStyle(PepTheme.textPrimary)
+                            if !groupsViewModel.myGroups.isEmpty {
+                                Text("\(groupsViewModel.myGroups.count)")
+                                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                        }
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .rotationEffect(.degrees(isGroupsExpanded ? 0 : -90))
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: isGroupsExpanded)
+
+            if isGroupsExpanded {
+                groupsExpandedContent
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .top).combined(with: .opacity),
+                        removal: .opacity
+                    ))
+            }
+
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(height: 0.5)
+                .padding(.top, 4)
+        }
+    }
+
+    @ViewBuilder
+    private var groupsExpandedContent: some View {
+        if groupsViewModel.isLoading && groupsViewModel.myGroups.isEmpty {
+            HStack(spacing: 12) {
+                ForEach(0..<2, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(PepTheme.elevated)
+                        .frame(height: 78)
+                        .shimmering()
+                }
+            }
+        } else if groupsViewModel.myGroups.isEmpty {
+            groupsEmptyState
+        } else {
+            VStack(spacing: 0) {
+                ForEach(Array(groupsViewModel.myGroups.enumerated()), id: \.element.id) { idx, group in
+                    Button {
+                        selectedGroupID = group.id
+                    } label: {
+                        groupRow(group)
+                    }
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.selection, trigger: selectedGroupID)
+
+                    if idx < groupsViewModel.myGroups.count - 1 {
+                        Rectangle()
+                            .fill(PepTheme.separatorColor.opacity(0.6))
+                            .frame(height: 0.5)
+                            .padding(.leading, 56)
+                    }
+                }
+            }
+            .background(PepTheme.cardSurface, in: .rect(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+            )
+
+            groupsActionRow
+        }
+    }
+
+    private func groupRow(_ group: FitGroup) -> some View {
+        HStack(alignment: .center, spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(PepTheme.elevated)
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(group.accentColor.opacity(0.45), lineWidth: 0.6)
+                Text(groupMonogram(group.name))
+                    .font(.system(.subheadline, design: .serif, weight: .regular))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+            .frame(width: 40, height: 40)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(group.name)
+                        .font(.system(.subheadline, design: .serif, weight: .regular))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .lineLimit(1)
+                    if group.privacy == .privateGroup {
+                        Image(systemName: "lock")
+                            .font(.system(size: 9, weight: .regular))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                    }
+                }
+                if let preview = group.lastMessagePreview {
+                    Text(preview)
+                        .font(.system(.caption, design: .serif))
+                        .italic()
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .lineLimit(1)
+                } else {
+                    Text("\(group.memberCount) member\(group.memberCount == 1 ? "" : "s")")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .tracking(0.8)
+                        .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
+                }
+            }
+
+            Spacer(minLength: 6)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .regular))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .contentShape(.rect)
+    }
+
+    private var groupsEmptyState: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("No groups yet")
+                .font(.system(.subheadline, design: .serif, weight: .regular))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text("Train alongside a private circle, or join a public collective.")
+                .font(.system(.caption, design: .serif))
+                .italic()
+                .foregroundStyle(PepTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 8) {
+                Button {
+                    showCreateGroup = true
+                } label: {
+                    Text("CREATE GROUP")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.5)
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .overlay(Capsule().strokeBorder(PepTheme.textPrimary.opacity(0.6), lineWidth: 0.5))
+                }
+                .buttonStyle(.scale)
+
+                Button {
+                    showDiscoverGroups = true
+                } label: {
+                    Text("DISCOVER")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.5)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .overlay(Capsule().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5))
+                }
+                .buttonStyle(.scale)
+            }
+            .padding(.top, 2)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PepTheme.cardSurface, in: .rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+        )
+    }
+
+    private var groupsActionRow: some View {
+        HStack(spacing: 14) {
+            Button {
+                showCreateGroup = true
+            } label: {
+                Label {
+                    Text("NEW GROUP")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.5)
+                } icon: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundStyle(PepTheme.textPrimary)
+            }
+            .buttonStyle(.plain)
+
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(width: 0.5, height: 14)
+
+            Button {
+                showDiscoverGroups = true
+            } label: {
+                Label {
+                    Text("DISCOVER")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.5)
+                } icon: {
+                    Image(systemName: "safari")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundStyle(PepTheme.textSecondary)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+        }
+        .padding(.top, 4)
+        .padding(.horizontal, 4)
+    }
+
+    private func groupMonogram(_ name: String) -> String {
+        let words = name.split(separator: " ").prefix(2)
+        return words.compactMap { $0.first }.map { String($0) }.joined().uppercased()
     }
 
     private func refreshOptIn() {
