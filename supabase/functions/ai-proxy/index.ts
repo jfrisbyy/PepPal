@@ -87,8 +87,9 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
     const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
-    if (!supabaseUrl || !serviceRoleKey || !openRouterKey) {
+    if (!supabaseUrl || !serviceRoleKey || !anonKey || !openRouterKey) {
         return json(500, { error: "server_misconfigured" });
     }
 
@@ -97,16 +98,57 @@ Deno.serve(async (req) => {
     const jwt = authHeader.toLowerCase().startsWith("bearer ")
         ? authHeader.slice(7).trim()
         : "";
-    if (!jwt) return json(401, { error: "unauthorized" });
+    if (!jwt) {
+        console.error(JSON.stringify({
+            event: "ai_proxy_auth_missing_bearer",
+            hasHeader: authHeader.length > 0,
+        }));
+        return json(401, { error: "unauthorized", reason: "missing_bearer" });
+    }
 
+    // Validate the JWT by calling GoTrue's /auth/v1/user directly. This
+    // works with BOTH legacy HS256 secrets and the new asymmetric
+    // (RS256/ES256) signing keys, because GoTrue itself does the
+    // verification — we don't try to verify the signature locally.
+    let userId: string;
+    try {
+        const userResp = await fetch(`${supabaseUrl}/auth/v1/user`, {
+            method: "GET",
+            headers: {
+                "apikey": anonKey,
+                "Authorization": `Bearer ${jwt}`,
+            },
+        });
+        if (!userResp.ok) {
+            const snippet = (await userResp.text()).slice(0, 256);
+            console.error(JSON.stringify({
+                event: "ai_proxy_auth_rejected",
+                status: userResp.status,
+                error: snippet,
+            }));
+            return json(401, {
+                error: "unauthorized",
+                reason: "jwt_rejected",
+                upstream_status: userResp.status,
+            });
+        }
+        const userJson = await userResp.json() as { id?: string };
+        if (!userJson?.id) {
+            return json(401, { error: "unauthorized", reason: "no_user_id" });
+        }
+        userId = userJson.id;
+    } catch (err) {
+        console.error(JSON.stringify({
+            event: "ai_proxy_auth_fetch_failed",
+            error: String(err).slice(0, 256),
+        }));
+        return json(401, { error: "unauthorized", reason: "auth_fetch_failed" });
+    }
+
+    // Service-role client is still used for token-budget RPCs below.
     const admin = createClient(supabaseUrl, serviceRoleKey, {
         auth: { autoRefreshToken: false, persistSession: false },
     });
-    const { data: userData, error: userErr } = await admin.auth.getUser(jwt);
-    if (userErr || !userData?.user) {
-        return json(401, { error: "unauthorized" });
-    }
-    const userId = userData.user.id;
 
     if (!checkRateLimit(userId)) {
         return json(429, { error: "rate_limited" });
