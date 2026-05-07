@@ -240,6 +240,12 @@ final class MessagingService {
             .insert(payload)
             .execute()
 
+        NotificationCenter.default.post(
+            name: .followGraphChanged,
+            object: nil,
+            userInfo: ["followerId": followerId, "followingId": followingId, "isFollowing": true]
+        )
+
         try await createNotification(
             userId: followingId,
             type: "new_follow",
@@ -311,6 +317,12 @@ final class MessagingService {
             .eq("follower_id", value: followerId)
             .eq("following_id", value: followingId)
             .execute()
+
+        NotificationCenter.default.post(
+            name: .followGraphChanged,
+            object: nil,
+            userInfo: ["followerId": followerId, "followingId": followingId, "isFollowing": false]
+        )
     }
 
     func isFollowing(followerId: String, followingId: String) async throws -> Bool {

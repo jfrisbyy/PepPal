@@ -28,9 +28,9 @@ nonisolated struct UserProfile: Sendable {
     let currentStreak: Int
     let totalWorkouts: Int
     let memberSince: Date
-    let followerCount: Int
-    let followingCount: Int
-    let friendCount: Int
+    var followerCount: Int
+    var followingCount: Int
+    var friendCount: Int
     var isFollowing: Bool
     var friendRequestStatus: FriendRequestStatus
     let isCurrentUser: Bool

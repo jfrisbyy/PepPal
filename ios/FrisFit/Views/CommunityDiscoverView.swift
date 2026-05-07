@@ -455,16 +455,28 @@ final class CommunityDiscoverViewModel {
 
     func toggleFollow(_ user: SocialUser) async {
         let id = user.id.uuidString.lowercased()
+        let wasFollowing = followingIds.contains(id)
+        // Optimistic flip so the button text updates immediately.
+        if wasFollowing {
+            followingIds.remove(id)
+        } else {
+            followingIds.insert(id)
+        }
         do {
             let myId = try AuthService.shared.currentUserId()
-            if followingIds.contains(id) {
+            if wasFollowing {
                 try await MessagingService.shared.unfollowUser(followerId: myId, followingId: id)
-                followingIds.remove(id)
             } else {
                 try await MessagingService.shared.followUser(followerId: myId, followingId: id)
-                followingIds.insert(id)
             }
-        } catch {}
+        } catch {
+            // Roll back on failure.
+            if wasFollowing {
+                followingIds.insert(id)
+            } else {
+                followingIds.remove(id)
+            }
+        }
     }
 
     private func loadTrendingPosts() async {

@@ -208,8 +208,37 @@ final class ProfileViewModel {
         }
     }
 
+    private var followObserver: NSObjectProtocol?
+
     init() {
         loadMockMarketItems()
+        followObserver = NotificationCenter.default.addObserver(
+            forName: .followGraphChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                await self?.refreshFollowCounts()
+            }
+        }
+    }
+
+    deinit {
+        if let followObserver {
+            NotificationCenter.default.removeObserver(followObserver)
+        }
+    }
+
+    /// Refreshes only follower / following / friends counts on the current
+    /// profile. Called whenever the follow graph changes anywhere in the app
+    /// so the stat row in ProfileView stays in sync without a full reload.
+    func refreshFollowCounts() async {
+        guard let session = AuthService.shared.session else { return }
+        let userId = session.user.id.uuidString.lowercased()
+        guard let counts = try? await ProfileService.shared.fetchFollowCounts(userId: userId) else { return }
+        profile.followerCount = counts.followers
+        profile.followingCount = counts.following
+        profile.friendCount = counts.friends
     }
 
     func loadProfile() async {

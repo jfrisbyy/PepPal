@@ -21,4 +21,8 @@ extension Notification.Name {
     /// Posted whenever the signed-in Supabase user changes (sign-in, sign-out, account switch).
     /// userInfo["userId"] is the new user id String, or nil/missing on sign-out.
     static let authUserChanged = Notification.Name("authUserChanged")
+    /// Posted whenever a follow / unfollow succeeds anywhere in the app.
+    /// userInfo["followerId"] = follower user id, userInfo["followingId"] = target user id,
+    /// userInfo["isFollowing"] = Bool indicating new state.
+    static let followGraphChanged = Notification.Name("followGraphChanged")
 }
