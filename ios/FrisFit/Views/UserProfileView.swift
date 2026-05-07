@@ -19,10 +19,12 @@ struct UserProfileView: View {
     @State private var showReportConfirm: Bool = false
     @State private var pendingDeletePost: UserPost?
     @State private var selectedHashtag: String?
+    @State private var bannerUrlString: String?
     @Environment(\.dismiss) private var dismiss
 
     private let messagingService = MessagingService.shared
     private let socialService = SocialService.shared
+    private let profileService = ProfileService.shared
     private let likeManager = LikeManager.shared
 
     enum UserProfileTab: String, CaseIterable {
@@ -74,6 +76,7 @@ struct UserProfileView: View {
         .task {
             await loadRelationshipData()
             await loadUserPosts()
+            await loadProfileBanner()
         }
     }
 
@@ -127,6 +130,15 @@ struct UserProfileView: View {
         isLoadingPosts = false
     }
 
+    private func loadProfileBanner() async {
+        do {
+            let profile = try await profileService.fetchProfile(userId: user.id.uuidString)
+            if let url = profile.banner_url, !url.isEmpty {
+                bannerUrlString = url
+            }
+        } catch {}
+    }
+
     private func loadRelationshipData() async {
         do {
             let userId = try AuthService.shared.currentUserId()
@@ -152,19 +164,37 @@ struct UserProfileView: View {
 
     private var bannerHeader: some View {
         ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-                colors: [
-                    user.avatarColor.opacity(0.18),
-                    PepTheme.background
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .frame(height: 120)
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(PepTheme.separatorColor)
-                    .frame(height: 0.5)
+            Group {
+                if let urlString = bannerUrlString, let url = URL(string: urlString) {
+                    Color(.secondarySystemBackground)
+                        .frame(height: 130)
+                        .overlay {
+                            AsyncImage(url: url) { phase in
+                                if let image = phase.image {
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .allowsHitTesting(false)
+                                }
+                            }
+                        }
+                        .clipped()
+                } else {
+                    LinearGradient(
+                        colors: [
+                            user.avatarColor.opacity(0.18),
+                            PepTheme.background
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .frame(height: 130)
+                    .overlay(alignment: .bottom) {
+                        Rectangle()
+                            .fill(PepTheme.separatorColor)
+                            .frame(height: 0.5)
+                    }
+                }
             }
 
             Circle()
