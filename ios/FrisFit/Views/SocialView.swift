@@ -257,7 +257,11 @@ struct SocialView: View {
     private var feedScrollView: some View {
         ScrollView {
             VStack(spacing: 0) {
-                Color.clear.frame(height: 52)
+                EptiLogoMark(size: 38)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 18)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
 
                 communityModePicker
                     .padding(.horizontal)

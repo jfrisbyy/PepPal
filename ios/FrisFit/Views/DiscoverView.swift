@@ -12,6 +12,12 @@ struct DiscoverView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
+                    EptiLogoMark(size: 38)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 18)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
+
                     if viewModel.selectedSegment == .compounds {
                         compoundsContent
                     } else {
@@ -27,8 +33,9 @@ struct DiscoverView: View {
                 scrollOffset = newValue
             }
             .appBackground(accent: PepTheme.blue)
-            .navigationBarTitleDisplayMode(.large)
-            .navigationTitle("Discover")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("")
+            .toolbar(.hidden, for: .navigationBar)
             .overlay(alignment: .topTrailing) {
                 discoverFloatingPill
                     .padding(.trailing, 16)
