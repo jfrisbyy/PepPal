@@ -114,10 +114,24 @@ struct FakeAccountSwitcherView: View {
                 .frame(width: 40, height: 40)
                 .clipShape(.circle)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(user.display_name ?? "Untitled")
-                        .font(.subheadline.weight(.semibold))
-                    if let handle = user.username {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(user.display_name ?? "Untitled")
+                            .font(.subheadline.weight(.semibold))
+                        if let label = user.archetype_label, !label.isEmpty {
+                            Text(label)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(.purple.opacity(0.85), in: .capsule)
+                        }
+                    }
+                    if let tagline = user.archetype_tagline, !tagline.isEmpty {
+                        Text(tagline)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    } else if let handle = user.username {
                         Text("@\(handle)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -249,9 +263,24 @@ struct CreateFakeAccountSheet: View {
     @Environment(\.dismiss) private var dismiss
     var onCreated: (FakeUserCreateResponse) -> Void
 
+    enum PopulateLevel: String, CaseIterable, Identifiable {
+        case fresh, light, medium, heavy
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .fresh:  return "Start fresh (onboarding)"
+            case .light:  return "Light (3 posts, 30d)"
+            case .medium: return "Medium (5 posts, 60d)"
+            case .heavy:  return "Heavy (8 posts, 90d)"
+            }
+        }
+        var apiValue: String { rawValue }
+    }
+
     @State private var displayName: String = ""
     @State private var username: String = ""
     @State private var followCaller: Bool = true
+    @State private var populateLevel: PopulateLevel = .light
     @State private var isCreating: Bool = false
     @State private var errorMessage: String?
     @State private var resultMessage: String?
@@ -268,6 +297,22 @@ struct CreateFakeAccountSheet: View {
                     Toggle("Mutually follow my account", isOn: $followCaller)
                 } footer: {
                     Text("Leave blank to randomize from the persona pool. Created accounts are full Supabase auth users — they can post, DM, and log just like a real one.")
+                }
+
+                Section {
+                    Picker("Populate", selection: $populateLevel) {
+                        ForEach(PopulateLevel.allCases) { lvl in
+                            Text(lvl.label).tag(lvl)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                } header: {
+                    Text("Initial data")
+                } footer: {
+                    Text(populateLevel == .fresh
+                        ? "Empty profile — switch in and run onboarding manually like a brand-new user."
+                        : "Backfills posts spread over the last \(populateLevel == .heavy ? "90" : populateLevel == .medium ? "60" : "30") days. The account stays a full user afterward.")
                 }
 
                 if let resultMessage {
@@ -317,7 +362,9 @@ struct CreateFakeAccountSheet: View {
             let res = try await FakeAccountService.shared.create(
                 displayName: displayName,
                 username: username,
-                followCaller: followCaller
+                followCaller: followCaller && populateLevel != .fresh,
+                populateLevel: populateLevel.apiValue,
+                archetype: nil
             )
             resultMessage = "Created \(res.display_name ?? res.username ?? "fake user")."
             onCreated(res)

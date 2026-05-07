@@ -13,6 +13,8 @@ nonisolated struct FakeUserItem: Codable, Sendable, Identifiable {
     let total_fp: Int?
     let updated_at: String?
     let email: String?
+    let archetype_label: String?
+    let archetype_tagline: String?
 }
 
 nonisolated struct FakeUserListResponse: Codable, Sendable {
@@ -31,6 +33,8 @@ nonisolated struct FakeUserCreateResponse: Codable, Sendable {
     let display_name: String?
     let username: String?
     let error: String?
+    let populated: Int?
+    let populate_level: String?
 }
 
 nonisolated struct FakeUserPasswordResponse: Codable, Sendable {
@@ -53,6 +57,19 @@ nonisolated struct FakeUserDeleteResponse: Codable, Sendable {
     let error: String?
 }
 
+nonisolated struct FakeBulkPopulateResponse: Codable, Sendable {
+    let ok: Bool?
+    let fakes: Int?
+    let posts_added: Int?
+    let likes: Int?
+    let comments: Int?
+    let groups_created: Int?
+    let group_messages: Int?
+    let dm_pairs: Int?
+    let dm_messages: Int?
+    let error: String?
+}
+
 private nonisolated struct FakeActionRequest: Codable, Sendable {
     let action: String
     let payload: Payload?
@@ -64,6 +81,9 @@ private nonisolated struct FakeActionRequest: Codable, Sendable {
         var follow_caller: Bool?
         var count: Int?
         var days_back: Int?
+        var populate_level: String?
+        var archetype: String?
+        var level: String?
     }
 }
 
@@ -148,8 +168,14 @@ final class FakeAccountService {
         return res.items ?? []
     }
 
-    func create(displayName: String?, username: String?, followCaller: Bool = true) async throws -> FakeUserCreateResponse {
-        let payload = FakeActionRequest.Payload(
+    func create(
+        displayName: String?,
+        username: String?,
+        followCaller: Bool = true,
+        populateLevel: String = "light",
+        archetype: String? = nil
+    ) async throws -> FakeUserCreateResponse {
+        var payload = FakeActionRequest.Payload(
             user_id: nil,
             display_name: displayName?.isEmpty == false ? displayName : nil,
             username: username?.isEmpty == false ? username : nil,
@@ -157,6 +183,8 @@ final class FakeAccountService {
             count: nil,
             days_back: nil
         )
+        payload.populate_level = populateLevel
+        payload.archetype = archetype
         let body = FakeActionRequest(action: "createFakeUser", payload: payload)
         let res: FakeUserCreateResponse = try await supabase.functions
             .invoke("super-action", options: FunctionInvokeOptions(body: body))
@@ -190,6 +218,18 @@ final class FakeAccountService {
             throw NSError(domain: "FakeAccountService", code: 0, userInfo: [NSLocalizedDescriptionKey: err])
         }
         return res.inserted ?? 0
+    }
+
+    func bulkPopulateAll(level: String = "medium") async throws -> FakeBulkPopulateResponse {
+        var p = FakeActionRequest.Payload()
+        p.level = level
+        let body = FakeActionRequest(action: "bulkPopulateAllFakes", payload: p)
+        let res: FakeBulkPopulateResponse = try await supabase.functions
+            .invoke("super-action", options: FunctionInvokeOptions(body: body))
+        if let err = res.error, !err.isEmpty {
+            throw NSError(domain: "FakeAccountService", code: 0, userInfo: [NSLocalizedDescriptionKey: err])
+        }
+        return res
     }
 
     func deleteFake(userId: String) async throws {

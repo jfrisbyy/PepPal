@@ -6,6 +6,20 @@ struct DeveloperSettingsView: View {
     @State private var statusMessage: String?
     @State private var statusIsError: Bool = false
     @State private var showRemoveConfirm: Bool = false
+    @State private var isBulkPopulating: Bool = false
+    @State private var bulkLevel: BulkPopulateLevel = .medium
+
+    enum BulkPopulateLevel: String, CaseIterable, Identifiable {
+        case light, medium, heavy
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .light:  return "Light"
+            case .medium: return "Medium"
+            case .heavy:  return "Heavy"
+            }
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -23,6 +37,8 @@ struct DeveloperSettingsView: View {
                 seedRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 fakeAccountSwitcherRow
+                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
+                bulkPopulateRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 refreshRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
@@ -192,6 +208,49 @@ struct DeveloperSettingsView: View {
         .buttonStyle(.plain)
     }
 
+    private var bulkPopulateRow: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.body)
+                    .foregroundStyle(PepTheme.violet)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Populate all fake accounts")
+                        .font(.body)
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("One-time backfill: 30–90d posts, cross likes/comments, 7 themed groups, DMs between fakes.")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+            }
+            HStack(spacing: 8) {
+                Picker("Depth", selection: $bulkLevel) {
+                    ForEach(BulkPopulateLevel.allCases) { lvl in
+                        Text(lvl.label).tag(lvl)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 220)
+                Spacer()
+                Button {
+                    Task { await bulkPopulate() }
+                } label: {
+                    if isBulkPopulating {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text("Run").font(.caption.weight(.semibold))
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .disabled(isBulkPopulating || isSeeding || isRemoving)
+            }
+        }
+    }
+
     private var streakDebugRow: some View {
         Button { showStreakDebug = true } label: {
             HStack(spacing: 12) {
@@ -339,6 +398,29 @@ struct DeveloperSettingsView: View {
             } else {
                 statusMessage = "\(total) fake personas ready — \(created) new, \(existed) existing."
             }
+            statusIsError = false
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } catch {
+            statusMessage = error.localizedDescription
+            statusIsError = true
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+    }
+
+    private func bulkPopulate() async {
+        isBulkPopulating = true
+        statusMessage = nil
+        defer { isBulkPopulating = false }
+        do {
+            let res = try await FakeAccountService.shared.bulkPopulateAll(level: bulkLevel.rawValue)
+            let parts = [
+                "\(res.posts_added ?? 0) posts",
+                "\(res.likes ?? 0) likes",
+                "\(res.comments ?? 0) comments",
+                "\(res.groups_created ?? 0) new groups",
+                "\(res.dm_pairs ?? 0) DM threads",
+            ].joined(separator: " · ")
+            statusMessage = "Populated \(res.fakes ?? 0) fakes — \(parts)."
             statusIsError = false
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         } catch {
