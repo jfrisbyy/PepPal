@@ -5,16 +5,25 @@ nonisolated struct TodaysPlanResponse: Codable, Sendable {
     let modules: [TodaysPlanModule]
     let actionItems: [PlanActionItem]
     let narrative: BriefNarrative?
+    /// Compact distilled cross-domain pattern summary produced by the deep
+    /// (Sonnet) brief and reused verbatim by the cheap (Haiku) refreshes for
+    /// the rest of the day so the voice and pattern depth stay constant.
+    let patternsMemo: String?
+    /// Which model tier produced this brief ("deep" | "fast"). Persisted
+    /// inline for analytics; not surfaced in UI.
+    let modelTier: String?
 
-    init(summary: String, modules: [TodaysPlanModule], actionItems: [PlanActionItem] = [], narrative: BriefNarrative? = nil) {
+    init(summary: String, modules: [TodaysPlanModule], actionItems: [PlanActionItem] = [], narrative: BriefNarrative? = nil, patternsMemo: String? = nil, modelTier: String? = nil) {
         self.summary = summary
         self.modules = modules
         self.actionItems = actionItems
         self.narrative = narrative
+        self.patternsMemo = patternsMemo
+        self.modelTier = modelTier
     }
 
     enum CodingKeys: String, CodingKey {
-        case summary, modules, actionItems, narrative
+        case summary, modules, actionItems, narrative, patternsMemo, modelTier
     }
 
     init(from decoder: Decoder) throws {
@@ -23,6 +32,8 @@ nonisolated struct TodaysPlanResponse: Codable, Sendable {
         self.modules = try c.decode([TodaysPlanModule].self, forKey: .modules)
         self.actionItems = (try? c.decodeIfPresent([PlanActionItem].self, forKey: .actionItems)) ?? []
         self.narrative = try? c.decodeIfPresent(BriefNarrative.self, forKey: .narrative)
+        self.patternsMemo = try? c.decodeIfPresent(String.self, forKey: .patternsMemo)
+        self.modelTier = try? c.decodeIfPresent(String.self, forKey: .modelTier)
     }
 }
 

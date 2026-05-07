@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 @Observable
 final class TodaysPlanViewModel {
@@ -18,10 +19,24 @@ final class TodaysPlanViewModel {
     private let cacheKey = "todaysPlanCache"
     private let cacheHashKey = "todaysPlanHash"
     private let cacheDateKey = "todaysPlanCacheTimestamp"
+    private let memoKey = "todaysPlanPatternsMemo"
+    private let memoDateKey = "todaysPlanPatternsMemoTimestamp"
     private static let windowsDoneKey = "todaysPlanWindowsDone"
     /// Pending trigger reason — set just before kicking off a refresh so the
     /// completion handler can record it alongside the cloud-saved briefing.
     private var pendingTrigger: String = "window"
+    private var pendingTier: AIModelTier = .deep
+    /// 30s debounce timer for log-driven refreshes so rapid-fire logs collapse
+    /// into a single Haiku regen instead of one regen per log.
+    private var debounceTask: Task<Void, Never>? = nil
+    private var pendingDebouncedContext: ContextBundle? = nil
+    private static let debounceSeconds: UInt64 = 30
+    /// Anchored 1pm Haiku key — stored as "yyyy-MM-dd" so we only fire once per
+    /// device-local day even if the app is foregrounded multiple times after 1pm.
+    private static let middayDoneKey = "todaysPlanMiddayDone"
+    /// Identifier used by the recurring local push that nudges users to open
+    /// the app at 1pm so the midday Haiku refresh runs against fresh logs.
+    private static let middayPushID = "smart.tasks.middayBrief"
 
     /// Log sources that should trigger an immediate holistic brief refresh.
     private static let logTriggerSources: Set<String> = [
@@ -73,6 +88,8 @@ final class TodaysPlanViewModel {
             planResponse = cached
             lastFetchDate = timestamp
         }
+        // Make sure the recurring 1pm push is registered. Idempotent.
+        scheduleMiddayPushIfNeeded()
         // Cloud fallback: if local cache was empty (cold install, signed in on
         // another device), hydrate today's brief from Supabase before any AI call.
         Task { @MainActor [weak self] in
@@ -116,6 +133,12 @@ final class TodaysPlanViewModel {
         UserDefaults.standard.set(data, forKey: cacheKey)
         UserDefaults.standard.set(hash, forKey: cacheHashKey)
         UserDefaults.standard.set(Date(), forKey: cacheDateKey)
+        // Persist memo separately so we can inject it into Haiku updates even
+        // after a relaunch where the in-memory plan hasn't hydrated yet.
+        if let memo = plan.patternsMemo, !memo.isEmpty {
+            UserDefaults.standard.set(memo, forKey: memoKey)
+            UserDefaults.standard.set(Date(), forKey: memoDateKey)
+        }
         // Persist to the cloud so other devices and historical lookups find it.
         let trigger = pendingTrigger
         let windowKey = currentWindow().rawValue
@@ -128,6 +151,13 @@ final class TodaysPlanViewModel {
                 windowKey: windowKey
             )
         }
+    }
+
+    /// The freshest pattern memo we have, preferring the in-memory plan and
+    /// falling back to UserDefaults for cold-start cases.
+    private func currentPatternsMemo() -> String? {
+        if let memo = planResponse?.patternsMemo, !memo.isEmpty { return memo }
+        return UserDefaults.standard.string(forKey: memoKey)
     }
 
     func templateFallback(
@@ -188,6 +218,16 @@ final class TodaysPlanViewModel {
         return .evening                       // 6 PM onward
     }
 
+    /// Sonnet (deep) handles morning + evening windows; afternoon (1pm anchor)
+    /// is always Haiku. Cold start with no memo silently upgrades to Sonnet
+    /// inside the service so quality never degrades.
+    private func tier(for window: Window) -> AIModelTier {
+        switch window {
+        case .morning, .evening: return .deep
+        case .afternoon: return .fast
+        }
+    }
+
     private static func dayString(_ date: Date) -> String {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
@@ -219,6 +259,16 @@ final class TodaysPlanViewModel {
     /// Called when the home view appears or the app returns to foreground.
     /// Runs a holistic refresh if there's no plan yet, or if the current
     /// time-of-day window hasn't been refreshed today. Otherwise is a no-op.
+    /// Whether the 1pm Haiku has already fired today.
+    private func isMiddayDone() -> Bool {
+        guard let raw = UserDefaults.standard.string(forKey: Self.middayDoneKey) else { return false }
+        return raw == Self.dayString(Date())
+    }
+
+    private func markMiddayDone() {
+        UserDefaults.standard.set(Self.dayString(Date()), forKey: Self.middayDoneKey)
+    }
+
     func refreshForWindowIfDue(
         firstName: String,
         activeProtocol: PeptideProtocol?,
@@ -238,7 +288,12 @@ final class TodaysPlanViewModel {
         personalRecords: [TrainPersonalRecord] = []
     ) {
         guard !isLoading else { return }
-        if hasPlan && isCurrentWindowDone() { return }
+        // Catch-up for the anchored 1pm Haiku: if it's past 1pm, the user
+        // hasn't gotten their midday refresh yet, and we're inside the
+        // afternoon window, run it even if the window slot has been marked done.
+        let nowHour = Calendar.current.component(.hour, from: Date())
+        let middayCatchUp = nowHour >= 13 && nowHour < 18 && !isMiddayDone()
+        if hasPlan && isCurrentWindowDone() && !middayCatchUp { return }
 
         let context = TodaysPlanService.shared.assembleContext(
             firstName: firstName,
@@ -267,7 +322,8 @@ final class TodaysPlanViewModel {
             )
             planResponse = fallback
         }
-        pendingTrigger = "window"
+        pendingTrigger = middayCatchUp ? "midday" : "window"
+        pendingTier = tier(for: currentWindow())
         runHolisticRefresh(context: context)
     }
 
@@ -313,12 +369,30 @@ final class TodaysPlanViewModel {
             weeklyMuscleVolumes: weeklyMuscleVolumes,
             personalRecords: personalRecords
         )
-        pendingTrigger = "event"
-        runHolisticRefresh(context: context)
+        // Stash the latest context and (re)start the 30s debounce window. Any
+        // additional log inside that window resets the timer so a meal +
+        // workout + weight logged 5 seconds apart collapse into one Haiku call.
+        pendingDebouncedContext = context
+        debounceTask?.cancel()
+        debounceTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: Self.debounceSeconds * 1_000_000_000)
+            guard let self else { return }
+            guard !Task.isCancelled else { return }
+            guard let pending = self.pendingDebouncedContext else { return }
+            self.pendingDebouncedContext = nil
+            self.debounceTask = nil
+            self.pendingTrigger = "event"
+            self.pendingTier = .fast
+            self.runHolisticRefresh(context: pending)
+        }
     }
 
     private func runHolisticRefresh(context: ContextBundle) {
         let currentHash = context.contentHash
+        let tier = pendingTier
+        let trigger = pendingTrigger
+        let previousBrief = planResponse
+        let previousMemo = currentPatternsMemo()
         if hasPlan {
             isBackgroundRefreshing = true
         } else {
@@ -328,13 +402,21 @@ final class TodaysPlanViewModel {
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                let response = try await TodaysPlanService.shared.generatePlan(context: context)
+                let response = try await TodaysPlanService.shared.generatePlan(
+                    context: context,
+                    tier: tier,
+                    previousBrief: previousBrief,
+                    previousMemo: previousMemo
+                )
                 withAnimation(.easeInOut(duration: 0.3)) {
                     self.planResponse = response
                 }
                 self.lastFetchDate = Date()
                 self.cachePlan(response, hash: currentHash)
                 self.markCurrentWindowDone()
+                if trigger == "midday" {
+                    self.markMiddayDone()
+                }
             } catch {
                 print("[TodaysPlan] Holistic refresh error: \(error)")
             }
@@ -381,6 +463,41 @@ final class TodaysPlanViewModel {
             personalRecords: personalRecords
         )
         pendingTrigger = "manual"
+        // Manual pull-to-refresh always uses the cheap path — the user is
+        // asking to see their newest data reflected, not a fresh deep pass.
+        // The service auto-upgrades to Sonnet on cold-start (no memo).
+        pendingTier = hasPlan ? .fast : .deep
+        // Cancel any in-flight debounce so the manual refresh wins.
+        debounceTask?.cancel()
+        debounceTask = nil
+        pendingDebouncedContext = nil
         runHolisticRefresh(context: context)
+    }
+
+    // MARK: - Midday push notification
+
+    /// Schedules the recurring 1:00 PM local notification that nudges users
+    /// to open the app so the midday Haiku refresh runs against fresh logs.
+    /// Idempotent — safe to call on every cold start.
+    private func scheduleMiddayPushIfNeeded() {
+        let center = UNUserNotificationCenter.current()
+        center.getPendingNotificationRequests { requests in
+            if requests.contains(where: { $0.identifier == Self.middayPushID }) { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Midday brief is ready"
+            content.body = "Open the app to see how your day is shaping up."
+            content.sound = .default
+            content.userInfo = ["smart_category": "tasks", "tab": "home"]
+            var components = DateComponents()
+            components.hour = 13
+            components.minute = 0
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+            let request = UNNotificationRequest(
+                identifier: Self.middayPushID,
+                content: content,
+                trigger: trigger
+            )
+            center.add(request)
+        }
     }
 }

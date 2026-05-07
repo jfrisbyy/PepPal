@@ -4,7 +4,9 @@ import HealthKit
 final class TodaysPlanService {
     static let shared = TodaysPlanService()
 
-    private let model = "anthropic/claude-haiku-4.5"
+    /// Module regeneration always uses the cheap tier — full briefs route
+    /// through `generatePlan(context:tier:previousBrief:previousMemo:)`.
+    private let moduleModel = "anthropic/claude-haiku-4.5"
 
     private let systemPrompt = """
     IDENTITY AND ROLE:
@@ -147,7 +149,7 @@ final class TodaysPlanService {
         ]
 
         let body: [String: Any] = [
-            "model": model,
+            "model": moduleModel,
             "messages": messages,
             "max_tokens": 280,
             "temperature": 0.7
@@ -203,19 +205,48 @@ final class TodaysPlanService {
         return "declining"
     }
 
-    func generatePlan(context: ContextBundle) async throws -> TodaysPlanResponse {
+    /// Generate the full Daily Brief. Tier selection determines the model:
+    /// `.deep` (Sonnet) does the cross-domain pattern analysis and emits a
+    /// `patternsMemo`; `.fast` (Haiku) reuses the most recent memo + previous
+    /// brief to update only what changed while preserving voice and depth.
+    /// If `tier == .fast` but no `previousMemo` is available we transparently
+    /// upgrade to Sonnet so output quality never degrades on cold start.
+    func generatePlan(
+        context: ContextBundle,
+        tier: AIModelTier = .deep,
+        previousBrief: TodaysPlanResponse? = nil,
+        previousMemo: String? = nil
+    ) async throws -> TodaysPlanResponse {
+        let resolvedTier: AIModelTier = (tier == .fast && (previousMemo?.isEmpty ?? true)) ? .deep : tier
         let contextString = context.toPromptString()
+        let systemPrompt: String
+        let userPrompt: String
+        let maxTokens: Int
 
-        let messages: [[String: Any]] = [
-            ["role": "system", "content": systemPromptWithMemory()],
-            ["role": "user", "content": "Generate today's plan dashboard based on this user data:\n\n\(contextString)"]
-        ]
+        switch resolvedTier {
+        case .deep:
+            systemPrompt = systemPromptWithMemory() + "\n\n" + Self.deepMemoAddendum
+            userPrompt = "Generate today's plan dashboard based on this user data:\n\n\(contextString)"
+            // p95 plan output ~900 tokens; 1400 leaves buffer for the new
+            // patternsMemo on outlier days.
+            maxTokens = 1400
+        case .fast:
+            systemPrompt = systemPromptWithMemory() + "\n\n" + Self.fastUpdateAddendum
+            userPrompt = Self.fastUserPrompt(
+                memo: previousMemo ?? "",
+                previousBrief: previousBrief,
+                contextString: contextString
+            )
+            maxTokens = 1200
+        }
 
         let body: [String: Any] = [
-            "model": model,
-            "messages": messages,
-            // p95 plan output ~900 tokens; 1200 leaves buffer for outlier days.
-            "max_tokens": 1200,
+            "model": resolvedTier.modelID,
+            "messages": [
+                ["role": "system", "content": systemPrompt],
+                ["role": "user", "content": userPrompt]
+            ],
+            "max_tokens": maxTokens,
             "temperature": 0.7
         ]
 
@@ -229,7 +260,89 @@ final class TodaysPlanService {
             throw TodaysPlanError.invalidResponse
         }
 
-        return try parseResponse(content)
+        let parsed = try parseResponse(content)
+        // Carry the memo forward when Haiku ran but didn't restate it (allowed
+        // by the prompt — saves output tokens). Stamp the model tier inline.
+        let memoOut = parsed.patternsMemo?.isEmpty == false ? parsed.patternsMemo : previousMemo
+        return TodaysPlanResponse(
+            summary: parsed.summary,
+            modules: parsed.modules,
+            actionItems: parsed.actionItems,
+            narrative: parsed.narrative,
+            patternsMemo: memoOut,
+            modelTier: resolvedTier.rawValue
+        )
+    }
+
+    // MARK: - Tier-specific prompt addenda
+
+    /// Appended to the Sonnet system prompt. Forces a `patternsMemo` field in
+    /// output JSON — a compact, durable cross-domain summary the cheap model
+    /// can lean on for the rest of the day to match Sonnet's depth.
+    private static let deepMemoAddendum = """
+    DEEP-PASS MEMO REQUIREMENT:
+    In addition to the standard fields, your JSON MUST include a top-level string field "patternsMemo". This memo is the durable cross-domain understanding of this specific user that a lighter model will reuse verbatim for every refresh until the next deep pass. Treat it as the system note your future self needs to write briefs that sound exactly like this one.
+
+    The memo MUST:
+    - Be 6-12 short sentences, plain text, no markdown, no headings, no bullets.
+    - Reference the user's name, current journey position (program week, protocol week/phase, percent through cycle, distance to goal weight) — anything that anchors WHERE they are in the arc.
+    - Distill 2-4 cross-domain patterns you would not be able to re-derive from a single day of data: e.g. "protein consistently 110-120g vs. 140g target — muscle preservation risk on Reta", "training adherence 75% over 4 weeks, push days hit, leg days slip", "side effects cluster within 24h of dose, fade by day 3", "weight trend -0.6 lb/wk, on target".
+    - Include any clinical / safety flags worth carrying forward (overdue bloodwork, escalating side effects, plateau, regression on key lifts).
+    - End with one sentence describing the voice this user responds to (e.g. "speak like a direct gym friend, no fluff, lead with the number").
+
+    The memo is internal coaching context for the next model — it is NEVER shown to the user. Do not address the user in it. Do not include emojis or markdown. Keep it dense and specific.
+    """
+
+    /// Appended to the Haiku system prompt. Tells the model it is performing
+    /// an incremental refresh and MUST preserve voice / depth so the user
+    /// can't tell a different model wrote it.
+    private static let fastUpdateAddendum = """
+    INCREMENTAL UPDATE MODE:
+    You are refreshing an existing Daily Brief that was originally written by a deep-analysis model earlier today. The user must NOT be able to tell that a different model is producing this update — the language, sentence shape, specificity, and depth must match the prior brief exactly. Use the same number of modules, the same module types where still relevant, and the same level of cross-domain reasoning.
+
+    You will be given:
+    1. PATTERN MEMO — the durable cross-domain understanding of this user from the latest deep pass. Treat this as authoritative for everything the new logs do not directly contradict. You may quote any insight from the memo, but you MUST re-cite it with the freshest numbers from the current context.
+    2. PREVIOUS BRIEF — the brief currently on screen.
+    3. CURRENT CONTEXT — the live context bundle including any new logs since the previous brief.
+
+    Rules:
+    - Update every number to match CURRENT CONTEXT. Never repeat a stale number from PREVIOUS BRIEF.
+    - Re-evaluate which modules belong now (e.g. if a workout was just logged, the training module shifts from prospective to recap).
+    - Re-evaluate action items against the standard inclusion criteria — drop ones that are now done, add new ones the latest logs surface.
+    - Preserve cross-domain reasoning from the memo. Do NOT regress to single-vertical observations just because the memo's pattern is not directly visible in today's slice.
+    - Keep voice identical to PREVIOUS BRIEF: same casual-but-credible tone, same sentence rhythm, same banned-filler discipline, no emojis.
+    - You MAY include the patternsMemo field unchanged in your output (echoing it is fine), or omit it — either way the orchestration layer will carry the prior memo forward.
+    """
+
+    private static func fastUserPrompt(memo: String, previousBrief: TodaysPlanResponse?, contextString: String) -> String {
+        var sections: [String] = []
+        sections.append("PATTERN MEMO (from latest deep pass — authoritative for cross-domain context):")
+        sections.append(memo.isEmpty ? "(none — derive patterns from CURRENT CONTEXT only)" : memo)
+        if let prev = previousBrief, let prevJSON = encodePreviousBrief(prev) {
+            sections.append("PREVIOUS BRIEF (currently on the user's screen — match its voice):")
+            sections.append(prevJSON)
+        }
+        sections.append("CURRENT CONTEXT (live data — every number in your output must match this):")
+        sections.append(contextString)
+        sections.append("Produce the refreshed Daily Brief as JSON in the exact required shape.")
+        return sections.joined(separator: "\n\n")
+    }
+
+    private static func encodePreviousBrief(_ brief: TodaysPlanResponse) -> String? {
+        // Strip patternsMemo / modelTier so they don't leak into the prompt window twice.
+        let stripped = TodaysPlanResponse(
+            summary: brief.summary,
+            modules: brief.modules,
+            actionItems: brief.actionItems,
+            narrative: brief.narrative,
+            patternsMemo: nil,
+            modelTier: nil
+        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(stripped),
+              let str = String(data: data, encoding: .utf8) else { return nil }
+        return str
     }
 
     private func parseResponse(_ text: String) throws -> TodaysPlanResponse {
