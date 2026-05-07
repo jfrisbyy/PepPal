@@ -105,11 +105,9 @@ final class AuthService {
             }
         }
         let lowerId = newUserId.uuidString.lowercased()
-        // Fire-and-forget: bootstrap the fake-persona follow graph so the
-        // new user's feed, Following list, and counts populate immediately.
-        Task.detached {
-            _ = try? await TestFriendsService.shared.bootstrapFollows()
-        }
+        // Personas are seeded once globally via Developer Settings — new
+        // sign-ups are not auto-connected to them. Users discover personas
+        // organically through Community / Discover / search.
         return lowerId
     }
 
