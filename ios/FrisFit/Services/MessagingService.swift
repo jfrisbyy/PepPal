@@ -259,11 +259,34 @@ final class MessagingService {
             return .requested
         }
 
+        // If we already follow this user, treat as a successful no-op so the
+        // UI doesn't surface a unique-constraint error
+        // (`follows_follower_id_following_id_key`). This also covers the case
+        // where local state was stale (seeded accounts already followed).
+        let alreadyFollowing = (try? await isFollowing(followerId: followerId, followingId: followingId)) ?? false
+        if alreadyFollowing {
+            NotificationCenter.default.post(
+                name: .followGraphChanged,
+                object: nil,
+                userInfo: ["followerId": followerId, "followingId": followingId, "isFollowing": true]
+            )
+            return .followed
+        }
+
         let payload = CreateFollowPayload(follower_id: followerId, following_id: followingId)
-        try await supabase
-            .from("follows")
-            .insert(payload)
-            .execute()
+        do {
+            try await supabase
+                .from("follows")
+                .upsert(payload, onConflict: "follower_id,following_id", ignoreDuplicates: true)
+                .execute()
+        } catch {
+            // Swallow duplicate-key races; anything else bubbles up.
+            let message = error.localizedDescription.lowercased()
+            let isDuplicate = message.contains("duplicate key")
+                || message.contains("follows_follower_id_following_id_key")
+                || message.contains("23505")
+            if !isDuplicate { throw error }
+        }
 
         NotificationCenter.default.post(
             name: .followGraphChanged,
