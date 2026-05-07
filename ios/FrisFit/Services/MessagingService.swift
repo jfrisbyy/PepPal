@@ -14,6 +14,11 @@ nonisolated struct CreateFollowPayload: Codable, Sendable {
     let following_id: String
 }
 
+nonisolated struct TargetPrivacyRow: Codable, Sendable {
+    let id: String?
+    let is_private: Bool?
+}
+
 nonisolated struct SupabaseFollowRequest: Codable, Sendable {
     let id: String?
     let requester_id: String
@@ -216,15 +221,18 @@ final class MessagingService {
 
     @discardableResult
     func followUser(followerId: String, followingId: String) async throws -> FollowOutcome {
-        let target: SupabaseProfile = try await supabase
+        // Fetch as array so a missing/RLS-hidden row doesn't throw
+        // "cannot coerce the result to a single json object".
+        let targets: [TargetPrivacyRow] = (try? await supabase
             .from("profiles")
-            .select()
+            .select("id, is_private")
             .eq("id", value: followingId)
-            .single()
+            .limit(1)
             .execute()
-            .value
+            .value) ?? []
+        let isPrivate = targets.first?.is_private == true
 
-        if target.is_private == true {
+        if isPrivate {
             let payload = CreateFollowRequestPayload(requester_id: followerId, target_id: followingId)
             try await supabase
                 .from("follow_requests")
