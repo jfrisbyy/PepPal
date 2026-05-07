@@ -6,6 +6,7 @@ struct StepDetailView: View {
     @State private var viewModel = StepDetailViewModel()
     @State private var animateProgress: Bool = false
     @State private var selectedDate: Date? = nil
+    @Environment(\.dismiss) private var dismiss
 
     init(stepsCaloriesOverride: Int? = nil) {
         self.stepsCaloriesOverride = stepsCaloriesOverride
@@ -41,12 +42,16 @@ struct StepDetailView: View {
                 recentBreakdownCard
             }
             .padding(.horizontal)
+            .padding(.top, 52)
             .padding(.bottom, 40)
         }
         .scrollIndicators(.hidden)
         .appBackground()
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .floatingTopBar {
+            FloatingNavButton(systemImage: "chevron.left") { dismiss() }
+        }
         .task {
             await viewModel.loadData()
             withAnimation(.spring(response: 0.85, dampingFraction: 0.75)) {

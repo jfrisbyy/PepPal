@@ -28,13 +28,31 @@ struct ChatConversationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            editorialNavBar
             messagesScrollView
             inputBar
         }
         .appBackground()
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .navigationBar)
+        .floatingTopBar {
+            FloatingNavButton(systemImage: "chevron.left") { dismiss() }
+        } trailing: {
+            Menu {
+                Button(role: .destructive) { showReport = true } label: {
+                    Label("Report", systemImage: "flag")
+                }
+                Button(role: .destructive) { showBlockConfirm = true } label: {
+                    Label("Block User", systemImage: "hand.raised")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .frame(width: 38, height: 38)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .overlay(Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5))
+                    .shadow(color: .black.opacity(0.10), radius: 8, x: 0, y: 3)
+            }
+        }
         .onAppear {
             viewModel.markAsRead(conversationID: conversationID)
         }
@@ -72,7 +90,26 @@ struct ChatConversationView: View {
         }
     }
 
-    // MARK: - Editorial nav bar
+    // MARK: - Floating header title
+
+    @ViewBuilder
+    private func floatingHeaderTitle(participant: SocialUser) -> some View {
+        VStack(spacing: 2) {
+            Text("CORRESPONDENCE WITH")
+                .font(.system(size: 8, weight: .black))
+                .tracking(1.8)
+                .foregroundStyle(PepTheme.textTertiary)
+            Text(participant.name)
+                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .kerning(-0.2)
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 4)
+    }
+
+    // MARK: - Editorial nav bar (unused after floating bar migration)
 
     private var editorialNavBar: some View {
         VStack(spacing: 0) {
@@ -140,9 +177,16 @@ struct ChatConversationView: View {
         ScrollView {
             ScrollViewReader { proxy in
                 LazyVStack(spacing: 6) {
+                    // Spacer so the first message clears the floating top buttons.
+                    Color.clear.frame(height: 56)
+
+                    if let convo = conversation {
+                        floatingHeaderTitle(participant: convo.participant)
+                    }
+
                     if let convo = conversation, convo.messages.isEmpty {
                         emptyConversationHeader(participant: convo.participant)
-                            .padding(.top, 32)
+                            .padding(.top, 16)
                     }
 
                     if let convo = conversation {

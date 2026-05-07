@@ -11,6 +11,7 @@ struct NutritionView: View {
     @State private var mealToCopy: LoggedMeal? = nil
     @State private var showCopyDatePicker: Bool = false
     @State private var copyTargetDate: Date = Date()
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
@@ -28,34 +29,35 @@ struct NutritionView: View {
                 mealLog
             }
             .padding(.horizontal)
+            .padding(.top, 52)
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
         .appBackground()
         .navigationTitle("Nutrition")
-        
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                SyncStatusBadge()
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        selectedMealTimeForLog = suggestedMealTime
-                        showMealLogMethod = true
-                    } label: {
-                        Label("Log Meal", systemImage: "fork.knife")
-                    }
-                    Button {
-                        showMacroGoalSheet = true
-                    } label: {
-                        Label("Macro Goals", systemImage: "target")
-                    }
+        .floatingTopBar {
+            FloatingNavButton(systemImage: "chevron.left") { dismiss() }
+        } trailing: {
+            Menu {
+                Button {
+                    selectedMealTimeForLog = suggestedMealTime
+                    showMealLogMethod = true
                 } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(PepTheme.teal)
+                    Label("Log Meal", systemImage: "fork.knife")
                 }
+                Button {
+                    showMacroGoalSheet = true
+                } label: {
+                    Label("Macro Goals", systemImage: "target")
+                }
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(PepTheme.teal)
+                    .frame(width: 38, height: 38)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .overlay(Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5))
+                    .shadow(color: .black.opacity(0.10), radius: 8, x: 0, y: 3)
             }
         }
         .fullScreenCover(isPresented: $showMealLogMethod) {

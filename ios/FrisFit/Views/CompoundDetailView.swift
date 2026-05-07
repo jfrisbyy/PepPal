@@ -16,6 +16,7 @@ struct CompoundDetailView: View {
     @State private var socialViewModel = SocialViewModel()
     @State private var realProtocolUsers: [ProtocolUser] = []
     @State private var liveStat: CompoundUsageStat?
+    @Environment(\.dismiss) private var dismiss
 
     private enum SocialSort: String, CaseIterable {
         case recent = "Recent"
@@ -108,6 +109,9 @@ struct CompoundDetailView: View {
         .scrollIndicators(.hidden)
         .appBackground()
         .navigationBarTitleDisplayMode(.inline)
+        .floatingTopBar {
+            FloatingNavButton(systemImage: "chevron.left") { dismiss() }
+        }
         .onAppear {
             withAnimation(.easeOut(duration: 0.5)) {
                 headerVisible = true

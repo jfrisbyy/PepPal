@@ -5,6 +5,7 @@ struct HealthDetailView: View {
     @State private var viewModel = HealthDetailViewModel()
 
     @State private var showSync: Bool = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
@@ -22,6 +23,7 @@ struct HealthDetailView: View {
                 content
             }
             .padding(.horizontal)
+            .padding(.top, 52)
             .padding(.bottom, 32)
             .animation(.spring(response: 0.5, dampingFraction: 0.85), value: viewModel.period)
         }
@@ -29,12 +31,10 @@ struct HealthDetailView: View {
         .appBackground()
         .navigationTitle("Apple Health")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showSync = true } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                }
-            }
+        .floatingTopBar {
+            FloatingNavButton(systemImage: "chevron.left") { dismiss() }
+        } trailing: {
+            FloatingNavButton(systemImage: "arrow.triangle.2.circlepath") { showSync = true }
         }
         .sheet(isPresented: $showSync) {
             NavigationStack { AppleHealthSyncView() }

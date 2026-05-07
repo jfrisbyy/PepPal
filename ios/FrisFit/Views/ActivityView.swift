@@ -4,6 +4,7 @@ struct ActivityView: View {
     @Bindable var viewModel: EnergyBalanceViewModel
     @State private var todaysPlanVM = TodaysPlanViewModel.shared
     @State private var showLogActivity: Bool = false
+    @Environment(\.dismiss) private var dismiss
 
     private let stepsColor = Color(red: 0.38, green: 0.82, blue: 0.55)
     private let exerciseColor = Color.orange
@@ -29,22 +30,16 @@ struct ActivityView: View {
             }
             .padding(.horizontal)
             .padding(.bottom, 32)
-            .padding(.top, 4)
+            .padding(.top, 52)
         }
         .scrollIndicators(.hidden)
         .appBackground()
         .navigationTitle("Activity")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showLogActivity = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(.orange)
-                }
-            }
+        .floatingTopBar {
+            FloatingNavButton(systemImage: "chevron.left") { dismiss() }
+        } trailing: {
+            FloatingNavButton(systemImage: "plus", action: { showLogActivity = true }, tint: .orange)
         }
         .sheet(isPresented: $showLogActivity) {
             LogActivitySheet()

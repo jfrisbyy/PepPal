@@ -21,6 +21,7 @@ struct FriendDashboardView: View {
     @State private var liveSport: BuddySport?
     @State private var mealsExpanded: Bool = false
     @State private var protocolDetail: MockFriendsService.MockProtocol?
+    @Environment(\.dismiss) private var dismiss
 
     private var profile: MockFriendsService.MockFriendProfile? {
         MockFriendsService.shared.profile(byId: friend.id.uuidString)
@@ -52,21 +53,16 @@ struct FriendDashboardView: View {
                 activityTimeline
                 Color.clear.frame(height: 80)
             }
-            .padding(.top, 8)
+            .padding(.top, 52)
         }
         .scrollIndicators(.hidden)
         .appBackground()
         .navigationTitle(firstName)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showShareConfirm = true
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .foregroundStyle(PepTheme.teal)
-                }
-            }
+        .floatingTopBar {
+            FloatingNavButton(systemImage: "chevron.left") { dismiss() }
+        } trailing: {
+            FloatingNavButton(systemImage: "square.and.arrow.up", action: { showShareConfirm = true }, tint: PepTheme.teal)
         }
         .navigationDestination(isPresented: $showCompare) {
             FriendComparisonView(friend: friend, mySnapshot: mySnapshot)

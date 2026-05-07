@@ -10,6 +10,7 @@ struct SleepRecoveryView: View {
     @State private var range: TimeRange = .week
     @State private var insightIndex: Int = 0
     @AppStorage("sleep.goal.hours") private var goalHours: Double = 8.0
+    @Environment(\.dismiss) private var dismiss
 
     enum TimeRange: String, CaseIterable, Identifiable {
         case week = "7D"
@@ -46,24 +47,20 @@ struct SleepRecoveryView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.top, 8)
+            .padding(.top, 52)
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
         .appBackground()
         .navigationTitle("Sleep")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    editingLog = nil
-                    showLogSheet = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(PepTheme.violet)
-                }
-            }
+        .floatingTopBar {
+            FloatingNavButton(systemImage: "chevron.left") { dismiss() }
+        } trailing: {
+            FloatingNavButton(systemImage: "plus", action: {
+                editingLog = nil
+                showLogSheet = true
+            }, tint: PepTheme.violet)
         }
         .sheet(isPresented: $showLogSheet) {
             LogSleepSheet(existing: editingLog)
