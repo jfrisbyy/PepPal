@@ -252,18 +252,19 @@ final class SocialService {
 
     func addComment(postId: String, userId: String, text: String, parentCommentId: String? = nil) async throws -> SupabasePostCommentWithProfile {
         let payload = CreateCommentPayload(post_id: postId, user_id: userId, content: text, parent_comment_id: parentCommentId)
+        let full: SupabasePostCommentWithProfile
         do {
-            var full: SupabasePostCommentWithProfile = try await supabase
+            var fetched: SupabasePostCommentWithProfile = try await supabase
                 .from("post_comments")
                 .insert(payload)
                 .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
                 .single()
                 .execute()
                 .value
-            var arr = [full]
+            var arr = [fetched]
             await backfillCommentAuthors(comments: &arr)
-            full = arr[0]
-            return full
+            fetched = arr[0]
+            full = fetched
         } catch {
             print("[SocialService] addComment insert+select failed: \(error). Falling back to two-step insert.")
             let inserted: SupabasePostComment = try await supabase
@@ -274,17 +275,51 @@ final class SocialService {
                 .execute()
                 .value
 
-            var full: SupabasePostCommentWithProfile = try await supabase
+            var fetched: SupabasePostCommentWithProfile = try await supabase
                 .from("post_comments")
                 .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
                 .eq("id", value: inserted.id)
                 .single()
                 .execute()
                 .value
-            var arr = [full]
+            var arr = [fetched]
             await backfillCommentAuthors(comments: &arr)
-            full = arr[0]
-            return full
+            fetched = arr[0]
+            full = fetched
+        }
+
+        if let parentId = parentCommentId, !parentId.isEmpty {
+            await notifyParentCommenterIfNeeded(parentCommentId: parentId, replierUserId: userId, replierProfile: full.profiles, replyText: full.commentText ?? text)
+        }
+        return full
+    }
+
+    private func notifyParentCommenterIfNeeded(parentCommentId: String, replierUserId: String, replierProfile: SupabasePostAuthor?, replyText: String) async {
+        do {
+            let parents: [SupabasePostComment] = try await supabase
+                .from("post_comments")
+                .select("id, post_id, user_id, parent_comment_id, content")
+                .eq("id", value: parentCommentId)
+                .limit(1)
+                .execute()
+                .value
+            guard let parent = parents.first else { return }
+            guard parent.user_id.lowercased() != replierUserId.lowercased() else { return }
+
+            let authorName = replierProfile?.display_name ?? replierProfile?.username ?? "Someone"
+            let snippet = String(replyText.prefix(80))
+            let payload = CreateNotificationPayload(
+                user_id: parent.user_id,
+                type: "comment_reply",
+                title: "New reply",
+                body: "\(authorName) replied: \(snippet)"
+            )
+            try await supabase
+                .from("notifications")
+                .insert(payload)
+                .execute()
+        } catch {
+            print("[SocialService] failed to notify parent commenter: \(error)")
         }
     }
 

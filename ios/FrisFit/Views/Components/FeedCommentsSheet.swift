@@ -211,6 +211,7 @@ struct FeedCommentsSheet: View {
             FeedCommentRow(
                 comment: comment,
                 isOwnComment: comment.user.id.uuidString.lowercased() == currentUserId?.lowercased(),
+                replyCount: replies.count,
                 onDelete: { commentToDelete = comment },
                 onReport: { showReportAlert = true },
                 onReply: { startReply(to: comment) }
@@ -222,6 +223,7 @@ struct FeedCommentsSheet: View {
                         FeedCommentRow(
                             comment: reply,
                             isOwnComment: reply.user.id.uuidString.lowercased() == currentUserId?.lowercased(),
+                            replyCount: 0,
                             onDelete: { commentToDelete = reply },
                             onReport: { showReportAlert = true },
                             onReply: { startReply(to: comment) }
@@ -267,6 +269,7 @@ struct FeedCommentsSheet: View {
 private struct FeedCommentRow: View {
     let comment: PostComment
     let isOwnComment: Bool
+    let replyCount: Int
     let onDelete: () -> Void
     let onReport: () -> Void
     let onReply: () -> Void
@@ -298,9 +301,20 @@ private struct FeedCommentRow: View {
                     .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
 
                 Button(action: onReply) {
-                    Text("Reply")
-                        .font(.system(.caption2, weight: .semibold))
-                        .foregroundStyle(PepTheme.textSecondary)
+                    HStack(spacing: 6) {
+                        Text("Reply")
+                            .font(.system(.caption2, weight: .semibold))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        if replyCount > 0 {
+                            Text("\(replyCount)")
+                                .font(.system(.caption2, weight: .semibold))
+                                .foregroundStyle(PepTheme.teal)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 1)
+                                .background(PepTheme.teal.opacity(0.12))
+                                .clipShape(.capsule)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
                 .padding(.top, 2)
