@@ -371,17 +371,8 @@ struct FriendsStatsView<TopHeader: View>: View {
     private var _socialObserver: Int { social.reactions.count + social.sentNudges.count + social.friendPresences.count }
 
     private var header: some View {
-        SectionEyebrow("Friends", number: "00", accent: PepTheme.teal) {
-            Button {
-                showSettings = true
-            } label: {
-                Text("SETTINGS")
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(1.4)
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-        }
-        .padding(.horizontal)
+        SectionEyebrow("Friends", number: "00", accent: PepTheme.teal)
+            .padding(.horizontal)
     }
 
     private var shareCTA: some View {

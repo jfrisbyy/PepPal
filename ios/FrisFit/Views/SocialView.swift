@@ -17,8 +17,8 @@ struct SocialView: View {
     @State private var scrollOffset: CGFloat = 0
     @State private var showCommunityDiscover: Bool = false
     @State private var showNotifications: Bool = false
-    @State private var showGroups: Bool = false
     @State private var showMessages: Bool = false
+    @State private var showSettings: Bool = false
     @Namespace private var communityPickerNS
 
     var body: some View {
@@ -63,8 +63,10 @@ struct SocialView: View {
             }
             .navigationDestination(isPresented: $showCommunityDiscover) { CommunityDiscoverView() }
             .navigationDestination(isPresented: $showNotifications) { NotificationsView() }
-            .navigationDestination(isPresented: $showGroups) { GroupsListView(viewModel: groupsViewModel) }
             .navigationDestination(isPresented: $showMessages) { DirectMessagesView(viewModel: messagesViewModel) }
+            .sheet(isPresented: $showSettings) {
+                NavigationStack { StatSharingSettingsView() }
+            }
             .sheet(item: $commentPost) { post in
                 CommentsSheet(post: post) { text in
                     viewModel.addComment(to: post.id, text: text)
@@ -129,16 +131,16 @@ struct SocialView: View {
                 showNotifications = true
             }
             FloatingPillDivider()
-            FloatingPillIconButton(systemName: "person.2") {
-                showGroups = true
-            }
-            FloatingPillDivider()
             FloatingPillIconButton(
                 systemName: "bubble.left",
                 badge: messagesViewModel.totalUnread > 0,
                 badgeColor: PepTheme.teal
             ) {
                 showMessages = true
+            }
+            FloatingPillDivider()
+            FloatingPillIconButton(systemName: "gearshape") {
+                showSettings = true
             }
         }
     }
