@@ -235,22 +235,35 @@ final class SocialService {
     }
 
     func addComment(postId: String, userId: String, text: String) async throws -> SupabasePostCommentWithProfile {
-        let inserted: SupabasePostComment = try await supabase
-            .from("post_comments")
-            .insert(["post_id": postId, "user_id": userId, "content": text])
-            .select()
-            .single()
-            .execute()
-            .value
+        let payload = CreateCommentPayload(post_id: postId, user_id: userId, content: text)
+        do {
+            let full: SupabasePostCommentWithProfile = try await supabase
+                .from("post_comments")
+                .insert(payload)
+                .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+                .single()
+                .execute()
+                .value
+            return full
+        } catch {
+            print("[SocialService] addComment insert+select failed: \(error). Falling back to two-step insert.")
+            let inserted: SupabasePostComment = try await supabase
+                .from("post_comments")
+                .insert(payload)
+                .select()
+                .single()
+                .execute()
+                .value
 
-        let full: SupabasePostCommentWithProfile = try await supabase
-            .from("post_comments")
-            .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
-            .eq("id", value: inserted.id)
-            .single()
-            .execute()
-            .value
-        return full
+            let full: SupabasePostCommentWithProfile = try await supabase
+                .from("post_comments")
+                .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
+                .eq("id", value: inserted.id)
+                .single()
+                .execute()
+                .value
+            return full
+        }
     }
 
     func fetchLikeStatus(postId: String, userId: String) async throws -> Bool {
