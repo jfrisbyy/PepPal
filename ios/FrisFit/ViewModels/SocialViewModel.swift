@@ -307,6 +307,14 @@ final class SocialViewModel {
             oldestCursor = feedPosts.last?.timestamp
             hasMorePosts = supabasePosts.count >= pageSize
             print("FEED_LOAD: Successfully loaded \(feedPosts.count) feed posts")
+        } catch is CancellationError {
+            print("FEED_LOAD: cancelled")
+            isLoadingFeed = false
+            return
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            print("FEED_LOAD: URL cancelled")
+            isLoadingFeed = false
+            return
         } catch {
             print("FEED_LOAD: ERROR loading feed: \(error)")
             feedError = error.localizedDescription
@@ -388,6 +396,10 @@ final class SocialViewModel {
             feedPosts.append(contentsOf: newPosts)
             oldestCursor = feedPosts.last?.timestamp
             hasMorePosts = supabasePosts.count >= pageSize
+        } catch is CancellationError {
+            print("FEED_LOAD_MORE: cancelled")
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            print("FEED_LOAD_MORE: URL cancelled")
         } catch {
             print("FEED_LOAD_MORE: ERROR: \(error)")
         }
