@@ -14,6 +14,7 @@ struct FeedCommentsSheet: View {
     @FocusState private var isCommentFocused: Bool
     @State private var replyingTo: PostComment?
     @State private var expandedThreads: Set<UUID> = []
+    @State private var suggestions = MentionHashtagSuggestionController()
 
     private var currentUserId: String? {
         try? AuthService.shared.currentUserId()
@@ -68,6 +69,14 @@ struct FeedCommentsSheet: View {
                         .padding(.vertical, 4)
                 }
 
+                if suggestions.isActive {
+                    MentionHashtagSuggestionView(
+                        controller: suggestions,
+                        onPickMention: { s in suggestions.insertMention(s, into: &commentText) },
+                        onPickHashtag: { s in suggestions.insertHashtag(s, into: &commentText) }
+                    )
+                }
+
                 Divider()
                     .overlay(PepTheme.separatorColor)
 
@@ -106,6 +115,9 @@ struct FeedCommentsSheet: View {
                         .clipShape(.capsule)
                         .focused($isCommentFocused)
                         .onSubmit { sendComment() }
+                        .onChange(of: commentText) { _, newValue in
+                            suggestions.handleTextChange(newValue, caret: newValue.count)
+                        }
 
                     Button {
                         sendComment()
@@ -172,6 +184,7 @@ struct FeedCommentsSheet: View {
     private func sendComment() {
         let trimmed = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        suggestions.reset()
         let parentId = replyingTo?.parentId ?? replyingTo?.id
         if let parent = replyingTo {
             withAnimation(.spring(response: 0.3)) {
@@ -255,6 +268,10 @@ struct FeedCommentsSheet: View {
     private func startReply(to comment: PostComment) {
         withAnimation(.spring(response: 0.3)) {
             replyingTo = comment
+        }
+        let prefix = "@\(comment.user.username) "
+        if !commentText.hasPrefix(prefix) {
+            commentText = prefix + commentText
         }
         isCommentFocused = true
     }

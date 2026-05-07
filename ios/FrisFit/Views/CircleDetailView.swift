@@ -928,6 +928,7 @@ struct CirclePostCommentsSheet: View {
     @State private var commentText: String = ""
     @State private var showReportAlert: Bool = false
     @FocusState private var isCommentFocused: Bool
+    @State private var suggestions = MentionHashtagSuggestionController()
 
     private var currentUserId: String? {
         try? AuthService.shared.currentUserId()
@@ -995,6 +996,14 @@ struct CirclePostCommentsSheet: View {
                     }
                 }
 
+                if suggestions.isActive {
+                    MentionHashtagSuggestionView(
+                        controller: suggestions,
+                        onPickMention: { s in suggestions.insertMention(s, into: &commentText) },
+                        onPickHashtag: { s in suggestions.insertHashtag(s, into: &commentText) }
+                    )
+                }
+
                 Divider().overlay(PepTheme.separatorColor)
 
                 HStack(spacing: 12) {
@@ -1007,6 +1016,9 @@ struct CirclePostCommentsSheet: View {
                         .clipShape(.capsule)
                         .focused($isCommentFocused)
                         .onSubmit { sendComment() }
+                        .onChange(of: commentText) { _, newValue in
+                            suggestions.handleTextChange(newValue, caret: newValue.count)
+                        }
 
                     Button { sendComment() } label: {
                         Image(systemName: "arrow.up.circle.fill")
@@ -1043,6 +1055,7 @@ struct CirclePostCommentsSheet: View {
     private func sendComment() {
         let trimmed = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        suggestions.reset()
         onAddComment(trimmed)
         commentText = ""
     }
