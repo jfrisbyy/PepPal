@@ -452,9 +452,12 @@ final class SocialService {
 
     func fetchCommentCounts(postIds: [String]) async throws -> [String: Int] {
         guard !postIds.isEmpty else { return [:] }
-        let response: [SupabasePostComment] = try await supabase
+        struct CommentCountRow: Decodable, Sendable {
+            let post_id: String
+        }
+        let response: [CommentCountRow] = try await supabase
             .from("post_comments")
-            .select("id, post_id")
+            .select("post_id")
             .in("post_id", values: postIds)
             .execute()
             .value
