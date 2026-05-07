@@ -24,6 +24,8 @@ struct PostDetailView: View {
     @State private var showCommentReportAlert: Bool = false
     @FocusState private var isCommentFocused: Bool
     @State private var selectedHashtag: String?
+    @State private var replyingTo: PostComment?
+    @State private var expandedThreads: Set<UUID> = []
 
     private var currentUserId: String? {
         try? AuthService.shared.currentUserId()
@@ -520,26 +522,10 @@ struct PostDetailView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
             } else {
+                let topLevel = comments.filter { $0.parentId == nil }
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(comments) { comment in
-                        DetailCommentRow(
-                            comment: comment,
-                            isOwnComment: comment.user.id.uuidString.lowercased() == currentUserId?.lowercased(),
-                            onDelete: {
-                                commentToDelete = comment
-                            },
-                            onReport: {
-                                showCommentReportAlert = true
-                            }
-                        )
-                            .padding(.horizontal)
-                            .padding(.vertical, 10)
-
-                        if comment.id != comments.last?.id {
-                            Divider()
-                                .overlay(PepTheme.separatorColor.opacity(0.5))
-                                .padding(.leading, 58)
-                        }
+                    ForEach(topLevel) { comment in
+                        commentThread(for: comment, isLast: comment.id == topLevel.last?.id)
                     }
                 }
 
@@ -556,48 +542,172 @@ struct PostDetailView: View {
     }
 
     private var commentInputBar: some View {
-        HStack(spacing: 12) {
-            TextField("Add a comment...", text: $commentText)
-                .font(.subheadline)
-                .foregroundStyle(PepTheme.textPrimary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(PepTheme.elevated)
-                .clipShape(.capsule)
-                .focused($isCommentFocused)
-                .onSubmit { sendComment() }
-
-            Button {
-                sendComment()
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? PepTheme.textSecondary.opacity(0.3) : PepTheme.teal)
+        VStack(spacing: 0) {
+            if let replyingTo {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrowshape.turn.up.left.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(PepTheme.teal)
+                    Text("Replying to ")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                    + Text("@\(replyingTo.user.username)")
+                        .font(.system(.caption, weight: .semibold))
+                        .foregroundStyle(PepTheme.teal)
+                    Spacer()
+                    Button {
+                        cancelReply()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(PepTheme.teal.opacity(0.08))
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .disabled(commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+            HStack(spacing: 12) {
+                TextField(replyingTo == nil ? "Add a comment..." : "Add a reply...", text: $commentText)
+                    .font(.subheadline)
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(PepTheme.elevated)
+                    .clipShape(.capsule)
+                    .focused($isCommentFocused)
+                    .onSubmit { sendComment() }
+
+                Button {
+                    sendComment()
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? PepTheme.textSecondary.opacity(0.3) : PepTheme.teal)
+                }
+                .disabled(commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
         .background(
             PepTheme.cardSurface
                 .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: -2)
         )
     }
 
+    @ViewBuilder
+    private func commentThread(for comment: PostComment, isLast: Bool) -> some View {
+        let replies = comments.filter { $0.parentId == comment.id }
+        let isExpanded = expandedThreads.contains(comment.id)
+        let visibleReplies: [PostComment] = isExpanded ? replies : Array(replies.prefix(2))
+
+        VStack(alignment: .leading, spacing: 0) {
+            DetailCommentRow(
+                comment: comment,
+                isOwnComment: comment.user.id.uuidString.lowercased() == currentUserId?.lowercased(),
+                onDelete: { commentToDelete = comment },
+                onReport: { showCommentReportAlert = true },
+                onReply: { startReply(to: comment) }
+            )
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+
+            if !replies.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(visibleReplies) { reply in
+                        DetailCommentRow(
+                            comment: reply,
+                            isOwnComment: reply.user.id.uuidString.lowercased() == currentUserId?.lowercased(),
+                            onDelete: { commentToDelete = reply },
+                            onReport: { showCommentReportAlert = true },
+                            onReply: { startReply(to: comment) }
+                        )
+                        .padding(.vertical, 8)
+                    }
+
+                    if replies.count > visibleReplies.count {
+                        Button {
+                            withAnimation(.spring(response: 0.3)) {
+                                _ = expandedThreads.insert(comment.id)
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Rectangle()
+                                    .fill(PepTheme.separatorColor)
+                                    .frame(width: 24, height: 1)
+                                Text("View \(replies.count - visibleReplies.count) more \(replies.count - visibleReplies.count == 1 ? "reply" : "replies")")
+                                    .font(.system(.caption, weight: .semibold))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                            .padding(.vertical, 6)
+                        }
+                    } else if isExpanded && replies.count > 2 {
+                        Button {
+                            withAnimation(.spring(response: 0.3)) {
+                                _ = expandedThreads.remove(comment.id)
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Rectangle()
+                                    .fill(PepTheme.separatorColor)
+                                    .frame(width: 24, height: 1)
+                                Text("Hide replies")
+                                    .font(.system(.caption, weight: .semibold))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                            .padding(.vertical, 6)
+                        }
+                    }
+                }
+                .padding(.leading, 58)
+                .padding(.trailing, 16)
+            }
+
+            if !isLast {
+                Divider()
+                    .overlay(PepTheme.separatorColor.opacity(0.5))
+                    .padding(.leading, 58)
+            }
+        }
+    }
+
+    private func startReply(to comment: PostComment) {
+        withAnimation(.spring(response: 0.3)) {
+            replyingTo = comment
+        }
+        isCommentFocused = true
+    }
+
+    private func cancelReply() {
+        withAnimation(.spring(response: 0.3)) {
+            replyingTo = nil
+        }
+    }
+
     private func sendComment() {
         let trimmed = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        let parentId = replyingTo?.parentId ?? replyingTo?.id
+        if let parent = replyingTo {
+            withAnimation(.spring(response: 0.3)) {
+                _ = expandedThreads.insert(parent.parentId ?? parent.id)
+            }
+        }
         commentText = ""
         isCommentFocused = false
         commentError = nil
+        withAnimation(.spring(response: 0.3)) { replyingTo = nil }
 
-        let optimistic = viewModel.makeOptimisticComment(text: trimmed)
+        let optimistic = viewModel.makeOptimisticComment(text: trimmed, parentId: parentId)
         withAnimation(.spring(response: 0.3)) {
             comments.append(optimistic)
         }
 
         Task {
-            let success = await viewModel.addFeedComment(to: post.id, text: trimmed, optimisticComment: optimistic)
+            let success = await viewModel.addFeedComment(to: post.id, text: trimmed, parentCommentId: parentId, optimisticComment: optimistic)
             if let updated = viewModel.feedPosts.first(where: { $0.id == post.id }) {
                 withAnimation(.spring(response: 0.3)) {
                     comments = updated.comments
@@ -618,6 +728,7 @@ private struct DetailCommentRow: View {
     let isOwnComment: Bool
     let onDelete: () -> Void
     let onReport: () -> Void
+    let onReply: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -645,7 +756,17 @@ private struct DetailCommentRow: View {
                     .font(.subheadline)
                     .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
+
+                Button(action: onReply) {
+                    Text("Reply")
+                        .font(.system(.caption2, weight: .semibold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
             }
+
+            Spacer(minLength: 0)
         }
         .contextMenu {
             Button {

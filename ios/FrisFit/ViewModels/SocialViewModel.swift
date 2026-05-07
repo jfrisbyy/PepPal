@@ -466,7 +466,7 @@ final class SocialViewModel {
         }
     }
 
-    func makeOptimisticComment(text: String) -> PostComment {
+    func makeOptimisticComment(text: String, parentId: UUID? = nil) -> PostComment {
         let currentUser: SocialUser
         if let userId = try? AuthService.shared.currentUserId(),
            let me = feedPosts.first(where: { $0.user.id.uuidString.lowercased() == userId.lowercased() })?.user {
@@ -474,14 +474,14 @@ final class SocialViewModel {
         } else {
             currentUser = SocialUser(id: UUID(), name: "You", username: "me", avatarInitial: "Y", avatarColor: Color(red: 0, green: 0.9, blue: 1), activeProgramName: nil, streak: 0, totalFP: 0)
         }
-        return PostComment(id: UUID(), user: currentUser, text: text, timestamp: Date())
+        return PostComment(id: UUID(), user: currentUser, text: text, timestamp: Date(), parentId: parentId)
     }
 
-    func addFeedComment(to postID: UUID, text: String, optimisticComment: PostComment? = nil) async -> Bool {
+    func addFeedComment(to postID: UUID, text: String, parentCommentId: UUID? = nil, optimisticComment: PostComment? = nil) async -> Bool {
         guard let index = feedPosts.firstIndex(where: { $0.id == postID }) else { return false }
         let supabaseId = feedPosts[index].supabaseId ?? postID.uuidString
 
-        let placeholder = optimisticComment ?? makeOptimisticComment(text: text)
+        let placeholder = optimisticComment ?? makeOptimisticComment(text: text, parentId: parentCommentId)
 
         if !feedPosts[index].comments.contains(where: { $0.id == placeholder.id }) {
             feedPosts[index].comments.append(placeholder)
@@ -490,13 +490,15 @@ final class SocialViewModel {
 
         do {
             let userId = try AuthService.shared.currentUserId()
-            let comment = try await socialService.addComment(postId: supabaseId, userId: userId, text: text)
+            let parentIdString = parentCommentId?.uuidString.lowercased()
+            let comment = try await socialService.addComment(postId: supabaseId, userId: userId, text: text, parentCommentId: parentIdString)
             let user = socialService.socialUserFromAuthor(comment.profiles)
             let postComment = PostComment(
                 id: UUID(uuidString: comment.id) ?? UUID(),
                 user: user,
                 text: comment.commentText ?? text,
-                timestamp: socialService.parseDate(comment.created_at)
+                timestamp: socialService.parseDate(comment.created_at),
+                parentId: comment.parent_comment_id.flatMap { UUID(uuidString: $0) } ?? parentCommentId
             )
             if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {
                 if let optimisticIdx = feedPosts[idx].comments.firstIndex(where: { $0.id == placeholder.id }) {
@@ -548,7 +550,8 @@ final class SocialViewModel {
                     id: UUID(uuidString: c.id) ?? UUID(),
                     user: socialService.socialUserFromAuthor(c.profiles),
                     text: c.commentText ?? "",
-                    timestamp: socialService.parseDate(c.created_at)
+                    timestamp: socialService.parseDate(c.created_at),
+                    parentId: c.parent_comment_id.flatMap { UUID(uuidString: $0) }
                 )
             }
             if let idx = feedPosts.firstIndex(where: { $0.id == postID }) {

@@ -59,6 +59,15 @@ nonisolated struct PostComment: Identifiable, Sendable {
     let user: SocialUser
     let text: String
     let timestamp: Date
+    let parentId: UUID?
+
+    init(id: UUID, user: SocialUser, text: String, timestamp: Date, parentId: UUID? = nil) {
+        self.id = id
+        self.user = user
+        self.text = text
+        self.timestamp = timestamp
+        self.parentId = parentId
+    }
 }
 
 nonisolated enum LeaderboardPeriod: String, CaseIterable, Sendable {

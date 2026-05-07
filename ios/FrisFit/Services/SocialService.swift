@@ -51,6 +51,7 @@ nonisolated struct SupabasePostComment: Codable, Sendable {
     let content: String?
     let body: String?
     let text: String?
+    let parent_comment_id: String?
     let created_at: String?
 
     var commentText: String? { content ?? body ?? text }
@@ -63,6 +64,7 @@ nonisolated struct SupabasePostCommentWithProfile: Codable, Sendable {
     let content: String?
     let body: String?
     let text: String?
+    let parent_comment_id: String?
     let created_at: String?
     var profiles: SupabasePostAuthor?
 
@@ -89,6 +91,7 @@ nonisolated struct CreateCommentPayload: Codable, Sendable {
     let post_id: String
     let user_id: String
     let content: String
+    let parent_comment_id: String?
 }
 
 nonisolated struct CreateLikePayload: Codable, Sendable {
@@ -247,8 +250,8 @@ final class SocialService {
         return response
     }
 
-    func addComment(postId: String, userId: String, text: String) async throws -> SupabasePostCommentWithProfile {
-        let payload = CreateCommentPayload(post_id: postId, user_id: userId, content: text)
+    func addComment(postId: String, userId: String, text: String, parentCommentId: String? = nil) async throws -> SupabasePostCommentWithProfile {
+        let payload = CreateCommentPayload(post_id: postId, user_id: userId, content: text, parent_comment_id: parentCommentId)
         do {
             var full: SupabasePostCommentWithProfile = try await supabase
                 .from("post_comments")

@@ -12,6 +12,8 @@ struct FeedCommentsSheet: View {
     @State private var commentToDelete: PostComment?
     @State private var showReportAlert: Bool = false
     @FocusState private var isCommentFocused: Bool
+    @State private var replyingTo: PostComment?
+    @State private var expandedThreads: Set<UUID> = []
 
     private var currentUserId: String? {
         try? AuthService.shared.currentUserId()
@@ -47,19 +49,11 @@ struct FeedCommentsSheet: View {
                             .padding(.bottom, 4)
                     }
                 } else {
+                    let topLevel = comments.filter { $0.parentId == nil }
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 16) {
-                            ForEach(comments) { comment in
-                                FeedCommentRow(
-                                    comment: comment,
-                                    isOwnComment: comment.user.id.uuidString.lowercased() == currentUserId?.lowercased(),
-                                    onDelete: {
-                                        commentToDelete = comment
-                                    },
-                                    onReport: {
-                                        showReportAlert = true
-                                    }
-                                )
+                            ForEach(topLevel) { comment in
+                                commentThread(for: comment)
                             }
                         }
                         .padding()
@@ -77,8 +71,33 @@ struct FeedCommentsSheet: View {
                 Divider()
                     .overlay(PepTheme.separatorColor)
 
+                if let replyingTo {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrowshape.turn.up.left.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(PepTheme.teal)
+                        Text("Replying to ")
+                            .font(.caption)
+                            .foregroundStyle(PepTheme.textSecondary)
+                        + Text("@\(replyingTo.user.username)")
+                            .font(.system(.caption, weight: .semibold))
+                            .foregroundStyle(PepTheme.teal)
+                        Spacer()
+                        Button {
+                            cancelReply()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(PepTheme.teal.opacity(0.08))
+                }
+
                 HStack(spacing: 12) {
-                    TextField("Add a comment...", text: $commentText)
+                    TextField(replyingTo == nil ? "Add a comment..." : "Add a reply...", text: $commentText)
                         .font(.subheadline)
                         .foregroundStyle(PepTheme.textPrimary)
                         .padding(.horizontal, 14)
@@ -153,16 +172,23 @@ struct FeedCommentsSheet: View {
     private func sendComment() {
         let trimmed = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        let parentId = replyingTo?.parentId ?? replyingTo?.id
+        if let parent = replyingTo {
+            withAnimation(.spring(response: 0.3)) {
+                _ = expandedThreads.insert(parent.parentId ?? parent.id)
+            }
+        }
         commentText = ""
         commentError = nil
+        withAnimation(.spring(response: 0.3)) { replyingTo = nil }
 
-        let optimistic = viewModel.makeOptimisticComment(text: trimmed)
+        let optimistic = viewModel.makeOptimisticComment(text: trimmed, parentId: parentId)
         withAnimation(.spring(response: 0.3)) {
             comments.append(optimistic)
         }
 
         Task {
-            let success = await viewModel.addFeedComment(to: post.id, text: trimmed, optimisticComment: optimistic)
+            let success = await viewModel.addFeedComment(to: post.id, text: trimmed, parentCommentId: parentId, optimisticComment: optimistic)
             if let updated = viewModel.feedPosts.first(where: { $0.id == post.id }) {
                 withAnimation(.spring(response: 0.3)) { comments = updated.comments }
             }
@@ -174,6 +200,68 @@ struct FeedCommentsSheet: View {
             }
         }
     }
+
+    @ViewBuilder
+    private func commentThread(for comment: PostComment) -> some View {
+        let replies = comments.filter { $0.parentId == comment.id }
+        let isExpanded = expandedThreads.contains(comment.id)
+        let visibleReplies: [PostComment] = isExpanded ? replies : Array(replies.prefix(2))
+
+        VStack(alignment: .leading, spacing: 10) {
+            FeedCommentRow(
+                comment: comment,
+                isOwnComment: comment.user.id.uuidString.lowercased() == currentUserId?.lowercased(),
+                onDelete: { commentToDelete = comment },
+                onReport: { showReportAlert = true },
+                onReply: { startReply(to: comment) }
+            )
+
+            if !replies.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(visibleReplies) { reply in
+                        FeedCommentRow(
+                            comment: reply,
+                            isOwnComment: reply.user.id.uuidString.lowercased() == currentUserId?.lowercased(),
+                            onDelete: { commentToDelete = reply },
+                            onReport: { showReportAlert = true },
+                            onReply: { startReply(to: comment) }
+                        )
+                    }
+
+                    if replies.count > visibleReplies.count {
+                        Button {
+                            withAnimation(.spring(response: 0.3)) {
+                                _ = expandedThreads.insert(comment.id)
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Rectangle()
+                                    .fill(PepTheme.separatorColor)
+                                    .frame(width: 24, height: 1)
+                                Text("View \(replies.count - visibleReplies.count) more \(replies.count - visibleReplies.count == 1 ? "reply" : "replies")")
+                                    .font(.system(.caption, weight: .semibold))
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                        }
+                    }
+                }
+                .padding(.leading, 42)
+            }
+        }
+    }
+
+    private func startReply(to comment: PostComment) {
+        withAnimation(.spring(response: 0.3)) {
+            replyingTo = comment
+        }
+        isCommentFocused = true
+    }
+
+    private func cancelReply() {
+        withAnimation(.spring(response: 0.3)) {
+            replyingTo = nil
+        }
+    }
 }
 
 private struct FeedCommentRow: View {
@@ -181,6 +269,7 @@ private struct FeedCommentRow: View {
     let isOwnComment: Bool
     let onDelete: () -> Void
     let onReport: () -> Void
+    let onReply: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -207,7 +296,17 @@ private struct FeedCommentRow: View {
                 Text(comment.text)
                     .font(.subheadline)
                     .foregroundStyle(PepTheme.textPrimary.opacity(0.85))
+
+                Button(action: onReply) {
+                    Text("Reply")
+                        .font(.system(.caption2, weight: .semibold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
             }
+
+            Spacer(minLength: 0)
         }
         .contextMenu {
             Button {
