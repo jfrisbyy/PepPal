@@ -139,6 +139,9 @@ nonisolated struct FriendStatSnapshot: Identifiable, Hashable, Sendable {
     let activeProgram: String?
     let activeProtocol: String?
     let sharedCategories: Set<StatShareCategory>
+    var lastActivityTitle: String? = nil
+    var lastActivityAt: Date? = nil
+    var phase: String? = nil
 
     var highlightMetric: (label: String, value: String, icon: String, color: Color)? {
         if let pr = latestPR, sharedCategories.contains(.prs) {
@@ -149,6 +152,32 @@ nonisolated struct FriendStatSnapshot: Identifiable, Hashable, Sendable {
         }
         if weeklySteps > 0, sharedCategories.contains(.steps) {
             return ("Steps", "\(weeklySteps / 1000)k this wk", "figure.walk", PepTheme.teal)
+        }
+        return nil
+    }
+
+    /// Derive a coarse training phase from program/goal text.
+    static func derivePhase(programName: String?, goalText: String? = nil) -> String? {
+        let haystack = [(programName ?? ""), (goalText ?? "")].joined(separator: " ").lowercased()
+        guard !haystack.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+        if haystack.contains("recomp") { return "Recomp" }
+        if haystack.contains("cut") || haystack.contains("deficit") || haystack.contains("lose") || haystack.contains("weight loss") || haystack.contains("fat loss") {
+            return "Cutting"
+        }
+        if haystack.contains("bulk") || haystack.contains("gain") || haystack.contains("mass") || haystack.contains("surplus") {
+            return "Bulking"
+        }
+        if haystack.contains("maintain") || haystack.contains("maintenance") {
+            return "Maintaining"
+        }
+        if haystack.contains("rebuild") || haystack.contains("postpartum") || haystack.contains("return") {
+            return "Rebuilding"
+        }
+        if haystack.contains("marathon") || haystack.contains("hybrid") || haystack.contains("endurance") {
+            return "Endurance"
+        }
+        if haystack.contains("strength") || haystack.contains("5/3/1") || haystack.contains("powerlift") {
+            return "Strength"
         }
         return nil
     }

@@ -552,7 +552,7 @@ struct FriendStatCard: View {
         .onLongPressGesture(minimumDuration: 0.35) {
             guard friend.isSharing else { return }
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            let label = presence != nil ? "workout" : (friend.weeklyWorkouts > 0 ? "\(friend.weeklyWorkouts) workouts this week" : "progress")
+            let label = presence != nil ? "workout" : (friend.lastActivityTitle ?? "progress")
             onLongPress?(ReactionTarget(
                 id: "\(friend.id.uuidString)-progress",
                 friendId: friend.id.uuidString,
@@ -632,35 +632,78 @@ struct FriendStatCard: View {
     }
 
     private var sharingBody: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("\(friend.weeklyWorkouts)")
-                    .font(.system(.title, design: .serif, weight: .regular))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Text("WORKOUTS / WK")
-                    .font(.system(size: 9, weight: .semibold))
-                    .tracking(1.2)
+        VStack(alignment: .leading, spacing: 8) {
+            // Eyebrow label
+            Text(friend.lastActivityTitle != nil ? "LAST" : "STATUS")
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(PepTheme.textSecondary)
+
+            // Primary headline = last activity (or graceful fallback)
+            Text(lastActivityHeadline)
+                .font(.system(.callout, design: .serif, weight: .regular))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // Time ago, if known
+            if let when = friend.lastActivityAt {
+                Text(when, style: .relative)
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(PepTheme.textSecondary)
             }
 
-            if let hl = friend.highlightMetric {
-                Text(hl.value)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .lineLimit(1)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4)
-                    .overlay(
-                        Capsule().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
-                    )
-            }
+            Spacer(minLength: 0)
 
-            if let program = friend.activeProgram, !program.isEmpty {
-                Text(program)
-                    .font(.caption2)
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .lineLimit(1)
+            // Phase chip — shows the goal phase (Bulking / Cutting / etc.)
+            if let phase = friend.phase, !phase.isEmpty {
+                phaseChip(phase)
             }
+        }
+        .frame(maxWidth: .infinity, minHeight: 84, alignment: .leading)
+    }
+
+    private var lastActivityHeadline: String {
+        if let raw = friend.lastActivityTitle, !raw.isEmpty {
+            // Strip leading "<Name> completed " prefix for compactness
+            let name = friend.user.name
+            let prefixes = ["\(name) completed ", "\(name) hit a PR: ", "\(name) is running ", "\(name) is on "]
+            for p in prefixes where raw.hasPrefix(p) {
+                return String(raw.dropFirst(p.count))
+            }
+            return raw
+        }
+        return "No recent activity"
+    }
+
+    private func phaseChip(_ phase: String) -> some View {
+        let color = phaseColor(phase)
+        return HStack(spacing: 5) {
+            Circle()
+                .fill(color)
+                .frame(width: 5, height: 5)
+            Text(phase.uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(PepTheme.textPrimary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.12), in: Capsule())
+        .overlay(Capsule().strokeBorder(color.opacity(0.35), lineWidth: 0.5))
+    }
+
+    private func phaseColor(_ phase: String) -> Color {
+        switch phase.lowercased() {
+        case "cutting": return PepTheme.teal
+        case "bulking": return PepTheme.amber
+        case "recomp": return PepTheme.violet
+        case "maintaining": return .green
+        case "rebuilding": return .pink
+        case "endurance": return PepTheme.blue
+        case "strength": return .orange
+        default: return PepTheme.textSecondary
         }
     }
 

@@ -39,6 +39,7 @@ final class FriendsStatsViewModel {
                     StatShareCategory(rawValue: $0)
                 })
                 let snap = friend.snapshot
+                let programName = snap?.active_program ?? user.activeProgramName
                 snapshots.append(FriendStatSnapshot(
                     id: user.id,
                     user: user,
@@ -51,9 +52,12 @@ final class FriendsStatsViewModel {
                     weeklyCalories: snap?.weekly_calories ?? 0,
                     weeklyWaterMl: snap?.weekly_water_ml ?? 0,
                     latestPR: snap?.latest_pr,
-                    activeProgram: snap?.active_program ?? user.activeProgramName,
+                    activeProgram: programName,
                     activeProtocol: snap?.active_protocol,
-                    sharedCategories: cats.isEmpty ? Set(StatShareCategory.allCases) : cats
+                    sharedCategories: cats.isEmpty ? Set(StatShareCategory.allCases) : cats,
+                    lastActivityTitle: nil,
+                    lastActivityAt: nil,
+                    phase: FriendStatSnapshot.derivePhase(programName: programName)
                 ))
             }
 
@@ -93,6 +97,16 @@ final class FriendsStatsViewModel {
         snapshots.sort { $0.streak > $1.streak }
         events.sort { $0.timestamp > $1.timestamp }
 
+        // Backfill last activity from the most recent workout/PR event per friend
+        for i in snapshots.indices {
+            if snapshots[i].lastActivityTitle != nil { continue }
+            let userId = snapshots[i].user.id
+            if let recent = events.first(where: { $0.user.id == userId && ($0.type == .workout || $0.type == .pr) }) {
+                snapshots[i].lastActivityTitle = recent.title
+                snapshots[i].lastActivityAt = recent.timestamp
+            }
+        }
+
         self.friends = snapshots
         self.activityEvents = Array(events.prefix(40))
 
@@ -122,6 +136,12 @@ final class FriendsStatsViewModel {
                 let user = socialService.socialUserFromAuthor(profile)
                 let weekActivities = (try? await activityService.fetchWeekActivities(userId: profile.id)) ?? []
                 let workoutLogs = weekActivities.filter { $0.activity_type == "workout" }
+                let lastWorkout = workoutLogs.first
+                let lastTitle: String? = lastWorkout.flatMap { log in
+                    let sport = log.sport?.capitalized ?? "Workout"
+                    if let mins = log.duration_minutes, mins > 0 { return "\(sport) · \(mins)m" }
+                    return sport
+                }
                 snapshots.append(FriendStatSnapshot(
                     id: user.id,
                     user: user,
@@ -136,7 +156,10 @@ final class FriendsStatsViewModel {
                     latestPR: nil,
                     activeProgram: user.activeProgramName,
                     activeProtocol: nil,
-                    sharedCategories: Set(StatShareCategory.allCases)
+                    sharedCategories: Set(StatShareCategory.allCases),
+                    lastActivityTitle: lastTitle,
+                    lastActivityAt: lastWorkout?.created_at.flatMap { messagingService.parseDate($0) },
+                    phase: FriendStatSnapshot.derivePhase(programName: user.activeProgramName)
                 ))
             }
         } catch {

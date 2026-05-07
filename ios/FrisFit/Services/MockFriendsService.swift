@@ -673,6 +673,7 @@ final class MockFriendsService {
     func snapshots() -> [FriendStatSnapshot] {
         profiles.map { p in
             let activeProtocol = p.activeProtocols.first.map { "\($0.name) · wk \($0.week)/\($0.totalWeeks)" }
+            let lastWorkout = p.recentWorkouts.first
             return FriendStatSnapshot(
                 id: p.user.id,
                 user: p.user,
@@ -687,7 +688,10 @@ final class MockFriendsService {
                 latestPR: p.latestPR,
                 activeProgram: p.user.activeProgramName,
                 activeProtocol: activeProtocol,
-                sharedCategories: Set(StatShareCategory.allCases)
+                sharedCategories: Set(StatShareCategory.allCases),
+                lastActivityTitle: lastWorkout?.name,
+                lastActivityAt: lastWorkout?.date,
+                phase: FriendStatSnapshot.derivePhase(programName: p.user.activeProgramName, goalText: p.goal)
             )
         }
     }
