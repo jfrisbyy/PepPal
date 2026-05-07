@@ -230,6 +230,17 @@ final class MessagingService {
             .limit(1)
             .execute()
             .value) ?? []
+
+        // If the target profile doesn't exist (or its underlying auth user
+        // was deleted), the follow insert would fail with a FK violation
+        // (`follows_following_id_fkey`). Bail early with a friendly error.
+        guard targets.first?.id != nil else {
+            throw NSError(
+                domain: "MessagingService",
+                code: 404,
+                userInfo: [NSLocalizedDescriptionKey: "This account is no longer available."]
+            )
+        }
         let isPrivate = targets.first?.is_private == true
 
         if isPrivate {
