@@ -365,10 +365,14 @@ struct SocialView: View {
             }
         }
         .scrollIndicators(.hidden)
+        .scrollDismissesKeyboard(.interactively)
         .onScrollGeometryChange(for: CGFloat.self) { geo in
             geo.contentOffset.y
         } action: { _, newValue in
             scrollOffset = newValue
+            if scrollOffset < -60 && viewModel.isPostSearchActive {
+                searchFieldFocused = false
+            }
         }
         .refreshable {
             await viewModel.refreshFeed()

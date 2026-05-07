@@ -236,6 +236,7 @@ struct GlobalSearchView: View {
     private var discoverySurface: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
+                Color.clear.frame(height: 0).id("top")
                 quickActionsRow
 
                 if !recents.isEmpty {
@@ -255,6 +256,7 @@ struct GlobalSearchView: View {
             .padding(.top, 12)
             .padding(.bottom, 32)
         }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private var quickActionsRow: some View {
@@ -555,6 +557,7 @@ struct GlobalSearchView: View {
             .padding(.top, 12)
             .animation(.spring(response: 0.32, dampingFraction: 0.85), value: shouldShowAskCard)
         }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private func scopeSection(scope: GlobalSearchScope, items: [GlobalSearchResult]) -> some View {
@@ -851,6 +854,7 @@ struct GlobalSearchView: View {
             }
             .animation(.spring(response: 0.32, dampingFraction: 0.85), value: shouldShowAskCard)
         }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private var noResults: some View {
