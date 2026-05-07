@@ -30,7 +30,7 @@ nonisolated struct SupabaseFeedPostWithProfile: Codable, Sendable {
     let created_at: String?
     let updated_at: String?
     let edited_at: String?
-    let profiles: SupabasePostAuthor?
+    var profiles: SupabasePostAuthor?
 }
 
 nonisolated struct SupabasePostAuthor: Codable, Sendable {
@@ -64,7 +64,7 @@ nonisolated struct SupabasePostCommentWithProfile: Codable, Sendable {
     let body: String?
     let text: String?
     let created_at: String?
-    let profiles: SupabasePostAuthor?
+    var profiles: SupabasePostAuthor?
 
     var commentText: String? { content ?? body ?? text }
 }
@@ -124,23 +124,28 @@ final class SocialService {
     }()
 
     func fetchPost(postId: String) async throws -> SupabaseFeedPostWithProfile {
-        try await supabase
+        var post: SupabaseFeedPostWithProfile = try await supabase
             .from("feed_posts")
             .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .eq("id", value: postId)
             .single()
             .execute()
             .value
+        var arr = [post]
+        await backfillAuthors(posts: &arr)
+        post = arr[0]
+        return post
     }
 
     func fetchPosts(limit: Int = 50, offset: Int = 0) async throws -> [SupabaseFeedPostWithProfile] {
-        let response: [SupabaseFeedPostWithProfile] = try await supabase
+        var response: [SupabaseFeedPostWithProfile] = try await supabase
             .from("feed_posts")
             .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .order("created_at", ascending: false)
             .range(from: offset, to: offset + limit - 1)
             .execute()
             .value
+        await backfillAuthors(posts: &response)
         return response
     }
 
@@ -161,13 +166,16 @@ final class SocialService {
             .execute()
             .value
 
-        let full: SupabaseFeedPostWithProfile = try await supabase
+        var full: SupabaseFeedPostWithProfile = try await supabase
             .from("feed_posts")
             .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .eq("id", value: created.id)
             .single()
             .execute()
             .value
+        var arr = [full]
+        await backfillAuthors(posts: &arr)
+        full = arr[0]
         return full
     }
 
@@ -195,13 +203,16 @@ final class SocialService {
             .eq("id", value: postId)
             .execute()
 
-        let full: SupabaseFeedPostWithProfile = try await supabase
+        var full: SupabaseFeedPostWithProfile = try await supabase
             .from("feed_posts")
             .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .eq("id", value: postId)
             .single()
             .execute()
             .value
+        var arr = [full]
+        await backfillAuthors(posts: &arr)
+        full = arr[0]
         return full
     }
 
@@ -215,35 +226,40 @@ final class SocialService {
             iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             query = query.lt("created_at", value: iso.string(from: cursor))
         }
-        let response: [SupabaseFeedPostWithProfile] = try await query
+        var response: [SupabaseFeedPostWithProfile] = try await query
             .order("created_at", ascending: false)
             .limit(pageSize)
             .execute()
             .value
+        await backfillAuthors(posts: &response)
         return response
     }
 
     func fetchComments(postId: String) async throws -> [SupabasePostCommentWithProfile] {
-        let response: [SupabasePostCommentWithProfile] = try await supabase
+        var response: [SupabasePostCommentWithProfile] = try await supabase
             .from("post_comments")
             .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .eq("post_id", value: postId)
             .order("created_at", ascending: true)
             .execute()
             .value
+        await backfillCommentAuthors(comments: &response)
         return response
     }
 
     func addComment(postId: String, userId: String, text: String) async throws -> SupabasePostCommentWithProfile {
         let payload = CreateCommentPayload(post_id: postId, user_id: userId, content: text)
         do {
-            let full: SupabasePostCommentWithProfile = try await supabase
+            var full: SupabasePostCommentWithProfile = try await supabase
                 .from("post_comments")
                 .insert(payload)
                 .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
                 .single()
                 .execute()
                 .value
+            var arr = [full]
+            await backfillCommentAuthors(comments: &arr)
+            full = arr[0]
             return full
         } catch {
             print("[SocialService] addComment insert+select failed: \(error). Falling back to two-step insert.")
@@ -255,13 +271,16 @@ final class SocialService {
                 .execute()
                 .value
 
-            let full: SupabasePostCommentWithProfile = try await supabase
+            var full: SupabasePostCommentWithProfile = try await supabase
                 .from("post_comments")
                 .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
                 .eq("id", value: inserted.id)
                 .single()
                 .execute()
                 .value
+            var arr = [full]
+            await backfillCommentAuthors(comments: &arr)
+            full = arr[0]
             return full
         }
     }
@@ -388,7 +407,7 @@ final class SocialService {
     func searchPosts(query: String, limit: Int = 20) async throws -> [SupabaseFeedPostWithProfile] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return [] }
-        let response: [SupabaseFeedPostWithProfile] = try await supabase
+        var response: [SupabaseFeedPostWithProfile] = try await supabase
             .from("feed_posts")
             .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .ilike("text_content", pattern: "%\(q)%")
@@ -396,11 +415,12 @@ final class SocialService {
             .limit(limit)
             .execute()
             .value
+        await backfillAuthors(posts: &response)
         return response
     }
 
     func fetchUserPosts(userId: String, limit: Int = 50) async throws -> [SupabaseFeedPostWithProfile] {
-        let response: [SupabaseFeedPostWithProfile] = try await supabase
+        var response: [SupabaseFeedPostWithProfile] = try await supabase
             .from("feed_posts")
             .select("*, profiles(id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak)")
             .eq("user_id", value: userId)
@@ -408,6 +428,7 @@ final class SocialService {
             .limit(limit)
             .execute()
             .value
+        await backfillAuthors(posts: &response)
         return response
     }
 
@@ -466,6 +487,54 @@ final class SocialService {
             streak: author?.current_streak ?? 0,
             totalFP: author?.total_fp ?? 0
         )
+    }
+
+    // MARK: - Author backfill
+    //
+    // PostgREST's auto-detected `profiles` embed sometimes returns null
+    // for posts authored by users created via `auth.admin.createUser`
+    // (e.g. our fake personas) — the inferred relationship through
+    // auth.users doesn't always resolve under RLS for those rows. To
+    // guarantee every post / comment renders with the real author name,
+    // we batch-fetch profiles by user_id whenever the embed comes back
+    // empty and merge them in client-side.
+
+    private func fetchProfilesByIds(_ ids: [String]) async -> [String: SupabasePostAuthor] {
+        guard !ids.isEmpty else { return [:] }
+        do {
+            let rows: [SupabasePostAuthor] = try await supabase
+                .from("profiles")
+                .select("id, display_name, username, avatar_url, avatar_color, active_program, total_fp, current_streak")
+                .in("id", values: ids)
+                .execute()
+                .value
+            var map: [String: SupabasePostAuthor] = [:]
+            for r in rows { map[r.id] = r }
+            return map
+        } catch {
+            print("[SocialService] backfill profiles fetch failed: \(error)")
+            return [:]
+        }
+    }
+
+    func backfillAuthors(posts: inout [SupabaseFeedPostWithProfile]) async {
+        let missingIds = Array(Set(posts.compactMap { $0.profiles == nil ? $0.user_id : nil }))
+        guard !missingIds.isEmpty else { return }
+        let map = await fetchProfilesByIds(missingIds)
+        guard !map.isEmpty else { return }
+        for i in posts.indices where posts[i].profiles == nil {
+            posts[i].profiles = map[posts[i].user_id]
+        }
+    }
+
+    func backfillCommentAuthors(comments: inout [SupabasePostCommentWithProfile]) async {
+        let missingIds = Array(Set(comments.compactMap { $0.profiles == nil ? $0.user_id : nil }))
+        guard !missingIds.isEmpty else { return }
+        let map = await fetchProfilesByIds(missingIds)
+        guard !map.isEmpty else { return }
+        for i in comments.indices where comments[i].profiles == nil {
+            comments[i].profiles = map[comments[i].user_id]
+        }
     }
 
     private func parseAvatarColor(_ hex: String?) -> Color {
