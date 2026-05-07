@@ -115,7 +115,14 @@ struct HomeView: View {
                     try? await Task.sleep(for: .milliseconds(400))
                     await energyBalanceViewModel.refresh()
                     trainViewModel.loadAllData()
-                    handleDataChange(source: source)
+                    // Protocol deletion needs an immediate brief regen so the
+                    // removed compound disappears from copy without waiting on
+                    // the 30s log debounce.
+                    if source == "protocol_delete" {
+                        triggerPlanFetch(forceRefresh: true)
+                    } else {
+                        handleDataChange(source: source)
+                    }
                     viewModel.refreshAIDeckIfNeeded()
                 }
             }

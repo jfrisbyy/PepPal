@@ -708,12 +708,22 @@ final class ProtocolDetailViewModel {
     func deleteProtocol() {
         guard let protocolId = protocolData.supabaseId else {
             didDelete = true
+            NotificationCenter.default.post(
+                name: .supabaseDataChanged,
+                object: nil,
+                userInfo: ["source": "protocol_delete"]
+            )
             return
         }
         Task {
             do {
                 try await protocolService.deleteProtocol(id: protocolId)
                 didDelete = true
+                NotificationCenter.default.post(
+                    name: .supabaseDataChanged,
+                    object: nil,
+                    userInfo: ["source": "protocol_delete"]
+                )
             } catch {
                 errorMessage = error.localizedDescription
             }

@@ -1280,6 +1280,13 @@ final class HomeViewModel {
                 try? await ProtocolService.shared.deleteProtocol(id: sid)
             }
         }
+        // Kick the brief immediately so the AI copy regenerates without the
+        // protocol the user just removed (skip the 30s log debounce).
+        NotificationCenter.default.post(
+            name: .supabaseDataChanged,
+            object: nil,
+            userInfo: ["source": "protocol_delete"]
+        )
     }
 
     func applyTitrationStepIfNeeded(protocolId: UUID) {
