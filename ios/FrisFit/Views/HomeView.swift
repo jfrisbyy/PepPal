@@ -285,6 +285,7 @@ struct HomeView: View {
             // 03 — Energy & Movement
             CollapsibleEditorialSection(eyebrow: "03 \u{2014} Activity", storageKey: "activity") {
                 VStack(spacing: 16) {
+                    StepsModuleCardView(healthKit: viewModel.healthKit, stepsCalories: energyBalanceViewModel.stepsCalories, showStepDetail: $showStepDetail)
                     DailyActivityCard(viewModel: energyBalanceViewModel, onLogActivity: {
                         showLogActivity = true
                     }, onTapActivity: {
@@ -332,7 +333,6 @@ struct HomeView: View {
             if viewModel.healthKit.isAuthorized {
                 CollapsibleEditorialSection(eyebrow: "04 \u{2014} Apple Health", storageKey: "appleHealth") {
                     VStack(spacing: 14) {
-                        StepsModuleCardView(healthKit: viewModel.healthKit, stepsCalories: energyBalanceViewModel.stepsCalories, showStepDetail: $showStepDetail)
                         HomeAppleHealthSection(healthKit: viewModel.healthKit)
                     }
                 }
