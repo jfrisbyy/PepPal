@@ -2,18 +2,21 @@ import SwiftUI
 
 struct PepChatView: View {
     let planContext: String?
+    let initialQuestion: String?
 
     @State private var viewModel: PepChatViewModel
     @FocusState private var isInputFocused: Bool
     @State private var showQuickActions: Bool = false
     @State private var recorder = WhisperRecorder()
     @State private var showMicPermissionAlert: Bool = false
+    @State private var didSeedInitialQuestion: Bool = false
 
     @Environment(\.dismiss) private var dismiss
 
-    init(planContext: String? = nil) {
+    init(planContext: String? = nil, initialQuestion: String? = nil) {
         self.planContext = planContext
-        self._viewModel = State(initialValue: PepChatViewModel(planContext: planContext))
+        self.initialQuestion = initialQuestion
+        self._viewModel = State(initialValue: PepChatViewModel(planContext: planContext, initialQuestion: initialQuestion))
     }
 
     var body: some View {

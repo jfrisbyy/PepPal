@@ -18,6 +18,7 @@ struct GlobalSearchView: View {
 
     // Quick-action sheets
     @State private var showAskEptiChat: Bool = false
+    @State private var pepChatSeedQuestion: String? = nil
     @State private var showFoodLog: Bool = false
     @State private var showVoicePermissionAlert: Bool = false
 
@@ -57,7 +58,12 @@ struct GlobalSearchView: View {
             }
             .onChange(of: vm.query) { _, newValue in
                 vm.search()
-                ask.ask(newValue)
+                let intent = QueryClassifier.classify(newValue, hasResults: !vm.results.isEmpty)
+                ask.ask(newValue, intent: intent)
+            }
+            .onChange(of: vm.results.count) { _, _ in
+                let intent = QueryClassifier.classify(vm.query, hasResults: !vm.results.isEmpty)
+                if intent == .lookup { ask.cancel() }
             }
             .onChange(of: vm.scope) { _, _ in vm.search() }
             .onChange(of: recorder.partialTranscript) { _, transcript in
@@ -89,10 +95,11 @@ struct GlobalSearchView: View {
                     PostDetailView(post: post, viewModel: socialViewModel)
                 }
             }
-            .sheet(isPresented: $showAskEptiChat) {
-                NavigationStack {
-                    PeptideAIChatView()
-                }
+            .fullScreenCover(isPresented: $showAskEptiChat) {
+                PepChatView(initialQuestion: pepChatSeedQuestion)
+            }
+            .onChange(of: showAskEptiChat) { _, isShowing in
+                if !isShowing { pepChatSeedQuestion = nil }
             }
         }
     }
@@ -205,12 +212,16 @@ struct GlobalSearchView: View {
 
     // MARK: - Content router
 
+    private var currentIntent: QueryIntent {
+        QueryClassifier.classify(vm.query, hasResults: !vm.results.isEmpty)
+    }
+
     @ViewBuilder
     private var content: some View {
         if vm.query.trimmingCharacters(in: .whitespaces).isEmpty {
             discoverySurface
         } else if vm.results.isEmpty && !vm.isSearching {
-            noResults
+            noResultsWithAsk
         } else {
             resultsList
         }
@@ -255,9 +266,6 @@ struct GlobalSearchView: View {
                     }
                     quickActionButton(label: "Log activity", icon: "figure.run", tint: PepTheme.blue) {
                         triggerQuickAction(.logActivity)
-                    }
-                    quickActionButton(label: "Ask Pep", icon: "sparkles", tint: PepTheme.teal) {
-                        showAskEptiChat = true
                     }
                     quickActionButton(label: "View steps", icon: "figure.walk", tint: PepTheme.violet) {
                         triggerQuickAction(.viewSteps)
@@ -521,7 +529,7 @@ struct GlobalSearchView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 if shouldShowAskCard {
-                    askEptiCard
+                    askEptiCard(hero: currentIntent == .question)
                         .transition(.asymmetric(
                             insertion: .scale(scale: 0.96).combined(with: .opacity),
                             removal: .opacity
@@ -731,21 +739,22 @@ struct GlobalSearchView: View {
     // MARK: - AI Card
 
     private var shouldShowAskCard: Bool {
-        !ask.answer.isEmpty || ask.isLoading
+        guard currentIntent != .lookup else { return false }
+        return !ask.answer.isEmpty || ask.isLoading
     }
 
-    private var askEptiCard: some View {
+    @ViewBuilder
+    private func askEptiCard(hero: Bool) -> some View {
         Button {
+            pepChatSeedQuestion = ask.query.isEmpty ? vm.query : ask.query
             showAskEptiChat = true
         } label: {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: hero ? 14 : 10) {
                 HStack(spacing: 8) {
-                    Circle()
-                        .fill(PepTheme.success)
-                        .frame(width: 7, height: 7)
+                    PulsingDot()
                     Text("ASK PEP")
-                        .font(.system(size: 11, weight: .heavy, design: .serif))
-                        .tracking(0.8)
+                        .font(.system(size: hero ? 12 : 11, weight: .heavy, design: .serif))
+                        .tracking(0.9)
                         .foregroundStyle(PepTheme.textPrimary)
                     Spacer()
                     if ask.isLoading {
@@ -758,40 +767,70 @@ struct GlobalSearchView: View {
                 }
 
                 if ask.answer.isEmpty {
-                    Text("Thinking…")
-                        .font(.system(size: 14, design: .serif))
-                        .foregroundStyle(PepTheme.textSecondary)
+                    HStack(spacing: 8) {
+                        Text("Thinking…")
+                            .font(.system(size: hero ? 17 : 14, design: .serif))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        ShimmerLine()
+                    }
                 } else {
                     Text(ask.answer)
-                        .font(.system(size: 15, design: .serif))
+                        .font(.system(size: hero ? 17 : 15, design: .serif))
                         .foregroundStyle(PepTheme.textPrimary)
+                        .lineSpacing(hero ? 4 : 2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Text("Continue in chat")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(PepTheme.teal)
+                HStack(spacing: 6) {
+                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                        .font(.system(size: 10, weight: .bold))
+                    Text("Continue in chat")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundStyle(PepTheme.teal)
             }
-            .padding(16)
+            .padding(hero ? 20 : 16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: hero ? 22 : 18, style: .continuous)
                     .fill(PepTheme.cardSurface)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: hero ? 22 : 18, style: .continuous)
                     .strokeBorder(
-                        LinearGradient(colors: [PepTheme.teal.opacity(0.45), PepTheme.success.opacity(0.2)],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing),
-                        lineWidth: 1
+                        LinearGradient(
+                            colors: hero
+                                ? [PepTheme.teal.opacity(0.6), PepTheme.success.opacity(0.35), PepTheme.violet.opacity(0.25)]
+                                : [PepTheme.teal.opacity(0.45), PepTheme.success.opacity(0.2)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: hero ? 1.25 : 1
                     )
             )
+            .shadow(color: hero ? PepTheme.teal.opacity(0.18) : .clear, radius: hero ? 18 : 0, y: hero ? 8 : 0)
         }
         .buttonStyle(.plain)
+        .sensoryFeedback(.impact(weight: .light), trigger: showAskEptiChat)
     }
 
     // MARK: - No results
+
+    @ViewBuilder
+    private var noResultsWithAsk: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if shouldShowAskCard {
+                    askEptiCard(hero: true)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                }
+                noResults
+            }
+            .animation(.spring(response: 0.32, dampingFraction: 0.85), value: shouldShowAskCard)
+        }
+    }
 
     private var noResults: some View {
         VStack(spacing: 12) {
@@ -826,14 +865,22 @@ struct GlobalSearchView: View {
 
     private var nearestSuggestion: String? {
         let q = vm.query.trimmingCharacters(in: .whitespaces)
-        guard q.count >= 3 else { return nil }
-        // Try ranking the entire trending pool to surface a near match.
-        let pool = TrendingSearches.today() + ExerciseLibrary.all.prefix(80).map(\.name) + CompoundDatabase.all.prefix(40).map(\.name)
-        let ranked = pool
-            .map { ($0, SearchRanker.score(query: q, candidates: [$0])) }
-            .filter { $0.1 > 250 && $0.0.lowercased() != q.lowercased() }
-            .sorted { $0.1 > $1.1 }
-        return ranked.first?.0
+        guard q.count >= 3, q.count <= 40 else { return nil }
+        // Bound the candidate pool tightly so this stays cheap and safe.
+        var pool: [String] = []
+        pool.append(contentsOf: TrendingSearches.today())
+        pool.append(contentsOf: ExerciseLibrary.all.prefix(40).map(\.name))
+        pool.append(contentsOf: CompoundDatabase.all.prefix(30).map(\.name))
+        let qLower = q.lowercased()
+        var best: (String, Int)? = nil
+        for candidate in pool {
+            guard candidate.lowercased() != qLower else { continue }
+            let s = SearchRanker.score(query: q, candidates: [candidate])
+            if s > 250, s > (best?.1 ?? 0) {
+                best = (candidate, s)
+            }
+        }
+        return best?.0
     }
 
     private var suggestedExercises: [Exercise] {
@@ -1096,6 +1143,60 @@ private struct FoodQuickLogSheet: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .background(RoundedRectangle(cornerRadius: 10).fill(tint.opacity(0.10)))
+    }
+}
+
+// MARK: - Pulsing dot + shimmer (used by Ask Pep card)
+
+struct PulsingDot: View {
+    @State private var animate = false
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(PepTheme.success.opacity(0.35))
+                .frame(width: 14, height: 14)
+                .scaleEffect(animate ? 1.6 : 0.9)
+                .opacity(animate ? 0 : 0.7)
+            Circle()
+                .fill(PepTheme.success)
+                .frame(width: 7, height: 7)
+        }
+        .frame(width: 14, height: 14)
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
+                animate = true
+            }
+        }
+    }
+}
+
+struct ShimmerLine: View {
+    @State private var phase: CGFloat = -1
+    var body: some View {
+        GeometryReader { geo in
+            LinearGradient(
+                colors: [
+                    PepTheme.textSecondary.opacity(0.0),
+                    PepTheme.teal.opacity(0.55),
+                    PepTheme.textSecondary.opacity(0.0)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: geo.size.width)
+            .mask(
+                Capsule()
+                    .frame(height: 4)
+            )
+            .offset(x: phase * geo.size.width)
+            .onAppear {
+                withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
+                    phase = 1
+                }
+            }
+        }
+        .frame(height: 4)
+        .clipShape(Capsule())
     }
 }
 

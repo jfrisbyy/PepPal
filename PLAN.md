@@ -1,53 +1,40 @@
-# Reimagine Global Search as a Spotlight-style discovery surface
+# Merge Pep Chat into Global Search with smart question detection
 
-A full upgrade of the home search experience — opened from the existing pill icon — that turns search into a fast, intelligent way to find anything in EPTI and take action. - this should retain our premium editorial feel 
+## What we're doing
 
-## The new search experience
+Combining Pep chat with the global search bar so users get one smart entry point. The standalone "Chat with Pep" button goes away — every conversational question now happens right in search, in their full personal context.
 
-**On open (no query yet) — a true discovery surface, not an empty screen:**
+## How search behaves
 
-- **Quick actions row** at the top: Log workout · Add meal · Log dose · New post · Scan barcode — one-tap shortcuts to common flows.
-- **Recent items** — actual things you've recently viewed (exercises, compounds, people, foods), with their thumbnails — not just past search strings.
-- **Trending now** — popular searches across the EPTI community, refreshed periodically.
-- **Suggested for you** — a few curated picks: people you might know, exercises trending in your training style, popular compounds.
-- **Recent searches** stays available, but compact.
+- **Looking something up** ("bicep curl", "oatmeal", "@kayla", "BPC-157") → standard search results, exactly like today.
+- **Asking a question** ("how much protein after a workout?", "is BPC safe with TB-500?", "what should I eat tonight?") → a hero "Ask Pep" answer card slides to the top with a streaming, context-aware reply. Any matching app results still appear underneath.
+- **Mixed queries** ("best chest exercise") → both: Pep's quick take on top, real exercise results below.
 
-**As you type:**
+## How EPTI knows it's a question
 
-- **Ask EPTI card** appears at the very top — a natural-language answer powered by AI for questions like "high-protein dinner ideas" or "best peptide for fat loss." Tap to open a full conversation.
-- **Smart ranking** — prefix matches surface first, then word-boundary matches, then fuzzy matches with typo tolerance (e.g. "bnch press" still finds Bench Press).
-- **Matched text is highlighted** in the result rows so you instantly see why something matched.
-- **Richer result rows**:
-  - Foods show a calorie badge and serving size
-  - Exercises show a muscle-group chip and equipment
-  - Compounds show peptide type with a colored category dot
-  - People show their avatar and @username
-  - Circles show member count and private/public state
-  - Posts show a relative timestamp ("2h ago") and author avatar
+A lightweight on-device classifier checks for: question marks, natural-language openers (how, why, should, is, can, what, when, does, vs, better than, compare), conversational length (5+ words), and whether the query exactly matches an item in the library. Library hits lead with results. Clear questions lead with Pep. Mixed = both.
 
-**Voice search:**
+## The Ask Pep answer card
 
-- A microphone button in the search bar starts speech-to-text dictation. Speak naturally; the transcript fills the search field live and triggers results.
+- Hero-sized card pinned to the top of results when a question is detected.
+- Streaming text with a subtle thinking shimmer and pulsing green dot.
+- "ASK PEP" eyebrow in the editorial serif.
+- Full personal context — your weight, goal, active protocol, recent workouts, today's nutrition, bloodwork, and Apple Health — feeds every answer (same depth as the old Pep chat).
+- Tap the card → opens full Pep conversation with the question pre-loaded so the thread continues seamlessly.
+- Voice dictation works the same: speak a question, get an answer card; speak a name, get results.
 
-**Tap behavior — every result is now actionable:**
+## What gets removed
 
-- Foods open a food detail / "log this food" sheet
-- Circles navigate into the circle
-- Posts navigate to the post in feed
-- Exercises, compounds, people already work and stay the same
-
-## Design
-
-- **Spotlight-feel layout** — clean sectioned list on the editorial-style background, with the green-dot accent reserved for the AI answer card and active scope chip.
-- **Smooth motion** — sections fade and slide as you switch scopes; the AI card morphs in with a soft spring as you type.
-- **Scope chips** stay where they are but get subtle press feedback and a sliding selection indicator.
-- **Empty state** is replaced entirely by the discovery surface; "no results" gets a friendlier message with one or two suggested alternatives ("Did you mean…?").
-- **Highlights** use a subtle teal underline/weight, not a jarring background color, to keep the editorial feel.
-- **Haptics** on scope change, voice start/stop, and result tap.
+- The standalone "Chat with Pep" floating action button and the "Ask Pep" quick-action chip in search — Pep now lives inside search itself.
+- "Chat about this plan" and other contextual Pep entry points stay exactly as they are.
 
 ## What stays the same
 
-- Opens from the existing top-right pill icon on the home dashboard — no new home-screen real estate.
-- Existing scopes (All, Exercises, Foods, Compounds, Users, Circles, Posts) and the "See all in scope" link.
-- Recent searches storage continues to work.
+- Same magnifying glass entry point on the home dashboard.
+- Same scope chips, recents, trending, suggested sections, and result rows.
+- Same Pep chat surface for "About this plan" and other contextual flows.
+- Quick actions (log meal, start workout, etc.) untouched aside from the Ask Pep tile being removed.
 
+## Bug fix
+
+The recent crash when typing certain "no result" queries — the "did you mean" suggestion was running an unsafe ranking pass on long candidate lists. The suggestion logic gets hardened with bounded inputs and safe fallbacks so it can never trip the Swift safety check again.

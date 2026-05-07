@@ -7,34 +7,43 @@ nonisolated enum SearchRanker: Sendable {
     /// Score in [0...1000]. Higher is better. Returns 0 for no match (caller should still
     /// consider whether to keep the row, since the source filter may be more permissive).
     static func score(query: String, candidates: [String]) -> Int {
-        let q = query.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let q = sanitize(query, maxLen: 40)
         guard !q.isEmpty else { return 0 }
         var best = 0
         for raw in candidates {
-            let c = raw.lowercased()
+            let c = sanitize(raw, maxLen: 80)
+            if c.isEmpty { continue }
             if c == q { return 1000 }
             if c.hasPrefix(q) { best = max(best, 850) ; continue }
             if hasWordBoundaryPrefix(c, q) { best = max(best, 700) ; continue }
             if c.contains(q) { best = max(best, 550) ; continue }
-            let tolerance = max(1, q.count / 4)
-            if let dist = bestEditDistance(query: q, in: c), dist <= tolerance {
-                // Closer match = higher score; cap so it ranks below substring matches.
-                let cappedDist = min(dist, 5)
-                let bonus = max(0, 400 - cappedDist * 80)
-                best = max(best, bonus)
+            // Fuzzy fallback — bounded and safe.
+            if let dist = safeBestEditDistance(query: q, in: c) {
+                let tolerance = max(1, q.count / 4)
+                if dist <= tolerance {
+                    let cappedDist = min(dist, 5)
+                    let bonus = max(0, 400 - cappedDist * 80)
+                    best = max(best, bonus)
+                }
             }
         }
         return best
     }
 
+    private static func sanitize(_ s: String, maxLen: Int) -> String {
+        let trimmed = s.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > maxLen else { return trimmed }
+        return String(trimmed.prefix(maxLen))
+    }
+
     private static func hasWordBoundaryPrefix(_ haystack: String, _ needle: String) -> Bool {
+        guard !haystack.isEmpty, !needle.isEmpty else { return false }
         var inWord = false
         var idx = haystack.startIndex
         while idx < haystack.endIndex {
             let ch = haystack[idx]
             let isWordChar = ch.isLetter || ch.isNumber
             if isWordChar && !inWord {
-                // Word start
                 let remaining = haystack[idx...]
                 if remaining.hasPrefix(needle) { return true }
             }
@@ -44,26 +53,32 @@ nonisolated enum SearchRanker: Sendable {
         return false
     }
 
-    /// Find the smallest edit distance between `query` and any same-length-ish window of `haystack`.
-    /// Uses a small Levenshtein with early bail; good for 2–20 char queries.
-    private static func bestEditDistance(query: String, in haystack: String) -> Int? {
+    /// Safe wrapper that always returns nil rather than crashing on edge cases.
+    private static func safeBestEditDistance(query: String, in haystack: String) -> Int? {
         let qChars = Array(query)
         let hChars = Array(haystack)
         guard !qChars.isEmpty, !hChars.isEmpty else { return nil }
         let qLen = qChars.count
-        if qLen > hChars.count + 2 { return nil }
+        let hLen = hChars.count
+        // Avoid pathological work — bail out for absurd size mismatches.
+        if qLen > hLen + 4 { return nil }
+        if qLen > 40 || hLen > 80 { return nil }
+
         let windowMin = max(qLen - 1, 1)
-        let windowMax = min(qLen + 1, hChars.count)
-        guard windowMin <= windowMax else { return nil }
-        // Use a bounded ceiling instead of Int.max to avoid overflow downstream.
+        let windowMax = min(qLen + 1, hLen)
+        guard windowMin >= 1, windowMin <= windowMax else { return nil }
+
         let hardCeiling = max(qLen, 16)
-        var bestDist: Int = hardCeiling
-        // Slide windows of length qLen-1, qLen, qLen+1
+        var bestDist = hardCeiling
+
         for wLen in windowMin...windowMax {
-            if wLen > hChars.count { continue }
+            guard wLen > 0, wLen <= hLen else { continue }
             var i = 0
-            while i + wLen <= hChars.count {
-                let window = Array(hChars[i..<(i + wLen)])
+            while i + wLen <= hLen {
+                // Defensive bounds — avoid any chance of an out-of-range slice.
+                let upper = i + wLen
+                guard upper <= hLen, i >= 0 else { break }
+                let window = Array(hChars[i..<upper])
                 let d = levenshtein(qChars, window, ceiling: bestDist)
                 if d < bestDist { bestDist = d }
                 if bestDist == 0 { return 0 }
@@ -74,22 +89,28 @@ nonisolated enum SearchRanker: Sendable {
     }
 
     private static func levenshtein(_ a: [Character], _ b: [Character], ceiling: Int) -> Int {
-        let n = a.count, m = b.count
+        let n = a.count
+        let m = b.count
         guard n > 0, m > 0 else { return max(n, m) }
-        if abs(n - m) > ceiling { return ceiling }
-        var prev = Array(0...m)
+        let diff = n > m ? n - m : m - n
+        if diff > ceiling { return ceiling }
+
+        var prev = [Int]()
+        prev.reserveCapacity(m + 1)
+        for v in 0...m { prev.append(v) }
         var curr = [Int](repeating: 0, count: m + 1)
+
         for i in 1...n {
             curr[0] = i
             var rowMin = curr[0]
             for j in 1...m {
-                let cost = a[i-1] == b[j-1] ? 0 : 1
-                curr[j] = min(
-                    prev[j] + 1,
-                    curr[j-1] + 1,
-                    prev[j-1] + cost
-                )
-                if curr[j] < rowMin { rowMin = curr[j] }
+                let cost = a[i - 1] == b[j - 1] ? 0 : 1
+                let del = prev[j] &+ 1
+                let ins = curr[j - 1] &+ 1
+                let sub = prev[j - 1] &+ cost
+                let v = min(del, min(ins, sub))
+                curr[j] = v
+                if v < rowMin { rowMin = v }
             }
             if rowMin > ceiling { return ceiling }
             swap(&prev, &curr)
@@ -183,7 +204,65 @@ nonisolated enum TrendingSearches: Sendable {
     }
 }
 
-// MARK: - "Ask EPTI" lightweight AI answer
+// MARK: - Query intent classifier
+
+nonisolated enum QueryIntent: Sendable, Equatable {
+    case lookup     // user wants results, no Pep card
+    case question   // hero Pep card, results below if any
+    case mixed      // both, Pep card on top but smaller-feeling
+}
+
+@MainActor
+enum QueryClassifier {
+    private static let questionStarters: [String] = [
+        "how", "what", "why", "should", "is ", "can", "could", "would",
+        "does", "do ", "are ", "when", "where", "which", "who",
+        "best ", "worst ", "compare", "vs", "better than", "difference between",
+        "tell me", "explain", "recommend", "suggest", "help"
+    ]
+
+    private static let libraryNames: Set<String> = {
+        var s = Set<String>()
+        for e in ExerciseLibrary.all { s.insert(e.name.lowercased()) }
+        for c in CompoundDatabase.all { s.insert(c.name.lowercased()) }
+        for f in FoodDatabase.allFoods.prefix(800) { s.insert(f.name.lowercased()) }
+        return s
+    }()
+
+    static func classify(_ raw: String, hasResults: Bool) -> QueryIntent {
+        let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard q.count >= 2 else { return .lookup }
+        let lower = q.lowercased()
+
+        // Hard signals → always question.
+        if lower.hasSuffix("?") { return hasResults ? .mixed : .question }
+
+        // Username / hashtag / direct entity prefix → lookup.
+        if lower.hasPrefix("@") || lower.hasPrefix("#") { return .lookup }
+
+        // Exact library hit → lookup.
+        if libraryNames.contains(lower) { return .lookup }
+
+        let words = lower.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        let starts = questionStarters.contains(where: { lower.hasPrefix($0) })
+        let containsQuestionWord = lower.contains(" vs ") || lower.contains(" vs. ") || lower.contains(" or ") || lower.contains(" better than ")
+
+        // Long natural-language style query → likely a question.
+        if starts && words.count >= 2 {
+            return hasResults ? .mixed : .question
+        }
+        if words.count >= 5 {
+            return hasResults ? .mixed : .question
+        }
+        if containsQuestionWord && words.count >= 3 {
+            return hasResults ? .mixed : .question
+        }
+
+        return .lookup
+    }
+}
+
+// MARK: - "Ask Pep" personalized AI answer
 
 @MainActor
 @Observable
@@ -194,10 +273,12 @@ final class AskEptiAnswerStore {
     var lastError: String?
 
     private var task: Task<Void, Never>?
+    private var compoundContextCache: String?
 
-    func ask(_ q: String) {
+    func ask(_ q: String, intent: QueryIntent) {
         let trimmed = q.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count >= 4, looksLikeQuestion(trimmed) else {
+        // Only fire for question / mixed intents.
+        guard intent != .lookup, trimmed.count >= 4 else {
             cancel()
             return
         }
@@ -210,37 +291,41 @@ final class AskEptiAnswerStore {
         isLoading = true
 
         task = Task { [weak self] in
-            // Debounce — let the user keep typing.
-            try? await Task.sleep(for: .milliseconds(700))
+            try? await Task.sleep(for: .milliseconds(650))
             if Task.isCancelled { return }
             guard let self else { return }
+            await self.runAsk(trimmed)
+        }
+    }
 
-            let prompt = trimmed
-            let body: [String: Any] = [
-                "model": "openai/gpt-4o-mini",
-                "messages": [
-                    [
-                        "role": "system",
-                        "content": "You are Pep, the in-app AI coach for EPTI (a fitness, nutrition, and peptide protocol app). Answer the user's search query in 1–2 short sentences, plain text only, no markdown, no emojis. Be specific and actionable. If you don't know, say so briefly."
-                    ],
-                    ["role": "user", "content": prompt]
-                ],
-                "max_tokens": 140,
-                "temperature": 0.4
-            ]
+    private func runAsk(_ prompt: String) async {
+        let userContext = AIContextBuilder.build(
+            options: AIContextBuilder.Options(sourceScreen: "Global Search")
+        )
+        let compoundContext = cachedCompoundContext()
+        let system = systemPrompt(userContext: userContext, compoundContext: compoundContext)
 
-            do {
-                let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 15)
-                if Task.isCancelled { return }
-                let text = (try? AIProxyClient.extractContent(data)) ?? ""
-                let cleaned = text
-                    .replacingOccurrences(of: "**", with: "")
-                    .replacingOccurrences(of: "##", with: "")
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
+        let body: [String: Any] = [
+            "model": "perplexity/sonar",
+            "messages": [
+                ["role": "system", "content": system],
+                ["role": "user", "content": prompt]
+            ],
+            "max_tokens": 260
+        ]
+
+        do {
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 25)
+            if Task.isCancelled { return }
+            let raw = (try? AIProxyClient.extractContent(data)) ?? ""
+            let cleaned = clean(raw)
+            await MainActor.run {
                 self.answer = cleaned
                 self.isLoading = false
-            } catch {
-                if Task.isCancelled { return }
+            }
+        } catch {
+            if Task.isCancelled { return }
+            await MainActor.run {
                 self.lastError = "Couldn't reach Pep right now."
                 self.isLoading = false
             }
@@ -256,14 +341,44 @@ final class AskEptiAnswerStore {
         lastError = nil
     }
 
-    private nonisolated func looksLikeQuestion(_ s: String) -> Bool {
-        let lower = s.lowercased()
-        if lower.hasSuffix("?") { return true }
-        // Multi-word natural-language style queries trigger the AI card.
-        let wordCount = s.split(whereSeparator: { $0.isWhitespace }).count
-        if wordCount >= 3 { return true }
-        let starters = ["how", "what", "why", "best", "compare", "vs ", "should", "can", "does", "is "]
-        return starters.contains(where: { lower.hasPrefix($0) })
+    private func cachedCompoundContext() -> String {
+        if let cached = compoundContextCache { return cached }
+        // Compact compound list — names + categories only — keeps prompt small for the card.
+        var ctx = "\nCOMPOUND LIBRARY (names + categories you may reference):\n"
+        for c in CompoundDatabase.all.prefix(60) {
+            ctx += "- \(c.name) [\(c.peptideType)]\n"
+        }
+        compoundContextCache = ctx
+        return ctx
+    }
+
+    private nonisolated func systemPrompt(userContext: String, compoundContext: String) -> String {
+        return """
+        You are Pep, the AI coach inside EPTI (a fitness, nutrition, and peptide protocol app). The user just typed a question into the global search bar — give them a short, direct, personalized answer.
+
+        RULES:
+        - 2 to 4 sentences total. No filler. No greetings.
+        - Plain text only — no markdown, no asterisks, no headers, no bullets.
+        - Lowercase, conversational, like a knowledgeable training partner.
+        - Reference the user's actual data (weight, goal, protocol, recent workouts, nutrition today, bloodwork, sleep) when it's relevant. Use specific numbers.
+        - Never diagnose, never prescribe. For controlled substances or medical issues, point to a qualified provider in one short line.
+        - Never recommend vendors or sources.
+        - Never cite sources, footnotes, or URLs.
+
+        \(compoundContext)
+
+        \(userContext)
+        """
+    }
+
+    private nonisolated func clean(_ s: String) -> String {
+        var out = s
+        out = out.replacingOccurrences(of: "**", with: "")
+        out = out.replacingOccurrences(of: "##", with: "")
+        out = out.replacingOccurrences(of: "# ", with: "")
+        out = out.replacingOccurrences(of: #"\[\d+\]"#, with: "", options: .regularExpression)
+        out = out.replacingOccurrences(of: #"(?i)\n*sources?:.*$"#, with: "", options: .regularExpression)
+        return out.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
@@ -292,7 +407,6 @@ struct HighlightedText: View {
         var searchStart = lowerText.startIndex
         while searchStart < lowerText.endIndex,
               let range = lowerText.range(of: lowerQuery, range: searchStart..<lowerText.endIndex) {
-            // Convert String range to AttributedString range.
             let nsStart = lowerText.distance(from: lowerText.startIndex, to: range.lowerBound)
             let nsLen = lowerText.distance(from: range.lowerBound, to: range.upperBound)
             if let attrStart = attr.index(attr.startIndex, offsetByCharacters: nsStart, limitedBy: attr.endIndex),
@@ -308,7 +422,6 @@ struct HighlightedText: View {
 
 private extension AttributedString {
     func index(_ from: AttributedString.Index, offsetByCharacters offset: Int, limitedBy limit: AttributedString.Index) -> AttributedString.Index? {
-        // characters view supports index(_:offsetBy:limitedBy:)
         let chars = self.characters
         guard let charsFrom = chars.index(from, offsetBy: 0, limitedBy: chars.endIndex),
               let result = chars.index(charsFrom, offsetBy: offset, limitedBy: limit) else {

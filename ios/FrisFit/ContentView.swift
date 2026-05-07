@@ -45,7 +45,6 @@ nonisolated enum AppTab: Int, CaseIterable {
 
 struct ContentView: View {
     @State private var selectedTab: AppTab = .home
-    @State private var showPepChat: Bool = false
     @State private var showNutrition: Bool = false
     @State private var showCreatePost: Bool = false
     @State private var showLogDose: Bool = false
@@ -176,9 +175,6 @@ struct ContentView: View {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                 selectedTab = .community
             }
-        }
-        .fullScreenCover(isPresented: $showPepChat) {
-            PepChatView()
         }
         .sheet(isPresented: $showNutrition) {
             NavigationStack {
@@ -341,7 +337,6 @@ struct ContentView: View {
                     }
                 }
             }),
-            FABAction(icon: "bubble.left.fill", label: "Chat with Pep", color: PepTheme.violet, action: { showPepChat = true }),
             FABAction(icon: "square.and.pencil", label: "Make a Post", color: PepTheme.blue, action: { showCreatePost = true }),
             FABAction(icon: "pill.fill", label: "Log Dose", color: Color.pink, action: { showLogDose = true }),
             FABAction(icon: "drop.fill", label: "Log Bloodwork", color: .red, action: { showLogBloodwork = true }),

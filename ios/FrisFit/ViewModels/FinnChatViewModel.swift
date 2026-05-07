@@ -156,9 +156,11 @@ final class PepChatViewModel {
 
     var sourceScreen: String = "Home Screen"
     private var planContext: String?
+    private var pendingInitialQuestion: String?
 
-    init(planContext: String? = nil) {
+    init(planContext: String? = nil, initialQuestion: String? = nil) {
         self.planContext = planContext
+        self.pendingInitialQuestion = initialQuestion?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true ? nil : initialQuestion
         if let planContext {
             messages.append(PepMessage(
                 role: .pep,
@@ -168,6 +170,11 @@ final class PepChatViewModel {
         }
         Task {
             await loadHistoryAndContext()
+            if let q = pendingInitialQuestion {
+                pendingInitialQuestion = nil
+                inputText = q
+                sendMessage()
+            }
         }
     }
 
