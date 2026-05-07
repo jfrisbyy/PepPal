@@ -337,10 +337,21 @@ struct SocialView: View {
                                 }
                             )
                             if idx < viewModel.filteredFeedPosts.count - 1 {
-                                Rectangle()
-                                    .fill(PepTheme.separatorColor.opacity(0.45))
-                                    .frame(height: 0.5)
-                                    .padding(.leading, 62)
+                                ZStack {
+                                    Rectangle()
+                                        .fill(PepTheme.backgroundElevated.opacity(0.6))
+                                        .frame(height: 8)
+                                    VStack(spacing: 0) {
+                                        Rectangle()
+                                            .fill(PepTheme.separatorColor.opacity(0.9))
+                                            .frame(height: 0.5)
+                                        Spacer(minLength: 0)
+                                        Rectangle()
+                                            .fill(PepTheme.separatorColor.opacity(0.9))
+                                            .frame(height: 0.5)
+                                    }
+                                    .frame(height: 8)
+                                }
                             }
                         }
 
