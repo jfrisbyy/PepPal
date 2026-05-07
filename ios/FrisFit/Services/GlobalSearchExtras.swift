@@ -177,14 +177,18 @@ nonisolated enum TrendingSearches: Sendable {
     static func today() -> [String] {
         let pool = [
             "BPC-157",
+            "How do I reconstitute?",
             "Bench press",
+            "How to inject",
             "High protein breakfast",
             "Tirzepatide",
+            "Reading a COA",
             "Pull ups",
             "Creatine",
             "Greek yogurt",
             "Retatrutide",
             "Romanian deadlift",
+            "How to store peptides",
             "Magnesium glycinate",
             "Overnight oats",
             "Sermorelin",

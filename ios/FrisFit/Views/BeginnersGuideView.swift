@@ -2,9 +2,13 @@ import SwiftUI
 
 struct BeginnersGuideView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedSection: GuideSection = .whatArePeptides
+    @State private var selectedSection: GuideSection
 
-    private enum GuideSection: String, CaseIterable, Identifiable {
+    init(initialSection: GuideSection = .whatArePeptides) {
+        _selectedSection = State(initialValue: initialSection)
+    }
+
+    enum GuideSection: String, CaseIterable, Identifiable {
         case whatArePeptides = "What Are Peptides"
         case reconstitution = "Reconstitution"
         case injection = "Injection Technique"

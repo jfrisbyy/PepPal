@@ -4,6 +4,7 @@ import Supabase
 
 nonisolated enum GlobalSearchScope: String, CaseIterable, Sendable, Identifiable {
     case all = "All"
+    case guides = "Guides"
     case exercises = "Exercises"
     case foods = "Foods"
     case compounds = "Compounds"
@@ -16,6 +17,7 @@ nonisolated enum GlobalSearchScope: String, CaseIterable, Sendable, Identifiable
     var icon: String {
         switch self {
         case .all: "magnifyingglass"
+        case .guides: "book.pages.fill"
         case .exercises: "dumbbell.fill"
         case .foods: "fork.knife"
         case .compounds: "pills.fill"
@@ -28,6 +30,7 @@ nonisolated enum GlobalSearchScope: String, CaseIterable, Sendable, Identifiable
     var emptyIcon: String {
         switch self {
         case .all: "sparkle.magnifyingglass"
+        case .guides: "book.closed"
         case .exercises: "figure.strengthtraining.traditional"
         case .foods: "takeoutbag.and.cup.and.straw"
         case .compounds: "cross.vial"
@@ -45,6 +48,7 @@ nonisolated enum GlobalSearchResult: Identifiable, Sendable {
     case user(SocialUser)
     case circle(FitCircle)
     case post(id: String, userId: String, author: SocialUser, snippet: String, createdAt: Date)
+    case guide(GuideEntry)
 
     var id: String {
         switch self {
@@ -54,6 +58,7 @@ nonisolated enum GlobalSearchResult: Identifiable, Sendable {
         case .user(let u): return "u-\(u.id.uuidString)"
         case .circle(let c): return "cir-\(c.id.uuidString)"
         case .post(let id, _, _, _, _): return "post-\(id)"
+        case .guide(let g): return "guide-\(g.id)"
         }
     }
 
@@ -65,6 +70,7 @@ nonisolated enum GlobalSearchResult: Identifiable, Sendable {
         case .user: .users
         case .circle: .circles
         case .post: .posts
+        case .guide: .guides
         }
     }
 
@@ -76,6 +82,7 @@ nonisolated enum GlobalSearchResult: Identifiable, Sendable {
         case .user(let u): u.name
         case .circle(let c): c.name
         case .post(_, _, let author, _, _): author.name
+        case .guide(let g): g.title
         }
     }
 
@@ -87,6 +94,7 @@ nonisolated enum GlobalSearchResult: Identifiable, Sendable {
         case .user(let u): "@\(u.username)"
         case .circle(let c): c.isPrivate ? "Private • \(c.memberCount) members" : "\(c.memberCount) members"
         case .post(_, _, _, let snippet, _): snippet
+        case .guide(let g): g.subtitle
         }
     }
 
@@ -98,6 +106,7 @@ nonisolated enum GlobalSearchResult: Identifiable, Sendable {
         case .user: "person.crop.circle"
         case .circle: "person.3.fill"
         case .post: "bubble.left.fill"
+        case .guide(let g): g.icon
         }
     }
 
@@ -116,6 +125,8 @@ nonisolated enum GlobalSearchResult: Identifiable, Sendable {
             return [c.name]
         case .post(_, _, let author, let snippet, _):
             return [snippet, author.name, author.username]
+        case .guide(let g):
+            return g.rankableStrings
         }
     }
 }
@@ -232,6 +243,7 @@ final class GlobalSearchViewModel {
         let wantUsers = scope == .all || scope == .users
         let wantCircles = scope == .all || scope == .circles
         let wantPosts = scope == .all || scope == .posts
+        let wantGuides = scope == .all || scope == .guides
 
         let perScopeLimit = scope == .all ? 3 : 25
         let blocked = blockedIds
@@ -242,6 +254,7 @@ final class GlobalSearchViewModel {
         async let usersTask = Self.searchUsers(q, limit: perScopeLimit, enabled: wantUsers, blocked: blocked)
         async let circlesTask = Self.searchCircles(q, limit: perScopeLimit, enabled: wantCircles)
         async let postsTask = Self.searchPosts(q, limit: perScopeLimit, enabled: wantPosts, blocked: blocked)
+        async let guidesTask = Self.searchGuides(q, limit: perScopeLimit, enabled: wantGuides)
 
         let exercises = await exercisesTask
         let foods = await foodsTask
@@ -249,8 +262,9 @@ final class GlobalSearchViewModel {
         let users = await usersTask
         let circles = await circlesTask
         let posts = await postsTask
+        let guides = await guidesTask
 
-        let unranked = exercises + foods + compounds + users + circles + posts
+        let unranked = guides + exercises + foods + compounds + users + circles + posts
         return Self.rank(results: unranked, query: q)
     }
 
@@ -276,6 +290,35 @@ final class GlobalSearchViewModel {
     }
 
     // MARK: - Scope searches
+
+    nonisolated private static func searchGuides(_ q: String, limit: Int, enabled: Bool) async -> [GlobalSearchResult] {
+        guard enabled else { return [] }
+        let qLower = q.lowercased()
+        // Score every guide using its title + subtitle + keyword phrases.
+        // Use a low threshold so natural language ("how do i reconstitute") still matches
+        // the keyword "how do i reconstitute" or "reconstitute peptide".
+        var scored: [(GuideEntry, Int)] = []
+        for entry in GuideLibrary.all {
+            // Direct contains shortcut for any keyword phrase.
+            var directHit = false
+            for kw in entry.rankableStrings {
+                let kwLower = kw.lowercased()
+                if kwLower.contains(qLower) || qLower.contains(kwLower) {
+                    directHit = true
+                    break
+                }
+            }
+            let s = SearchRanker.score(query: q, candidates: entry.rankableStrings)
+            let finalScore = directHit ? max(s, 600) : s
+            if finalScore >= 300 {
+                scored.append((entry, finalScore))
+            }
+        }
+        return scored
+            .sorted { $0.1 > $1.1 }
+            .prefix(limit)
+            .map { GlobalSearchResult.guide($0.0) }
+    }
 
     nonisolated private static func searchExercises(_ q: String, limit: Int, enabled: Bool) async -> [GlobalSearchResult] {
         guard enabled else { return [] }

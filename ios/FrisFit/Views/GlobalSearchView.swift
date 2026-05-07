@@ -15,6 +15,7 @@ struct GlobalSearchView: View {
     @State private var selectedFood: FoodItem?
     @State private var selectedFitCircle: FitCircle?
     @State private var selectedFeedPost: FeedPost?
+    @State private var selectedGuide: GuideEntry?
 
     // Quick-action sheets
     @State private var showAskEptiChat: Bool = false
@@ -97,6 +98,9 @@ struct GlobalSearchView: View {
             }
             .fullScreenCover(isPresented: $showAskEptiChat) {
                 PepChatView(initialQuestion: pepChatSeedQuestion)
+            }
+            .sheet(item: $selectedGuide) { guide in
+                guideDestinationView(for: guide)
             }
             .onChange(of: showAskEptiChat) { _, isShowing in
                 if !isShowing { pepChatSeedQuestion = nil }
@@ -538,7 +542,7 @@ struct GlobalSearchView: View {
                 }
 
                 let grouped = Dictionary(grouping: vm.results, by: { $0.scope })
-                let orderedScopes: [GlobalSearchScope] = [.exercises, .foods, .compounds, .users, .circles, .posts]
+                let orderedScopes: [GlobalSearchScope] = [.guides, .exercises, .foods, .compounds, .users, .circles, .posts]
 
                 ForEach(orderedScopes, id: \.self) { scope in
                     if let items = grouped[scope], !items.isEmpty {
@@ -685,6 +689,14 @@ struct GlobalSearchView: View {
                     .foregroundStyle(PepTheme.textSecondary)
                     .lineLimit(1)
             }
+        case .guide(let g):
+            HStack(spacing: 6) {
+                metaChip(text: "GUIDE", tint: PepTheme.teal)
+                Text(g.subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .lineLimit(1)
+            }
         }
     }
 
@@ -733,6 +745,7 @@ struct GlobalSearchView: View {
         case .user: return PepSection.community
         case .circle: return PepSection.community
         case .post: return PepSection.community
+        case .guide: return PepTheme.teal
         }
     }
 
@@ -740,7 +753,8 @@ struct GlobalSearchView: View {
 
     private var shouldShowAskCard: Bool {
         guard currentIntent != .lookup else { return false }
-        return !ask.answer.isEmpty || ask.isLoading
+        // Sticky: any question keeps the card visible (thinking, answered, or errored).
+        return !ask.answer.isEmpty || ask.isLoading || ask.lastError != nil || !ask.query.isEmpty
     }
 
     @ViewBuilder
@@ -767,11 +781,18 @@ struct GlobalSearchView: View {
                 }
 
                 if ask.answer.isEmpty {
-                    HStack(spacing: 8) {
-                        Text("Thinking…")
-                            .font(.system(size: hero ? 17 : 14, design: .serif))
+                    if ask.lastError != nil {
+                        Text("Couldn't reach Pep right now — tap to open chat and try again.")
+                            .font(.system(size: hero ? 16 : 13, design: .serif))
                             .foregroundStyle(PepTheme.textSecondary)
-                        ShimmerLine()
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        HStack(spacing: 8) {
+                            Text("Thinking…")
+                                .font(.system(size: hero ? 17 : 14, design: .serif))
+                                .foregroundStyle(PepTheme.textSecondary)
+                            ShimmerLine()
+                        }
                     }
                 } else {
                     Text(ask.answer)
@@ -941,6 +962,26 @@ struct GlobalSearchView: View {
             selectedFitCircle = c
         case .post(let id, _, _, _, _):
             openPost(postId: id)
+        case .guide(let g):
+            selectedGuide = g
+        }
+    }
+
+    @ViewBuilder
+    private func guideDestinationView(for guide: GuideEntry) -> some View {
+        switch guide.destination {
+        case .beginnersGuideBasics:
+            BeginnersGuideView(initialSection: .whatArePeptides)
+        case .beginnersGuideReconstitution:
+            BeginnersGuideView(initialSection: .reconstitution)
+        case .beginnersGuideInjection:
+            BeginnersGuideView(initialSection: .injection)
+        case .beginnersGuideStorage:
+            BeginnersGuideView(initialSection: .storage)
+        case .beginnersGuideCOA:
+            BeginnersGuideView(initialSection: .coas)
+        case .reconstitutionCalculator:
+            NavigationStack { ReconstitutionCalculatorView() }
         }
     }
 
@@ -967,6 +1008,8 @@ struct GlobalSearchView: View {
     private func recordRecent(_ r: GlobalSearchResult) {
         let item: RecentSearchItem? = {
             switch r {
+            case .guide:
+                return nil
             case .exercise(let e):
                 return RecentSearchItem(kind: .exercise, referenceId: e.id, title: e.name, subtitle: e.primaryMuscle.rawValue, viewedAt: Date())
             case .compound(let c):
