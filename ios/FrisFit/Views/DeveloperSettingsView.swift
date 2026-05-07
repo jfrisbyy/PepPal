@@ -22,6 +22,8 @@ struct DeveloperSettingsView: View {
             VStack(spacing: 0) {
                 seedRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
+                fakeAccountSwitcherRow
+                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 refreshRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 removeRow
@@ -154,6 +156,41 @@ struct DeveloperSettingsView: View {
     }
 
     @State private var showStreakDebug: Bool = false
+
+    private var fakeAccountSwitcherRow: some View {
+        NavigationLink {
+            FakeAccountSwitcherView()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "theatermasks.fill")
+                    .font(.body)
+                    .foregroundStyle(.orange)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text("Fake account switcher")
+                            .font(.body)
+                            .foregroundStyle(PepTheme.textPrimary)
+                        if FakeAccountService.shared.isImpersonating {
+                            Text("IMPERSONATING")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(.orange, in: .capsule)
+                        }
+                    }
+                    Text("Create, switch into, and generate activity for fake accounts. Full functionality — post, DM, log everything.")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+        .buttonStyle(.plain)
+    }
 
     private var streakDebugRow: some View {
         Button { showStreakDebug = true } label: {

@@ -1081,6 +1081,251 @@ async function sendPushAction(
     return json(200, { ok: true, ...result });
 }
 
+// ---- Handler: createFakeUser ----------------------------------------
+//
+// Creates an arbitrary fake auth user + profile on demand. Used by the
+// in-app Fake Account Switcher so the operator can spin up new fakes,
+// post / message / log as them, and switch back. Returns email +
+// password so the caller can sign in immediately.
+
+function randomPassword(): string {
+    const buf = new Uint8Array(18);
+    crypto.getRandomValues(buf);
+    return "Fk-" + Array.from(buf).map((b) => b.toString(16).padStart(2, "0")).join("") + "!1";
+}
+
+function randomHandle(seed: string): string {
+    const slug = slugify(seed) || "fake";
+    const tail = Math.random().toString(36).slice(2, 6);
+    return (slug + tail).slice(0, 24);
+}
+
+async function createFakeUser(
+    admin: SupabaseClient,
+    callerId: string,
+    payload: Record<string, unknown>,
+): Promise<Response> {
+    const requestedName = typeof payload.display_name === "string" ? payload.display_name.trim() : "";
+    const requestedHandle = typeof payload.username === "string" ? payload.username.trim() : "";
+    const followCaller = payload.follow_caller !== false;
+
+    const fallbackName = NAMES[Math.floor(Math.random() * NAMES.length)] ?? "Fake User";
+    const displayName = requestedName.length > 0 ? requestedName : fallbackName;
+    const baseHandle = requestedHandle.length > 0 ? slugify(requestedHandle) : randomHandle(displayName);
+    const username = (baseHandle.length > 0 ? baseHandle : randomHandle("user")).slice(0, 24);
+    const email = `frisfit-fake-${username}-${Date.now().toString(36)}@frisfittest.app`;
+    const password = randomPassword();
+
+    const { data: createRes, error: createErr } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { is_test_user: true, full_name: displayName },
+    });
+    if (createErr || !createRes?.user) {
+        return json(500, { ok: false, error: createErr?.message ?? "create_failed" });
+    }
+    const userId = createRes.user.id;
+    const color = AVATAR_PALETTE[Math.floor(Math.random() * AVATAR_PALETTE.length)];
+    const avatarSeed = randInt(1, 70);
+    const bio = requestedName.length > 0 ? "" : (BIOS[Math.floor(Math.random() * BIOS.length)] ?? "");
+
+    const { error: upsertErr } = await admin.from("profiles").upsert({
+        id: userId,
+        display_name: displayName,
+        username,
+        initials: initialsFor(displayName),
+        bio,
+        avatar_color: color,
+        avatar_url: `https://i.pravatar.cc/400?img=${avatarSeed}`,
+        banner_url: `https://picsum.photos/seed/${encodeURIComponent(username)}/1200/400`,
+        current_streak: 0,
+        total_fp: 0,
+        is_private: false,
+        is_test_user: true,
+    }, { onConflict: "id" });
+    if (upsertErr) {
+        return json(500, { ok: false, error: `profile: ${upsertErr.message}` });
+    }
+
+    if (followCaller) {
+        await admin.from("follows").upsert([
+            { follower_id: callerId, following_id: userId },
+            { follower_id: userId, following_id: callerId },
+        ], { onConflict: "follower_id,following_id", ignoreDuplicates: true });
+    }
+
+    return json(200, {
+        ok: true,
+        version: "seed-v2",
+        user_id: userId,
+        email,
+        password,
+        display_name: displayName,
+        username,
+    });
+}
+
+// ---- Handler: listFakeUsers ------------------------------------------
+
+async function listFakeUsers(admin: SupabaseClient): Promise<Response> {
+    const { data: profiles, error } = await admin
+        .from("profiles")
+        .select("id, display_name, username, avatar_url, avatar_color, current_streak, total_fp, updated_at")
+        .eq("is_test_user", true)
+        .order("updated_at", { ascending: false })
+        .limit(200);
+    if (error) return json(500, { ok: false, error: error.message });
+
+    const emailById = new Map<string, string>();
+    let page = 1;
+    while (page < 20) {
+        const { data, error: listErr } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+        if (listErr) break;
+        const users = data?.users ?? [];
+        for (const u of users) {
+            if (u.email) emailById.set(u.id, u.email);
+        }
+        if (users.length < 200) break;
+        page += 1;
+    }
+
+    const items = (profiles ?? []).map((p: Record<string, unknown>) => ({
+        ...p,
+        email: emailById.get(String(p.id)) ?? null,
+    }));
+    return json(200, { ok: true, version: "seed-v2", items });
+}
+
+// ---- Handler: rotateFakeUserPassword ---------------------------------
+//
+// Generates a new password for a fake auth user and returns it so the
+// caller can sign in. Only allowed for users tagged is_test_user=true.
+
+async function rotateFakeUserPassword(
+    admin: SupabaseClient,
+    payload: Record<string, unknown>,
+): Promise<Response> {
+    const userId = String(payload.user_id ?? "");
+    if (!userId) return json(400, { error: "missing_user_id" });
+
+    const { data: profile, error: profErr } = await admin
+        .from("profiles")
+        .select("id, is_test_user")
+        .eq("id", userId)
+        .maybeSingle();
+    if (profErr) return json(500, { error: profErr.message });
+    if (!profile || profile.is_test_user !== true) {
+        return json(403, { error: "not_a_fake_user" });
+    }
+
+    const password = randomPassword();
+    const { data: updated, error: updErr } = await admin.auth.admin.updateUserById(userId, { password });
+    if (updErr) return json(500, { error: updErr.message });
+    const email = updated?.user?.email ?? null;
+    if (!email) return json(500, { error: "no_email" });
+    return json(200, { ok: true, version: "seed-v2", user_id: userId, email, password });
+}
+
+// ---- Handler: generateFakeActivity -----------------------------------
+//
+// Inserts a small batch of plausible feed posts for a fake user spread
+// over the last N days. Narrow scope so we never touch tables with
+// strict business invariants. Service-role only.
+
+const FAKE_POST_BANK: string[] = [
+    "showed up. that's the win.",
+    "squats moved like trash today but i hit them anyway",
+    "easy 8 this morning, kept HR under 145 the whole way",
+    "PR day. screaming in the car park",
+    "deload week and i'm already itching to add weight",
+    "slept 8h12m last night. lifts felt like a different sport",
+    "new shoes day. nothing else matters",
+    "protein at every meal is the only diet rule that ever moved the needle for me",
+    "100 free throws after practice. made 87. i'll take it",
+    "bloods back. lipids actually improved. cautiously optimistic",
+    "missed a session because i needed sleep more. that's a win not a loss",
+    "front squats then a fasted run. would not recommend but here we are",
+    "upped calories by 300 and the fatigue went away. eat your food people",
+    "reposting the same advice for the 100th time: train submaximally most of the time",
+    "hangboard repeaters this morning. fingers are noodles",
+    "long run done. 16k. kept it conversational",
+    "new sleeves, new pr. correlation? probably not. but maybe.",
+];
+
+async function generateFakeActivity(
+    admin: SupabaseClient,
+    payload: Record<string, unknown>,
+): Promise<Response> {
+    const userId = String(payload.user_id ?? "");
+    const count = Math.max(1, Math.min(10, Number(payload.count ?? 3) | 0));
+    const daysBack = Math.max(1, Math.min(30, Number(payload.days_back ?? 7) | 0));
+    if (!userId) return json(400, { error: "missing_user_id" });
+
+    const { data: profile, error: profErr } = await admin
+        .from("profiles")
+        .select("id, is_test_user")
+        .eq("id", userId)
+        .maybeSingle();
+    if (profErr) return json(500, { error: profErr.message });
+    if (!profile || profile.is_test_user !== true) {
+        return json(403, { error: "not_a_fake_user" });
+    }
+
+    const now = Date.now();
+    const rows: Record<string, unknown>[] = [];
+    const used = new Set<number>();
+    for (let i = 0; i < count; i += 1) {
+        let idx = Math.floor(Math.random() * FAKE_POST_BANK.length);
+        let guard = 0;
+        while (used.has(idx) && guard < 8) {
+            idx = (idx + 1) % FAKE_POST_BANK.length;
+            guard += 1;
+        }
+        used.add(idx);
+        const daysAgo = Math.random() * daysBack;
+        const created = new Date(now - daysAgo * 24 * 3600 * 1000).toISOString();
+        rows.push({
+            user_id: userId,
+            text_content: FAKE_POST_BANK[idx],
+            media_urls: [],
+            tags: [],
+            created_at: created,
+            updated_at: created,
+        });
+    }
+    const { error: insErr } = await admin.from("feed_posts").insert(rows);
+    if (insErr) return json(500, { error: insErr.message });
+    return json(200, { ok: true, version: "seed-v2", inserted: rows.length });
+}
+
+// ---- Handler: deleteFakeUser -----------------------------------------
+
+async function deleteFakeUser(
+    admin: SupabaseClient,
+    payload: Record<string, unknown>,
+): Promise<Response> {
+    const userId = String(payload.user_id ?? "");
+    if (!userId) return json(400, { error: "missing_user_id" });
+    const { data: profile, error: profErr } = await admin
+        .from("profiles")
+        .select("id, is_test_user")
+        .eq("id", userId)
+        .maybeSingle();
+    if (profErr) return json(500, { error: profErr.message });
+    if (!profile || profile.is_test_user !== true) {
+        return json(403, { error: "not_a_fake_user" });
+    }
+    try {
+        await admin.rpc("delete_user_data", { target_user_id: userId });
+    } catch (_) {
+        // best-effort
+    }
+    const { error: authErr } = await admin.auth.admin.deleteUser(userId);
+    if (authErr) return json(500, { error: authErr.message });
+    return json(200, { ok: true, version: "seed-v2", deleted_user_id: userId });
+}
+
 // ---- Handler: deleteAccount (GDPR / App Store requirement) -----------
 
 async function deleteAccount(
@@ -1217,6 +1462,16 @@ Deno.serve(async (req) => {
                 return await deleteAccount(admin, auth.userId);
             case "logClientError":
                 return await logClientError(admin, auth.userId, payload);
+            case "createFakeUser":
+                return await createFakeUser(admin, auth.userId, payload);
+            case "listFakeUsers":
+                return await listFakeUsers(admin);
+            case "rotateFakeUserPassword":
+                return await rotateFakeUserPassword(admin, payload);
+            case "generateFakeActivity":
+                return await generateFakeActivity(admin, payload);
+            case "deleteFakeUser":
+                return await deleteFakeUser(admin, payload);
             default:
                 return json(400, { error: "unknown_action", action });
         }
