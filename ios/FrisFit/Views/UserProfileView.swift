@@ -46,6 +46,8 @@ struct UserProfileView: View {
         .scrollIndicators(.hidden)
         .appBackground()
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+        .toolbarBackground(.automatic, for: .navigationBar)
         .navigationDestination(for: FollowListDestination.self) { destination in
             FollowListView(destination: destination, profileViewModel: viewModel)
         }
