@@ -209,7 +209,13 @@ final class MessagingService {
 
     // MARK: - Follows
 
-    func followUser(followerId: String, followingId: String) async throws {
+    enum FollowOutcome: Sendable {
+        case followed
+        case requested
+    }
+
+    @discardableResult
+    func followUser(followerId: String, followingId: String) async throws -> FollowOutcome {
         let target: SupabaseProfile = try await supabase
             .from("profiles")
             .select()
@@ -231,7 +237,7 @@ final class MessagingService {
                 title: "Follow Request",
                 body: "Someone requested to follow you."
             )
-            return
+            return .requested
         }
 
         let payload = CreateFollowPayload(follower_id: followerId, following_id: followingId)
@@ -252,6 +258,29 @@ final class MessagingService {
             title: "New Follower",
             body: "Someone started following you!"
         )
+        return .followed
+    }
+
+    func hasPendingFollowRequest(requesterId: String, targetId: String) async throws -> Bool {
+        let response: [SupabaseFollowRequest] = try await supabase
+            .from("follow_requests")
+            .select("id")
+            .eq("requester_id", value: requesterId)
+            .eq("target_id", value: targetId)
+            .eq("status", value: "pending")
+            .execute()
+            .value
+        return !response.isEmpty
+    }
+
+    func cancelFollowRequest(requesterId: String, targetId: String) async throws {
+        try await supabase
+            .from("follow_requests")
+            .delete()
+            .eq("requester_id", value: requesterId)
+            .eq("target_id", value: targetId)
+            .eq("status", value: "pending")
+            .execute()
     }
 
     func fetchPendingFollowRequests(userId: String, limit: Int = 200) async throws -> [SupabaseFollowRequestWithProfile] {

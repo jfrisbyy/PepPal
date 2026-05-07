@@ -6,6 +6,7 @@ struct UserProfileView: View {
 
     @State private var selectedTab: UserProfileTab = .posts
     @State private var isFollowing: Bool = false
+    @State private var followRequestPending: Bool = false
     @State private var friendStatus: FriendRequestStatus = .none
     @State private var friendRequestId: String?
     @State private var followBounce: Int = 0
@@ -20,6 +21,10 @@ struct UserProfileView: View {
     @State private var pendingDeletePost: UserPost?
     @State private var selectedHashtag: String?
     @State private var bannerUrlString: String?
+    @State private var messagesViewModel = MessagesViewModel()
+    @State private var pendingChatID: UUID?
+    @State private var followError: String?
+    @State private var showFollowError: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     private let messagingService = MessagingService.shared
@@ -56,6 +61,14 @@ struct UserProfileView: View {
         .toolbarBackground(.automatic, for: .navigationBar)
         .navigationDestination(for: FollowListDestination.self) { destination in
             FollowListView(destination: destination, profileViewModel: viewModel)
+        }
+        .navigationDestination(item: $pendingChatID) { chatID in
+            ChatConversationView(viewModel: messagesViewModel, conversationID: chatID)
+        }
+        .alert("Couldn't update follow", isPresented: $showFollowError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(followError ?? "Please try again.")
         }
         .navigationDestination(item: Binding(get: { selectedHashtag.map(HashtagDestination.init) }, set: { selectedHashtag = $0?.tag })) { dest in
             HashtagFeedView(tag: dest.tag)
@@ -149,13 +162,15 @@ struct UserProfileView: View {
             let targetUserId = user.id.uuidString
 
             async let followCheck = messagingService.isFollowing(followerId: userId, followingId: targetUserId)
+            async let pendingCheck = messagingService.hasPendingFollowRequest(requesterId: userId, targetId: targetUserId)
             async let friendCheck = messagingService.fetchFriendStatus(userId: userId, otherUserId: targetUserId)
             async let followers = messagingService.fetchFollowers(userId: targetUserId)
             async let following = messagingService.fetchFollowing(userId: targetUserId)
 
-            let (isFollow, friendResult, followerIds, followingIds) = try await (followCheck, friendCheck, followers, following)
+            let (isFollow, isPending, friendResult, followerIds, followingIds) = try await (followCheck, pendingCheck, friendCheck, followers, following)
 
             isFollowing = isFollow
+            followRequestPending = isPending && !isFollow
             friendStatus = friendResult.status
             friendRequestId = friendResult.requestId
             followerCount = followerIds.count
@@ -189,47 +204,35 @@ struct UserProfileView: View {
     @ViewBuilder
     private var headerActions: some View {
         HStack(spacing: 8) {
-            Button {
-                let wasFollowing = isFollowing
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                    isFollowing.toggle()
-                    followerCount += isFollowing ? 1 : -1
-                    followBounce += 1
-                }
-                Task {
-                    do {
-                        if wasFollowing {
-                            try await messagingService.unfollowUser(
-                                followerId: AuthService.shared.currentUserId(),
-                                followingId: user.id.uuidString
-                            )
-                        } else {
-                            try await messagingService.followUser(
-                                followerId: AuthService.shared.currentUserId(),
-                                followingId: user.id.uuidString
-                            )
-                        }
-                    } catch {
-                        isFollowing = wasFollowing
-                        followerCount += wasFollowing ? 1 : -1
-                    }
-                }
-            } label: {
-                Text(isFollowing ? "Following" : "Follow")
+            Button(action: toggleFollow) {
+                Text(followLabel)
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(isFollowing ? PepTheme.textPrimary : .black)
+                    .foregroundStyle(followLabelColor)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(isFollowing ? PepTheme.elevated : PepTheme.teal)
+                    .background(followBackground)
                     .clipShape(.capsule)
                     .overlay(
                         Capsule().strokeBorder(
-                            isFollowing ? PepTheme.glassBorderTop : .clear,
+                            (isFollowing || followRequestPending) ? PepTheme.glassBorderTop : .clear,
                             lineWidth: 0.5
                         )
                     )
             }
             .sensoryFeedback(.impact(weight: .medium), trigger: followBounce)
+
+            Button(action: openConversation) {
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .frame(width: 34, height: 34)
+                    .background(PepTheme.elevated)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+                    )
+            }
+            .accessibilityLabel("Message \(user.name)")
 
             Button {
                 guard friendStatus == .none else { return }
@@ -261,6 +264,100 @@ struct UserProfileView: View {
             .sensoryFeedback(.impact(weight: .light), trigger: friendBounce)
             .disabled(friendStatus == .accepted)
         }
+    }
+
+    private var followLabel: String {
+        if isFollowing { return "Following" }
+        if followRequestPending { return "Requested" }
+        return "Follow"
+    }
+
+    private var followLabelColor: Color {
+        if isFollowing || followRequestPending { return PepTheme.textPrimary }
+        return .black
+    }
+
+    private var followBackground: Color {
+        if isFollowing { return PepTheme.elevated }
+        if followRequestPending { return PepTheme.elevated }
+        return PepTheme.teal
+    }
+
+    private func toggleFollow() {
+        let wasFollowing = isFollowing
+        let wasPending = followRequestPending
+        followBounce += 1
+
+        if wasFollowing {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                isFollowing = false
+                followerCount = max(0, followerCount - 1)
+            }
+            Task {
+                do {
+                    try await messagingService.unfollowUser(
+                        followerId: AuthService.shared.currentUserId(),
+                        followingId: user.id.uuidString
+                    )
+                } catch {
+                    isFollowing = true
+                    followerCount += 1
+                    followError = error.localizedDescription
+                    showFollowError = true
+                }
+            }
+            return
+        }
+
+        if wasPending {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                followRequestPending = false
+            }
+            Task {
+                do {
+                    try await messagingService.cancelFollowRequest(
+                        requesterId: AuthService.shared.currentUserId(),
+                        targetId: user.id.uuidString
+                    )
+                } catch {
+                    followRequestPending = true
+                    followError = error.localizedDescription
+                    showFollowError = true
+                }
+            }
+            return
+        }
+
+        // Optimistic — assume public follow until server confirms otherwise.
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+            isFollowing = true
+            followerCount += 1
+        }
+        Task {
+            do {
+                let outcome = try await messagingService.followUser(
+                    followerId: AuthService.shared.currentUserId(),
+                    followingId: user.id.uuidString
+                )
+                if outcome == .requested {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        isFollowing = false
+                        followerCount = max(0, followerCount - 1)
+                        followRequestPending = true
+                    }
+                }
+            } catch {
+                isFollowing = false
+                followerCount = max(0, followerCount - 1)
+                followError = error.localizedDescription
+                showFollowError = true
+            }
+        }
+    }
+
+    private func openConversation() {
+        let id = messagesViewModel.startConversation(with: user)
+        pendingChatID = id
     }
 
     private var contextStrip: some View {
