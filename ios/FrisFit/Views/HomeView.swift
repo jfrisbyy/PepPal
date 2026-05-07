@@ -44,6 +44,11 @@ struct HomeView: View {
                         .padding(.top, 56)
                         .transition(.opacity)
                 } else {
+                    EptiLogoMark(size: 38)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 18)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
                     EditorialHeader(
                         eyebrow: editorialEyebrow,
                         title: editorialGreeting,
@@ -55,7 +60,6 @@ struct HomeView: View {
                         )
                     }
                     .padding(.horizontal)
-                    .padding(.top, 56)
                     .padding(.bottom, 6)
                     Group {
                         switch viewModel.selectedTimePeriod {
@@ -98,16 +102,6 @@ struct HomeView: View {
                 floatingActionPill
                     .padding(.top, 6)
                     .padding(.trailing, 14)
-            }
-            .overlay(alignment: .topLeading) {
-                EptiLogoMark(size: 20)
-                    .padding(.top, 16)
-                    .padding(.leading, 18)
-                    .scaleEffect(pillScale, anchor: .topLeading)
-                    .opacity(pillOpacity)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: pillScale)
-                    .animation(.easeOut(duration: 0.18), value: pillOpacity)
-                    .allowsHitTesting(false)
             }
             .onAppear { performHomeAppear() }
             .onChange(of: scenePhase) { _, newPhase in
