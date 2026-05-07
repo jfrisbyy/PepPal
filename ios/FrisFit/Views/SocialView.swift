@@ -247,9 +247,6 @@ struct SocialView: View {
 
     private var feedView: some View {
         feedScrollView
-            .searchable(text: $viewModel.postSearchQuery, isPresented: $viewModel.isPostSearchActive, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search posts, people, tags")
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
     }
 
     private var isSearchActive: Bool {
@@ -298,8 +295,8 @@ struct SocialView: View {
                         actionTitle: viewModel.feedFilter == .following ? "Find Friends" : nil
                     )
                 } else {
-                    LazyVStack(spacing: 12) {
-                        ForEach(viewModel.filteredFeedPosts) { post in
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(viewModel.filteredFeedPosts.enumerated()), id: \.element.id) { idx, post in
                             FeedPostCard(
                                 post: post,
                                 onLike: {
@@ -339,6 +336,12 @@ struct SocialView: View {
                                     selectedUserForMention = user
                                 }
                             )
+                            if idx < viewModel.filteredFeedPosts.count - 1 {
+                                Rectangle()
+                                    .fill(PepTheme.separatorColor.opacity(0.45))
+                                    .frame(height: 0.5)
+                                    .padding(.leading, 62)
+                            }
                         }
 
                         if viewModel.isLoadingMore {
@@ -356,7 +359,6 @@ struct SocialView: View {
                                 .padding(.vertical, 20)
                         }
                     }
-                    .padding(.horizontal)
                     .padding(.bottom, 80)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
@@ -532,42 +534,114 @@ struct SocialView: View {
             .foregroundStyle(PepTheme.textSecondary.opacity(0.75))
     }
 
+    @FocusState private var searchFieldFocused: Bool
+
+    @ViewBuilder
+    private var inlineSearchControl: some View {
+        if viewModel.isPostSearchActive {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(PepTheme.textSecondary)
+                TextField("Search posts, people, tags", text: $viewModel.postSearchQuery)
+                    .font(.system(size: 13))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.search)
+                    .focused($searchFieldFocused)
+                if !viewModel.postSearchQuery.isEmpty {
+                    Button {
+                        viewModel.postSearchQuery = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.opacity)
+                }
+                Button("Cancel") {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        viewModel.postSearchQuery = ""
+                        viewModel.isPostSearchActive = false
+                        searchFieldFocused = false
+                    }
+                }
+                .font(.system(size: 12, weight: .regular))
+                .foregroundStyle(PepTheme.textSecondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Capsule().fill(PepTheme.cardSurface))
+            .overlay(
+                Capsule().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+            )
+            .frame(maxWidth: .infinity)
+            .transition(.opacity)
+            .onAppear { searchFieldFocused = true }
+        } else {
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    viewModel.isPostSearchActive = true
+                }
+            } label: {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(PepTheme.textSecondary.opacity(0.85))
+                    .frame(width: 32, height: 30)
+                    .background(Capsule().fill(Color.clear))
+                    .overlay(
+                        Capsule().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                    )
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: viewModel.isPostSearchActive)
+            .transition(.opacity)
+        }
+    }
+
     private var feedFilterBar: some View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
-                ForEach(FeedFilter.allCases, id: \.self) { filter in
-                    if filter == .tags {
-                        tagsFilterPill
-                    } else {
-                        let isActive = viewModel.feedFilter == filter
-                        Button {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                viewModel.feedFilter = filter
-                                viewModel.isTagsExpanded = false
-                            }
-                        } label: {
-                            Text(filter.rawValue.uppercased())
-                                .font(.system(size: 11, weight: isActive ? .semibold : .regular))
-                                .tracking(1.4)
-                                .foregroundStyle(isActive ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.7))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 7)
-                                .background(
-                                    Capsule().fill(isActive ? PepTheme.cardSurface : Color.clear)
-                                )
-                                .overlay(
-                                    Capsule().strokeBorder(
-                                        isActive ? PepTheme.textPrimary.opacity(0.7) : PepTheme.separatorColor,
-                                        lineWidth: 0.5
+                if !viewModel.isPostSearchActive {
+                    ForEach(FeedFilter.allCases, id: \.self) { filter in
+                        if filter == .tags {
+                            tagsFilterPill
+                        } else {
+                            let isActive = viewModel.feedFilter == filter
+                            Button {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    viewModel.feedFilter = filter
+                                    viewModel.isTagsExpanded = false
+                                }
+                            } label: {
+                                Text(filter.rawValue.uppercased())
+                                    .font(.system(size: 11, weight: isActive ? .semibold : .regular))
+                                    .tracking(1.4)
+                                    .foregroundStyle(isActive ? PepTheme.textPrimary : PepTheme.textSecondary.opacity(0.7))
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 7)
+                                    .background(
+                                        Capsule().fill(isActive ? PepTheme.cardSurface : Color.clear)
                                     )
-                                )
+                                    .overlay(
+                                        Capsule().strokeBorder(
+                                            isActive ? PepTheme.textPrimary.opacity(0.7) : PepTheme.separatorColor,
+                                            lineWidth: 0.5
+                                        )
+                                    )
+                            }
+                            .sensoryFeedback(.selection, trigger: viewModel.feedFilter)
                         }
-                        .sensoryFeedback(.selection, trigger: viewModel.feedFilter)
                     }
+                    Spacer(minLength: 4)
                 }
-                Spacer()
+                inlineSearchControl
             }
             .padding(.horizontal)
+            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: viewModel.isPostSearchActive)
 
             if viewModel.isTagsExpanded {
                 tagSelectionGrid

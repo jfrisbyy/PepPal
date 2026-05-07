@@ -1,21 +1,46 @@
-# Make search find guides and always answer questions
+# Twitter-style dense feed redesign
 
-**The problem**
+## Goal
 
-Right now if you type a how-to question like "how do i reconstitute", search shows nothing. Two things are broken:
+Make the feed page show more posts at once and feel cleaner — without touching the logo, mode picker, or filter bar at the top.
 
-1. The search index only covers exercises, foods, compounds, people, circles and posts. It has no entry for the how-to material that lives on the Discover page (the Beginner's Guide chapters, the Reconstitution Calculator, etc.), so those never surface.
-2. The Ask Pep answer card only appears once Pep finishes thinking. On a slow network, if the request hiccups, the card silently disappears and the screen looks empty.
+## What changes
 
-**What changes**
+**Post layout — edge-to-edge rows**
 
-- Add a new "Guides & Tools" results group. It indexes every chapter of the Beginner's Guide (Reconstitution, Injection technique, Storage, Reading a COA, Safety basics, etc.), the Reconstitution Calculator, the Syringe Draw Guide, and a handful of other in-app tools. Each row deep-links straight into the relevant guide chapter or tool.
-- Searching natural-language phrases like "how do i reconstitute", "how to inject", "store peptides" now lights up these guides as proper results, alongside any matching compounds. So "how do i reconstitute" surfaces: the Reconstitution chapter of the Beginner's Guide, the Reconstitution Calculator, and the Syringe Draw Guide.
-- Add a new "Guides" scope chip next to Exercises / Foods / Compounds so you can filter to just how-to content.
-- Trending suggestions on the empty search screen now include a few how-to phrases ("how to reconstitute", "how to inject", "reading a COA") to teach the new behavior.
-- The Ask Pep answer card is now sticky for any question — even if Pep is still thinking, errors out, or returns nothing useful, the card stays on screen with a clear status (thinking, retry, or "tap to ask in chat") so the question always has a visible home.
-- Tapping a guide row opens straight into that chapter; tapping the calculator opens the calculator with the right preset.
+- Replace the boxed "card with shadow" look with edge-to-edge rows separated by a single hairline divider, like X/Twitter or Threads.
+- Avatar moves to a left rail (smaller, ~36pt) with the post content flowing to its right, so the username, timestamp, text, and media all share one tight column.
+- Username, handle, "·", and relative time sit on a single line. The "edited" tag becomes a tiny dot indicator instead of its own line.
+- Tighter vertical rhythm between posts — roughly 30–40% more posts visible per screen.
 
-**Result**
+**Media — shorter and smaller**
 
-Type "how do i reconstitute" and you immediately see Pep's personalized answer at the top, plus the Reconstitution guide chapter, the Reconstitution Calculator, and the Syringe Draw Guide right below — never an empty screen again.
+- Single photo: capped to a shorter 5:4-ish ratio (instead of 16:9 letterbox), rounded but no heavy padding.
+- Multi-photo grid: smaller cells, tighter gaps.
+- Voice message, workout log, and shared program cards: shrunk to a compact pill row with a smaller icon, single-line title, and inline meta — about 40% less vertical space.
+
+**Action bar — tighter**
+
+- Remove the divider line above the actions.
+- Smaller icons (13–14pt) with counts in caption weight.
+- Like / comment / repost / share spaced evenly across the row in a single compact line, sitting flush under the content with minimal padding.
+- Keep all existing behavior: heart bounce, haptics, repost toggle, share sheet, menu.  
+  
+we will also add a subtle search button on the right side on the same line as the "all, following, tags" pills, this search allows you to search by user, tag, keyword, etc , when clicking the search icon it should animate into a full search bar 
+
+**Cleanliness touches**
+
+- Hairline divider color tuned to be subtle in both light and dark mode.
+- Post tap target stays the whole content area; avatar and username remain their own tap targets to the profile.
+- The three-dot menu shrinks and aligns to the timestamp row instead of taking its own column.
+
+## What stays the same
+
+- EPTI logo header, community mode picker, and filter chips above the feed — untouched.
+- hashtag taps, mention taps, report/block/mute, skeleton loader, empty states, "you're all caught up" footer, infinite scroll.
+- All post types (text, photo, voice, workout, market link) still render — just more compactly.
+- Pull to refresh, like/comment/repost/share logic, and deep-link routing.
+
+## Result
+
+A feed that reads like a clean editorial timeline: roughly 1.5× the posts visible per screen, less visual noise between rows, and media that supports the post instead of dominating it.
