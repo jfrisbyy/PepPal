@@ -4,12 +4,20 @@
 // we validate it, then forward the chat-completion body to OpenRouter
 // using the server-only OPENROUTER_API_KEY.
 //
-// Hardening applied:
+// Hardening + cost controls:
 //   - Per-user 30 req/min rate limit (rolling 1-minute window).
 //   - Per-user daily token budget (default 50_000 tokens/day, overridable
-//     per user via ai_usage_daily.daily_token_limit).
+//     per user via ai_usage_daily.daily_token_limit). Hard 429 over limit.
 //   - Model allow-list to prevent calling exotic / expensive models.
 //   - 8 MB request body cap (vision payloads).
+//   - Anthropic prompt caching: when an anthropic/* model is called and the
+//     system prompt is >1k tokens (~4k chars), we transform the system
+//     message into the array form with cache_control: ephemeral so
+//     OpenRouter forwards it as a cached prefix. ~90% cost off cache hits.
+//   - Optional response cache: callers may pass `cache_key` (+ optional
+//     `cache_ttl_seconds`, default 24h). If we have a non-expired row in
+//     ai_response_cache for that key, we return it without billing the
+//     upstream. On cache miss we forward, then store the response body.
 //   - Logging hygiene: NEVER log prompts/responses/tokens. On upstream
 //     failure we log only { status, model, userIdHash, errorBodySnippet }.
 
@@ -27,6 +35,16 @@ const MAX_REQUEST_BYTES = 8 * 1024 * 1024; // 8 MB (vision payloads)
 const RATE_LIMIT_PER_MIN = 30;
 const DEFAULT_DAILY_TOKEN_LIMIT = 50_000;
 
+// Anthropic prompt-caching threshold. Anthropic charges a 25% premium on the
+// initial cache write but reads cost ~10% of normal input tokens, so caching
+// pays off the second time a prompt is reused. Apply only to system prompts
+// large enough to actually save money — small prompts add overhead with no
+// upside. ~4000 chars ≈ 1k tokens.
+const CACHE_PROMPT_CHAR_THRESHOLD = 4_000;
+const DEFAULT_RESPONSE_CACHE_TTL = 24 * 60 * 60; // 24h
+const MAX_RESPONSE_CACHE_TTL = 7 * 24 * 60 * 60; // hard cap 7d
+const MAX_CACHE_KEY_LEN = 512;
+
 // Allow-list of models that may be requested through the proxy. Keeps
 // callers from billing exotic / expensive models against our key.
 const ALLOWED_MODELS = new Set<string>([
@@ -34,6 +52,7 @@ const ALLOWED_MODELS = new Set<string>([
     "anthropic/claude-sonnet-4.6",
     "openai/gpt-4o",
     "openai/gpt-4o-2024-11-20",
+    "google/gemini-3-flash",
     "perplexity/sonar",
 ]);
 
@@ -47,6 +66,16 @@ async function hashUserId(userId: string): Promise<string> {
     const digest = await crypto.subtle.digest("SHA-256", data);
     return Array.from(new Uint8Array(digest))
         .slice(0, 6)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+}
+
+// Stable hash for cache keys — we don't want to store potentially-PII
+// cache keys verbatim.
+async function sha256Hex(input: string): Promise<string> {
+    const data = new TextEncoder().encode(input);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(digest))
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
 }
@@ -75,6 +104,49 @@ function midnightUTCInSeconds(): number {
         0, 0, 0, 0,
     );
     return Math.floor((tomorrow - now.getTime()) / 1000);
+}
+
+// Apply Anthropic prompt caching to the system message in-place. Only runs
+// when the model is anthropic/* and the system prompt is large enough that
+// the cache write premium is worth paying.
+function applyAnthropicPromptCache(body: Record<string, unknown>): void {
+    const model = typeof body.model === "string" ? body.model : "";
+    if (!model.startsWith("anthropic/")) return;
+    const messages = body.messages;
+    if (!Array.isArray(messages) || messages.length === 0) return;
+
+    for (const msg of messages) {
+        if (!msg || typeof msg !== "object") continue;
+        const m = msg as Record<string, unknown>;
+        if (m.role !== "system") continue;
+        const content = m.content;
+        if (typeof content === "string") {
+            if (content.length < CACHE_PROMPT_CHAR_THRESHOLD) return;
+            m.content = [
+                {
+                    type: "text",
+                    text: content,
+                    cache_control: { type: "ephemeral" },
+                },
+            ];
+            return;
+        }
+        if (Array.isArray(content) && content.length > 0) {
+            // Tag the last text block in the system array (Anthropic best practice).
+            const totalChars = content.reduce((acc, b) => {
+                const t = (b && typeof b === "object" && (b as Record<string, unknown>).text);
+                return acc + (typeof t === "string" ? t.length : 0);
+            }, 0);
+            if (totalChars < CACHE_PROMPT_CHAR_THRESHOLD) return;
+            for (let i = content.length - 1; i >= 0; i--) {
+                const b = content[i];
+                if (b && typeof b === "object" && (b as Record<string, unknown>).type === "text") {
+                    (b as Record<string, unknown>).cache_control = { type: "ephemeral" };
+                    return;
+                }
+            }
+        }
+    }
 }
 
 Deno.serve(async (req) => {
@@ -155,6 +227,10 @@ Deno.serve(async (req) => {
     }
 
     // ---- Daily token budget --------------------------------------
+    // Hard cap: if the user has already burned through their daily
+    // budget we return 429 BEFORE forwarding to upstream. This is the
+    // safety net that prevents a runaway bug or abusive caller from
+    // racking up unbounded OpenRouter spend.
     try {
         const { data: usageRow } = await admin
             .rpc("ai_usage_today", { p_user_id: userId });
@@ -198,6 +274,45 @@ Deno.serve(async (req) => {
         return json(400, { error: "missing_messages" });
     }
 
+    // ---- Response cache (opt-in via cache_key) -------------------
+    // Strip cache directives BEFORE forwarding — OpenRouter would 400.
+    const rawCacheKey = typeof body.cache_key === "string" ? body.cache_key : "";
+    const rawTTL = Number(body.cache_ttl_seconds);
+    const cacheTTL = Number.isFinite(rawTTL) && rawTTL > 0
+        ? Math.min(Math.floor(rawTTL), MAX_RESPONSE_CACHE_TTL)
+        : DEFAULT_RESPONSE_CACHE_TTL;
+    delete body.cache_key;
+    delete body.cache_ttl_seconds;
+
+    let cacheKeyHash: string | null = null;
+    if (rawCacheKey && rawCacheKey.length <= MAX_CACHE_KEY_LEN) {
+        // Namespace by model so an anthropic vs. openai answer don't collide.
+        cacheKeyHash = await sha256Hex(`${model}::${rawCacheKey}`);
+        try {
+            const { data: cached } = await admin
+                .from("ai_response_cache")
+                .select("response_body, content_type")
+                .eq("key_hash", cacheKeyHash)
+                .gt("expires_at", new Date().toISOString())
+                .maybeSingle();
+            if (cached?.response_body) {
+                return new Response(cached.response_body as string, {
+                    status: 200,
+                    headers: {
+                        ...CORS_HEADERS,
+                        "Content-Type": (cached.content_type as string) ?? "application/json",
+                        "X-AIProxy-Cache": "HIT",
+                    },
+                });
+            }
+        } catch (_) {
+            // Cache lookup failures must never block the request.
+        }
+    }
+
+    // ---- Anthropic prompt caching --------------------------------
+    applyAnthropicPromptCache(body);
+
     // ---- Forward --------------------------------------------------
     const userHash = await hashUserId(userId);
     try {
@@ -212,6 +327,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify(body),
         });
         const text = await upstream.text();
+        const upstreamContentType = upstream.headers.get("content-type") ?? "application/json";
 
         // Best-effort token accounting. Only parse on success; never log
         // the response body itself.
@@ -235,6 +351,24 @@ Deno.serve(async (req) => {
             } catch (_) {
                 // Token usage is non-critical; don't fail the request.
             }
+
+            // Persist successful response to cache (best-effort).
+            if (cacheKeyHash) {
+                try {
+                    const expiresAt = new Date(Date.now() + cacheTTL * 1000).toISOString();
+                    await admin
+                        .from("ai_response_cache")
+                        .upsert({
+                            key_hash: cacheKeyHash,
+                            model,
+                            response_body: text,
+                            content_type: upstreamContentType,
+                            expires_at: expiresAt,
+                        }, { onConflict: "key_hash" });
+                } catch (_) {
+                    // Cache write failure is non-critical.
+                }
+            }
         } else {
             // Log only the metadata + a trimmed snippet of the upstream
             // error body (NOT the request body, NOT the response body of
@@ -253,7 +387,8 @@ Deno.serve(async (req) => {
             status: upstream.status,
             headers: {
                 ...CORS_HEADERS,
-                "Content-Type": upstream.headers.get("content-type") ?? "application/json",
+                "Content-Type": upstreamContentType,
+                "X-AIProxy-Cache": cacheKeyHash ? "MISS" : "BYPASS",
             },
         });
     } catch (err) {

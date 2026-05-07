@@ -69,7 +69,9 @@ final class LabParsingService {
         let body: [String: Any] = [
             "model": model,
             "messages": messages,
-            "max_tokens": 2000,
+            // p95 parsed-lab JSON ~1k tokens; 1400 leaves headroom for panels
+            // with many markers without paying for runaway extraction.
+            "max_tokens": 1400,
             "temperature": 0.1
         ]
 

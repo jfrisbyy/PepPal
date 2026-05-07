@@ -149,7 +149,7 @@ final class TodaysPlanService {
         let body: [String: Any] = [
             "model": model,
             "messages": messages,
-            "max_tokens": 400,
+            "max_tokens": 280,
             "temperature": 0.7
         ]
 
@@ -214,7 +214,8 @@ final class TodaysPlanService {
         let body: [String: Any] = [
             "model": model,
             "messages": messages,
-            "max_tokens": 1600,
+            // p95 plan output ~900 tokens; 1200 leaves buffer for outlier days.
+            "max_tokens": 1200,
             "temperature": 0.7
         ]
 

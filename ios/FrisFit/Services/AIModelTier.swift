@@ -28,7 +28,7 @@ nonisolated final class OpenRouterClient: Sendable {
         tier: AIModelTier,
         systemPrompt: String,
         userPrompt: String,
-        maxTokens: Int = 1200,
+        maxTokens: Int = 900,
         temperature: Double = 0.5,
         timeout: TimeInterval = 30
     ) async throws -> String {
@@ -48,7 +48,7 @@ nonisolated final class OpenRouterClient: Sendable {
     func chatRaw(
         tier: AIModelTier,
         messages: [[String: Any]],
-        maxTokens: Int = 1200,
+        maxTokens: Int = 900,
         temperature: Double = 0.5,
         timeout: TimeInterval = 30
     ) async throws -> String {

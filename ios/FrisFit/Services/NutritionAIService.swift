@@ -54,7 +54,11 @@ nonisolated struct PhotoFoodOverlay: Identifiable, Sendable {
 final class NutritionAIService {
     static let shared = NutritionAIService()
 
-    private let model = "openai/gpt-4o-2024-11-20"
+    // Text-only nutrition estimation goes to Haiku 4.5 (fast + cheap, w/ Anthropic
+    // prompt caching applied by ai-proxy). Vision (photo) calls go to Gemini 3
+    // Flash, which is dramatically cheaper than GPT-4o for image understanding.
+    private let textModel = "anthropic/claude-haiku-4.5"
+    private let visionModel = "google/gemini-3-flash"
 
     private let systemPrompt = """
     You are a precise nutrition estimation AI used in a fitness tracking app. Your job is to analyze food photos or text descriptions and return accurate calorie and macronutrient estimates.
@@ -91,7 +95,16 @@ final class NutritionAIService {
             ["role": "user", "content": "Estimate the nutrition for: \(description)"]
         ]
 
-        let responseText = try await callOpenRouter(messages: messages)
+        // Cache identical text descriptions for 24h to avoid re-billing the model
+        // when many users describe the same common foods ("banana", "chipotle
+        // chicken bowl", etc.).
+        let cacheKey = Self.cacheKey(prefix: "nutrition:desc:v1", payload: description.lowercased())
+        let responseText = try await callOpenRouter(
+            model: textModel,
+            messages: messages,
+            maxTokens: 700,
+            cacheKey: cacheKey
+        )
         return try parseDescriptionResponse(responseText)
     }
 
@@ -110,7 +123,14 @@ final class NutritionAIService {
             ["role": "user", "content": userContent]
         ]
 
-        let responseText = try await callOpenRouter(messages: messages)
+        // Photo content is unique per user → no response cache. Vision goes through
+        // Gemini 3 Flash, which is the cheapest tier capable of this task.
+        let responseText = try await callOpenRouter(
+            model: visionModel,
+            messages: messages,
+            maxTokens: 800,
+            cacheKey: nil
+        )
         return try parsePhotoResponse(responseText)
     }
 
@@ -137,13 +157,23 @@ final class NutritionAIService {
         return resized.jpegData(compressionQuality: quality)
     }
 
-    private func callOpenRouter(messages: [[String: Any]], isRetry: Bool = false) async throws -> String {
-        let body: [String: Any] = [
+    private func callOpenRouter(
+        model: String,
+        messages: [[String: Any]],
+        maxTokens: Int = 700,
+        cacheKey: String? = nil,
+        isRetry: Bool = false
+    ) async throws -> String {
+        var body: [String: Any] = [
             "model": model,
             "messages": messages,
-            "max_tokens": 1000,
+            "max_tokens": maxTokens,
             "temperature": 0.3
         ]
+        if let cacheKey {
+            body["cache_key"] = cacheKey
+            body["cache_ttl_seconds"] = 86_400
+        }
 
         do {
             let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 15)
@@ -151,12 +181,29 @@ final class NutritionAIService {
         } catch let AIProxyError.http(code, _) {
             if (code == 429 || (code >= 500 && code < 600)) && !isRetry {
                 try await Task.sleep(for: .seconds(2))
-                return try await callOpenRouter(messages: messages, isRetry: true)
+                return try await callOpenRouter(
+                    model: model,
+                    messages: messages,
+                    maxTokens: maxTokens,
+                    cacheKey: cacheKey,
+                    isRetry: true
+                )
             }
             throw NutritionAIError.apiError(code)
         } catch {
             throw NutritionAIError.invalidResponse
         }
+    }
+
+    /// Build a deterministic, length-bounded cache key the proxy can hash.
+    /// Lower-cased + collapsed whitespace so trivial variations still hit cache.
+    nonisolated static func cacheKey(prefix: String, payload: String) -> String {
+        let normalized = payload
+            .lowercased()
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return "\(prefix)|\(normalized)"
     }
 
     private func parseDescriptionResponse(_ text: String) throws -> AIEstimationResult {
@@ -277,7 +324,13 @@ final class NutritionAIService {
             ["role": "user", "content": "Please recalculate nutrition based on my correction."]
         ]
 
-        let responseText = try await callOpenRouter(messages: messages)
+        // Corrections vary per user/item — skip cache; route to Haiku.
+        let responseText = try await callOpenRouter(
+            model: textModel,
+            messages: messages,
+            maxTokens: 400,
+            cacheKey: nil
+        )
         return try parseClarifyResponse(responseText, originalItem: originalItem)
     }
 

@@ -55,7 +55,9 @@ final class AIProgramService {
     static let shared = AIProgramService()
     private init() {}
 
-    private let model = "openai/gpt-4o"
+    // Program generation is a pure structured-text task — Haiku 4.5 handles
+    // it well at a fraction of GPT-4o's cost.
+    private let model = "anthropic/claude-haiku-4.5"
 
     func generateProgram(_ request: AIProgramRequest) async throws -> TrainingProgram {
         let exerciseNames = ExerciseLibrary.all.map(\.name).joined(separator: ", ")
@@ -137,7 +139,9 @@ final class AIProgramService {
         let body: [String: Any] = [
             "model": model,
             "messages": messages,
-            "max_tokens": 2000,
+            // p95 observed JSON output ~1.1k tokens; 1500 leaves headroom without
+            // letting the model ramble into a $$ tail.
+            "max_tokens": 1500,
             "temperature": 0.4
         ]
 

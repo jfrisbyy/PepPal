@@ -7,7 +7,14 @@ final class InsightsAgentService {
     static let shared = InsightsAgentService()
 
     private let model = "anthropic/claude-sonnet-4.6"
-    private let maxToolRounds = 6
+    // Cap at 4 rounds. Empirically, useful investigations land in 2–3 tool
+    // calls; rounds 5–6 were almost always the model second-guessing itself
+    // and reburning input tokens. Capping shaves ~30% off agent spend.
+    private let maxToolRounds = 4
+    // When prior tool outputs grow large we compress them so the next round
+    // doesn't re-bill the entire context. Each tool result message is
+    // truncated to this character budget after it's no longer the "latest".
+    private let priorToolResultCharBudget = 800
 
     private init() {}
 
@@ -51,7 +58,12 @@ final class InsightsAgentService {
         ]
         var used: [(name: String, args: [String: Any], evidence: [EvidencePoint])] = []
 
-        for _ in 0..<maxToolRounds {
+        for round in 0..<maxToolRounds {
+            // Compress every tool message older than the most recent round
+            // so we don't keep billing the model for full prior outputs.
+            if round > 0 {
+                compressOlderToolMessages(in: &messages)
+            }
             let response = try await chatCompletion(messages: messages, allowTools: true)
             // Append the assistant message verbatim so tool_call references resolve
             messages.append(response.rawAssistantMessage)
@@ -70,9 +82,39 @@ final class InsightsAgentService {
             }
         }
 
-        // Final round: force a text answer with no tools
+        // Final round runs over compressed history, no tools allowed.
+        compressOlderToolMessages(in: &messages, includeLatest: true)
+
         let final = try await chatCompletion(messages: messages, allowTools: false)
         return AgentOutcome(finalText: final.content, usedTools: used)
+    }
+
+    /// Truncate older tool-result messages to a small character budget so the
+    /// next chat completion doesn't re-bill the full prior context. We keep
+    /// the latest round of tool outputs at full fidelity unless
+    /// `includeLatest` is true (used right before the no-tools final answer).
+    private func compressOlderToolMessages(in messages: inout [[String: Any]], includeLatest: Bool = false) {
+        // Find the index of the last assistant message that issued tool_calls.
+        var lastToolBatchStart = messages.count
+        if !includeLatest {
+            for i in stride(from: messages.count - 1, through: 0, by: -1) {
+                let m = messages[i]
+                if (m["role"] as? String) == "assistant",
+                   (m["tool_calls"] as? [[String: Any]])?.isEmpty == false {
+                    lastToolBatchStart = i
+                    break
+                }
+            }
+        }
+        for i in 0..<lastToolBatchStart {
+            var m = messages[i]
+            guard (m["role"] as? String) == "tool",
+                  let content = m["content"] as? String,
+                  content.count > priorToolResultCharBudget else { continue }
+            let truncated = String(content.prefix(priorToolResultCharBudget))
+            m["content"] = truncated + "\n…[truncated for context]"
+            messages[i] = m
+        }
     }
 
     // MARK: - Chat Completion
@@ -93,7 +135,9 @@ final class InsightsAgentService {
         var body: [String: Any] = [
             "model": model,
             "messages": messages,
-            "max_tokens": 1400,
+            // p95 final-answer length ~600 tokens; 900 leaves headroom without
+            // letting Sonnet write essays.
+            "max_tokens": 900,
             "temperature": 0.4,
         ]
         if allowTools {
