@@ -17,21 +17,30 @@ final class PepChatViewModel {
     private var conversationHistory: [[String: Any]] = []
     private var userContextBlock: String = ""
 
-    private var compoundDatabaseContext: String {
-        let compounds = CompoundDatabase.all
-        var context = "\nCOMPOUND DATABASE (you have access to all of these):\n"
-        for compound in compounds {
+    /// Compact catalog of compound names so the model knows what's in the
+    /// database without us shipping the full ~50k-token corpus every turn.
+    private var compoundCatalogContext: String {
+        let names = CompoundDatabase.all.map { $0.name }
+        return "\nCOMPOUND DATABASE (you can discuss any of these — full details available on request): \(names.joined(separator: ", "))\n"
+    }
+
+    /// Detailed snippets only for compounds the user actually mentions in
+    /// the current turn or recent history. Keeps prompt size sane.
+    private func relevantCompoundContext(for query: String) -> String {
+        let haystack = (query + " " + recentMessageText()).lowercased()
+        let matches = CompoundDatabase.all.filter { compound in
+            let nameHit = haystack.contains(compound.name.lowercased())
+            let aliasHit = compound.stackPartners.contains { haystack.contains($0.lowercased()) }
+            return nameHit || aliasHit
+        }
+        guard !matches.isEmpty else { return "" }
+        var context = "\nRELEVANT COMPOUND DETAILS:\n"
+        for compound in matches.prefix(4) {
             context += "\n--- \(compound.name) ---\n"
             context += "Type: \(compound.peptideType)\n"
-            context += "Categories: \(compound.categories.map(\.rawValue).joined(separator: ", "))\n"
             context += "Overview: \(compound.overview)\n"
-            context += "Route: \(compound.keyFacts.administrationRoute)\n"
-            context += "Half-Life: \(compound.keyFacts.halfLife)\n"
-            context += "Typical Dose: \(compound.keyFacts.typicalDoseRange)\n"
-            context += "Cycle Length: \(compound.cycleLength)\n"
-            if !compound.stackPartners.isEmpty {
-                context += "Stack Partners: \(compound.stackPartners.joined(separator: ", "))\n"
-            }
+            context += "Route: \(compound.keyFacts.administrationRoute) | Half-Life: \(compound.keyFacts.halfLife) | Typical Dose: \(compound.keyFacts.typicalDoseRange)\n"
+            context += "Cycle: \(compound.cycleLength)\n"
             if !compound.primaryUseCases.isEmpty {
                 context += "Use Cases: \(compound.primaryUseCases.joined(separator: "; "))\n"
             }
@@ -46,6 +55,10 @@ final class PepChatViewModel {
             }
         }
         return context
+    }
+
+    private func recentMessageText() -> String {
+        messages.suffix(6).map { $0.content }.joined(separator: " ")
     }
 
     private let staticSystemPrompt: String = """
@@ -413,10 +426,11 @@ final class PepChatViewModel {
         userContextBlock = shared + context
     }
 
-    private var fullSystemPrompt: String {
+    private func fullSystemPrompt(for query: String) -> String {
         var prompt = staticSystemPrompt
         prompt += "\n"
-        prompt += compoundDatabaseContext
+        prompt += compoundCatalogContext
+        prompt += relevantCompoundContext(for: query)
         prompt += "\n"
         prompt += userContextBlock
         prompt += "\nWhen you have user data, reference it specifically. Say \"you're at 207 lbs with a 175 lb goal, so you have about 32 lbs to go\" — not \"based on your goals, you should keep working hard.\"\n"
@@ -448,20 +462,25 @@ final class PepChatViewModel {
     }
 
     private func generateAIResponse() async {
+        let lastUserText = (conversationHistory.last(where: { ($0["role"] as? String) == "user" })?["content"] as? String) ?? inputText
+
         var apiMessages: [[String: Any]] = [
-            ["role": "system", "content": fullSystemPrompt]
+            ["role": "system", "content": fullSystemPrompt(for: lastUserText)]
         ]
 
-        for entry in conversationHistory {
+        // Cap the history we send so a long chat doesn't keep growing the
+        // payload until we hit the daily token budget again.
+        let trimmedHistory = Array(conversationHistory.suffix(20))
+        for entry in trimmedHistory {
             let role = entry["role"] as? String ?? "user"
             let content = entry["content"] as? String ?? ""
             apiMessages.append(["role": role, "content": content])
         }
 
         let body: [String: Any] = [
-            "model": "perplexity/sonar",
+            "model": "anthropic/claude-haiku-4.5",
             "messages": apiMessages,
-            "max_tokens": 500
+            "max_tokens": 600
         ]
 
         do {
@@ -481,9 +500,36 @@ final class PepChatViewModel {
             }
 
             isGenerating = false
+        } catch let AIProxyError.http(status, body) {
+            print("[PepChat] proxy http \(status): \(body.prefix(300))")
+            appendErrorResponse(forStatus: status, body: body)
         } catch {
+            print("[PepChat] error: \(error)")
             appendFallbackResponse()
         }
+    }
+
+    private func appendErrorResponse(forStatus status: Int, body: String) {
+        let text: String
+        switch status {
+        case 429 where body.contains("daily_budget"):
+            text = "you've hit today's ai usage limit\n\nresets at midnight utc — try again then"
+        case 429:
+            text = "slow down a sec — too many requests in the last minute\n\ntry again shortly"
+        case 401:
+            text = "your session expired — sign back in and try again"
+        case 400 where body.contains("model_not_allowed"):
+            text = "that model isn't enabled on the proxy — let the team know"
+        case 502, 503, 504:
+            text = "the ai upstream is having a moment\n\ngive it a few seconds and resend"
+        default:
+            text = "server returned \(status) — try again in a sec"
+        }
+        let chunks = splitIntoChunks(text)
+        for chunk in chunks {
+            messages.append(PepMessage(role: .pep, content: chunk))
+        }
+        isGenerating = false
     }
 
     private func extractTextFromResponse(_ data: Data) -> String {
