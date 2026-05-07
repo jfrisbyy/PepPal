@@ -56,9 +56,12 @@ struct UserProfileView: View {
         }
         .scrollIndicators(.hidden)
         .appBackground()
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.visible, for: .navigationBar)
-        .toolbarBackground(.automatic, for: .navigationBar)
+        .ignoresSafeArea(edges: .top)
+        .overlay(alignment: .topLeading) {
+            floatingBackButton
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: FollowListDestination.self) { destination in
             FollowListView(destination: destination, profileViewModel: viewModel)
         }
@@ -95,6 +98,23 @@ struct UserProfileView: View {
             await loadUserPosts()
             await loadProfileBanner()
         }
+    }
+
+    private var floatingBackButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(Circle().strokeBorder(.white.opacity(0.18), lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
+        }
+        .padding(.leading, 16)
+        .padding(.top, 8)
+        .accessibilityLabel("Back")
     }
 
     private func isOwnPost(_ post: UserPost) -> Bool {
