@@ -1242,6 +1242,7 @@ final class HomeViewModel {
             lastProtocolDeckId = nil
             applyProtocolDeck()
         }
+        InsightsDataStore.shared.activeProtocols = allProtocols
         if let sid = proto.supabaseId {
             Task {
                 try? await ProtocolService.shared.updateProtocolStatus(id: sid, isActive: false)
@@ -1256,6 +1257,7 @@ final class HomeViewModel {
         var updated = proto
         updated.isActive = true
         setActiveProtocol(updated)
+        InsightsDataStore.shared.activeProtocols = allProtocols
         if let sid = proto.supabaseId {
             Task {
                 try? await ProtocolService.shared.updateProtocolStatus(id: sid, isActive: true)
@@ -1270,6 +1272,9 @@ final class HomeViewModel {
             lastProtocolDeckId = nil
             applyProtocolDeck()
         }
+        // Keep the insights store / morning brief in sync immediately so deleted
+        // protocols don't keep showing up in dose / supply / brief lines.
+        InsightsDataStore.shared.activeProtocols = allProtocols
         if let sid = proto.supabaseId {
             Task {
                 try? await ProtocolService.shared.deleteProtocol(id: sid)
