@@ -673,7 +673,7 @@ final class MockFriendsService {
     func snapshots() -> [FriendStatSnapshot] {
         profiles.map { p in
             let activeProtocol = p.activeProtocols.first.map { "\($0.name) · wk \($0.week)/\($0.totalWeeks)" }
-            let lastWorkout = p.recentWorkouts.first
+            let (lastTitle, lastAt) = mostRecentLog(for: p)
             return FriendStatSnapshot(
                 id: p.user.id,
                 user: p.user,
@@ -689,11 +689,27 @@ final class MockFriendsService {
                 activeProgram: p.user.activeProgramName,
                 activeProtocol: activeProtocol,
                 sharedCategories: Set(StatShareCategory.allCases),
-                lastActivityTitle: lastWorkout?.name,
-                lastActivityAt: lastWorkout?.date,
+                lastActivityTitle: lastTitle,
+                lastActivityAt: lastAt,
                 phase: FriendStatSnapshot.derivePhase(programName: p.user.activeProgramName, goalText: p.goal)
             )
         }
+    }
+
+    /// Most recent log of ANY kind — workout, meal, protocol dose, or other recent activity entry.
+    private func mostRecentLog(for p: MockFriendProfile) -> (title: String?, at: Date?) {
+        var candidates: [(String, Date)] = []
+        if let w = p.recentWorkouts.first {
+            candidates.append((w.name, w.date))
+        }
+        if let m = p.today.meals.max(by: { $0.time < $1.time }) {
+            candidates.append(("\(m.mealTime) — \(m.name)", m.time))
+        }
+        if let entry = p.today.recentActivity.max(by: { $0.time < $1.time }) {
+            candidates.append((entry.title, entry.time))
+        }
+        guard let best = candidates.max(by: { $0.1 < $1.1 }) else { return (nil, nil) }
+        return (best.0, best.1)
     }
 
     func activityEvents() -> [FriendActivityEvent] {

@@ -97,11 +97,11 @@ final class FriendsStatsViewModel {
         snapshots.sort { $0.streak > $1.streak }
         events.sort { $0.timestamp > $1.timestamp }
 
-        // Backfill last activity from the most recent workout/PR event per friend
+        // Backfill last activity from the most recent event of ANY kind per friend
         for i in snapshots.indices {
             if snapshots[i].lastActivityTitle != nil { continue }
             let userId = snapshots[i].user.id
-            if let recent = events.first(where: { $0.user.id == userId && ($0.type == .workout || $0.type == .pr) }) {
+            if let recent = events.first(where: { $0.user.id == userId }) {
                 snapshots[i].lastActivityTitle = recent.title
                 snapshots[i].lastActivityAt = recent.timestamp
             }
@@ -136,12 +136,13 @@ final class FriendsStatsViewModel {
                 let user = socialService.socialUserFromAuthor(profile)
                 let weekActivities = (try? await activityService.fetchWeekActivities(userId: profile.id)) ?? []
                 let workoutLogs = weekActivities.filter { $0.activity_type == "workout" }
-                let lastWorkout = workoutLogs.first
-                let lastTitle: String? = lastWorkout.flatMap { log in
-                    let sport = log.sport?.capitalized ?? "Workout"
-                    if let mins = log.duration_minutes, mins > 0 { return "\(sport) · \(mins)m" }
-                    return sport
-                }
+
+                // Last log of ANY kind — workout, cardio, meal, etc.
+                let (lastTitle, lastAt) = await mostRecentLog(
+                    userId: profile.id,
+                    activities: weekActivities
+                )
+
                 snapshots.append(FriendStatSnapshot(
                     id: user.id,
                     user: user,
@@ -158,13 +159,51 @@ final class FriendsStatsViewModel {
                     activeProtocol: nil,
                     sharedCategories: Set(StatShareCategory.allCases),
                     lastActivityTitle: lastTitle,
-                    lastActivityAt: lastWorkout?.created_at.flatMap { messagingService.parseDate($0) },
+                    lastActivityAt: lastAt,
                     phase: FriendStatSnapshot.derivePhase(programName: user.activeProgramName)
                 ))
             }
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    /// Picks the most recent log of any type (workout / cardio / meal / activity) for a user.
+    private func mostRecentLog(
+        userId: String,
+        activities: [EnergyActivityLog]
+    ) async -> (title: String?, at: Date?) {
+        var candidates: [(String, Date)] = []
+
+        // Activity logs (any type)
+        if let recent = activities.first {
+            let label: String = {
+                let sport = recent.sport?.capitalized
+                let type = recent.activity_type.capitalized
+                let base = sport ?? type
+                if let mins = recent.duration_minutes, mins > 0 {
+                    return "\(base) · \(mins)m"
+                }
+                return base
+            }()
+            if let createdAt = recent.created_at {
+                candidates.append((label, messagingService.parseDate(createdAt)))
+            }
+        }
+
+        // Most recent meal today
+        if let meals = try? await NutritionService.shared.fetchLoggedMeals(userId: userId, date: Date()),
+           let last = meals.last,
+           let loggedAt = last.logged_at {
+            let dateF = ISO8601DateFormatter()
+            dateF.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let date = dateF.date(from: loggedAt) ?? messagingService.parseDate(loggedAt)
+            let title = "Meal — \(last.food_name)"
+            candidates.append((title, date))
+        }
+
+        guard let best = candidates.max(by: { $0.1 < $1.1 }) else { return (nil, nil) }
+        return (best.0, best.1)
     }
 
     private func mapEventType(_ raw: String) -> FriendActivityEventType {

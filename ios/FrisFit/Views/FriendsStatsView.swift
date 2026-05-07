@@ -440,8 +440,6 @@ struct FriendsStatsView<TopHeader: View>: View {
                         )
                     }
                     .buttonStyle(.scale)
-                    .disabled(!hasEnabledSharing)
-                    .opacity(hasEnabledSharing ? 1 : 0.55)
                 }
             }
         }
