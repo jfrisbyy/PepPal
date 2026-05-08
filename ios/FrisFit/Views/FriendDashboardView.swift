@@ -5,7 +5,7 @@ struct FriendDashboardView: View {
     let mySnapshot: FriendStatSnapshot?
 
     @State private var profileViewModel = ProfileViewModel()
-    @State private var messagesViewModel = MessagesViewModel()
+    private let messagesViewModel = MessagesViewModel.shared
     @State private var showCompare: Bool = false
     @State private var showSportPicker: Bool = false
     @State private var pendingSport: BuddySport?

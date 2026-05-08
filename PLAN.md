@@ -1,84 +1,46 @@
-# Daily Brief — Sonnet / Haiku split
+# Rebuild DMs end-to-end so messages actually appear when sent
 
-Goal: cut briefing cost ~70% while keeping the user experience identical to today's "always Sonnet" behavior. Haiku must read like Sonnet — same tone, same depth, same specificity. The user must not be able to tell which model produced any given brief.
+## What's broken today
 
-## Model schedule
+Every screen that opens a chat (profile, friends, social tab) creates its **own separate** messaging "brain." When you send a message in one place, the other places never see it. The chat screen also wraps that brain in a second local copy, so updates inside the conversation don't always re-render the bubble list. That's why messages disappear.
 
-- **Sonnet (deep)** — runs twice per day on device-local time:
-  - Morning window (first foreground after 6:00 AM)
-  - Evening window (first foreground after 6:00 PM)
-  - Sonnet output now includes a compact `patternsMemo` — a distilled "what to know about this user across their full history" string Haiku reuses verbatim as authority for the rest of the day.
-- **Haiku (fast)** — every other refresh:
-  - Anchored 1:00 PM run (always fires once per day, even if no logs)
-  - Any user log (meal, workout, weight, dose, side effect, bloodwork) with **30s debounce** — rapid-fire logs collapse into one regen
-  - Manual pull-to-refresh
-- Haiku is given: latest `patternsMemo` from Sonnet, the previous full brief, and the new context bundle. Its job is to produce a brief in the exact same shape with the same tone, updated for what changed.
+## The fix
 
-## Push notification
+**One shared messaging brain for the whole app.** Created once at app launch and used everywhere. No more duplicates, no more local copies, no more merge gymnastics.
 
-- Daily 1:00 PM local notification ("Midday brief is ready") nudges the user to open the app. On open, the 1pm Haiku refresh runs (or has already run during a foreground session).
+### Send flow (rewritten to be dead simple)
 
-## Persistence
+1. You tap send → bubble appears immediately in the chat (optimistic).
+2. In the background it makes sure the conversation exists on the server, then saves the message.
+3. When the server confirms, the bubble's "sent" checkmark lights up.
+4. If anything fails, the bubble shows a red "tap to retry" state instead of vanishing silently.
 
-- `patternsMemo` rides inside `TodaysPlanResponse.patternsMemo` and persists in the existing `ai_daily_briefings.plan_response` jsonb. No schema migration needed.
-- `model_tier` is recorded inline in the JSON for analytics.
+### Receive flow
 
-## Quality guardrails
+- Realtime listener attaches the moment you open a chat (and re-attaches automatically if the connection drops).
+- Incoming messages from the other person stream in live.
 
-- Haiku system prompt explicitly inherits the full Sonnet voice prompt and is told to preserve language, sentence shape, and depth — only swap in updated numbers and re-evaluate which actions / modules apply now.
-- If `patternsMemo` is missing (cold start), Haiku falls back to running the full Sonnet prompt itself so output never degrades.
+### Chat screen rebuild
 
-## Tasks
+- Cleaner, single source of truth for the message list.
+- Auto-scrolls to the newest bubble on send and on receive.
+- Shows a clear empty state, a "sending…" state, and a "failed — tap to retry" state.
+- Keeps the existing editorial styling (serif text, teal bubbles, floating top bar) — visual design stays the same.
 
-- [x] Add `patternsMemo` to `TodaysPlanResponse`.
-- [x] Split `TodaysPlanService` into `generateDeep` (Sonnet, emits memo) and `generateFast` (Haiku, consumes memo + previous brief).
-- [x] `TodaysPlanViewModel`: tier selection per window, 30s event debounce, 1pm Haiku anchor, memo persistence, local push scheduling.
-- [x] Schedule recurring 1pm local notification.
+### Verification before I hand it back
 
----
+- I'll run the build to confirm it compiles cleanly.
+- I'll send a test message from a seeded account and confirm via runtime logs that the bubble actually renders in the UI (not just that the row was inserted in the database).
+- If the log shows the bubble didn't render, I keep iterating until it does.
 
-# Long-Horizon User Memory (cross-session)
+## What stays the same
 
-Goal: give Sonnet (and via `patternsMemo`, Haiku) awareness of the user's **entire history** — bloodwork from 2 months ago, a failed keto attempt in February, prior PR cycles, recurring shoulder tweaks — without blowing the context window or cost.
+- Your conversations list, search, blocking, reporting, voice notes, photo/video attachments, typing indicator, read receipts — all preserved.
+- Database schema and Supabase functions are untouched.
 
-## Architecture
+## What changes for you
 
-A single, rolling, AI-curated narrative per user (`profile_memo`, ~1000 tokens), plus a structured list of `significant_events` the model should never forget. Sonnet reads both on every deep run, then rewrites the memo at the end of each deep run.
+- Messages you send appear instantly and stay there.
+- Opening the same chat from different places (profile vs. friends vs. inbox) shows the same conversation with the same messages.
+- New incoming DMs surface live without needing to leave and come back.
 
-Three layers fed to Sonnet:
-1. **Static profile** — onboarding answers, demographics, goals, constraints (already passed today).
-2. **Long-term memo** — Sonnet-curated narrative across all time. Capped ~4 KB / ~1000 tokens.
-3. **Recent window** — last 7-14 days of raw logs (already passed today).
-
-Sonnet output: brief + `patternsMemo` (today only, for Haiku) + new `profile_memo` (durable). Haiku reads memo + events but never writes.
-
-## Significant events
-
-Auto-detected from log writes. Captured types:
-- `bloodwork_uploaded` — every panel with key markers summarized
-- `program_started` / `program_abandoned` — training program changes
-- `protocol_started` / `protocol_changed` — peptide/compound changes
-- `weight_milestone` — ≥5% bodyweight change vs. baseline or last milestone
-- `side_effect_escalation` — severity trending up week-over-week
-- `pr_streak` — multiple PRs in a short window
-
-Stored as `[{ id, at, type, summary, values?, source? }]`, capped at 100 (rolling).
-
-## Storage
-
-`public.user_long_term_memory` (one row per user):
-- `profile_memo text` — current durable memo
-- `memo_versions jsonb` — last 10 versions for rollback
-- `significant_events jsonb` — capped 100 entries
-- `last_updated_at`, `last_updated_by_model`
-- RLS: user reads own row; same row used by client + future server jobs.
-
-Memory editor is **not user-visible** in v1 (read-only internal context).
-
-## Build order
-
-- [x] Migration: `user_long_term_memory` table + RLS.
-- [x] iOS `LongTermMemoryService` — fetch memo + events, append event, write memo back.
-- [x] `TodaysPlanService` deep path: load memo + events, inject into context, run Sonnet memo-updater after the brief, persist new memo.
-- [x] `TodaysPlanService` fast path: load memo + events, inject alongside `patternsMemo`.
-- [x] Auto-detect significant events: hook `BloodworkService` (upload), `CompoundTrackingManager` / protocol VM (start/change), `BodyGoalsService` (weight milestone). Side-effect / PR detection rolls in via deep memo updater inferring from logs.

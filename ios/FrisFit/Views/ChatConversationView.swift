@@ -4,7 +4,12 @@ import AVKit
 import AVFoundation
 
 struct ChatConversationView: View {
-    @State private var viewModel: MessagesViewModel
+    // Always reference the shared instance directly. Wrapping the parameter
+    // in a local @State copy was masking @Observable updates and caused
+    // sent bubbles to never render. The parameter is kept for source
+    // compatibility with existing call sites but ignored — every caller
+    // shares the same brain via `MessagesViewModel.shared`.
+    private var viewModel: MessagesViewModel { MessagesViewModel.shared }
     let conversationID: UUID
     @State private var messageText: String = ""
     @FocusState private var isInputFocused: Bool
@@ -17,8 +22,7 @@ struct ChatConversationView: View {
     @State private var expandedAttachment: DirectMessageAttachment?
     @State private var voiceRecorder = DMVoiceRecorder()
 
-    init(viewModel: MessagesViewModel, conversationID: UUID) {
-        _viewModel = State(initialValue: viewModel)
+    init(viewModel: MessagesViewModel = .shared, conversationID: UUID) {
         self.conversationID = conversationID
     }
 
@@ -190,6 +194,7 @@ struct ChatConversationView: View {
                     }
 
                     if let convo = conversation {
+                        let _ = print("DM_RENDER: convo=\(convo.id) participant=\(convo.participant.id) messageCount=\(convo.messages.count)")
                         ForEach(groupedMessages(convo.messages), id: \.date) { group in
                             dateDivider(group.date)
                                 .padding(.top, 16)

@@ -2,6 +2,13 @@ import SwiftUI
 
 @Observable
 final class MessagesViewModel {
+    /// Single shared instance used everywhere in the app so the inbox,
+    /// profile chat link, friend dashboard chat link, etc. all read and
+    /// write to the SAME conversation list. Without this, each screen
+    /// constructed its own brain and messages sent from one screen never
+    /// surfaced anywhere else (the bug the user kept hitting).
+    static let shared = MessagesViewModel()
+
     var conversations: [Conversation] = []
     var searchQuery: String = ""
     var searchResults: [SocialUser] = []
@@ -305,6 +312,7 @@ final class MessagesViewModel {
             supabaseId: nil
         )
         conversations[index].messages.append(optimistic)
+        print("DM_SEND: optimistic bubble appended id=\(optimisticId) convo=\(conversationID) total=\(conversations[index].messages.count)")
 
         Task {
             // If the supabase conversation row hasn't been created yet (fresh
@@ -329,6 +337,7 @@ final class MessagesViewModel {
                 )
 
                 let dm = makeDM(from: sent)
+                print("DM_SEND: server confirmed id=\(dm.id) supabaseId=\(dm.supabaseId ?? "nil")")
 
                 if let idx = conversations.firstIndex(where: { $0.id == conversationID }) {
                     if let optIdx = conversations[idx].messages.firstIndex(where: { $0.id == optimisticId }) {
@@ -336,6 +345,7 @@ final class MessagesViewModel {
                     } else if !conversations[idx].messages.contains(where: { $0.id == dm.id }) {
                         conversations[idx].messages.append(dm)
                     }
+                    print("DM_SEND: post-confirm message count=\(conversations[idx].messages.count)")
                 }
 
                 // Safety net: if realtime hasn't attached yet (fresh thread),
@@ -344,6 +354,7 @@ final class MessagesViewModel {
                 await loadFullConversation(conversationID: conversationID)
                 await subscribeRealtime(conversationID: conversationID)
             } catch {
+                print("DM_SEND: ERROR \(error.localizedDescription)")
                 self.error = error.localizedDescription
                 removeOptimistic(optimisticId, in: conversationID)
             }

@@ -1,15 +1,13 @@
 import SwiftUI
 
 struct DirectMessagesView: View {
-    @State private var viewModel: MessagesViewModel
+    private var viewModel: MessagesViewModel { MessagesViewModel.shared }
     @State private var searchQuery: String = ""
     @State private var selectedConversationID: UUID?
     @State private var navigateToConversation: Bool = false
     @Environment(\.dismiss) private var dismiss
 
-    init(viewModel: MessagesViewModel) {
-        _viewModel = State(initialValue: viewModel)
-    }
+    init(viewModel: MessagesViewModel = .shared) {}
 
     var body: some View {
         VStack(spacing: 0) {

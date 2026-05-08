@@ -21,7 +21,7 @@ struct UserProfileView: View {
     @State private var pendingDeletePost: UserPost?
     @State private var selectedHashtag: String?
     @State private var bannerUrlString: String?
-    @State private var messagesViewModel = MessagesViewModel()
+    private let messagesViewModel = MessagesViewModel.shared
     @State private var pendingChatID: UUID?
     @State private var followError: String?
     @State private var showFollowError: Bool = false

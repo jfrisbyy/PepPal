@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SocialView: View {
     @State private var viewModel = SocialViewModel()
-    @State private var messagesViewModel = MessagesViewModel()
+    private let messagesViewModel = MessagesViewModel.shared
     @State private var groupsViewModel = GroupsViewModel()
     @State private var profileViewModel = ProfileViewModel()
     @State private var notificationsViewModel = NotificationsViewModel()
