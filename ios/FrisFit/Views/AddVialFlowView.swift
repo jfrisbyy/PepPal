@@ -190,6 +190,7 @@ struct AddVialFlowView: View {
     @State private var frequencyManuallySet: Bool = false
     @State private var startingDoseManuallySet: Bool = false
     @State private var showBacDetails: Bool = false
+    @State private var pickedSyringeManual: SyringeSpec? = nil
     @FocusState private var focusedField: AddVialField?
 
     static func defaultMorningTime() -> Date {
@@ -276,12 +277,16 @@ struct AddVialFlowView: View {
         return scored.min { $0.1 < $1.1 }?.0 ?? 2
     }
 
-    private var pickedSyringe: SyringeSpec {
+    private var recommendedSyringe: SyringeSpec {
         guard let conc = concentrationMcgPerMl, let dose = startingDoseMcg ?? Optional(defaultStartingDoseMcg) else { return .u100_05 }
         let drawMl = dose / conc
         if drawMl > 0.5 { return .u100_10 }
         if drawMl > 0.3 { return .u100_05 }
         return .u100_03
+    }
+
+    private var pickedSyringe: SyringeSpec {
+        pickedSyringeManual ?? recommendedSyringe
     }
 
     private var unitsPerDose: Double? {
@@ -411,9 +416,15 @@ struct AddVialFlowView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button("Done") { focusedField = nil }
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(PepTheme.teal)
+                    Button("Done") {
+                        focusedField = nil
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder),
+                            to: nil, from: nil, for: nil
+                        )
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PepTheme.teal)
                 }
             }
             .onAppear {
@@ -979,7 +990,70 @@ struct AddVialFlowView: View {
                 Text("Each major tick = \(formatUnits(pickedSyringe.majorTick)) u • minor = \(formatUnits(pickedSyringe.minorTick)) u")
                     .font(.caption2)
                     .foregroundStyle(PepTheme.textSecondary)
+
+                syringePicker
             }
+        }
+    }
+
+    private var syringePicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Needle / syringe")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.5)
+                .textCase(.uppercase)
+                .foregroundStyle(PepTheme.textSecondary)
+
+            VStack(spacing: 6) {
+                ForEach(SyringeSpec.allCases) { spec in
+                    Button {
+                        pickedSyringeManual = spec
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: pickedSyringe == spec ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(pickedSyringe == spec ? PepTheme.teal : PepTheme.textTertiary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Text(spec.rawValue)
+                                        .font(.system(size: 13, weight: .semibold, design: .serif))
+                                        .foregroundStyle(PepTheme.textPrimary)
+                                    if recommendedSyringe == spec {
+                                        Text("most common")
+                                            .font(.system(size: 8, weight: .bold))
+                                            .tracking(0.5)
+                                            .textCase(.uppercase)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(PepTheme.teal.opacity(0.15))
+                                            .foregroundStyle(PepTheme.teal)
+                                            .clipShape(.capsule)
+                                    }
+                                }
+                                Text(spec.commonLabel)
+                                    .font(.system(size: 11, design: .serif))
+                                    .italic()
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(pickedSyringe == spec ? PepTheme.teal.opacity(0.08) : PepTheme.elevated.opacity(0.5))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(pickedSyringe == spec ? PepTheme.teal.opacity(0.4) : PepTheme.separatorColor, lineWidth: 1)
+                        )
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            Text(pickedSyringe.guidanceText)
+                .font(.system(size: 11, design: .serif))
+                .italic()
+                .foregroundStyle(PepTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -1114,14 +1188,14 @@ struct AddVialFlowView: View {
                     }
                     .buttonStyle(.plain)
                 } else {
-                    if let budget = weeksBudgetAtStartingDose,
+                    if let capacityWeeks = vialUsage?.weeks,
                        let lastWeek = titrationSteps.map(\.week).max(),
-                       Double(lastWeek) > budget + 0.5 {
+                       Double(lastWeek) > capacityWeeks + 0.5 {
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundStyle(PepTheme.amber)
                                 .font(.system(size: 12))
-                            Text("Your vial only supports about \(formatWeeks(budget)) weeks at this dose & frequency. Steps beyond that won't fit.")
+                            Text("Heads up — this vial likely runs out around week \(formatWeeks(capacityWeeks)). You'll need a new vial to reach week \(lastWeek).")
                                 .font(.system(size: 11, design: .serif))
                                 .italic()
                                 .foregroundStyle(PepTheme.textSecondary)
@@ -1130,6 +1204,25 @@ struct AddVialFlowView: View {
                         .padding(8)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(PepTheme.amber.opacity(0.10))
+                        .clipShape(.rect(cornerRadius: 8))
+                    } else if let extra = extraWeeksAfterLastStep, extra >= 1 {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .foregroundStyle(PepTheme.teal)
+                                .font(.system(size: 12))
+                            Text("Vial still has roughly \(formatWeeks(extra)) more weeks at your final dose after week \(titrationSteps.map(\.week).max() ?? 0).")
+                                .font(.system(size: 11, design: .serif))
+                                .italic()
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                            Button("Extend") { extendFinalStep() }
+                                .font(.system(size: 11, weight: .semibold, design: .serif))
+                                .foregroundStyle(PepTheme.teal)
+                        }
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(PepTheme.teal.opacity(0.08))
                         .clipShape(.rect(cornerRadius: 8))
                     }
 
@@ -1619,20 +1712,22 @@ struct AddVialFlowView: View {
     ) async throws -> AITitrationResult {
         let budget = weeksBudgetAtStartingDose ?? 0
         let budgetText = budget > 0 ? "This vial supports about \(Int(budget.rounded(.down))) weeks at the starting dose & frequency. Do NOT plan beyond what the vial can supply — fewer steps is fine." : ""
+        let userUnit = startingDoseUnit.label
         let system = """
         You are a careful peptide protocol assistant. Output ONLY valid JSON.
         Schema: { "steps": [{ "week": int, "doseMcg": number, "label": string }], "note": string }
         Use mcg for doseMcg (1 mg = 1000 mcg). Provide 2–6 steps that fit inside the vial's supply.
         Honor the strategy strictly: maintain = flat, titrateUp = ascending, titrateDown = descending.
         Keep doses within commonly used clinical ranges for the compound.
+        IMPORTANT: When you write the human-readable "note", express every dose using the unit "\(userUnit)" — never mix units, never reference mcg if the user picked mg, and vice versa. Convert as needed before writing the note.
         """
         let user = """
         Compound: \(compound)
-        Starting dose: \(startingDoseMcg) mcg
+        Starting dose: \(startingDoseMcg) mcg (display unit for note: \(userUnit))
         Strategy: \(strategy.rawValue)
         Dosing frequency: \(frequency.rawValue)
         \(budgetText)
-        Return JSON only, no prose.
+        Return JSON only, no prose. The "note" field must use \(userUnit) for any dose values it mentions.
         """
         let raw = try await OpenRouterClient.shared.chat(
             tier: .fast,
@@ -1692,6 +1787,42 @@ struct AddVialFlowView: View {
             }
         }()
         titrationSteps.append(TitrationScheduleStep(week: lastWeek + 4, doseMcg: nextDose, label: ""))
+    }
+
+    /// Weeks the vial can still cover at the final titration dose AFTER the last step's natural week.
+    /// Used to surface "+ extend" suggestions and the auto-extend nudge.
+    private var extraWeeksAfterLastStep: Double? {
+        guard let mg = vialSizeMg, mg > 0,
+              let last = titrationSteps.sorted(by: { $0.week < $1.week }).last,
+              last.doseMcg > 0 else { return nil }
+        let totalMcg = mg * 1000.0
+        let dpw = max(frequency.dosesPerWeek, 0.01)
+
+        // Count consumption strictly UP TO the last step's start week.
+        var remaining = totalMcg
+        let sorted = titrationSteps.sorted { $0.week < $1.week }
+        for (i, step) in sorted.enumerated() where i + 1 < sorted.count {
+            let weekSpan = max(sorted[i + 1].week - step.week, 0)
+            let plannedDoses = Double(weekSpan) * dpw
+            let take = min(plannedDoses, floor(remaining / max(step.doseMcg, 0.0001)))
+            remaining -= take * step.doseMcg
+            if remaining <= 0 { return 0 }
+        }
+        let extraDoses = floor(remaining / last.doseMcg)
+        guard extraDoses > 0 else { return 0 }
+        return Double(extraDoses) / dpw
+    }
+
+    /// Bumps the last step's natural "end" by adding a follow-up step at the same dose,
+    /// using whatever extra capacity the vial still has.
+    private func extendFinalStep() {
+        guard let extra = extraWeeksAfterLastStep, extra >= 1,
+              let last = titrationSteps.sorted(by: { $0.week < $1.week }).last else { return }
+        let endWeek = last.week + Int(extra.rounded(.down))
+        // Add a marker step at the final-dose end so the duration card and warning math align.
+        titrationSteps.append(
+            TitrationScheduleStep(week: endWeek, doseMcg: last.doseMcg, label: "Vial end")
+        )
     }
 
     // MARK: - Save
