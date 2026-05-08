@@ -607,51 +607,19 @@ final class MessagingService {
     }
 
     func findOrCreateConversation(userId: String, otherUserId: String) async throws -> String {
-        let myConvs: [SupabaseConversationParticipant] = try await supabase
-            .from("conversation_participants")
-            .select()
-            .eq("user_id", value: userId)
+        // Use the SECURITY DEFINER RPC. Doing the find-or-create from the
+        // client trips the `conv_participants_self_insert` RLS policy on the
+        // *other* participant row (you can only insert a participant row
+        // where `user_id = auth.uid()`), which would silently leave the
+        // conversation in a half-created state and every send would be
+        // marked "failed — tap to retry".
+        struct RPCArgs: Encodable, Sendable { let p_other_user_id: String }
+        let convId: String = try await supabase
+            .rpc("find_or_create_dm_conversation", params: RPCArgs(p_other_user_id: otherUserId))
             .execute()
             .value
-
-        for myConv in myConvs {
-            let others: [SupabaseConversationParticipant] = try await supabase
-                .from("conversation_participants")
-                .select()
-                .eq("conversation_id", value: myConv.conversation_id)
-                .eq("user_id", value: otherUserId)
-                .execute()
-                .value
-
-            if !others.isEmpty {
-                return myConv.conversation_id
-            }
-        }
-
-        // Generate the conversation id client-side. We can't `.select().single()`
-        // a freshly-inserted conversation row because RLS
-        // (`conversations_participant_read`) only lets the caller read it after
-        // they've been added as a participant — and those participant rows are
-        // inserted in the next step. Trying to read here returns an empty set
-        // and trips "cannot coerce the result to a single object", which is
-        // why DMs were silently failing: supabaseConversationId stayed nil and
-        // every subsequent sendMessage hit its `guard` and returned without
-        // sending anything.
-        let newConvId = UUID().uuidString
-        try await supabase
-            .from("conversations")
-            .insert(["id": newConvId])
-            .execute()
-
-        let p1 = CreateConversationParticipantPayload(conversation_id: newConvId, user_id: userId)
-        let p2 = CreateConversationParticipantPayload(conversation_id: newConvId, user_id: otherUserId)
-
-        try await supabase
-            .from("conversation_participants")
-            .insert([p1, p2])
-            .execute()
-
-        return newConvId
+        _ = userId // kept for API compatibility; auth.uid() is used server-side
+        return convId
     }
 
     // MARK: - Direct Messages
