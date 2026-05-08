@@ -334,9 +334,38 @@ final class MessagesViewModel {
         if supabaseConvId == nil, let pending = pendingConversationResolution[conversationID] {
             supabaseConvId = await pending.value
         }
+        // If the previous resolution failed (or never existed), start a fresh
+        // attempt now so a retry tap can actually recover instead of being
+        // stuck on a stale nil.
+        if supabaseConvId == nil, let participantId = conversation(for: conversationID)?.participant.id {
+            let resolution = Task<String?, Never> { [weak self] in
+                guard let self else { return nil }
+                do {
+                    let userId = try AuthService.shared.currentUserId()
+                    let convId = try await self.messagingService.findOrCreateConversation(
+                        userId: userId,
+                        otherUserId: participantId.uuidString
+                    )
+                    if let idx = self.conversations.firstIndex(where: { $0.id == conversationID }) {
+                        self.conversations[idx].supabaseConversationId = convId
+                    }
+                    self.pendingConversationResolution[conversationID] = nil
+                    return convId
+                } catch {
+                    print("DM_SEND: convo resolve failed err=\(error.localizedDescription)")
+                    self.error = error.localizedDescription
+                    self.pendingConversationResolution[conversationID] = nil
+                    return nil
+                }
+            }
+            pendingConversationResolution[conversationID] = resolution
+            supabaseConvId = await resolution.value
+        }
         guard let supabaseConvId else {
             markStatus(messageID: messageID, in: conversationID, status: .failed)
-            self.error = "Couldn't start conversation. Tap the message to retry."
+            if self.error == nil {
+                self.error = "Couldn't start conversation. Tap the message to retry."
+            }
             return
         }
 

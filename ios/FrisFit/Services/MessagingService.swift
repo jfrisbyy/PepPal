@@ -607,18 +607,107 @@ final class MessagingService {
     }
 
     func findOrCreateConversation(userId: String, otherUserId: String) async throws -> String {
-        // Use the SECURITY DEFINER RPC. Doing the find-or-create from the
-        // client trips the `conv_participants_self_insert` RLS policy on the
-        // *other* participant row (you can only insert a participant row
-        // where `user_id = auth.uid()`), which would silently leave the
-        // conversation in a half-created state and every send would be
-        // marked "failed — tap to retry".
+        // 1) Always try a client-side find first. Reading our own
+        //    conversation_participants rows is allowed by RLS, so this works
+        //    without any server-side helpers and short-circuits when the
+        //    thread already exists (the most common case).
+        if let existing = try? await findExistingDMConversation(userId: userId, otherUserId: otherUserId) {
+            print("DM_CONV: found existing convo=\(existing) with other=\(otherUserId)")
+            return existing
+        }
+
+        // 2) Use the SECURITY DEFINER RPC to create. Doing the create from
+        //    the client trips the `conv_participants_self_insert` RLS policy
+        //    on the *other* participant row.
         struct RPCArgs: Encodable, Sendable { let p_other_user_id: String }
-        let convId: String = try await supabase
-            .rpc("find_or_create_dm_conversation", params: RPCArgs(p_other_user_id: otherUserId))
+        do {
+            let convId: String = try await supabase
+                .rpc("find_or_create_dm_conversation", params: RPCArgs(p_other_user_id: otherUserId))
+                .execute()
+                .value
+            print("DM_CONV: rpc created convo=\(convId) with other=\(otherUserId)")
+            _ = userId
+            return convId
+        } catch {
+            print("DM_CONV: rpc failed err=\(error.localizedDescription) — falling back to client-side create")
+            // 3) Last resort: do it ourselves. The other-participant insert
+            //    will fail RLS in most projects, but we still try so we at
+            //    least leave a useful error trail. If both inserts succeed
+            //    (e.g. service-role tests or relaxed RLS), great.
+            return try await clientSideCreateDMConversation(userId: userId, otherUserId: otherUserId, rpcError: error)
+        }
+    }
+
+    private func findExistingDMConversation(userId: String, otherUserId: String) async throws -> String? {
+        let myParticipations: [SupabaseConversationParticipant] = try await supabase
+            .from("conversation_participants")
+            .select("conversation_id, user_id")
+            .eq("user_id", value: userId)
             .execute()
             .value
-        _ = userId // kept for API compatibility; auth.uid() is used server-side
+        let myConvIds = myParticipations.map { $0.conversation_id }
+        guard !myConvIds.isEmpty else { return nil }
+
+        let theirParticipations: [SupabaseConversationParticipant] = try await supabase
+            .from("conversation_participants")
+            .select("conversation_id, user_id")
+            .eq("user_id", value: otherUserId)
+            .in("conversation_id", values: myConvIds)
+            .execute()
+            .value
+        let theirConvIds = Set(theirParticipations.map { $0.conversation_id })
+
+        // Pick the first shared conversation that has exactly two participants
+        // (a true 1:1 DM, not a group thread).
+        for convId in myConvIds where theirConvIds.contains(convId) {
+            let allParticipants: [SupabaseConversationParticipant] = (try? await supabase
+                .from("conversation_participants")
+                .select("user_id")
+                .eq("conversation_id", value: convId)
+                .execute()
+                .value) ?? []
+            if allParticipants.count == 2 {
+                return convId
+            }
+        }
+        return nil
+    }
+
+    private func clientSideCreateDMConversation(userId: String, otherUserId: String, rpcError: Error) async throws -> String {
+        // Try to insert the conversation row + both participants from the
+        // client. This will normally fail RLS for the other-participant row,
+        // but we surface a clean error if so.
+        struct ConvPayload: Encodable, Sendable {}
+        let conv: SupabaseConversation = try await supabase
+            .from("conversations")
+            .insert(ConvPayload())
+            .select()
+            .single()
+            .execute()
+            .value
+        let convId = conv.id
+
+        let selfPayload = CreateConversationParticipantPayload(conversation_id: convId, user_id: userId)
+        try await supabase
+            .from("conversation_participants")
+            .insert(selfPayload)
+            .execute()
+
+        let otherPayload = CreateConversationParticipantPayload(conversation_id: convId, user_id: otherUserId)
+        do {
+            try await supabase
+                .from("conversation_participants")
+                .insert(otherPayload)
+                .execute()
+        } catch {
+            print("DM_CONV: client-side other-participant insert failed err=\(error.localizedDescription)")
+            throw NSError(
+                domain: "MessagingService",
+                code: 500,
+                userInfo: [NSLocalizedDescriptionKey: "Couldn't open the conversation. (\(rpcError.localizedDescription))"]
+            )
+        }
+        print("DM_CONV: client-side created convo=\(convId)")
         return convId
     }
 
