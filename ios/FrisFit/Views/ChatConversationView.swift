@@ -4,12 +4,13 @@ import AVKit
 import AVFoundation
 
 struct ChatConversationView: View {
-    // Always reference the shared instance directly. Wrapping the parameter
-    // in a local @State copy was masking @Observable updates and caused
-    // sent bubbles to never render. The parameter is kept for source
-    // compatibility with existing call sites but ignored — every caller
-    // shares the same brain via `MessagesViewModel.shared`.
-    private var viewModel: MessagesViewModel { MessagesViewModel.shared }
+    // Anchor the observable view model in @State so SwiftUI's Observation
+    // tracking reliably re-renders this view whenever the shared messaging
+    // brain mutates (optimistic insert, server confirm, realtime push). A
+    // bare computed property returning the singleton was NOT triggering body
+    // re-evaluation in some cases, which is why the bubble would never
+    // appear even though the array was being mutated correctly.
+    @State private var viewModel: MessagesViewModel = .shared
     let conversationID: UUID
     @State private var messageText: String = ""
     @FocusState private var isInputFocused: Bool
@@ -26,8 +27,24 @@ struct ChatConversationView: View {
         self.conversationID = conversationID
     }
 
+    /// Index of this conversation inside the shared brain. Reading this in
+    /// body establishes the observation dependency on `viewModel.conversations`
+    /// so any append / replace anywhere in the array re-renders the view.
+    private var conversationIndex: Int? {
+        viewModel.conversations.firstIndex(where: { $0.id == conversationID })
+    }
+
     private var conversation: Conversation? {
-        viewModel.conversation(for: conversationID)
+        guard let idx = conversationIndex else { return nil }
+        return viewModel.conversations[idx]
+    }
+
+    /// Pulled directly out of the observed array on every body pass — never
+    /// snapshotted into a local `let` outside body — so the message list
+    /// updates the instant a bubble is appended.
+    private var messages: [DirectMessage] {
+        guard let idx = conversationIndex else { return [] }
+        return viewModel.conversations[idx].messages
     }
 
     var body: some View {
@@ -188,14 +205,14 @@ struct ChatConversationView: View {
                         floatingHeaderTitle(participant: convo.participant)
                     }
 
-                    if let convo = conversation, convo.messages.isEmpty {
+                    if let convo = conversation, messages.isEmpty {
                         emptyConversationHeader(participant: convo.participant)
                             .padding(.top, 16)
                     }
 
                     if let convo = conversation {
-                        let _ = print("DM_RENDER: convo=\(convo.id) participant=\(convo.participant.id) messageCount=\(convo.messages.count)")
-                        ForEach(groupedMessages(convo.messages), id: \.date) { group in
+                        let _ = print("DM_RENDER: convo=\(convo.id) participant=\(convo.participant.id) messageCount=\(messages.count)")
+                        ForEach(groupedMessages(messages), id: \.date) { group in
                             dateDivider(group.date)
                                 .padding(.top, 16)
                                 .padding(.bottom, 6)
@@ -221,15 +238,15 @@ struct ChatConversationView: View {
                 .padding(.horizontal, 18)
                 .padding(.vertical, 12)
                 .animation(.easeInOut(duration: 0.2), value: viewModel.typingUserIds)
-                .onChange(of: conversation?.messages.count) { _, _ in
-                    if let lastID = conversation?.messages.last?.id {
+                .onChange(of: messages.count) { _, _ in
+                    if let lastID = messages.last?.id {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             proxy.scrollTo(lastID, anchor: .bottom)
                         }
                     }
                 }
                 .onAppear {
-                    if let lastID = conversation?.messages.last?.id {
+                    if let lastID = messages.last?.id {
                         proxy.scrollTo(lastID, anchor: .bottom)
                     }
                 }
@@ -524,7 +541,7 @@ struct ChatConversationView: View {
                         )
                         .clipShape(Circle())
                 }
-                .sensoryFeedback(.impact(weight: .light), trigger: conversation?.messages.count ?? 0)
+                .sensoryFeedback(.impact(weight: .light), trigger: messages.count)
             }
         }
         .padding(.horizontal, 16)
