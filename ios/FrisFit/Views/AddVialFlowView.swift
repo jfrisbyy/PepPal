@@ -1975,6 +1975,17 @@ struct AddVialFlowView: View {
         )
         VialInventoryStore.shared.add(vial)
 
+        // Persist the user's chosen display unit so "in body now" and other
+        // surfaces format levels in the same unit they typed here.
+        switch startingDoseUnit {
+        case .mg:
+            UnitPreferenceStore.shared.setUnit(.mg, for: name)
+        case .mcg:
+            UnitPreferenceStore.shared.setUnit(.mcg, for: name)
+        case .iu:
+            break
+        }
+
         // 2. Build a protocol that captures starting dose + reconstitution
         let route: InjectionRoute = {
             let r = (protocolDefault?.route ?? compoundProfile?.keyFacts.administrationRoute ?? "Subcutaneous").lowercased()

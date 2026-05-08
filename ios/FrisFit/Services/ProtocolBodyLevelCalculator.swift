@@ -9,22 +9,35 @@ enum ProtocolBodyLevelCalculator {
     struct Reading {
         let mg: Double
         let lastDoseMg: Double?
+        let compoundName: String
 
+        /// Formats the level using whatever unit the user picked when they
+        /// added this compound's vial (mg vs mcg) — falling back to a
+        /// scale-aware auto format if no preference is stored.
         var displayValue: String {
             if mg <= 0 {
-                return "0 mcg"
+                let unit = CompoundUnitHelper.unit(for: compoundName)
+                return unit == .mg ? "0 mg" : "0 mcg"
             }
-            if mg >= 1 {
-                return String(format: "%.2f mg", mg)
+            switch CompoundUnitHelper.unit(for: compoundName) {
+            case .mg:
+                if mg >= 1 {
+                    return String(format: "%.2f mg", mg)
+                }
+                if mg >= 0.01 {
+                    return String(format: "%.3f mg", mg)
+                }
+                return String(format: "%.4f mg", mg)
+            case .mcg:
+                let mcg = mg * 1000
+                if mcg >= 100 {
+                    return String(format: "%.0f mcg", mcg)
+                }
+                if mcg >= 10 {
+                    return String(format: "%.1f mcg", mcg)
+                }
+                return String(format: "%.2f mcg", mcg)
             }
-            let mcg = mg * 1000
-            if mcg >= 100 {
-                return String(format: "%.0f mcg", mcg)
-            }
-            if mcg >= 10 {
-                return String(format: "%.1f mcg", mcg)
-            }
-            return String(format: "%.2f mcg", mcg)
         }
 
         var percentOfLastDose: Int? {
@@ -54,6 +67,6 @@ enum ProtocolBodyLevelCalculator {
 
         let lastDoseMg = doses.last?.mg
 
-        return Reading(mg: mg, lastDoseMg: lastDoseMg)
+        return Reading(mg: mg, lastDoseMg: lastDoseMg, compoundName: compound.compoundName)
     }
 }

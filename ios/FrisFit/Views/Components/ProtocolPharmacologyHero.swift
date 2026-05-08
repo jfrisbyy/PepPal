@@ -469,10 +469,18 @@ struct ProtocolPharmacologyHero: View {
     }
 
     private func formatMg(_ mg: Double) -> String {
-        if mg >= 1 { return String(format: "%.2f mg", mg) }
-        if mg >= 0.005 { return String(format: "%.3f mg", mg) }
-        let mcg = mg * 1000
-        return String(format: "%.0f mcg", mcg)
+        let name = compound?.compoundName ?? focusedCompoundName
+        switch CompoundUnitHelper.unit(for: name) {
+        case .mg:
+            if mg >= 1 { return String(format: "%.2f mg", mg) }
+            if mg >= 0.01 { return String(format: "%.3f mg", mg) }
+            return String(format: "%.4f mg", mg)
+        case .mcg:
+            let mcg = mg * 1000
+            if mcg >= 100 { return String(format: "%.0f mcg", mcg) }
+            if mcg >= 10 { return String(format: "%.1f mcg", mcg) }
+            return String(format: "%.2f mcg", mcg)
+        }
     }
 
     private func formatNum(_ x: Double) -> String {
