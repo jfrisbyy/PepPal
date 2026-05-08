@@ -286,14 +286,21 @@ final class TodaysPlanService {
         // a tiny prompt (current memo + events + today's brief) and writes the
         // rewritten memo back to Supabase. Failures are swallowed — the brief
         // already returned successfully.
+        // Evening-only: the memo updater is the most expensive sub-call and
+        // the morning deep run hasn't yet seen today's full activity, so we
+        // only rewrite the durable memo after the evening Sonnet pass.
         if resolvedTier == .deep {
-            let snapshot = longTerm
-            Task.detached { [response] in
-                await Self.runMemoUpdater(
-                    previous: snapshot,
-                    contextString: contextString,
-                    brief: response
-                )
+            let hour = Calendar.current.component(.hour, from: Date())
+            let isEvening = (17..<22).contains(hour)
+            if isEvening {
+                let snapshot = longTerm
+                Task.detached { [response] in
+                    await Self.runMemoUpdater(
+                        previous: snapshot,
+                        contextString: contextString,
+                        brief: response
+                    )
+                }
             }
         }
 
