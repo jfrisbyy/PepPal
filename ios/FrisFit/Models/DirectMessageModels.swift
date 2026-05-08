@@ -31,6 +31,12 @@ nonisolated struct DirectMessageAttachment: Identifiable, Sendable, Codable, Has
     }
 }
 
+nonisolated enum MessageDeliveryStatus: Sendable, Equatable {
+    case sending
+    case sent
+    case failed
+}
+
 nonisolated struct DirectMessage: Identifiable, Sendable {
     let id: UUID
     let senderID: UUID
@@ -39,9 +45,10 @@ nonisolated struct DirectMessage: Identifiable, Sendable {
     var isRead: Bool
     var readAt: Date?
     var attachments: [DirectMessageAttachment]
-    let supabaseId: String?
+    var supabaseId: String?
+    var status: MessageDeliveryStatus
 
-    init(id: UUID = UUID(), senderID: UUID, text: String, timestamp: Date = Date(), isRead: Bool = false, readAt: Date? = nil, attachments: [DirectMessageAttachment] = [], supabaseId: String? = nil) {
+    init(id: UUID = UUID(), senderID: UUID, text: String, timestamp: Date = Date(), isRead: Bool = false, readAt: Date? = nil, attachments: [DirectMessageAttachment] = [], supabaseId: String? = nil, status: MessageDeliveryStatus = .sent) {
         self.id = id
         self.senderID = senderID
         self.text = text
@@ -50,6 +57,7 @@ nonisolated struct DirectMessage: Identifiable, Sendable {
         self.readAt = readAt
         self.attachments = attachments
         self.supabaseId = supabaseId
+        self.status = status
     }
 }
 

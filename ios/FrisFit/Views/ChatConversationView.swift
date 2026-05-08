@@ -3,15 +3,17 @@ import PhotosUI
 import AVKit
 import AVFoundation
 
+/// Editorial-style 1:1 chat screen.
+///
+/// Reads directly from the shared `MessagesViewModel` instance so the same
+/// thread stays in sync across every entry point (inbox, profile, friend
+/// dashboard). The `@Observable` view model is held as a plain `let` —
+/// SwiftUI's Observation framework handles re-renders when its properties
+/// change, no extra `@State` wrapping required.
 struct ChatConversationView: View {
-    // Anchor the observable view model in @State so SwiftUI's Observation
-    // tracking reliably re-renders this view whenever the shared messaging
-    // brain mutates (optimistic insert, server confirm, realtime push). A
-    // bare computed property returning the singleton was NOT triggering body
-    // re-evaluation in some cases, which is why the bubble would never
-    // appear even though the array was being mutated correctly.
-    @State private var viewModel: MessagesViewModel = .shared
+    let viewModel: MessagesViewModel
     let conversationID: UUID
+
     @State private var messageText: String = ""
     @FocusState private var isInputFocused: Bool
     @Environment(\.dismiss) private var dismiss
@@ -24,28 +26,21 @@ struct ChatConversationView: View {
     @State private var voiceRecorder = DMVoiceRecorder()
 
     init(viewModel: MessagesViewModel = .shared, conversationID: UUID) {
+        self.viewModel = viewModel
         self.conversationID = conversationID
     }
 
-    /// Index of this conversation inside the shared brain. Reading this in
-    /// body establishes the observation dependency on `viewModel.conversations`
-    /// so any append / replace anywhere in the array re-renders the view.
-    private var conversationIndex: Int? {
-        viewModel.conversations.firstIndex(where: { $0.id == conversationID })
-    }
+    // MARK: - Derived state (recomputed every body pass)
 
     private var conversation: Conversation? {
-        guard let idx = conversationIndex else { return nil }
-        return viewModel.conversations[idx]
+        viewModel.conversations.first(where: { $0.id == conversationID })
     }
 
-    /// Pulled directly out of the observed array on every body pass — never
-    /// snapshotted into a local `let` outside body — so the message list
-    /// updates the instant a bubble is appended.
     private var messages: [DirectMessage] {
-        guard let idx = conversationIndex else { return [] }
-        return viewModel.conversations[idx].messages
+        conversation?.messages.sorted { $0.timestamp < $1.timestamp } ?? []
     }
+
+    // MARK: - Body
 
     var body: some View {
         VStack(spacing: 0) {
@@ -111,7 +106,87 @@ struct ChatConversationView: View {
         }
     }
 
-    // MARK: - Floating header title
+    // MARK: - Messages list
+
+    private var messagesScrollView: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 6) {
+                    // Top spacer so first message clears the floating top bar.
+                    Color.clear.frame(height: 56)
+
+                    if let participant = conversation?.participant {
+                        floatingHeaderTitle(participant: participant)
+                    }
+
+                    if let participant = conversation?.participant, messages.isEmpty {
+                        emptyConversationHeader(participant: participant)
+                            .padding(.top, 16)
+                    }
+
+                    if let participant = conversation?.participant {
+                        let _ = print("DM_RENDER: convo=\(conversationID) messageCount=\(messages.count) statuses=\(messages.map { $0.status })")
+                        ForEach(groupedMessages(messages), id: \.date) { group in
+                            dateDivider(group.date)
+                                .padding(.top, 16)
+                                .padding(.bottom, 6)
+
+                            ForEach(group.messages) { message in
+                                let isFromMe = message.senderID != participant.id
+                                messageBubble(message: message, isFromMe: isFromMe)
+                                    .id(message.id)
+                                    .onAppear {
+                                        if !isFromMe && !message.isRead {
+                                            viewModel.markMessageVisible(conversationID: conversationID, messageID: message.id)
+                                        }
+                                    }
+                            }
+                        }
+
+                        if viewModel.isParticipantTyping(in: conversationID) {
+                            typingIndicator
+                                .id("typing-indicator")
+                                .transition(.opacity.combined(with: .move(edge: .leading)))
+                        }
+                    }
+
+                    // Bottom anchor for guaranteed scroll-to-end.
+                    Color.clear
+                        .frame(height: 1)
+                        .id("__bottom__")
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .animation(.easeInOut(duration: 0.2), value: viewModel.typingUserIds)
+            }
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: messages.count) { _, _ in
+                scrollToBottom(proxy: proxy, animated: true)
+            }
+            .onChange(of: messages.last?.status) { _, _ in
+                scrollToBottom(proxy: proxy, animated: true)
+            }
+            .onAppear {
+                // Initial paint — drop straight to the bottom without animation.
+                DispatchQueue.main.async {
+                    scrollToBottom(proxy: proxy, animated: false)
+                }
+            }
+        }
+    }
+
+    private func scrollToBottom(proxy: ScrollViewProxy, animated: Bool) {
+        if animated {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                proxy.scrollTo("__bottom__", anchor: .bottom)
+            }
+        } else {
+            proxy.scrollTo("__bottom__", anchor: .bottom)
+        }
+    }
+
+    // MARK: - Headers
 
     @ViewBuilder
     private func floatingHeaderTitle(participant: SocialUser) -> some View {
@@ -128,132 +203,6 @@ struct ChatConversationView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.bottom, 4)
-    }
-
-    // MARK: - Editorial nav bar (unused after floating bar migration)
-
-    private var editorialNavBar: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .center, spacing: 12) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .frame(width: 36, height: 36)
-                        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-                        .clipShape(Circle())
-                        .overlay { Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5) }
-                }
-
-                Spacer()
-
-                if let participant = conversation?.participant {
-                    VStack(spacing: 2) {
-                        Text("CORRESPONDENCE WITH")
-                            .font(.system(size: 8, weight: .black))
-                            .tracking(1.8)
-                            .foregroundStyle(PepTheme.textTertiary)
-                        Text(participant.name)
-                            .font(.system(.headline, design: .serif, weight: .semibold))
-                            .kerning(-0.2)
-                            .foregroundStyle(PepTheme.textPrimary)
-                            .lineLimit(1)
-                    }
-                }
-
-                Spacer()
-
-                Menu {
-                    Button(role: .destructive) { showReport = true } label: {
-                        Label("Report", systemImage: "flag")
-                    }
-                    Button(role: .destructive) { showBlockConfirm = true } label: {
-                        Label("Block User", systemImage: "hand.raised")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .frame(width: 36, height: 36)
-                        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-                        .clipShape(Circle())
-                        .overlay { Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5) }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-
-            Rectangle()
-                .fill(PepTheme.separatorColor)
-                .frame(height: 0.5)
-        }
-        .background(.ultraThinMaterial)
-    }
-
-    // MARK: - Messages
-
-    private var messagesScrollView: some View {
-        ScrollView {
-            ScrollViewReader { proxy in
-                LazyVStack(spacing: 6) {
-                    // Spacer so the first message clears the floating top buttons.
-                    Color.clear.frame(height: 56)
-
-                    if let convo = conversation {
-                        floatingHeaderTitle(participant: convo.participant)
-                    }
-
-                    if let convo = conversation, messages.isEmpty {
-                        emptyConversationHeader(participant: convo.participant)
-                            .padding(.top, 16)
-                    }
-
-                    if let convo = conversation {
-                        let _ = print("DM_RENDER: convo=\(convo.id) participant=\(convo.participant.id) messageCount=\(messages.count)")
-                        ForEach(groupedMessages(messages), id: \.date) { group in
-                            dateDivider(group.date)
-                                .padding(.top, 16)
-                                .padding(.bottom, 6)
-
-                            ForEach(group.messages) { message in
-                                let isFromMe = message.senderID != convo.participant.id
-                                messageBubble(message: message, isFromMe: isFromMe)
-                                    .id(message.id)
-                                    .onAppear {
-                                        if !isFromMe && !message.isRead {
-                                            viewModel.markMessageVisible(conversationID: conversationID, messageID: message.id)
-                                        }
-                                    }
-                            }
-                        }
-                        if viewModel.isParticipantTyping(in: conversationID) {
-                            typingIndicator
-                                .id("typing-indicator")
-                                .transition(.opacity.combined(with: .move(edge: .leading)))
-                        }
-                    }
-                }
-                .padding(.horizontal, 18)
-                .padding(.vertical, 12)
-                .animation(.easeInOut(duration: 0.2), value: viewModel.typingUserIds)
-                .onChange(of: messages.count) { _, _ in
-                    if let lastID = messages.last?.id {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            proxy.scrollTo(lastID, anchor: .bottom)
-                        }
-                    }
-                }
-                .onAppear {
-                    if let lastID = messages.last?.id {
-                        proxy.scrollTo(lastID, anchor: .bottom)
-                    }
-                }
-            }
-        }
-        .scrollIndicators(.hidden)
-        .scrollDismissesKeyboard(.interactively)
     }
 
     private func emptyConversationHeader(participant: SocialUser) -> some View {
@@ -288,6 +237,8 @@ struct ChatConversationView: View {
         }
         .frame(maxWidth: .infinity)
     }
+
+    // MARK: - Bubble
 
     @ViewBuilder
     private func attachmentView(_ att: DirectMessageAttachment, isFromMe: Bool) -> some View {
@@ -353,19 +304,7 @@ struct ChatConversationView: View {
                         .lineSpacing(2)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(
-                            Group {
-                                if isFromMe {
-                                    LinearGradient(
-                                        colors: [PepTheme.teal, PepTheme.teal.opacity(0.88)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                } else {
-                                    PepTheme.cardSurface
-                                }
-                            }
-                        )
+                        .background(bubbleBackground(isFromMe: isFromMe, status: message.status))
                         .clipShape(.rect(
                             topLeadingRadius: isFromMe ? 18 : 4,
                             bottomLeadingRadius: 18,
@@ -383,24 +322,76 @@ struct ChatConversationView: View {
                                 .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
                             }
                         }
+                        .opacity(message.status == .sending ? 0.78 : 1.0)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if message.status == .failed {
+                                viewModel.retrySend(messageID: message.id, in: conversationID)
+                            }
+                        }
                 }
 
-                HStack(spacing: 5) {
-                    Text(formatTime(message.timestamp))
-                        .font(.system(size: 9, weight: .semibold))
-                        .tracking(0.6)
-                        .foregroundStyle(PepTheme.textTertiary)
-                    if isFromMe {
-                        Image(systemName: message.isRead ? "checkmark.circle.fill" : "checkmark")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(message.isRead ? PepTheme.teal : PepTheme.textTertiary)
-                    }
-                }
-                .padding(.horizontal, 4)
+                bubbleStatusLine(message: message, isFromMe: isFromMe)
             }
 
             if !isFromMe { Spacer(minLength: 56) }
         }
+    }
+
+    @ViewBuilder
+    private func bubbleBackground(isFromMe: Bool, status: MessageDeliveryStatus) -> some View {
+        if isFromMe {
+            if status == .failed {
+                LinearGradient(
+                    colors: [Color.red.opacity(0.85), Color.red.opacity(0.65)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                LinearGradient(
+                    colors: [PepTheme.teal, PepTheme.teal.opacity(0.88)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        } else {
+            PepTheme.cardSurface
+        }
+    }
+
+    @ViewBuilder
+    private func bubbleStatusLine(message: DirectMessage, isFromMe: Bool) -> some View {
+        HStack(spacing: 5) {
+            if isFromMe && message.status == .failed {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.red)
+                Text("FAILED — TAP TO RETRY")
+                    .font(.system(size: 8, weight: .black))
+                    .tracking(1.4)
+                    .foregroundStyle(.red)
+            } else {
+                Text(formatTime(message.timestamp))
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(0.6)
+                    .foregroundStyle(PepTheme.textTertiary)
+                if isFromMe {
+                    switch message.status {
+                    case .sending:
+                        ProgressView()
+                            .controlSize(.mini)
+                            .tint(PepTheme.textTertiary)
+                    case .sent:
+                        Image(systemName: message.isRead ? "checkmark.circle.fill" : "checkmark")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(message.isRead ? PepTheme.teal : PepTheme.textTertiary)
+                    case .failed:
+                        EmptyView()
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 4)
     }
 
     private func dateDivider(_ date: Date) -> some View {
@@ -601,10 +592,12 @@ struct ChatConversationView: View {
     private func sendMessage() {
         let trimmed = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        viewModel.sendMessage(to: conversationID, text: trimmed)
-        viewModel.stopTypingSignal()
         messageText = ""
+        viewModel.stopTypingSignal()
+        viewModel.sendMessage(to: conversationID, text: trimmed)
     }
+
+    // MARK: - Typing indicator
 
     private var typingIndicator: some View {
         HStack {
@@ -634,6 +627,8 @@ struct ChatConversationView: View {
             Spacer(minLength: 56)
         }
     }
+
+    // MARK: - Formatting
 
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()

@@ -1,13 +1,17 @@
 import SwiftUI
 
+/// Single shared messaging brain for the whole app.
+///
+/// Every screen that touches DMs (inbox, chat, profile chat shortcut, friend
+/// dashboard) reads from and writes to this exact instance. There are no
+/// per-view copies, no `@State` wrapping, and no local snapshots — that's the
+/// only way the same conversation stays in sync across places.
+@MainActor
 @Observable
 final class MessagesViewModel {
-    /// Single shared instance used everywhere in the app so the inbox,
-    /// profile chat link, friend dashboard chat link, etc. all read and
-    /// write to the SAME conversation list. Without this, each screen
-    /// constructed its own brain and messages sent from one screen never
-    /// surfaced anywhere else (the bug the user kept hitting).
     static let shared = MessagesViewModel()
+
+    // MARK: - Public observable state
 
     var conversations: [Conversation] = []
     var searchQuery: String = ""
@@ -15,6 +19,9 @@ final class MessagesViewModel {
     var isSearching: Bool = false
     var isLoading: Bool = false
     var error: String?
+    var typingUserIds: Set<String> = []
+    var blockedUserIds: Set<String> = []
+    var uploadingAttachment: Bool = false
 
     var totalUnread: Int {
         conversations.reduce(0) { $0 + $1.unreadCount }
@@ -28,15 +35,14 @@ final class MessagesViewModel {
         }
     }
 
+    // MARK: - Private state
+
     private let messagingService = MessagingService.shared
     private var realtimeSubscribedId: String?
-    var typingUserIds: Set<String> = []
     private var typingResetTasks: [String: Task<Void, Never>] = [:]
-    var blockedUserIds: Set<String> = []
-    var uploadingAttachment: Bool = false
-    // Tracks in-flight conversation creation per local conversation UUID so
-    // sendMessage can await the supabase id instead of silently dropping the
-    // first message in a brand-new DM thread.
+    /// In-flight "create supabase conversation row" tasks, keyed by local UUID.
+    /// `sendMessage` awaits on this so a fresh thread doesn't drop the first
+    /// message while the row is being created server-side.
     private var pendingConversationResolution: [UUID: Task<String?, Never>] = [:]
 
     init() {
@@ -46,12 +52,20 @@ final class MessagesViewModel {
         }
     }
 
+    // MARK: - Bootstrap
+
     func loadBlocks() async {
         guard let userId = try? AuthService.shared.currentUserId() else { return }
         if let ids = try? await ModerationService.shared.blockedUserIds(blockerId: userId) {
             blockedUserIds = Set(ids.map { $0.lowercased() })
         }
     }
+
+    func conversation(for id: UUID) -> Conversation? {
+        conversations.first { $0.id == id }
+    }
+
+    // MARK: - Helpers
 
     private func messageDate(_ iso: String?) -> Date? {
         guard let iso else { return nil }
@@ -67,17 +81,31 @@ final class MessagesViewModel {
             isRead: msg.is_read ?? false,
             readAt: messageDate(msg.read_at),
             attachments: msg.attachments ?? [],
-            supabaseId: msg.id
+            supabaseId: msg.id,
+            status: .sent
         )
     }
 
+    private func mergeServerMessage(_ dm: DirectMessage, into convoIdx: Int) {
+        // De-dupe by supabase id first.
+        if let sid = dm.supabaseId,
+           let existing = conversations[convoIdx].messages.firstIndex(where: { $0.supabaseId == sid }) {
+            conversations[convoIdx].messages[existing] = dm
+            return
+        }
+        // De-dupe by local UUID (covers optimistic insert that already promoted).
+        if let existing = conversations[convoIdx].messages.firstIndex(where: { $0.id == dm.id }) {
+            conversations[convoIdx].messages[existing] = dm
+            return
+        }
+        conversations[convoIdx].messages.append(dm)
+        conversations[convoIdx].messages.sort { $0.timestamp < $1.timestamp }
+    }
+
+    // MARK: - Realtime
+
     func subscribeRealtime(conversationID: UUID) async {
-        guard let index = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
-        // For brand-new DM threads the supabase conversation row is created
-        // asynchronously inside `startConversation`. If the id isn't ready yet,
-        // wait for that work instead of silently bailing — otherwise realtime
-        // never attaches and incoming messages never surface in the UI.
-        var supabaseIdOpt = conversations[index].supabaseConversationId
+        var supabaseIdOpt = conversation(for: conversationID)?.supabaseConversationId
         if supabaseIdOpt == nil, let pending = pendingConversationResolution[conversationID] {
             supabaseIdOpt = await pending.value
         }
@@ -91,21 +119,17 @@ final class MessagesViewModel {
             onMessage: { [weak self] msg in
                 guard let self else { return }
                 guard let idx = self.conversations.firstIndex(where: { $0.id == conversationID }) else { return }
-                let senderIdLower = msg.sender_id.lowercased()
-                if self.blockedUserIds.contains(senderIdLower) { return }
+                if self.blockedUserIds.contains(msg.sender_id.lowercased()) { return }
                 let dm = self.makeDM(from: msg)
-                if let existing = self.conversations[idx].messages.firstIndex(where: { $0.id == dm.id }) {
-                    self.conversations[idx].messages[existing] = dm
-                    return
-                }
-                self.conversations[idx].messages.append(dm)
+                self.mergeServerMessage(dm, into: idx)
                 self.typingUserIds.remove(dm.senderID.uuidString.lowercased())
+                print("DM_REALTIME: insert id=\(dm.supabaseId ?? "?") convo=\(conversationID) total=\(self.conversations[idx].messages.count)")
             },
             onUpdate: { [weak self] msg in
                 guard let self else { return }
                 guard let idx = self.conversations.firstIndex(where: { $0.id == conversationID }) else { return }
-                guard let mid = msg.id, let uuid = UUID(uuidString: mid) else { return }
-                if let mIdx = self.conversations[idx].messages.firstIndex(where: { $0.id == uuid }) {
+                guard let mid = msg.id else { return }
+                if let mIdx = self.conversations[idx].messages.firstIndex(where: { $0.supabaseId == mid }) {
                     self.conversations[idx].messages[mIdx].isRead = msg.is_read ?? self.conversations[idx].messages[mIdx].isRead
                     if let ra = msg.read_at {
                         self.conversations[idx].messages[mIdx].readAt = self.messagingService.parseDate(ra)
@@ -134,85 +158,63 @@ final class MessagesViewModel {
         )
     }
 
-    func sendTypingSignal() {
-        RealtimeMessagingService.shared.notifyTyping()
+    func unsubscribeRealtime() async {
+        realtimeSubscribedId = nil
+        await RealtimeMessagingService.shared.unsubscribe()
     }
 
-    func stopTypingSignal() {
-        RealtimeMessagingService.shared.stopTyping()
-    }
+    func sendTypingSignal() { RealtimeMessagingService.shared.notifyTyping() }
+    func stopTypingSignal() { RealtimeMessagingService.shared.stopTyping() }
 
     func isParticipantTyping(in conversationID: UUID) -> Bool {
         guard let conv = conversation(for: conversationID) else { return false }
         return typingUserIds.contains(conv.participant.id.uuidString.lowercased())
     }
 
-    func unsubscribeRealtime() async {
-        realtimeSubscribedId = nil
-        await RealtimeMessagingService.shared.unsubscribe()
-    }
+    // MARK: - Load conversations
 
     func loadConversations() async {
         guard !isLoading else { return }
         isLoading = true
         error = nil
+        defer { isLoading = false }
 
         do {
             let userId = try AuthService.shared.currentUserId()
             let results = try await messagingService.fetchConversations(userId: userId)
 
-            // Snapshot any locally-created threads so we don't wipe them when
-            // the server response arrives. A fresh DM thread (created via
-            // `startConversation` while loadConversations was still in flight)
-            // would otherwise vanish from `conversations`, which makes
-            // `sendMessage` silently bail since it can't find the index — the
-            // user taps send and no bubble ever appears.
+            // Preserve any locally-created threads so we don't wipe them when a
+            // server response arrives mid-flight.
             let existing = conversations
-
             var loaded: [Conversation] = []
+
             for result in results {
                 let participant = messagingService.socialUserFromAuthor(result.participant)
-
                 var lastMessages: [DirectMessage] = []
-                if let msg = result.lastMessage {
-                    lastMessages.append(makeDM(from: msg))
-                }
+                if let msg = result.lastMessage { lastMessages.append(makeDM(from: msg)) }
 
-                // Preserve the local UUID + any optimistic / loaded messages
-                // for an existing thread with this participant so views
-                // holding the localId keep rendering. Match by participant id
-                // (server convo id may differ from our localId).
                 if let prior = existing.first(where: { $0.participant.id == participant.id }) {
                     var merged = prior
                     merged.supabaseConversationId = result.conversation.id
                     merged.unreadCount = result.unreadCount
-                    // Merge in the server's last message if we don't have it.
-                    if let serverLast = lastMessages.last {
-                        let hasIt = merged.messages.contains { msg in
-                            if let sid = msg.supabaseId { return sid == serverLast.supabaseId }
-                            return false
-                        }
-                        if !hasIt {
-                            merged.messages.append(serverLast)
-                            merged.messages.sort { $0.timestamp < $1.timestamp }
-                        }
+                    if let serverLast = lastMessages.last,
+                       !merged.messages.contains(where: { $0.supabaseId == serverLast.supabaseId }) {
+                        merged.messages.append(serverLast)
+                        merged.messages.sort { $0.timestamp < $1.timestamp }
                     }
                     loaded.append(merged)
                 } else {
-                    let conv = Conversation(
+                    loaded.append(Conversation(
                         id: UUID(uuidString: result.conversation.id) ?? UUID(),
                         participant: participant,
                         messages: lastMessages,
                         unreadCount: result.unreadCount,
                         supabaseConversationId: result.conversation.id
-                    )
-                    loaded.append(conv)
+                    ))
                 }
             }
 
-            // Carry over local-only threads (no supabase id yet, or whose
-            // server row hasn't propagated to this fetch yet) so they don't
-            // disappear from the UI.
+            // Carry over local-only threads not yet known to the server.
             let loadedParticipantIds = Set(loaded.map { $0.participant.id })
             for prior in existing where !loadedParticipantIds.contains(prior.participant.id) {
                 loaded.append(prior)
@@ -222,8 +224,6 @@ final class MessagesViewModel {
         } catch {
             self.error = error.localizedDescription
         }
-
-        isLoading = false
     }
 
     func loadFullConversation(conversationID: UUID) async {
@@ -241,33 +241,34 @@ final class MessagesViewModel {
                     isRead: msg.is_read ?? false,
                     readAt: messageDate(msg.read_at),
                     attachments: msg.attachments ?? [],
-                    supabaseId: msg.id
+                    supabaseId: msg.id,
+                    status: .sent
                 )
             }
-            // Re-locate index in case conversations changed during the await.
             guard let freshIdx = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
 
-            // MERGE rather than replace so optimistic / in-flight messages
-            // (no supabaseId yet, or whose row hasn't propagated to PostgREST
-            // yet) aren't wiped from the UI when the server returns a partial
-            // or empty list. Without this, a single empty refetch right after
-            // sending nukes the bubble the user just typed.
+            // Merge: keep any in-flight (sending/failed) optimistic messages
+            // so the user never sees their own bubble vanish during a refetch.
             let serverIds = Set(mapped.compactMap { $0.supabaseId })
             let existing = conversations[freshIdx].messages
             let pending = existing.filter { msg in
-                guard let sid = msg.supabaseId else { return true } // optimistic
+                guard let sid = msg.supabaseId else { return msg.status != .sent }
                 return !serverIds.contains(sid)
             }
-            // If the server returned nothing but we have local messages,
-            // keep the local state — most likely a transient RLS / cache miss.
+
+            // If the server returned nothing but we already have local content,
+            // assume a transient RLS/cache miss and keep what we have.
             if mapped.isEmpty && !existing.isEmpty { return }
 
             let combined = (mapped + pending).sorted { $0.timestamp < $1.timestamp }
             conversations[freshIdx].messages = combined
+            print("DM_LOAD: convo=\(conversationID) server=\(mapped.count) pending=\(pending.count) total=\(combined.count)")
         } catch {
             self.error = error.localizedDescription
         }
     }
+
+    // MARK: - Search
 
     func searchUsers(query: String) {
         guard !query.isEmpty else {
@@ -276,13 +277,11 @@ final class MessagesViewModel {
             return
         }
         isSearching = true
-
         Task {
             do {
                 let userId = try AuthService.shared.currentUserId()
                 let profiles = try await messagingService.searchUsers(query: query, excludeUserId: userId)
                 let conversationUserIds = Set(conversations.compactMap { $0.participant.id.uuidString.lowercased() })
-
                 searchResults = profiles
                     .filter { !conversationUserIds.contains($0.id.lowercased()) }
                     .map { messagingService.socialUserFromAuthor($0) }
@@ -293,78 +292,92 @@ final class MessagesViewModel {
         }
     }
 
-    func sendMessage(to conversationID: UUID, text: String, attachments: [DirectMessageAttachment] = []) {
-        guard let index = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
+    // MARK: - Send
 
-        // Optimistic local insert so the bubble appears in the UI immediately —
-        // even before the supabase conversation row is created (which can take
-        // a beat for brand-new threads with seeded users).
-        let optimisticId = UUID()
+    /// Public send entry point. Always non-throwing — failure surfaces as a
+    /// `.failed` bubble that the user can tap to retry.
+    func sendMessage(to conversationID: UUID, text: String, attachments: [DirectMessageAttachment] = []) {
+        guard let index = conversations.firstIndex(where: { $0.id == conversationID }) else {
+            print("DM_SEND: ABORT — convo \(conversationID) not in list")
+            return
+        }
+
         let myUserId = (try? AuthService.shared.currentUserId()) ?? ""
         let optimistic = DirectMessage(
-            id: optimisticId,
+            id: UUID(),
             senderID: UUID(uuidString: myUserId) ?? UUID(),
             text: text,
             timestamp: Date(),
             isRead: false,
             readAt: nil,
             attachments: attachments,
-            supabaseId: nil
+            supabaseId: nil,
+            status: .sending
         )
         conversations[index].messages.append(optimistic)
-        print("DM_SEND: optimistic bubble appended id=\(optimisticId) convo=\(conversationID) total=\(conversations[index].messages.count)")
+        print("DM_SEND: optimistic id=\(optimistic.id) convo=\(conversationID) total=\(conversations[index].messages.count)")
 
-        Task {
-            // If the supabase conversation row hasn't been created yet (fresh
-            // DM thread), wait for the in-flight creation task to finish.
-            var supabaseConvId = conversations.first(where: { $0.id == conversationID })?.supabaseConversationId
-            if supabaseConvId == nil, let pending = pendingConversationResolution[conversationID] {
-                supabaseConvId = await pending.value
-            }
-            guard let supabaseConvId else {
-                self.error = "Couldn't start conversation. Please try again."
-                removeOptimistic(optimisticId, in: conversationID)
-                return
-            }
+        Task { await deliver(messageID: optimistic.id, in: conversationID) }
+    }
 
-            do {
-                let userId = try AuthService.shared.currentUserId()
-                let sent = try await messagingService.sendMessage(
-                    conversationId: supabaseConvId,
-                    senderId: userId,
-                    text: text,
-                    attachments: attachments
-                )
+    /// Retry a failed send.
+    func retrySend(messageID: UUID, in conversationID: UUID) {
+        guard let cIdx = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
+        guard let mIdx = conversations[cIdx].messages.firstIndex(where: { $0.id == messageID }) else { return }
+        conversations[cIdx].messages[mIdx].status = .sending
+        Task { await deliver(messageID: messageID, in: conversationID) }
+    }
 
-                let dm = makeDM(from: sent)
-                print("DM_SEND: server confirmed id=\(dm.id) supabaseId=\(dm.supabaseId ?? "nil")")
+    private func deliver(messageID: UUID, in conversationID: UUID) async {
+        // Resolve the supabase conversation id, waiting for any pending creation.
+        var supabaseConvId = conversation(for: conversationID)?.supabaseConversationId
+        if supabaseConvId == nil, let pending = pendingConversationResolution[conversationID] {
+            supabaseConvId = await pending.value
+        }
+        guard let supabaseConvId else {
+            markStatus(messageID: messageID, in: conversationID, status: .failed)
+            self.error = "Couldn't start conversation. Tap the message to retry."
+            return
+        }
 
-                if let idx = conversations.firstIndex(where: { $0.id == conversationID }) {
-                    if let optIdx = conversations[idx].messages.firstIndex(where: { $0.id == optimisticId }) {
-                        conversations[idx].messages[optIdx] = dm
-                    } else if !conversations[idx].messages.contains(where: { $0.id == dm.id }) {
-                        conversations[idx].messages.append(dm)
-                    }
-                    print("DM_SEND: post-confirm message count=\(conversations[idx].messages.count)")
-                }
+        guard let cIdx = conversations.firstIndex(where: { $0.id == conversationID }),
+              let mIdx = conversations[cIdx].messages.firstIndex(where: { $0.id == messageID }) else { return }
+        let outgoing = conversations[cIdx].messages[mIdx]
 
-                // Safety net: if realtime hasn't attached yet (fresh thread),
-                // refetch so the new row is definitely visible. Also make sure
-                // we are subscribed for any future incoming messages.
-                await loadFullConversation(conversationID: conversationID)
-                await subscribeRealtime(conversationID: conversationID)
-            } catch {
-                print("DM_SEND: ERROR \(error.localizedDescription)")
-                self.error = error.localizedDescription
-                removeOptimistic(optimisticId, in: conversationID)
-            }
+        do {
+            let userId = try AuthService.shared.currentUserId()
+            let sent = try await messagingService.sendMessage(
+                conversationId: supabaseConvId,
+                senderId: userId,
+                text: outgoing.text,
+                attachments: outgoing.attachments
+            )
+
+            guard let cIdx2 = conversations.firstIndex(where: { $0.id == conversationID }),
+                  let mIdx2 = conversations[cIdx2].messages.firstIndex(where: { $0.id == messageID }) else { return }
+            // Promote the optimistic bubble in place — don't replace the row,
+            // just stamp the server fields onto it. That keeps the SwiftUI
+            // identity stable so the view doesn't flicker.
+            conversations[cIdx2].messages[mIdx2].supabaseId = sent.id
+            conversations[cIdx2].messages[mIdx2].status = .sent
+            print("DM_SEND: confirmed id=\(messageID) supabaseId=\(sent.id ?? "nil") total=\(conversations[cIdx2].messages.count)")
+
+            // Make sure we're attached for incoming messages on this thread.
+            await subscribeRealtime(conversationID: conversationID)
+        } catch {
+            print("DM_SEND: FAILED id=\(messageID) err=\(error.localizedDescription)")
+            markStatus(messageID: messageID, in: conversationID, status: .failed)
+            self.error = error.localizedDescription
         }
     }
 
-    private func removeOptimistic(_ id: UUID, in conversationID: UUID) {
-        guard let idx = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
-        conversations[idx].messages.removeAll { $0.id == id }
+    private func markStatus(messageID: UUID, in conversationID: UUID, status: MessageDeliveryStatus) {
+        guard let cIdx = conversations.firstIndex(where: { $0.id == conversationID }),
+              let mIdx = conversations[cIdx].messages.firstIndex(where: { $0.id == messageID }) else { return }
+        conversations[cIdx].messages[mIdx].status = status
     }
+
+    // MARK: - Attachments
 
     func uploadAndSendImage(to conversationID: UUID, data: Data, caption: String = "") async {
         guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
@@ -405,6 +418,8 @@ final class MessagesViewModel {
         }
     }
 
+    // MARK: - Read state
+
     func markMessageVisible(conversationID: UUID, messageID: UUID) {
         guard let index = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
         guard let mIdx = conversations[index].messages.firstIndex(where: { $0.id == messageID }) else { return }
@@ -417,10 +432,29 @@ final class MessagesViewModel {
         }
     }
 
+    func markAsRead(conversationID: UUID) {
+        guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
+              let supabaseConvId = conversations[index].supabaseConversationId else { return }
+
+        conversations[index].unreadCount = 0
+        for i in conversations[index].messages.indices {
+            conversations[index].messages[i].isRead = true
+        }
+
+        Task {
+            do {
+                let userId = try AuthService.shared.currentUserId()
+                try await messagingService.markMessagesAsRead(conversationId: supabaseConvId, userId: userId)
+            } catch {
+                // best-effort
+            }
+        }
+    }
+
+    // MARK: - Conversation lifecycle
+
     func startConversation(with user: SocialUser) -> UUID {
         if let existing = conversations.first(where: { $0.participant.id == user.id }) {
-            // If we already know this conversation, make sure the supabase id is filled in
-            // and proactively load full history so the chat screen has data to render.
             let existingId = existing.id
             Task {
                 await self.loadFullConversation(conversationID: existingId)
@@ -447,8 +481,6 @@ final class MessagesViewModel {
                 )
 
                 guard let idx = self.conversations.firstIndex(where: { $0.id == localId }) else { return convId }
-                // Keep the local UUID stable so any view holding `localId` keeps working.
-                // Only attach the Supabase conversation id, then hydrate messages.
                 self.conversations[idx].supabaseConversationId = convId
                 await self.loadFullConversation(conversationID: localId)
                 await self.subscribeRealtime(conversationID: localId)
@@ -461,31 +493,7 @@ final class MessagesViewModel {
             }
         }
         pendingConversationResolution[localId] = resolution
-
         return localId
-    }
-
-    func markAsRead(conversationID: UUID) {
-        guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
-              let supabaseConvId = conversations[index].supabaseConversationId else { return }
-
-        conversations[index].unreadCount = 0
-        for i in conversations[index].messages.indices {
-            conversations[index].messages[i].isRead = true
-        }
-
-        Task {
-            do {
-                let userId = try AuthService.shared.currentUserId()
-                try await messagingService.markMessagesAsRead(conversationId: supabaseConvId, userId: userId)
-            } catch {
-                // Silently fail
-            }
-        }
-    }
-
-    func conversation(for id: UUID) -> Conversation? {
-        conversations.first { $0.id == id }
     }
 
     func refreshConversations() async {
