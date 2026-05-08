@@ -189,6 +189,7 @@ struct AddVialFlowView: View {
 
     @State private var frequencyManuallySet: Bool = false
     @State private var startingDoseManuallySet: Bool = false
+    @State private var showBacDetails: Bool = false
     @FocusState private var focusedField: AddVialField?
 
     static func defaultMorningTime() -> Date {
@@ -288,14 +289,57 @@ struct AddVialFlowView: View {
         return (dose / conc) * pickedSyringe.unitsPerMl
     }
 
-    private var dosesPerVial: Int? {
-        guard let mg = vialSizeMg, let dose = startingDoseMcg, dose > 0 else { return nil }
-        return Int((mg * 1000) / dose)
+    /// Walks the titration plan (or starting dose if no plan) at the picked frequency,
+    /// respecting the vial's actual mcg capacity. Returns the real number of doses and
+    /// weeks the vial can deliver.
+    private var vialUsage: (doses: Int, weeks: Double)? {
+        guard let mg = vialSizeMg, mg > 0 else { return nil }
+        let totalMcg = mg * 1000.0
+        let dpw = max(frequency.dosesPerWeek, 0.01)
+        var remaining = totalMcg
+        var doses = 0
+
+        let steps = titrationSteps
+            .sorted { $0.week < $1.week }
+            .filter { $0.doseMcg > 0 }
+
+        if steps.isEmpty {
+            guard let dose = startingDoseMcg, dose > 0 else { return nil }
+            let count = Int(floor(remaining / dose))
+            return (count, Double(count) / dpw)
+        }
+
+        for (i, step) in steps.enumerated() {
+            let isLast = i + 1 >= steps.count
+            let plannedDoses: Double
+            if isLast {
+                plannedDoses = .greatestFiniteMagnitude
+            } else {
+                let weekSpan = max(steps[i + 1].week - step.week, 0)
+                plannedDoses = Double(weekSpan) * dpw
+            }
+            let canAfford = floor(remaining / step.doseMcg)
+            if canAfford <= 0 { break }
+            let take = min(plannedDoses, canAfford)
+            // floor for whole doses, but allow last step to keep fractional weeks aligned
+            let wholeTake = Int(take.rounded(.down))
+            if wholeTake <= 0 { break }
+            doses += wholeTake
+            remaining -= Double(wholeTake) * step.doseMcg
+            if Double(wholeTake) < plannedDoses { break }
+        }
+        return (doses, Double(doses) / dpw)
     }
 
-    private var weeksPerVial: Double? {
-        guard let count = dosesPerVial else { return nil }
-        return Double(count) / max(frequency.dosesPerWeek, 0.1)
+    private var dosesPerVial: Int? { vialUsage?.doses }
+    private var weeksPerVial: Double? { vialUsage?.weeks }
+
+    /// Max weeks the vial can support if user stays at the starting dose at the chosen frequency.
+    /// Used to constrain the AI titration plan length.
+    private var weeksBudgetAtStartingDose: Double? {
+        guard let mg = vialSizeMg, let dose = startingDoseMcg, dose > 0 else { return nil }
+        let totalDoses = floor((mg * 1000) / dose)
+        return totalDoses / max(frequency.dosesPerWeek, 0.01)
     }
 
     private var canContinue: Bool {
@@ -517,12 +561,12 @@ struct AddVialFlowView: View {
                 doseCalculatorCard
             }
             if startingDoseMcg != nil {
+                stepFrequencyCard
                 strategyCard
                 if strategy != .maintain || !titrationSteps.isEmpty {
                     titrationCard
                 }
                 vialDurationCard
-                stepFrequencyCard
             }
         }
     }
@@ -738,6 +782,8 @@ struct AddVialFlowView: View {
                     }
                 }
 
+                bacExplanationBlock
+
                 if reconstitutedMl == nil {
                     HStack(spacing: 6) {
                         Image(systemName: "info.circle")
@@ -751,6 +797,115 @@ struct AddVialFlowView: View {
                 }
             }
         }
+    }
+
+    // BAC water explanation — brief reasoning + expandable implications
+    private var bacExplanationBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(PepTheme.teal)
+                    .padding(.top, 2)
+                Text(bacBriefReason)
+                    .font(.system(size: 13, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    showBacDetails.toggle()
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(showBacDetails ? "Hide details" : "What if I use a different volume?")
+                        .font(.system(size: 12, weight: .semibold, design: .serif))
+                    Image(systemName: showBacDetails ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundStyle(PepTheme.teal)
+            }
+            .buttonStyle(.plain)
+
+            if showBacDetails {
+                VStack(alignment: .leading, spacing: 8) {
+                    bacImplicationRow(
+                        title: "Less water (more concentrated)",
+                        body: bacLessText,
+                        icon: "arrow.down.right.circle.fill",
+                        color: PepTheme.amber
+                    )
+                    bacImplicationRow(
+                        title: "More water (more diluted)",
+                        body: bacMoreText,
+                        icon: "arrow.up.right.circle.fill",
+                        color: PepTheme.blue
+                    )
+                    Text("All three options deliver the same medicine — only the volume per unit on the syringe changes.")
+                        .font(.system(size: 11, design: .serif))
+                        .italic()
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .padding(.top, 2)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(PepTheme.elevated.opacity(0.5))
+                .clipShape(.rect(cornerRadius: 10))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    private func bacImplicationRow(title: String, body: String, icon: String, color: Color) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .foregroundStyle(color)
+                .font(.system(size: 14, weight: .semibold))
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text(body)
+                    .font(.system(size: 12, design: .serif))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var bacBriefReason: String {
+        let suggested = suggestedReconMl
+        guard let mg = vialSizeMg, mg > 0 else {
+            return "We pick a BAC volume that lands your dose on a clean, easy-to-read mark on a U-100 syringe."
+        }
+        let dose = startingDoseMcg ?? defaultStartingDoseMcg
+        let conc = (mg * 1000) / suggested
+        let drawUnits = (dose / conc) * 100
+        return "At \(formatMl(suggested)), each dose draws to roughly \(formatUnits(drawUnits)) units on a U-100 syringe — easy to read and hard to mis-measure."
+    }
+
+    private var bacLessText: String {
+        guard let mg = vialSizeMg, mg > 0 else {
+            return "More peptide per mL means a tiny draw — small movements of the plunger can change your dose noticeably."
+        }
+        let lessMl = max(suggestedReconMl - 1, 0.5)
+        let dose = startingDoseMcg ?? defaultStartingDoseMcg
+        let drawUnits = (dose / ((mg * 1000) / lessMl)) * 100
+        return "At \(formatMl(lessMl)), the same dose would draw to ~\(formatUnits(drawUnits)) units. Smaller draws are easier to over- or under-dose by a tick."
+    }
+
+    private var bacMoreText: String {
+        guard let mg = vialSizeMg, mg > 0 else {
+            return "More water means a larger draw, which is easier to read but may exceed the capacity of a 0.5 mL syringe."
+        }
+        let moreMl = suggestedReconMl + 1
+        let dose = startingDoseMcg ?? defaultStartingDoseMcg
+        let drawUnits = (dose / ((mg * 1000) / moreMl)) * 100
+        let warn = drawUnits > 50 ? " That may exceed a standard 0.5 mL syringe and require a larger one." : ""
+        return "At \(formatMl(moreMl)), the same dose would draw to ~\(formatUnits(drawUnits)) units. Larger draws are forgiving on precision but use more BAC water.\(warn)"
     }
 
     private func isMlSelected(_ ml: Double) -> Bool {
@@ -782,6 +937,9 @@ struct AddVialFlowView: View {
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 150)
+                    .onChange(of: startingDoseUnit) { _, _ in
+                        // Titration row display follows starting-dose unit; no data change needed.
+                    }
                 }
 
                 if let pd = protocolDefault {
@@ -956,6 +1114,25 @@ struct AddVialFlowView: View {
                     }
                     .buttonStyle(.plain)
                 } else {
+                    if let budget = weeksBudgetAtStartingDose,
+                       let lastWeek = titrationSteps.map(\.week).max(),
+                       Double(lastWeek) > budget + 0.5 {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(PepTheme.amber)
+                                .font(.system(size: 12))
+                            Text("Your vial only supports about \(formatWeeks(budget)) weeks at this dose & frequency. Steps beyond that won't fit.")
+                                .font(.system(size: 11, design: .serif))
+                                .italic()
+                                .foregroundStyle(PepTheme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(PepTheme.amber.opacity(0.10))
+                        .clipShape(.rect(cornerRadius: 8))
+                    }
+
                     ForEach($titrationSteps) { $step in
                         titrationRow(step: $step)
                     }
@@ -1025,12 +1202,12 @@ struct AddVialFlowView: View {
                     .tracking(1)
                     .foregroundStyle(PepTheme.textSecondary)
                 HStack(spacing: 4) {
-                    TextField("0", value: step.doseMcg, format: .number)
+                    TextField("0", value: doseInDisplayUnit(step), format: .number)
                         .keyboardType(.decimalPad)
                         .font(.system(size: 16, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.teal)
                         .frame(width: 70)
-                    Text("mcg")
+                    Text(startingDoseUnit.label)
                         .font(.caption2)
                         .foregroundStyle(PepTheme.textSecondary)
                 }
@@ -1088,9 +1265,9 @@ struct AddVialFlowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // Step 5 — frequency
+    // Reminder schedule (now positioned BEFORE titration so the plan honors the cadence)
     private var stepFrequencyCard: some View {
-        FlowCard(stepNumber: nil, iconName: "bell.fill", title: "Reminder schedule", subtitle: "How often do you plan to dose?") {
+        FlowCard(stepNumber: nil, iconName: "bell.fill", title: "Reminder schedule", subtitle: "How often do you plan to dose? Titration honors this cadence.") {
             VStack(alignment: .leading, spacing: 12) {
                 if let rec = recommendedFrequency, let raw = protocolDefault?.defaultFrequency {
                     HStack(spacing: 8) {
@@ -1117,6 +1294,8 @@ struct AddVialFlowView: View {
                         Button {
                             frequency = f
                             frequencyManuallySet = true
+                            // Re-fetch titration so its length matches the new cadence/budget.
+                            Task { await regenerateTitrationIfNeeded() }
                         } label: {
                             VStack(spacing: 2) {
                                 Text(f.rawValue)
@@ -1438,10 +1617,12 @@ struct AddVialFlowView: View {
         strategy: DoseStrategy,
         frequency: ReminderFrequency
     ) async throws -> AITitrationResult {
+        let budget = weeksBudgetAtStartingDose ?? 0
+        let budgetText = budget > 0 ? "This vial supports about \(Int(budget.rounded(.down))) weeks at the starting dose & frequency. Do NOT plan beyond what the vial can supply — fewer steps is fine." : ""
         let system = """
         You are a careful peptide protocol assistant. Output ONLY valid JSON.
         Schema: { "steps": [{ "week": int, "doseMcg": number, "label": string }], "note": string }
-        Use mcg for doseMcg (1 mg = 1000 mcg). Provide 3–6 steps spanning 8–20 weeks.
+        Use mcg for doseMcg (1 mg = 1000 mcg). Provide 2–6 steps that fit inside the vial's supply.
         Honor the strategy strictly: maintain = flat, titrateUp = ascending, titrateDown = descending.
         Keep doses within commonly used clinical ranges for the compound.
         """
@@ -1450,6 +1631,7 @@ struct AddVialFlowView: View {
         Starting dose: \(startingDoseMcg) mcg
         Strategy: \(strategy.rawValue)
         Dosing frequency: \(frequency.rawValue)
+        \(budgetText)
         Return JSON only, no prose.
         """
         let raw = try await OpenRouterClient.shared.chat(
@@ -1469,10 +1651,34 @@ struct AddVialFlowView: View {
             let note: String?
         }
         let dto = try JSONDecoder().decode(DTO.self, from: data)
-        let steps = dto.steps.map {
+        let raw_steps = dto.steps.map {
             TitrationScheduleStep(week: $0.week, doseMcg: $0.doseMcg, label: $0.label ?? "")
         }
-        return AITitrationResult(steps: steps, note: dto.note ?? "")
+        let clamped = clampTitrationToVial(raw_steps)
+        return AITitrationResult(steps: clamped, note: dto.note ?? "")
+    }
+
+    /// Drops trailing steps that the vial can't actually supply, so the plan stays honest.
+    private func clampTitrationToVial(_ steps: [TitrationScheduleStep]) -> [TitrationScheduleStep] {
+        guard let mg = vialSizeMg, mg > 0 else { return steps }
+        let dpw = max(frequency.dosesPerWeek, 0.01)
+        var remaining = mg * 1000.0
+        var kept: [TitrationScheduleStep] = []
+        let sorted = steps.sorted { $0.week < $1.week }
+        for (i, step) in sorted.enumerated() {
+            guard step.doseMcg > 0 else { continue }
+            let canAfford = floor(remaining / step.doseMcg)
+            if canAfford <= 0 { break }
+            kept.append(step)
+            let isLast = i + 1 >= sorted.count
+            let plannedDoses: Double = isLast
+                ? .greatestFiniteMagnitude
+                : Double(max(sorted[i + 1].week - step.week, 0)) * dpw
+            let take = min(plannedDoses, canAfford)
+            remaining -= take * step.doseMcg
+            if take < plannedDoses { break }
+        }
+        return kept.isEmpty ? Array(sorted.prefix(1)) : kept
     }
 
     private func addTitrationStep() {
@@ -1606,6 +1812,25 @@ struct AddVialFlowView: View {
         case .mg: return mcg / 1000
         case .mcg, .iu: return mcg
         }
+    }
+
+    /// Two-way binding so the titration row edits the dose in whatever unit
+    /// the user picked for the starting dose, while we keep storing mcg internally.
+    private func doseInDisplayUnit(_ step: Binding<TitrationScheduleStep>) -> Binding<Double> {
+        Binding(
+            get: {
+                switch startingDoseUnit {
+                case .mg: return step.wrappedValue.doseMcg / 1000
+                case .mcg, .iu: return step.wrappedValue.doseMcg
+                }
+            },
+            set: { newValue in
+                switch startingDoseUnit {
+                case .mg: step.wrappedValue.doseMcg = newValue * 1000
+                case .mcg, .iu: step.wrappedValue.doseMcg = newValue
+                }
+            }
+        )
     }
 }
 
