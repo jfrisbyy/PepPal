@@ -45,6 +45,7 @@ struct ChatConversationView: View {
     var body: some View {
         VStack(spacing: 0) {
             messagesScrollView
+            errorBanner
             inputBar
         }
         .appBackground()
@@ -407,6 +408,52 @@ struct ChatConversationView: View {
             Rectangle()
                 .fill(PepTheme.separatorColor)
                 .frame(height: 0.5)
+        }
+    }
+
+    // MARK: - Error banner
+
+    @ViewBuilder
+    private var errorBanner: some View {
+        if let err = viewModel.error, !err.isEmpty {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.red)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("SEND FAILED")
+                        .font(.system(size: 9, weight: .black))
+                        .tracking(1.6)
+                        .foregroundStyle(.red)
+                    Text(err)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .lineLimit(4)
+                        .textSelection(.enabled)
+                }
+                Spacer(minLength: 8)
+                Button {
+                    viewModel.error = nil
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .frame(width: 22, height: 22)
+                        .background(Circle().fill(PepTheme.cardSurface))
+                        .overlay(Circle().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color.red.opacity(0.08))
+            .overlay(alignment: .top) {
+                Rectangle().fill(Color.red.opacity(0.35)).frame(height: 0.5)
+            }
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.red.opacity(0.35)).frame(height: 0.5)
+            }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
