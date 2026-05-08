@@ -628,23 +628,30 @@ final class MessagingService {
             }
         }
 
-        let newConv: SupabaseConversation = try await supabase
+        // Generate the conversation id client-side. We can't `.select().single()`
+        // a freshly-inserted conversation row because RLS
+        // (`conversations_participant_read`) only lets the caller read it after
+        // they've been added as a participant — and those participant rows are
+        // inserted in the next step. Trying to read here returns an empty set
+        // and trips "cannot coerce the result to a single object", which is
+        // why DMs were silently failing: supabaseConversationId stayed nil and
+        // every subsequent sendMessage hit its `guard` and returned without
+        // sending anything.
+        let newConvId = UUID().uuidString
+        try await supabase
             .from("conversations")
-            .insert(["id": UUID().uuidString])
-            .select()
-            .single()
+            .insert(["id": newConvId])
             .execute()
-            .value
 
-        let p1 = CreateConversationParticipantPayload(conversation_id: newConv.id, user_id: userId)
-        let p2 = CreateConversationParticipantPayload(conversation_id: newConv.id, user_id: otherUserId)
+        let p1 = CreateConversationParticipantPayload(conversation_id: newConvId, user_id: userId)
+        let p2 = CreateConversationParticipantPayload(conversation_id: newConvId, user_id: otherUserId)
 
         try await supabase
             .from("conversation_participants")
             .insert([p1, p2])
             .execute()
 
-        return newConv.id
+        return newConvId
     }
 
     // MARK: - Direct Messages
@@ -695,8 +702,12 @@ final class MessagingService {
             .execute()
             .value
 
+        // Notifications are best-effort: a failure here (RLS hiccup, schema
+        // cache miss on `body`, etc.) must NOT throw away an already-sent
+        // message. Previously this would bubble up and cause the UI to think
+        // the send failed even though the row was inserted.
         for participant in otherParticipants {
-            try await createNotification(
+            try? await createNotification(
                 userId: participant.user_id,
                 type: "new_message",
                 title: "New Message",
