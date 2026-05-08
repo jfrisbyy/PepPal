@@ -65,8 +65,16 @@ final class MessagesViewModel {
     }
 
     func subscribeRealtime(conversationID: UUID) async {
-        guard let index = conversations.firstIndex(where: { $0.id == conversationID }),
-              let supabaseId = conversations[index].supabaseConversationId else { return }
+        guard let index = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
+        // For brand-new DM threads the supabase conversation row is created
+        // asynchronously inside `startConversation`. If the id isn't ready yet,
+        // wait for that work instead of silently bailing — otherwise realtime
+        // never attaches and incoming messages never surface in the UI.
+        var supabaseIdOpt = conversations[index].supabaseConversationId
+        if supabaseIdOpt == nil, let pending = pendingConversationResolution[conversationID] {
+            supabaseIdOpt = await pending.value
+        }
+        guard let supabaseId = supabaseIdOpt else { return }
         if realtimeSubscribedId == supabaseId { return }
         realtimeSubscribedId = supabaseId
         let myId = try? AuthService.shared.currentUserId()
@@ -191,9 +199,12 @@ final class MessagesViewModel {
                     supabaseId: msg.id
                 )
             }
-            conversations[index].messages = mapped
+            // Re-locate index in case conversations changed during the await.
+            if let freshIdx = conversations.firstIndex(where: { $0.id == conversationID }) {
+                conversations[freshIdx].messages = mapped
+            }
         } catch {
-            // Silently fail
+            self.error = error.localizedDescription
         }
     }
 
@@ -272,6 +283,12 @@ final class MessagesViewModel {
                         conversations[idx].messages.append(dm)
                     }
                 }
+
+                // Safety net: if realtime hasn't attached yet (fresh thread),
+                // refetch so the new row is definitely visible. Also make sure
+                // we are subscribed for any future incoming messages.
+                await loadFullConversation(conversationID: conversationID)
+                await subscribeRealtime(conversationID: conversationID)
             } catch {
                 self.error = error.localizedDescription
                 removeOptimistic(optimisticId, in: conversationID)
@@ -340,7 +357,10 @@ final class MessagesViewModel {
             // If we already know this conversation, make sure the supabase id is filled in
             // and proactively load full history so the chat screen has data to render.
             let existingId = existing.id
-            Task { await self.loadFullConversation(conversationID: existingId) }
+            Task {
+                await self.loadFullConversation(conversationID: existingId)
+                await self.subscribeRealtime(conversationID: existingId)
+            }
             return existingId
         }
 
