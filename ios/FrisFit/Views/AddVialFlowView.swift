@@ -175,7 +175,7 @@ struct AddVialFlowView: View {
     // Starting dose & strategy
     @State private var startingDoseText: String = ""
     @State private var startingDoseUnit: VialSizeUnit = .mcg
-    @State private var strategy: DoseStrategy = .maintain
+    @State private var strategy: DoseStrategy? = nil
     @State private var titrationSteps: [TitrationScheduleStep] = []
     @State private var titrationLoading: Bool = false
     @State private var titrationError: String? = nil
@@ -575,7 +575,7 @@ struct AddVialFlowView: View {
             if startingDoseMcg != nil {
                 stepFrequencyCard
                 strategyCard
-                if strategy != .maintain || !titrationSteps.isEmpty {
+                if strategy != nil && (strategy != .maintain || !titrationSteps.isEmpty) {
                     titrationCard
                 }
                 vialDurationCard
@@ -1203,6 +1203,7 @@ struct AddVialFlowView: View {
         FlowCard(stepNumber: nil, iconName: "chart.line.uptrend.xyaxis", title: "Dose strategy", subtitle: "How do you want this protocol to evolve?") {
             VStack(spacing: 10) {
                 ForEach(DoseStrategy.allCases) { s in
+                    let isSelected = strategy == s
                     Button {
                         strategy = s
                         Task { await regenerateTitrationIfNeeded() }
@@ -1210,11 +1211,11 @@ struct AddVialFlowView: View {
                         HStack(spacing: 12) {
                             ZStack {
                                 Circle()
-                                    .fill((strategy == s ? PepTheme.teal : PepTheme.elevated).opacity(strategy == s ? 0.18 : 0.6))
+                                    .fill((isSelected ? PepTheme.teal : PepTheme.elevated).opacity(isSelected ? 0.18 : 0.6))
                                     .frame(width: 36, height: 36)
                                 Image(systemName: s.icon)
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(strategy == s ? PepTheme.teal : PepTheme.textSecondary)
+                                    .foregroundStyle(isSelected ? PepTheme.teal : PepTheme.textSecondary)
                             }
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(s.rawValue)
@@ -1226,15 +1227,15 @@ struct AddVialFlowView: View {
                                     .foregroundStyle(PepTheme.textSecondary)
                             }
                             Spacer()
-                            Image(systemName: strategy == s ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(strategy == s ? PepTheme.teal : PepTheme.textTertiary)
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(isSelected ? PepTheme.teal : PepTheme.textTertiary)
                         }
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(strategy == s ? PepTheme.teal.opacity(0.08) : PepTheme.elevated.opacity(0.5))
+                        .background(isSelected ? PepTheme.teal.opacity(0.08) : PepTheme.elevated.opacity(0.5))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(strategy == s ? PepTheme.teal.opacity(0.4) : PepTheme.separatorColor, lineWidth: 1)
+                                .stroke(isSelected ? PepTheme.teal.opacity(0.4) : PepTheme.separatorColor, lineWidth: 1)
                         )
                         .clipShape(.rect(cornerRadius: 12))
                     }
@@ -1364,6 +1365,7 @@ struct AddVialFlowView: View {
         case .maintain: return "Steady-state plan — edit any week as needed."
         case .titrateUp: return "Stepping up over time — edit any week as needed."
         case .titrateDown: return "Tapering down over time — edit any week as needed."
+        case .none: return "Pick a strategy to see your plan."
         }
     }
 
@@ -1754,7 +1756,7 @@ struct AddVialFlowView: View {
     // MARK: - AI titration
 
     private func regenerateTitrationIfNeeded(force: Bool = false) async {
-        guard let compound = pickedCompound, let dose = startingDoseMcg else { return }
+        guard let compound = pickedCompound, let dose = startingDoseMcg, let strategy = strategy else { return }
         if strategy == .maintain {
             // Show every individual week the vial can support so users can edit week-by-week.
             await MainActor.run {
@@ -1912,7 +1914,7 @@ struct AddVialFlowView: View {
         let lastDose = titrationSteps.last?.doseMcg ?? (startingDoseMcg ?? 0)
         let nextDose: Double = {
             switch strategy {
-            case .maintain: return lastDose
+            case .maintain, .none: return lastDose
             case .titrateUp: return lastDose * 1.5
             case .titrateDown: return max(lastDose * 0.66, 0)
             }
@@ -2009,7 +2011,7 @@ struct AddVialFlowView: View {
         )
 
         // 3. Persist titration schedule locally if it's a real plan
-        if titrationSteps.count >= 1 && (strategy != .maintain || titrationSteps.count > 1) {
+        if titrationSteps.count >= 1 && (strategy != nil) && (strategy != .maintain || titrationSteps.count > 1) {
             let cal = Calendar.current
             let comps = cal.dateComponents([.hour, .minute], from: reminderTime)
             let schedule = TitrationSchedule(
