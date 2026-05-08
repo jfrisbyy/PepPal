@@ -14,6 +14,9 @@ struct GuidedInjectionView: View {
     @State private var postNotes: String = ""
     @State private var severity: Int = 1
     @State private var selectedVial: Vial? = nil
+    @FocusState private var notesFocused: Bool
+
+    private let accent: Color = PepTheme.teal
 
     private let supplies = [
         "Vial (reconstituted, not expired)",
@@ -55,12 +58,15 @@ struct GuidedInjectionView: View {
     @ViewBuilder
     private var guidedBody: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                progressDots
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
+            ScrollView {
+                VStack(spacing: 22) {
+                    editorialHeader
+                        .padding(.horizontal, 20)
+                        .padding(.top, 4)
 
-                ScrollView {
+                    chapterRail
+                        .padding(.horizontal, 20)
+
                     Group {
                         switch step {
                         case 0: suppliesStep
@@ -70,42 +76,101 @@ struct GuidedInjectionView: View {
                         default: postStep
                         }
                     }
-                    .padding(.horizontal)
-                    .transition(.opacity)
-                }
-                .scrollIndicators(.hidden)
+                    .padding(.horizontal, 20)
+                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                    .id(step)
 
-                footerBar
+                    footerActions
+                        .padding(.horizontal, 20)
+                        .padding(.top, 4)
+                }
+                .padding(.bottom, 40)
             }
+            .scrollIndicators(.hidden)
             .appBackground()
-            .navigationTitle(stepTitle)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Quit") { dismiss() }
                         .foregroundStyle(PepTheme.textSecondary)
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { notesFocused = false }
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundStyle(accent)
+                }
             }
         }
     }
 
+    // MARK: - Editorial Header
+
+    private var editorialHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text("THE RITUAL")
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(2.0)
+                    .foregroundStyle(accent.opacity(0.85))
+                Rectangle()
+                    .fill(LinearGradient(colors: [accent.opacity(0.4), .clear], startPoint: .leading, endPoint: .trailing))
+                    .frame(height: 0.5)
+            }
+            Text(stepTitle)
+                .font(.system(size: 32, weight: .semibold, design: .serif))
+                .kerning(-0.5)
+                .foregroundStyle(PepTheme.textPrimary)
+                .contentTransition(.opacity)
+                .animation(.easeInOut(duration: 0.25), value: step)
+            Text(stepBlurb)
+                .font(.system(size: 13, design: .serif))
+                .italic()
+                .foregroundStyle(PepTheme.textSecondary)
+                .contentTransition(.opacity)
+                .animation(.easeInOut(duration: 0.25), value: step)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var stepTitle: String {
         switch step {
-        case 0: return "Supplies"
-        case 1: return "Choose Site"
-        case 2: return "Draw & Check"
-        case 3: return "Inject"
-        default: return "How Did It Go?"
+        case 0: return "Lay out your kit"
+        case 1: return "Choose the site"
+        case 2: return "Draw with care"
+        case 3: return "The slow press"
+        default: return "How did it land?"
         }
     }
 
-    private var progressDots: some View {
-        HStack(spacing: 6) {
+    private var stepBlurb: String {
+        switch step {
+        case 0: return "Begin with a clean field — every tool in its place."
+        case 1: return "Rotate sites; your skin remembers."
+        case 2: return "Verify, then verify again. Numbers matter here."
+        case 3: return "Steady, slow, and unhurried. Count it out."
+        default: return "Capture how it felt — patterns surface in the small notes."
+        }
+    }
+
+    // MARK: - Chapter Rail
+
+    private var chapterRail: some View {
+        HStack(spacing: 8) {
             ForEach(0..<totalSteps, id: \.self) { i in
-                Capsule()
-                    .fill(i <= step ? PepTheme.teal : PepTheme.elevated)
-                    .frame(width: i == step ? 28 : 14, height: 6)
-                    .animation(.spring(response: 0.3), value: step)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(format: "%02d", i + 1))
+                        .font(.system(size: 9, weight: .semibold, design: .serif))
+                        .tracking(1.4)
+                        .foregroundStyle(i == step ? accent : (i < step ? PepTheme.textPrimary.opacity(0.7) : PepTheme.textSecondary.opacity(0.5)))
+                    Capsule()
+                        .fill(i <= step ? accent : PepTheme.elevated)
+                        .frame(height: 2)
+                        .opacity(i <= step ? 1 : 0.6)
+                }
+                .frame(maxWidth: .infinity)
+                .animation(.spring(response: 0.35), value: step)
             }
         }
     }
@@ -113,81 +178,93 @@ struct GuidedInjectionView: View {
     // MARK: - Step 0: Supplies
 
     private var suppliesStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Gather your supplies")
-                .font(.system(.title3, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 14) {
+                EditorialSectionHeading(kicker: "01 — Kit", title: "Tap as you place each piece", accent: accent)
 
-            Text("Tap each item as you place it on your clean work surface.")
-                .font(.subheadline)
-                .foregroundStyle(PepTheme.textSecondary)
-
-            VStack(spacing: 8) {
-                ForEach(supplies, id: \.self) { item in
-                    Button {
-                        withAnimation(.spring()) {
-                            if suppliesChecked.contains(item) { suppliesChecked.remove(item) }
-                            else {
-                                suppliesChecked.insert(item)
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                VStack(spacing: 8) {
+                    ForEach(supplies, id: \.self) { item in
+                        Button {
+                            withAnimation(.spring()) {
+                                if suppliesChecked.contains(item) { suppliesChecked.remove(item) }
+                                else {
+                                    suppliesChecked.insert(item)
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                }
                             }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: suppliesChecked.contains(item) ? "checkmark.circle.fill" : "circle")
+                                    .font(.title3)
+                                    .foregroundStyle(suppliesChecked.contains(item) ? accent : PepTheme.textSecondary)
+                                Text(item)
+                                    .font(.system(size: 14, design: .serif))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                                    .strikethrough(suppliesChecked.contains(item), color: PepTheme.textSecondary)
+                                    .multilineTextAlignment(.leading)
+                                Spacer()
+                            }
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 12)
+                            .background(PepTheme.elevated.opacity(0.5))
+                            .clipShape(.rect(cornerRadius: 10))
                         }
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: suppliesChecked.contains(item) ? "checkmark.circle.fill" : "circle")
-                                .font(.title3)
-                                .foregroundStyle(suppliesChecked.contains(item) ? .green : PepTheme.textSecondary)
-                            Text(item)
-                                .font(.subheadline)
-                                .foregroundStyle(PepTheme.textPrimary)
-                                .strikethrough(suppliesChecked.contains(item), color: PepTheme.textSecondary)
-                            Spacer()
-                        }
-                        .padding(14)
-                        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
-                        .clipShape(.rect(cornerRadius: 12))
+                        .buttonStyle(.plain)
                     }
                 }
             }
+            .editorialCard(accent: accent)
 
             if !availableVials.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("SELECT VIAL")
-                        .font(.system(size: 10, weight: .heavy))
-                        .tracking(1.2)
-                        .foregroundStyle(PepTheme.textSecondary)
-                    ForEach(availableVials) { vial in
-                        Button {
-                            selectedVial = vial
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: selectedVial?.id == vial.id ? "largecircle.fill.circle" : "circle")
-                                    .foregroundStyle(selectedVial?.id == vial.id ? PepTheme.teal : PepTheme.textSecondary)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(vial.compoundName)
-                                        .font(.system(.subheadline, weight: .semibold))
-                                        .foregroundStyle(PepTheme.textPrimary)
-                                    Text("\(vial.dosesRemaining) doses left · \(vial.statusLabel)")
-                                        .font(.caption2)
-                                        .foregroundStyle(vial.statusColor)
-                                }
-                                Spacer()
+                vialPickerCard
+            }
+        }
+    }
+
+    private var vialPickerCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(kicker: "From Inventory", title: "Pick the vial", accent: PepTheme.amber)
+
+            VStack(spacing: 8) {
+                ForEach(availableVials) { vial in
+                    Button {
+                        selectedVial = vial
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: selectedVial?.id == vial.id ? "largecircle.fill.circle" : "circle")
+                                .foregroundStyle(selectedVial?.id == vial.id ? accent : PepTheme.textSecondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(vial.compoundName)
+                                    .font(.system(size: 14, weight: .semibold, design: .serif))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                                Text("\(vial.dosesRemaining) doses left · \(vial.statusLabel)")
+                                    .font(.system(size: 11, design: .serif))
+                                    .italic()
+                                    .foregroundStyle(vial.statusColor)
                             }
-                            .padding(12)
-                            .background(PepTheme.elevated)
-                            .clipShape(.rect(cornerRadius: 12))
+                            Spacer()
                         }
-                        if vial.isExpired {
-                            Text("This vial is past its BUD — use with caution.")
-                                .font(.caption2)
+                        .padding(12)
+                        .background(PepTheme.elevated.opacity(0.5))
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                    if vial.isExpired {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.red)
+                            Text("Past its BUD — use with caution.")
+                                .font(.system(size: 11, design: .serif))
+                                .italic()
                                 .foregroundStyle(.red)
                         }
                     }
                 }
-                .padding(.top, 4)
             }
         }
-        .padding(.bottom, 24)
+        .editorialCard(accent: PepTheme.amber)
     }
 
     private var availableVials: [Vial] {
@@ -197,108 +274,112 @@ struct GuidedInjectionView: View {
     // MARK: - Step 1: Site
 
     private var siteStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Pick an injection site")
-                .font(.system(.title3, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(kicker: "02 — Site", title: "Where today?", accent: accent)
+
             Text("Rotating sites reduces scar tissue and local irritation.")
-                .font(.subheadline)
+                .font(.system(size: 12, design: .serif))
+                .italic()
                 .foregroundStyle(PepTheme.textSecondary)
 
             InjectionBodyMapView(viewModel: viewModel)
 
             if viewModel.siteRecency(viewModel.newDoseSite) == .overused {
-                HStack(spacing: 8) {
+                HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
-                    Text("This site was used in the last 3 days — consider rotating.")
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Used recently")
+                            .font(.system(size: 13, weight: .semibold, design: .serif))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Text("This site was used in the last 3 days — consider rotating.")
+                            .font(.system(size: 12, design: .serif))
+                            .italic()
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    Spacer()
                 }
                 .padding(12)
-                .background(Color.red.opacity(0.1))
+                .background(Color.red.opacity(0.08))
                 .clipShape(.rect(cornerRadius: 12))
             }
         }
-        .padding(.bottom, 24)
+        .editorialCard(accent: accent)
     }
 
     // MARK: - Step 2: Draw & Check
 
     private var drawStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Draw your dose")
-                .font(.system(.title3, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 14) {
+                EditorialSectionHeading(kicker: "03 — Draw", title: "Tonight's number", accent: accent)
 
-            GlassCard {
-                VStack(alignment: .leading, spacing: 10) {
-                    Label("Compound", systemImage: "pill.fill")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
+                HStack(alignment: .firstTextBaseline) {
                     Text(viewModel.newDoseCompound)
-                        .font(.system(.title3, weight: .bold))
+                        .font(.system(size: 16, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.textPrimary)
+                    Spacer()
+                    Text("\(viewModel.newDoseMcg) \(CompoundUnitHelper.unit(for: viewModel.newDoseCompound).rawValue)")
+                        .font(.system(size: 22, weight: .semibold, design: .serif))
+                        .foregroundStyle(accent)
+                }
 
-                    Divider().overlay(PepTheme.separatorColor)
+                Rectangle()
+                    .fill(LinearGradient(colors: [accent.opacity(0.4), .clear], startPoint: .leading, endPoint: .trailing))
+                    .frame(height: 0.5)
 
-                    HStack {
-                        Label("Dose", systemImage: "syringe.fill")
-                            .font(.caption)
+                if let vial = selectedVial {
+                    HStack(spacing: 8) {
+                        Image(systemName: "testtube.2")
+                            .font(.system(size: 11))
+                            .foregroundStyle(PepTheme.textSecondary)
+                        Text("From \(vial.compoundName)")
+                            .font(.system(size: 12, design: .serif))
+                            .italic()
                             .foregroundStyle(PepTheme.textSecondary)
                         Spacer()
-                        Text("\(viewModel.newDoseMcg) \(CompoundUnitHelper.unit(for: viewModel.newDoseCompound).rawValue)")
-                            .font(.system(.title3, design: .rounded, weight: .bold))
-                            .foregroundStyle(PepTheme.teal)
-                    }
-
-                    if let vial = selectedVial {
-                        HStack {
-                            Label("From Vial", systemImage: "testtube.2")
-                                .font(.caption)
-                                .foregroundStyle(PepTheme.textSecondary)
-                            Spacer()
-                            Text(vial.compoundName)
-                                .font(.system(.caption, weight: .semibold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                        }
                     }
                 }
             }
+            .editorialCard(accent: accent)
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text("CHECKLIST")
-                    .font(.system(size: 10, weight: .heavy))
-                    .tracking(1.2)
-                    .foregroundStyle(PepTheme.textSecondary)
-                checkItem("Vial is clear, not cloudy")
-                checkItem("No particles or discoloration")
-                checkItem("Swab vial top before piercing")
-                checkItem("Tap syringe to remove air bubbles")
+            VStack(alignment: .leading, spacing: 14) {
+                EditorialSectionHeading(kicker: "Verify", title: "Before you pierce", accent: PepTheme.violet)
+                VStack(spacing: 10) {
+                    checkItem("Vial is clear, not cloudy")
+                    checkItem("No particles or discoloration")
+                    checkItem("Swab vial top before piercing")
+                    checkItem("Tap syringe to remove air bubbles")
+                }
             }
+            .editorialCard(accent: PepTheme.violet)
 
-            // Safety panel
-            safetyPanel
+            if !safetyIssues.isEmpty {
+                safetyPanel
+            }
         }
-        .padding(.bottom, 24)
     }
 
     private var safetyPanel: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(safetyIssues, id: \.self) { issue in
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(PepTheme.amber)
-                    Text(issue)
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Spacer()
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(kicker: "Caution", title: "Worth a second look", accent: PepTheme.amber)
+            VStack(spacing: 8) {
+                ForEach(safetyIssues, id: \.self) { issue in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(PepTheme.amber)
+                        Text(issue)
+                            .font(.system(size: 13, design: .serif))
+                            .foregroundStyle(PepTheme.textPrimary)
+                        Spacer()
+                    }
+                    .padding(10)
+                    .background(PepTheme.amber.opacity(0.08))
+                    .clipShape(.rect(cornerRadius: 10))
                 }
-                .padding(10)
-                .background(PepTheme.amber.opacity(0.1))
-                .clipShape(.rect(cornerRadius: 10))
             }
         }
+        .editorialCard(accent: PepTheme.amber)
     }
 
     private var safetyIssues: [String] {
@@ -327,10 +408,11 @@ struct GuidedInjectionView: View {
 
     private func checkItem(_ text: String) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: "checkmark.circle")
-                .foregroundStyle(PepTheme.teal)
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 14))
+                .foregroundStyle(accent)
             Text(text)
-                .font(.subheadline)
+                .font(.system(size: 13, design: .serif))
                 .foregroundStyle(PepTheme.textPrimary)
             Spacer()
         }
@@ -339,70 +421,88 @@ struct GuidedInjectionView: View {
     // MARK: - Step 3: Inject
 
     private var injectStep: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Inject")
-                .font(.system(.title3, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
+        VStack(spacing: 16) {
+            timerCard(
+                kicker: "Step One",
+                title: "Swab the site",
+                instruction: "Wipe firmly for ten seconds, then let it air-dry.",
+                seconds: swabTimer,
+                running: swabRunning,
+                tint: PepTheme.blue,
+                buttonLabel: swabRunning ? "Running…" : (swabTimer == 0 ? "Done" : "Start Swab Timer"),
+                action: startSwabTimer
+            )
 
-            GlassCard {
-                VStack(spacing: 12) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "timer")
-                            .foregroundStyle(PepTheme.blue)
-                        Text("Swab site for 10 seconds")
-                            .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-
-                    Text("\(swabTimer)s")
-                        .font(.system(size: 46, weight: .bold, design: .rounded))
-                        .foregroundStyle(swabTimer == 0 ? .green : PepTheme.teal)
-                        .contentTransition(.numericText())
-
-                    Button {
-                        startSwabTimer()
-                    } label: {
-                        Text(swabRunning ? "Running..." : swabTimer == 0 ? "Done" : "Start Swab Timer")
-                            .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(PepTheme.invertedText)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(swabRunning ? PepTheme.textSecondary : PepTheme.blue, in: .capsule)
-                    }
-                    .disabled(swabRunning)
-                }
-            }
-
-            GlassCard {
-                VStack(spacing: 10) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "syringe.fill")
-                            .foregroundStyle(.orange)
-                        Text("Inject slowly, count to 5, withdraw")
-                            .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(PepTheme.textPrimary)
-                    }
-
-                    Text("\(injectionTimer)s")
-                        .font(.system(size: 46, weight: .bold, design: .rounded))
-                        .foregroundStyle(injectionTimer == 0 ? .green : .orange)
-                        .contentTransition(.numericText())
-
-                    Button {
-                        startInjectionTimer()
-                    } label: {
-                        Text(injectionRunning ? "Injecting..." : injectionTimer == 0 ? "Complete" : "Start Injection")
-                            .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(PepTheme.invertedText)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(injectionRunning ? PepTheme.textSecondary : .orange, in: .capsule)
-                    }
-                    .disabled(injectionRunning)
-                }
-            }
+            timerCard(
+                kicker: "Step Two",
+                title: "The slow press",
+                instruction: "Inject slowly, count to five, then withdraw.",
+                seconds: injectionTimer,
+                running: injectionRunning,
+                tint: .orange,
+                buttonLabel: injectionRunning ? "Injecting…" : (injectionTimer == 0 ? "Complete" : "Start Injection"),
+                action: startInjectionTimer
+            )
         }
-        .padding(.bottom, 24)
+    }
+
+    private func timerCard(
+        kicker: String,
+        title: String,
+        instruction: String,
+        seconds: Int,
+        running: Bool,
+        tint: Color,
+        buttonLabel: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            EditorialSectionHeading(kicker: kicker, title: title, accent: tint)
+
+            Text(instruction)
+                .font(.system(size: 13, design: .serif))
+                .italic()
+                .foregroundStyle(PepTheme.textSecondary)
+
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\(seconds)")
+                    .font(.system(size: 64, weight: .semibold, design: .serif))
+                    .foregroundStyle(seconds == 0 ? .green : tint)
+                    .contentTransition(.numericText())
+                Text("s")
+                    .font(.system(size: 18, weight: .semibold, design: .serif))
+                    .foregroundStyle(PepTheme.textSecondary)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button(action: action) {
+                HStack(spacing: 8) {
+                    if running {
+                        ProgressView().tint(.black)
+                    } else {
+                        Image(systemName: seconds == 0 ? "checkmark" : "play.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    Text(buttonLabel)
+                        .font(.system(size: 14, weight: .semibold, design: .serif))
+                        .tracking(0.3)
+                }
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(
+                    LinearGradient(
+                        colors: running ? [PepTheme.textSecondary.opacity(0.7), PepTheme.textSecondary.opacity(0.5)] : [tint, tint.opacity(0.85)],
+                        startPoint: .leading, endPoint: .trailing
+                    )
+                )
+                .clipShape(.rect(cornerRadius: 12))
+                .shadow(color: tint.opacity(running ? 0 : 0.25), radius: 10, x: 0, y: 5)
+            }
+            .disabled(running)
+        }
+        .editorialCard(accent: tint)
     }
 
     private func startSwabTimer() {
@@ -437,19 +537,14 @@ struct GuidedInjectionView: View {
     // MARK: - Step 4: Post
 
     private var postStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("How did it feel?")
-                .font(.system(.title3, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
-            Text("Optional — logging symptoms builds your pattern over time.")
-                .font(.subheadline)
-                .foregroundStyle(PepTheme.textSecondary)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("SYMPTOMS")
-                    .font(.system(size: 10, weight: .heavy))
-                    .tracking(1.2)
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 14) {
+                EditorialSectionHeading(kicker: "After", title: "What did you feel?", accent: accent)
+                Text("Optional — small notes, tracked over time, become real signal.")
+                    .font(.system(size: 12, design: .serif))
+                    .italic()
                     .foregroundStyle(PepTheme.textSecondary)
+
                 FlowLayout(spacing: 8) {
                     ForEach(sideEffectTags, id: \.self) { tag in
                         let isSelected = postSideEffects.contains(tag)
@@ -461,10 +556,11 @@ struct GuidedInjectionView: View {
                                 if isSelected { postSideEffects.remove(tag) }
                                 else { postSideEffects.insert(tag) }
                             }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         } label: {
                             Text(tag)
-                                .font(.system(.caption, weight: .semibold))
-                                .foregroundStyle(isSelected ? PepTheme.invertedText : PepTheme.textPrimary)
+                                .font(.system(size: 12, weight: .semibold, design: .serif))
+                                .foregroundStyle(isSelected ? .black : PepTheme.textPrimary)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 7)
                                 .background(isSelected ? PepTheme.amber : PepTheme.elevated)
@@ -473,52 +569,52 @@ struct GuidedInjectionView: View {
                     }
                 }
             }
+            .editorialCard(accent: accent)
 
             if !postSideEffects.isEmpty && !postSideEffects.contains("None") {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("SEVERITY")
-                            .font(.system(size: 10, weight: .heavy))
-                            .tracking(1.2)
-                            .foregroundStyle(PepTheme.textSecondary)
-                        Spacer()
-                        Text(["Mild", "Moderate", "Significant", "Severe"][max(0, min(severity - 1, 3))])
-                            .font(.system(.caption, weight: .bold))
-                            .foregroundStyle(severityColor)
-                    }
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 14) {
+                    EditorialSectionHeading(
+                        kicker: "Severity",
+                        title: ["Mild", "Moderate", "Significant", "Severe"][max(0, min(severity - 1, 3))],
+                        accent: severityColor
+                    )
+                    HStack(spacing: 8) {
                         ForEach(1...4, id: \.self) { level in
-                            Button { severity = level } label: {
-                                Circle()
-                                    .fill(severity >= level ? colorFor(level) : PepTheme.elevated)
-                                    .frame(width: 36, height: 36)
-                                    .overlay {
-                                        Text("\(level)")
-                                            .font(.system(.subheadline, design: .rounded, weight: .bold))
-                                            .foregroundStyle(severity >= level ? .white : PepTheme.textSecondary)
-                                    }
-                                    .frame(maxWidth: .infinity)
+                            Button {
+                                severity = level
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            } label: {
+                                VStack(spacing: 6) {
+                                    Circle()
+                                        .fill(severity >= level ? colorFor(level) : PepTheme.elevated)
+                                        .frame(width: 38, height: 38)
+                                        .overlay {
+                                            Text("\(level)")
+                                                .font(.system(size: 14, weight: .semibold, design: .serif))
+                                                .foregroundStyle(severity >= level ? .white : PepTheme.textSecondary)
+                                        }
+                                }
+                                .frame(maxWidth: .infinity)
                             }
                         }
                     }
                 }
+                .editorialCard(accent: severityColor)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("NOTES")
-                    .font(.system(size: 10, weight: .heavy))
-                    .tracking(1.2)
-                    .foregroundStyle(PepTheme.textSecondary)
-                TextField("e.g., slight warmth, no bleeding...", text: $postNotes, axis: .vertical)
-                    .font(.subheadline)
+            VStack(alignment: .leading, spacing: 14) {
+                EditorialSectionHeading(kicker: "Notes", title: "A line for the record", accent: PepTheme.violet)
+                TextField("e.g., slight warmth, no bleeding…", text: $postNotes, axis: .vertical)
+                    .focused($notesFocused)
+                    .font(.system(size: 14, design: .serif))
                     .foregroundStyle(PepTheme.textPrimary)
                     .lineLimit(3...5)
                     .padding(12)
-                    .background(PepTheme.elevated)
+                    .background(PepTheme.elevated.opacity(0.5))
                     .clipShape(.rect(cornerRadius: 12))
             }
+            .editorialCard(accent: PepTheme.violet)
         }
-        .padding(.bottom, 24)
     }
 
     private var severityColor: Color { colorFor(severity) }
@@ -534,37 +630,45 @@ struct GuidedInjectionView: View {
 
     // MARK: - Footer
 
-    private var footerBar: some View {
-        HStack(spacing: 10) {
+    private var footerActions: some View {
+        VStack(spacing: 10) {
+            EditorialPrimaryButton(
+                step == totalSteps - 1 ? "Log Injection" : "Continue",
+                icon: step == totalSteps - 1 ? "checkmark.seal.fill" : "arrow.right",
+                accent: accent,
+                action: advance
+            )
+            .disabled(!canAdvance)
+            .opacity(canAdvance ? 1 : 0.4)
+
             if step > 0 {
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     withAnimation { step -= 1 }
                 } label: {
-                    Text("Back")
-                        .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(PepTheme.elevated, in: .capsule)
-                }
-            }
-
-            Button {
-                advance()
-            } label: {
-                Text(step == totalSteps - 1 ? "Log Injection" : "Continue")
-                    .font(.system(.subheadline, weight: .bold))
-                    .foregroundStyle(PepTheme.invertedText)
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("Back to \(prevStepLabel)")
+                            .font(.system(size: 13, weight: .semibold, design: .serif))
+                    }
+                    .foregroundStyle(PepTheme.textSecondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(PepTheme.teal, in: .capsule)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
             }
-            .disabled(!canAdvance)
         }
-        .padding(.horizontal)
-        .padding(.bottom, 14)
-        .padding(.top, 8)
-        .background(PepTheme.background.opacity(0.95))
+    }
+
+    private var prevStepLabel: String {
+        switch step - 1 {
+        case 0: return "kit"
+        case 1: return "site"
+        case 2: return "draw"
+        case 3: return "inject"
+        default: return "start"
+        }
     }
 
     private var canAdvance: Bool {
@@ -578,14 +682,13 @@ struct GuidedInjectionView: View {
     private func advance() {
         if step < totalSteps - 1 {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            withAnimation { step += 1 }
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) { step += 1 }
         } else {
             finish()
         }
     }
 
     private func finish() {
-        // Record symptoms & notes
         if !postSideEffects.isEmpty && !postSideEffects.contains("None") {
             for tag in postSideEffects {
                 viewModel.newEffectName = tag
@@ -595,7 +698,6 @@ struct GuidedInjectionView: View {
             }
         }
 
-        // Append combined notes for dose
         let combined: String = {
             var parts: [String] = []
             if !postSideEffects.isEmpty { parts.append("Symptoms: " + postSideEffects.joined(separator: ", ")) }
@@ -604,7 +706,6 @@ struct GuidedInjectionView: View {
         }()
         viewModel.newDoseNotes = combined
 
-        // Log dose (will decrement vial on return)
         let doseMcg = CompoundUnitHelper.toMcg(Double(viewModel.newDoseMcg) ?? 0, for: viewModel.newDoseCompound)
         viewModel.logDose()
         if let vial = selectedVial {
