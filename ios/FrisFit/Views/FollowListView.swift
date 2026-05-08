@@ -94,10 +94,7 @@ struct FollowListView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(users) { user in
-                            NavigationLink(value: ProfileDestination.userProfile(user)) {
-                                followUserRow(user)
-                            }
-                            .buttonStyle(.plain)
+                            followUserRow(user)
                             Divider().overlay(PepTheme.separatorColor)
                         }
                     }
@@ -115,29 +112,22 @@ struct FollowListView: View {
 
     private func followUserRow(_ user: SocialUser) -> some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [user.avatarColor.opacity(0.8), user.avatarColor.opacity(0.4)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 48, height: 48)
-                .overlay {
-                    Text(user.avatarInitial)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(user.name)
-                    .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Text("@\(user.username)")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
+            NavigationLink(value: ProfileDestination.userProfile(user)) {
+                avatarView(user)
             }
+            .buttonStyle(.plain)
+
+            NavigationLink(value: ProfileDestination.userProfile(user)) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(user.name)
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("@\(user.username)")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+            .buttonStyle(.plain)
 
             Spacer()
 
@@ -147,6 +137,24 @@ struct FollowListView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .contentShape(.rect)
+    }
+
+    private func avatarView(_ user: SocialUser) -> some View {
+        Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [user.avatarColor.opacity(0.8), user.avatarColor.opacity(0.4)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 48, height: 48)
+            .overlay {
+                Text(user.avatarInitial)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
     }
 
     private func loadUsers() async {
