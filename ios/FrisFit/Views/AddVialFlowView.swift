@@ -982,25 +982,44 @@ struct AddVialFlowView: View {
         let severity: Severity
     }
 
-    /// Compares the user's starting dose against the compound's clinical zones.
-    /// Returns a caution when it crosses into yellow, danger when it hits red.
+    /// Compares the user's starting dose against the compound's dosing zones,
+    /// and surfaces the *specific* side effects for that peptide (pulled from
+    /// the discovery database) instead of generic clinical-trial language.
     private var doseWarning: DoseWarning? {
         guard let pd = protocolDefault, let dose = startingDoseMcg else { return nil }
-        if dose >= pd.redZone.low {
+        let isRed = dose >= pd.redZone.low
+        let isYellow = !isRed && dose >= pd.yellowZone.low
+        guard isRed || isYellow else { return nil }
+
+        let name = pd.compoundName
+        let effects = peptideSpecificSideEffects(for: name)
+        let effectsText: String = {
+            if effects.isEmpty { return "" }
+            return " Common side effects of \(name) include \(effects.joined(separator: ", "))."
+        }()
+
+        if isRed {
             return DoseWarning(
-                title: "Above typical clinical range for \(pd.compoundName)",
-                detail: pd.redZone.warning,
+                title: "Increased risk of side effects at this dose",
+                detail: "This dose is well above the typical starting range for \(name) and meaningfully increases the likelihood and severity of side effects.\(effectsText)",
                 severity: .danger
             )
         }
-        if dose >= pd.yellowZone.low {
-            return DoseWarning(
-                title: "Higher than the conservative starting range",
-                detail: pd.yellowZone.warning,
-                severity: .caution
-            )
-        }
-        return nil
+        return DoseWarning(
+            title: "Higher chance of side effects at this dose",
+            detail: "This is above the conservative starting range for \(name) and may increase the chance of side effects.\(effectsText)",
+            severity: .caution
+        )
+    }
+
+    /// Pulls the peptide-specific side effects from the discovery database
+    /// (CompoundDatabase). Prefers `detailedSideEffects.common`, falls back to
+    /// the flat `sideEffects` list. Returned lowercased for natural sentence flow.
+    private func peptideSpecificSideEffects(for compoundName: String) -> [String] {
+        guard let profile = CompoundDatabase.all.first(where: { $0.name == compoundName }) else { return [] }
+        let common = profile.detailedSideEffects.common
+        let source = !common.isEmpty ? common : profile.sideEffects
+        return source.prefix(5).map { $0.lowercased() }
     }
 
     private func doseWarningCallout(_ w: DoseWarning) -> some View {
