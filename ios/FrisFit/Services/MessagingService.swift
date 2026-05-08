@@ -397,18 +397,27 @@ final class MessagingService {
     }
 
     func isFollowing(followerId: String, followingId: String) async throws -> Bool {
-        let response: [SupabaseFollow] = try await supabase
+        // Use a minimal row type so decoding doesn't fail when columns we don't
+        // need (follower_id / following_id) aren't selected. The original code
+        // selected only `id` and tried to decode into `SupabaseFollow`, which
+        // has non-optional `follower_id` / `following_id` — decoding silently
+        // failed, the caller swallowed the error, and the UI flipped back to
+        // "not following" on next open even though the row was saved.
+        struct FollowIdRow: Decodable, Sendable { let id: String? }
+        let response: [FollowIdRow] = try await supabase
             .from("follows")
             .select("id")
             .eq("follower_id", value: followerId)
             .eq("following_id", value: followingId)
+            .limit(1)
             .execute()
             .value
         return !response.isEmpty
     }
 
     func fetchFollowing(userId: String, limit: Int = 1000, offset: Int = 0) async throws -> [String] {
-        let response: [SupabaseFollow] = try await supabase
+        struct FollowingIdRow: Decodable, Sendable { let following_id: String }
+        let response: [FollowingIdRow] = try await supabase
             .from("follows")
             .select("following_id")
             .eq("follower_id", value: userId)
@@ -419,7 +428,8 @@ final class MessagingService {
     }
 
     func fetchFollowers(userId: String, limit: Int = 1000, offset: Int = 0) async throws -> [String] {
-        let response: [SupabaseFollow] = try await supabase
+        struct FollowerIdRow: Decodable, Sendable { let follower_id: String }
+        let response: [FollowerIdRow] = try await supabase
             .from("follows")
             .select("follower_id")
             .eq("following_id", value: userId)
