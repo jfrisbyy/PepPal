@@ -982,54 +982,100 @@ struct ManageProtocolsSheet: View {
     let onOpen: (PeptideProtocol) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var confirmDelete: PeptideProtocol?
+    @State private var filter: LibraryFilter = .all
 
-    private var sorted: [PeptideProtocol] {
+    private enum LibraryFilter: String, CaseIterable, Identifiable {
+        case all = "All"
+        case active = "Active"
+        case archived = "Archived"
+        var id: String { rawValue }
+    }
+
+    private var allSorted: [PeptideProtocol] {
         viewModel.allProtocols.sorted { a, b in
             if a.isActive != b.isActive { return a.isActive && !b.isActive }
             return a.startDate > b.startDate
         }
     }
 
+    private var activeProtocols: [PeptideProtocol] {
+        allSorted.filter { $0.isActive }
+    }
+
+    private var archivedProtocols: [PeptideProtocol] {
+        allSorted.filter { !$0.isActive }
+    }
+
+    private var visibleProtocols: [PeptideProtocol] {
+        switch filter {
+        case .all: return allSorted
+        case .active: return activeProtocols
+        case .archived: return archivedProtocols
+        }
+    }
+
+    private var totalCompounds: Int {
+        allSorted.reduce(0) { $0 + $1.compounds.count }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 12) {
-                    Button(action: onAddNew) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 20))
-                                .foregroundStyle(PepTheme.teal)
-                            Text("Add New Protocol")
-                                .font(.system(.subheadline, weight: .semibold))
-                                .foregroundStyle(PepTheme.textPrimary)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(PepTheme.textSecondary)
-                        }
-                        .padding(14)
-                        .background(PepTheme.teal.opacity(0.08))
-                        .clipShape(.rect(cornerRadius: 14))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .strokeBorder(PepTheme.teal.opacity(0.25), lineWidth: 0.5)
-                        )
-                    }
-                    .buttonStyle(.plain)
+                VStack(alignment: .leading, spacing: 22) {
+                    editorialHeader
+                    libraryStats
+                    filterBar
 
-                    ForEach(sorted) { proto in
-                        manageRow(proto)
+                    if visibleProtocols.isEmpty {
+                        emptyState
+                    } else {
+                        if filter == .all {
+                            if !activeProtocols.isEmpty {
+                                section(
+                                    kicker: "Now",
+                                    title: "Currently Running",
+                                    accent: PepTheme.teal,
+                                    items: activeProtocols
+                                )
+                            }
+                            if !archivedProtocols.isEmpty {
+                                section(
+                                    kicker: "Library",
+                                    title: "Archived & Past",
+                                    accent: PepTheme.violet,
+                                    items: archivedProtocols
+                                )
+                            }
+                        } else {
+                            section(
+                                kicker: filter == .active ? "Now" : "Library",
+                                title: filter == .active ? "Currently Running" : "Archived & Past",
+                                accent: filter == .active ? PepTheme.teal : PepTheme.violet,
+                                items: visibleProtocols
+                            )
+                        }
                     }
+
+                    addNewButton
+                        .padding(.top, 4)
                 }
-                .padding()
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 32)
             }
             .scrollIndicators(.hidden)
             .appBackground()
-            .navigationTitle("Manage Protocols")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Library")
+                        .font(.system(size: 11, weight: .semibold))
+                        .tracking(2.4)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .font(.system(size: 14, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.teal)
                 }
             }
@@ -1048,50 +1094,238 @@ struct ManageProtocolsSheet: View {
         }
     }
 
+    // MARK: - Editorial header
+
+    private var editorialHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("VOL · 01 — PROTOCOLS")
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(2.4)
+                .foregroundStyle(PepTheme.teal.opacity(0.85))
+            Text("Manage your\nprotocol library.")
+                .font(.system(size: 32, weight: .semibold, design: .serif))
+                .kerning(-0.6)
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineSpacing(2)
+            Text("Every cycle you've started — running, archived, and complete — kept in one quiet ledger.")
+                .font(.system(size: 13, design: .serif))
+                .italic()
+                .foregroundStyle(PepTheme.textSecondary)
+                .padding(.top, 2)
+            LinearGradient(
+                colors: [PepTheme.teal.opacity(0.5), PepTheme.teal.opacity(0.0)],
+                startPoint: .leading, endPoint: .trailing
+            )
+            .frame(height: 0.5)
+            .padding(.top, 6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Stats strip
+
+    private var libraryStats: some View {
+        HStack(spacing: 0) {
+            statCell("\(allSorted.count)", "Total")
+            divider
+            statCell("\(activeProtocols.count)", "Active")
+            divider
+            statCell("\(archivedProtocols.count)", "Archived")
+            divider
+            statCell("\(totalCompounds)", "Compounds")
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 4)
+        .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [PepTheme.teal.opacity(0.18), PepTheme.glassBorderBottom],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    private func statCell(_ value: String, _ label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(.title3, design: .serif, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.4)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(PepTheme.shimmerHighlight)
+            .frame(width: 0.5, height: 28)
+    }
+
+    // MARK: - Filter bar
+
+    private var filterBar: some View {
+        HStack(spacing: 8) {
+            ForEach(LibraryFilter.allCases) { f in
+                Button {
+                    withAnimation(.snappy(duration: 0.22)) { filter = f }
+                } label: {
+                    let selected = filter == f
+                    Text(f.rawValue)
+                        .font(.system(size: 12, weight: .semibold, design: .serif))
+                        .tracking(0.4)
+                        .foregroundStyle(selected ? .black : PepTheme.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            Group {
+                                if selected {
+                                    LinearGradient(
+                                        colors: [PepTheme.teal, PepTheme.teal.opacity(0.85)],
+                                        startPoint: .leading, endPoint: .trailing
+                                    )
+                                } else {
+                                    PepTheme.cardSurface.opacity(0.6)
+                                }
+                            }
+                        )
+                        .clipShape(.capsule)
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(
+                                    selected ? Color.clear : PepTheme.glassBorderBottom,
+                                    lineWidth: 0.5
+                                )
+                        )
+                }
+                .buttonStyle(.plain)
+                .sensoryFeedback(.selection, trigger: filter)
+            }
+            Spacer()
+        }
+    }
+
+    // MARK: - Section
+
+    private func section(kicker: String, title: String, accent: Color, items: [PeptideProtocol]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            EditorialSectionHeading(kicker: kicker, title: title, accent: accent)
+            VStack(spacing: 10) {
+                ForEach(items) { proto in
+                    manageRow(proto)
+                }
+            }
+        }
+    }
+
+    // MARK: - Empty state
+
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "books.vertical")
+                .font(.system(size: 28, weight: .light))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.6))
+            Text(filter == .archived ? "Nothing archived yet" : "No protocols here")
+                .font(.system(size: 16, weight: .semibold, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+            Text(filter == .archived
+                 ? "Cycles you finish or archive will rest here."
+                 : "Start your first protocol to begin your library.")
+                .font(.system(size: 12, design: .serif))
+                .italic()
+                .foregroundStyle(PepTheme.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 36)
+        .editorialCard()
+    }
+
+    // MARK: - Add new button
+
+    private var addNewButton: some View {
+        EditorialPrimaryButton(
+            "Start a New Protocol",
+            icon: "plus",
+            accent: PepTheme.teal,
+            action: onAddNew
+        )
+    }
+
+    // MARK: - Row
+
     private func manageRow(_ proto: PeptideProtocol) -> some View {
         Button {
             onOpen(proto)
         } label: {
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 14) {
+                // Icon medallion
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(proto.goal.color.opacity(0.15))
-                        .frame(width: 40, height: 40)
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [proto.goal.color.opacity(0.22), proto.goal.color.opacity(0.06)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 44, height: 44)
                     Image(systemName: proto.goal.icon)
-                        .font(.system(size: 15))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(proto.goal.color)
                 }
+                .overlay(
+                    Circle().strokeBorder(proto.goal.color.opacity(0.25), lineWidth: 0.5)
+                )
 
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(proto.name)
-                            .font(.system(.subheadline, weight: .bold))
+                            .font(.system(size: 17, weight: .semibold, design: .serif))
+                            .kerning(-0.2)
                             .foregroundStyle(PepTheme.textPrimary)
                             .lineLimit(1)
-                        if proto.isActive {
-                            Text("ACTIVE")
-                                .font(.system(size: 9, weight: .heavy))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(PepTheme.teal)
-                                .clipShape(.capsule)
+                        Spacer(minLength: 4)
+                        statusPill(for: proto)
+                    }
+
+                    Text(proto.goal.rawValue.uppercased())
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(1.6)
+                        .foregroundStyle(proto.goal.color.opacity(0.85))
+
+                    HStack(spacing: 10) {
+                        metaItem(icon: "calendar", text: proto.weekLabel)
+                        metaDot
+                        metaItem(
+                            icon: "flask.fill",
+                            text: "\(proto.compounds.count) compound\(proto.compounds.count == 1 ? "" : "s")"
+                        )
+                        if !proto.doseLog.isEmpty {
+                            metaDot
+                            metaItem(icon: "checkmark.circle.fill", text: "\(proto.doseLog.count) dose\(proto.doseLog.count == 1 ? "" : "s")")
                         }
                     }
-                    HStack(spacing: 6) {
-                        Text(proto.weekLabel)
-                            .font(.caption2)
-                            .foregroundStyle(PepTheme.textSecondary)
-                        Text("·")
-                            .font(.caption2)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.5))
-                        Text("\(proto.compounds.count) compound\(proto.compounds.count == 1 ? "" : "s")")
-                            .font(.caption2)
-                            .foregroundStyle(PepTheme.textSecondary)
+
+                    if let firstCompound = proto.compounds.first {
+                        Text(
+                            proto.compounds.count > 1
+                            ? "\(firstCompound.compoundName) + \(proto.compounds.count - 1) more"
+                            : firstCompound.compoundName
+                        )
+                        .font(.system(size: 12, design: .serif))
+                        .italic()
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .lineLimit(1)
+                        .padding(.top, 2)
                     }
                 }
-
-                Spacer()
 
                 Menu {
                     if proto.isActive {
@@ -1100,17 +1334,17 @@ struct ManageProtocolsSheet: View {
                         } label: {
                             Label("Archive", systemImage: "archivebox")
                         }
+                        Button {
+                            viewModel.setActiveProtocol(proto)
+                        } label: {
+                            Label("Set as Primary", systemImage: "star")
+                        }
                     } else {
                         Button {
                             viewModel.reactivateProtocolFromHome(proto)
                         } label: {
                             Label("Reactivate", systemImage: "play.circle")
                         }
-                    }
-                    Button {
-                        viewModel.setActiveProtocol(proto)
-                    } label: {
-                        Label("Set as Primary", systemImage: "star")
                     }
                     Button(role: .destructive) {
                         confirmDelete = proto
@@ -1119,25 +1353,77 @@ struct ManageProtocolsSheet: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(PepTheme.textSecondary)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 30, height: 30)
                         .background(PepTheme.elevated.opacity(0.5))
                         .clipShape(.circle)
                 }
+                .buttonStyle(.plain)
             }
-            .padding(12)
-            .background(PepTheme.cardSurface.opacity(0.6))
-            .clipShape(.rect(cornerRadius: 12))
+            .padding(14)
+            .background(PepTheme.cardSurface.overlay(PepTheme.cardOverlay))
+            .clipShape(.rect(cornerRadius: 16))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(
-                        proto.isActive ? proto.goal.color.opacity(0.3) : PepTheme.glassBorderBottom,
+                        LinearGradient(
+                            colors: proto.isActive
+                                ? [proto.goal.color.opacity(0.30), PepTheme.glassBorderBottom]
+                                : [PepTheme.glassBorderTop, PepTheme.glassBorderBottom],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ),
                         lineWidth: 0.5
                     )
             )
+            .opacity(proto.isActive ? 1.0 : 0.86)
         }
         .buttonStyle(.plain)
+    }
+
+    private func statusPill(for proto: PeptideProtocol) -> some View {
+        let isActive = proto.isActive
+        let label = isActive ? "ACTIVE" : "ARCHIVED"
+        let color: Color = isActive ? PepTheme.teal : PepTheme.textSecondary
+        return Text(label)
+            .font(.system(size: 8, weight: .heavy))
+            .tracking(1.4)
+            .foregroundStyle(isActive ? .black : PepTheme.textSecondary)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(
+                Group {
+                    if isActive {
+                        LinearGradient(
+                            colors: [color, color.opacity(0.85)],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    } else {
+                        color.opacity(0.12)
+                    }
+                }
+            )
+            .clipShape(.capsule)
+            .overlay(
+                Capsule().strokeBorder(color.opacity(isActive ? 0 : 0.35), lineWidth: 0.5)
+            )
+    }
+
+    private func metaItem(icon: String, text: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(PepTheme.textSecondary.opacity(0.75))
+            Text(text)
+                .font(.system(size: 11, design: .serif))
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+    }
+
+    private var metaDot: some View {
+        Circle()
+            .fill(PepTheme.textSecondary.opacity(0.35))
+            .frame(width: 2.5, height: 2.5)
     }
 }
 
