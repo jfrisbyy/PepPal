@@ -154,6 +154,14 @@ final class MessagesViewModel {
             let userId = try AuthService.shared.currentUserId()
             let results = try await messagingService.fetchConversations(userId: userId)
 
+            // Snapshot any locally-created threads so we don't wipe them when
+            // the server response arrives. A fresh DM thread (created via
+            // `startConversation` while loadConversations was still in flight)
+            // would otherwise vanish from `conversations`, which makes
+            // `sendMessage` silently bail since it can't find the index — the
+            // user taps send and no bubble ever appears.
+            let existing = conversations
+
             var loaded: [Conversation] = []
             for result in results {
                 let participant = messagingService.socialUserFromAuthor(result.participant)
@@ -163,14 +171,44 @@ final class MessagesViewModel {
                     lastMessages.append(makeDM(from: msg))
                 }
 
-                let conv = Conversation(
-                    id: UUID(uuidString: result.conversation.id) ?? UUID(),
-                    participant: participant,
-                    messages: lastMessages,
-                    unreadCount: result.unreadCount,
-                    supabaseConversationId: result.conversation.id
-                )
-                loaded.append(conv)
+                // Preserve the local UUID + any optimistic / loaded messages
+                // for an existing thread with this participant so views
+                // holding the localId keep rendering. Match by participant id
+                // (server convo id may differ from our localId).
+                if let prior = existing.first(where: { $0.participant.id == participant.id }) {
+                    var merged = prior
+                    merged.supabaseConversationId = result.conversation.id
+                    merged.unreadCount = result.unreadCount
+                    // Merge in the server's last message if we don't have it.
+                    if let serverLast = lastMessages.last {
+                        let hasIt = merged.messages.contains { msg in
+                            if let sid = msg.supabaseId { return sid == serverLast.supabaseId }
+                            return false
+                        }
+                        if !hasIt {
+                            merged.messages.append(serverLast)
+                            merged.messages.sort { $0.timestamp < $1.timestamp }
+                        }
+                    }
+                    loaded.append(merged)
+                } else {
+                    let conv = Conversation(
+                        id: UUID(uuidString: result.conversation.id) ?? UUID(),
+                        participant: participant,
+                        messages: lastMessages,
+                        unreadCount: result.unreadCount,
+                        supabaseConversationId: result.conversation.id
+                    )
+                    loaded.append(conv)
+                }
+            }
+
+            // Carry over local-only threads (no supabase id yet, or whose
+            // server row hasn't propagated to this fetch yet) so they don't
+            // disappear from the UI.
+            let loadedParticipantIds = Set(loaded.map { $0.participant.id })
+            for prior in existing where !loadedParticipantIds.contains(prior.participant.id) {
+                loaded.append(prior)
             }
 
             conversations = loaded
