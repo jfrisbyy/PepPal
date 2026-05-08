@@ -25,4 +25,7 @@ extension Notification.Name {
     /// userInfo["followerId"] = follower user id, userInfo["followingId"] = target user id,
     /// userInfo["isFollowing"] = Bool indicating new state.
     static let followGraphChanged = Notification.Name("followGraphChanged")
+    /// Posted when a vial is deleted along with its protocol in one step.
+    /// userInfo["compoundName"] = String — the compound whose protocols should be removed.
+    static let protocolShouldDeleteByCompound = Notification.Name("protocolShouldDeleteByCompound")
 }

@@ -381,6 +381,7 @@ struct AddVialFlowView: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: pickedGoal?.id)
             }
             .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .appBackground()
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
@@ -407,24 +408,24 @@ struct AddVialFlowView: View {
                         .textCase(.uppercase)
                         .foregroundStyle(PepTheme.textSecondary)
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button {
+                        dismissKeyboard()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 12, weight: .bold))
+                            Text("Done")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .foregroundStyle(PepTheme.teal)
+                    }
+                }
             }
             .safeAreaInset(edge: .bottom) {
                 if entry == .vial {
                     saveBar
-                }
-            }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        focusedField = nil
-                        UIApplication.shared.sendAction(
-                            #selector(UIResponder.resignFirstResponder),
-                            to: nil, from: nil, for: nil
-                        )
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(PepTheme.teal)
                 }
             }
             .onAppear {
@@ -963,8 +964,80 @@ struct AddVialFlowView: View {
                             .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
+
+                if let warning = doseWarning {
+                    doseWarningCallout(warning)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
         }
+    }
+
+    // MARK: - Dose warning
+
+    private struct DoseWarning {
+        enum Severity { case caution, danger }
+        let title: String
+        let detail: String
+        let severity: Severity
+    }
+
+    /// Compares the user's starting dose against the compound's clinical zones.
+    /// Returns a caution when it crosses into yellow, danger when it hits red.
+    private var doseWarning: DoseWarning? {
+        guard let pd = protocolDefault, let dose = startingDoseMcg else { return nil }
+        if dose >= pd.redZone.low {
+            return DoseWarning(
+                title: "Above typical clinical range for \(pd.compoundName)",
+                detail: pd.redZone.warning,
+                severity: .danger
+            )
+        }
+        if dose >= pd.yellowZone.low {
+            return DoseWarning(
+                title: "Higher than the conservative starting range",
+                detail: pd.yellowZone.warning,
+                severity: .caution
+            )
+        }
+        return nil
+    }
+
+    private func doseWarningCallout(_ w: DoseWarning) -> some View {
+        let color: Color = w.severity == .danger ? .red : PepTheme.amber
+        return HStack(alignment: .top, spacing: 10) {
+            Image(systemName: w.severity == .danger ? "exclamationmark.octagon.fill" : "exclamationmark.triangle.fill")
+                .foregroundStyle(color)
+                .font(.system(size: 14, weight: .semibold))
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(w.title)
+                    .font(.system(size: 12, weight: .semibold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text(w.detail)
+                    .font(.system(size: 11, design: .serif))
+                    .italic()
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(color.opacity(0.35), lineWidth: 0.6)
+        )
+        .clipShape(.rect(cornerRadius: 10))
+    }
+
+    private func dismissKeyboard() {
+        focusedField = nil
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
     }
 
     private var defaultDosePlaceholder: String {
@@ -1663,10 +1736,10 @@ struct AddVialFlowView: View {
 
     private func regenerateTitrationIfNeeded(force: Bool = false) async {
         guard let compound = pickedCompound, let dose = startingDoseMcg else { return }
-        if strategy == .maintain && !force {
-            // Minimal one-row plan for maintain
+        if strategy == .maintain {
+            // Show every individual week the vial can support so users can edit week-by-week.
             await MainActor.run {
-                titrationSteps = [TitrationScheduleStep(week: 1, doseMcg: dose, label: "Maintenance")]
+                titrationSteps = makeMaintenanceWeeks(dose: dose)
                 aiNote = ""
                 titrationError = nil
             }
@@ -1684,7 +1757,7 @@ struct AddVialFlowView: View {
                 frequency: frequency
             )
             await MainActor.run {
-                titrationSteps = result.steps
+                titrationSteps = expandStepsToWeekly(result.steps)
                 aiNote = result.note
                 titrationLoading = false
             }
@@ -1774,6 +1847,45 @@ struct AddVialFlowView: View {
             if take < plannedDoses { break }
         }
         return kept.isEmpty ? Array(sorted.prefix(1)) : kept
+    }
+
+    /// Generates per-week rows at a flat dose, capped to the vial's actual capacity.
+    private func makeMaintenanceWeeks(dose: Double) -> [TitrationScheduleStep] {
+        let budget = weeksBudgetAtStartingDose ?? 4
+        let count = max(1, min(Int(budget.rounded(.down)), 26))
+        return (1...count).map { week in
+            TitrationScheduleStep(
+                week: week,
+                doseMcg: dose,
+                label: week == 1 ? "Maintenance" : ""
+            )
+        }
+    }
+
+    /// Expands a sparse plan (e.g. weeks 1, 4, 8) into per-week rows so every week
+    /// is visible and editable. Intermediate weeks inherit the prior step's dose.
+    private func expandStepsToWeekly(_ sparse: [TitrationScheduleStep]) -> [TitrationScheduleStep] {
+        let sorted = sparse.sorted { $0.week < $1.week }
+        guard !sorted.isEmpty else { return [] }
+        var result: [TitrationScheduleStep] = []
+        for (i, step) in sorted.enumerated() {
+            let endWeek: Int
+            if i + 1 < sorted.count {
+                endWeek = max(step.week, sorted[i + 1].week - 1)
+            } else {
+                endWeek = step.week
+            }
+            for w in step.week...endWeek {
+                result.append(
+                    TitrationScheduleStep(
+                        week: w,
+                        doseMcg: step.doseMcg,
+                        label: w == step.week ? step.label : ""
+                    )
+                )
+            }
+        }
+        return result
     }
 
     private func addTitrationStep() {

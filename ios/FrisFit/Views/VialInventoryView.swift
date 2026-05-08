@@ -424,6 +424,7 @@ struct AddEditVialSheet: View {
     @State private var expirationDate: Date = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
     @State private var budDays: Int = 30
     @State private var showCompoundPicker: Bool = false
+    @State private var showDeleteConfirm: Bool = false
 
     init(vial: Vial?, onSave: @escaping (Vial) -> Void, onDelete: (() -> Void)? = nil) {
         self.existing = vial
@@ -501,11 +502,38 @@ struct AddEditVialSheet: View {
                 if existing != nil, let onDelete {
                     Section {
                         Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("Delete Vial & Protocol", systemImage: "trash")
+                        }
+                    } footer: {
+                        Text("Removes this vial and any linked protocol in one step.")
+                            .font(.caption2)
+                    }
+                    .confirmationDialog(
+                        "Delete this vial and its protocol?",
+                        isPresented: $showDeleteConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Delete vial & protocol", role: .destructive) {
+                            // Ask any owners of protocol state to remove protocols by compound.
+                            if !compoundName.isEmpty {
+                                NotificationCenter.default.post(
+                                    name: .protocolShouldDeleteByCompound,
+                                    object: nil,
+                                    userInfo: ["compoundName": compoundName]
+                                )
+                            }
                             onDelete()
                             dismiss()
-                        } label: {
-                            Label("Delete Vial", systemImage: "trash")
                         }
+                        Button("Delete vial only") {
+                            onDelete()
+                            dismiss()
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("This permanently removes the vial. The linked protocol and its titration plan will also be removed.")
                     }
                 }
             }

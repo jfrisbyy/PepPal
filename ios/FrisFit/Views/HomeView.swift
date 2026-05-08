@@ -126,6 +126,17 @@ struct HomeView: View {
                     viewModel.refreshAIDeckIfNeeded()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .protocolShouldDeleteByCompound)) { note in
+                guard let compound = note.userInfo?["compoundName"] as? String,
+                      !compound.isEmpty else { return }
+                let matches = viewModel.allProtocols.filter { proto in
+                    proto.compounds.contains { $0.compoundName.caseInsensitiveCompare(compound) == .orderedSame }
+                        || proto.name.localizedCaseInsensitiveContains(compound)
+                }
+                for proto in matches {
+                    viewModel.deleteProtocolFromHome(proto)
+                }
+            }
             .onReceive(NotificationCenter.default.publisher(for: .linkedTaskQuickAction)) { note in
                 guard let label = note.userInfo?["action"] as? String else { return }
                 switch label {
