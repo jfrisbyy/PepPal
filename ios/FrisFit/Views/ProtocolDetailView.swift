@@ -7,6 +7,7 @@ struct ProtocolDetailView: View {
     @State private var homeViewModel = HomeViewModel()
     @State private var todaysPlanVM = TodaysPlanViewModel.shared
     @State private var editingBatchCompound: ProtocolCompound? = nil
+    @State private var showTitrationBuilder: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     init(protocolData: PeptideProtocol, initialCompoundName: String? = nil) {
@@ -54,6 +55,8 @@ struct ProtocolDetailView: View {
                 if viewModel.isWeightLoss {
                     titrationSection
                     weightLossTrackingSection
+                } else if viewModel.currentTitrationSchedule != nil {
+                    titrationSection
                 }
                 if viewModel.isHealing {
                     healingTrackingSection
@@ -221,6 +224,15 @@ struct ProtocolDetailView: View {
             }
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showTitrationBuilder) {
+            TitrationBuilderView(
+                protocolId: viewModel.protocolData.id,
+                compoundName: viewModel.protocolData.compounds.first?.compoundName ?? viewModel.protocolData.name,
+                existing: viewModel.currentTitrationSchedule
+            ) { schedule in
+                viewModel.saveTitrationSchedule(schedule)
+            }
         }
         .onAppear {
             viewModel.refreshFromSupabase()
@@ -841,9 +853,36 @@ struct ProtocolDetailView: View {
     private var titrationSection: some View {
         CollapsibleEditorialSection(
             eyebrow: "Titration Schedule",
-            storageKey: "protocol.titration"
+            storageKey: "protocol.titration",
+            trailingAction: {
+                Button {
+                    showTitrationBuilder = true
+                } label: {
+                    Text(viewModel.currentTitrationSchedule == nil && !viewModel.titrationSteps.isEmpty ? "CUSTOMIZE" : "EDIT")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(PepTheme.teal)
+                }
+                .buttonStyle(.plain)
+            }
         ) {
             VStack(spacing: 0) {
+                if viewModel.titrationSteps.isEmpty {
+                    Button {
+                        showTitrationBuilder = true
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "plus.circle")
+                                .font(.system(size: 16, weight: .medium))
+                            Text("Add titration plan")
+                                .font(.system(.subheadline, weight: .semibold))
+                            Spacer()
+                        }
+                        .foregroundStyle(PepTheme.teal)
+                        .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                }
                 ForEach(Array(viewModel.titrationSteps.enumerated()), id: \.element.id) { index, step in
                     Button { viewModel.toggleTitrationStep(step) } label: {
                     HStack(spacing: 14) {

@@ -601,6 +601,11 @@ final class ProtocolDetailViewModel {
     // MARK: - Setup
 
     private func setupTitrationSteps() {
+        // Prefer the user-authored schedule from AddVialFlow / TitrationBuilder.
+        if let stored = TitrationScheduleStore.shared.schedule(for: protocolData.id) {
+            titrationSteps = stepsFromStoredSchedule(stored)
+            return
+        }
         guard protocolData.goal == .weightLoss else { return }
         titrationSteps = [
             TitrationStep(weekNumber: 1, doseMcg: 250, label: "Starting Dose", isCompleted: protocolData.currentDay > 7),
@@ -609,6 +614,34 @@ final class ProtocolDetailViewModel {
             TitrationStep(weekNumber: 6, doseMcg: 1700, label: "Approaching Target", isCompleted: protocolData.currentDay > 42),
             TitrationStep(weekNumber: 8, doseMcg: 2400, label: "Target Dose"),
         ]
+    }
+
+    /// Returns the user's saved titration schedule (from AddVialFlow or the
+    /// in-app builder), if one exists for this protocol.
+    var currentTitrationSchedule: TitrationSchedule? {
+        TitrationScheduleStore.shared.schedule(for: protocolData.id)
+    }
+
+    /// Convert the persisted schedule into the detail view's TitrationStep rows,
+    /// preserving completion state from the existing in-memory steps.
+    private func stepsFromStoredSchedule(_ schedule: TitrationSchedule) -> [TitrationStep] {
+        let day = protocolData.currentDay
+        return schedule.sortedSteps.map { step in
+            let existing = titrationSteps.first(where: { $0.weekNumber == step.week })
+            let auto = day > step.week * 7
+            return TitrationStep(
+                weekNumber: step.week,
+                doseMcg: step.doseMcg,
+                label: step.label,
+                isCompleted: existing?.isCompleted ?? auto
+            )
+        }
+    }
+
+    /// Persist a titration schedule edit and refresh the section.
+    func saveTitrationSchedule(_ schedule: TitrationSchedule) {
+        TitrationScheduleStore.shared.save(schedule)
+        titrationSteps = stepsFromStoredSchedule(schedule)
     }
 
     private func setupRecoveryMilestones() {
