@@ -509,11 +509,56 @@ final class PepChatViewModel {
         }
     }
 
+    private func dailyLimitResetMessage(body: String) -> String {
+        // Server returns retry_after_seconds (seconds until UTC midnight).
+        var seconds: Int? = nil
+        if let data = body.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let n = json["retry_after_seconds"] as? Int {
+                seconds = n
+            } else if let n = json["retry_after_seconds"] as? Double {
+                seconds = Int(n)
+            }
+        }
+        let resetDate: Date = {
+            if let s = seconds, s > 0 {
+                return Date().addingTimeInterval(TimeInterval(s))
+            }
+            // Fallback: next UTC midnight.
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+            let next = cal.nextDate(
+                after: Date(),
+                matching: DateComponents(hour: 0, minute: 0, second: 0),
+                matchingPolicy: .nextTime
+            )
+            return next ?? Date().addingTimeInterval(3600)
+        }()
+
+        let timeFmt = DateFormatter()
+        timeFmt.timeZone = .current
+        timeFmt.dateStyle = .none
+        timeFmt.timeStyle = .short
+        let localTime = timeFmt.string(from: resetDate)
+
+        let now = Date()
+        let diff = max(0, Int(resetDate.timeIntervalSince(now)))
+        let hours = diff / 3600
+        let minutes = (diff % 3600) / 60
+        let countdown: String
+        if hours > 0 {
+            countdown = "\(hours)h \(minutes)m"
+        } else {
+            countdown = "\(max(1, minutes))m"
+        }
+        return "resets at \(localTime) (in \(countdown)) — try again then"
+    }
+
     private func appendErrorResponse(forStatus status: Int, body: String) {
         let text: String
         switch status {
         case 429 where body.contains("daily_budget"):
-            text = "you've hit today's ai usage limit\n\nresets at midnight utc — try again then"
+            text = "you've hit today's ai usage limit\n\n\(dailyLimitResetMessage(body: body))"
         case 429:
             text = "slow down a sec — too many requests in the last minute\n\ntry again shortly"
         case 401:
