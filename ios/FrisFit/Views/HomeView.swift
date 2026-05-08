@@ -118,7 +118,28 @@ struct HomeView: View {
                     // Protocol deletion needs an immediate brief regen so the
                     // removed compound disappears from copy without waiting on
                     // the 30s log debounce.
-                    if source == "protocol_delete" {
+                    if source == "protocol_archive" || source == "protocol_reactivate" {
+                        let localIdString = note.userInfo?["protocol_local_id"] as? String
+                        let sid = note.userInfo?["protocol_supabase_id"] as? String
+                        let proto: PeptideProtocol? = {
+                            if let s = localIdString, let id = UUID(uuidString: s) {
+                                return viewModel.allProtocols.first { $0.id == id }
+                            }
+                            if let s = sid, !s.isEmpty {
+                                return viewModel.allProtocols.first { $0.supabaseId == s }
+                            }
+                            return nil
+                        }()
+                        if let proto = proto {
+                            if source == "protocol_archive" {
+                                viewModel.archiveProtocolFromHome(proto)
+                            } else {
+                                viewModel.reactivateProtocolFromHome(proto)
+                            }
+                        }
+                        viewModel.loadProtocolsFromSupabase()
+                        triggerPlanFetch(forceRefresh: true)
+                    } else if source == "protocol_delete" {
                         // Drop the deleted protocol from in-memory caches
                         // immediately so it disappears from Home / brief
                         // without waiting for a refetch.

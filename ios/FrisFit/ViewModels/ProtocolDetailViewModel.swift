@@ -709,14 +709,21 @@ final class ProtocolDetailViewModel {
     }
 
     func archiveProtocol() {
-        guard let protocolId = protocolData.supabaseId else {
-            protocolData.isActive = false
-            return
-        }
+        let localId = protocolData.id
+        protocolData.isActive = false
+        NotificationCenter.default.post(
+            name: .supabaseDataChanged,
+            object: nil,
+            userInfo: [
+                "source": "protocol_archive",
+                "protocol_local_id": localId.uuidString,
+                "protocol_supabase_id": protocolData.supabaseId ?? ""
+            ]
+        )
+        guard let protocolId = protocolData.supabaseId else { return }
         Task {
             do {
                 try await protocolService.updateProtocolStatus(id: protocolId, isActive: false)
-                protocolData.isActive = false
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -724,14 +731,21 @@ final class ProtocolDetailViewModel {
     }
 
     func reactivateProtocol() {
-        guard let protocolId = protocolData.supabaseId else {
-            protocolData.isActive = true
-            return
-        }
+        let localId = protocolData.id
+        protocolData.isActive = true
+        NotificationCenter.default.post(
+            name: .supabaseDataChanged,
+            object: nil,
+            userInfo: [
+                "source": "protocol_reactivate",
+                "protocol_local_id": localId.uuidString,
+                "protocol_supabase_id": protocolData.supabaseId ?? ""
+            ]
+        )
+        guard let protocolId = protocolData.supabaseId else { return }
         Task {
             do {
                 try await protocolService.updateProtocolStatus(id: protocolId, isActive: true)
-                protocolData.isActive = true
             } catch {
                 errorMessage = error.localizedDescription
             }
