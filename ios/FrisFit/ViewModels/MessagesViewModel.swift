@@ -200,9 +200,25 @@ final class MessagesViewModel {
                 )
             }
             // Re-locate index in case conversations changed during the await.
-            if let freshIdx = conversations.firstIndex(where: { $0.id == conversationID }) {
-                conversations[freshIdx].messages = mapped
+            guard let freshIdx = conversations.firstIndex(where: { $0.id == conversationID }) else { return }
+
+            // MERGE rather than replace so optimistic / in-flight messages
+            // (no supabaseId yet, or whose row hasn't propagated to PostgREST
+            // yet) aren't wiped from the UI when the server returns a partial
+            // or empty list. Without this, a single empty refetch right after
+            // sending nukes the bubble the user just typed.
+            let serverIds = Set(mapped.compactMap { $0.supabaseId })
+            let existing = conversations[freshIdx].messages
+            let pending = existing.filter { msg in
+                guard let sid = msg.supabaseId else { return true } // optimistic
+                return !serverIds.contains(sid)
             }
+            // If the server returned nothing but we have local messages,
+            // keep the local state — most likely a transient RLS / cache miss.
+            if mapped.isEmpty && !existing.isEmpty { return }
+
+            let combined = (mapped + pending).sorted { $0.timestamp < $1.timestamp }
+            conversations[freshIdx].messages = combined
         } catch {
             self.error = error.localizedDescription
         }
