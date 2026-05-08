@@ -119,6 +119,18 @@ struct HomeView: View {
                     // removed compound disappears from copy without waiting on
                     // the 30s log debounce.
                     if source == "protocol_delete" {
+                        // Drop the deleted protocol from in-memory caches
+                        // immediately so it disappears from Home / brief
+                        // without waiting for a refetch.
+                        if let localIdString = note.userInfo?["protocol_local_id"] as? String,
+                           let localId = UUID(uuidString: localIdString),
+                           let proto = viewModel.allProtocols.first(where: { $0.id == localId }) {
+                            viewModel.deleteProtocolFromHome(proto)
+                        } else if let sid = note.userInfo?["protocol_supabase_id"] as? String,
+                                  let proto = viewModel.allProtocols.first(where: { $0.supabaseId == sid }) {
+                            viewModel.deleteProtocolFromHome(proto)
+                        }
+                        viewModel.loadProtocolsFromSupabase()
                         triggerPlanFetch(forceRefresh: true)
                     } else {
                         handleDataChange(source: source)

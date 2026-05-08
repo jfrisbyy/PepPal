@@ -739,24 +739,35 @@ final class ProtocolDetailViewModel {
     }
 
     func deleteProtocol() {
+        let localId = protocolData.id
         guard let protocolId = protocolData.supabaseId else {
             didDelete = true
             NotificationCenter.default.post(
                 name: .supabaseDataChanged,
                 object: nil,
-                userInfo: ["source": "protocol_delete"]
+                userInfo: [
+                    "source": "protocol_delete",
+                    "protocol_local_id": localId.uuidString
+                ]
             )
             return
         }
+        // Optimistically dismiss + tell the rest of the app to drop this
+        // protocol from local caches so it doesn't reappear before the
+        // background delete completes.
+        didDelete = true
+        NotificationCenter.default.post(
+            name: .supabaseDataChanged,
+            object: nil,
+            userInfo: [
+                "source": "protocol_delete",
+                "protocol_local_id": localId.uuidString,
+                "protocol_supabase_id": protocolId
+            ]
+        )
         Task {
             do {
                 try await protocolService.deleteProtocol(id: protocolId)
-                didDelete = true
-                NotificationCenter.default.post(
-                    name: .supabaseDataChanged,
-                    object: nil,
-                    userInfo: ["source": "protocol_delete"]
-                )
             } catch {
                 errorMessage = error.localizedDescription
             }
