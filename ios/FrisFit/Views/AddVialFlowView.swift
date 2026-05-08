@@ -18,6 +18,7 @@ private enum AddVialField: Hashable {
     case compoundQuery
     case vialSize
     case bacWater
+    case startingDose
 }
 
 private enum ReminderFrequency: String, CaseIterable, Identifiable {
@@ -38,6 +39,42 @@ private enum ReminderFrequency: String, CaseIterable, Identifiable {
         case .twiceWeekly: return "2x weekly"
         case .weekly: return "1x weekly"
         case .asNeeded: return "As needed"
+        }
+    }
+
+    /// Approximate doses per week for vial-duration math.
+    var dosesPerWeek: Double {
+        switch self {
+        case .daily: return 7
+        case .twiceDaily: return 14
+        case .everyOther: return 3.5
+        case .twiceWeekly: return 2
+        case .weekly: return 1
+        case .asNeeded: return 1.5
+        }
+    }
+}
+
+private enum DoseStrategy: String, CaseIterable, Identifiable {
+    case maintain = "Maintain"
+    case titrateUp = "Titrate up"
+    case titrateDown = "Titrate down"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .maintain: return "equal"
+        case .titrateUp: return "arrow.up.right"
+        case .titrateDown: return "arrow.down.right"
+        }
+    }
+
+    var blurb: String {
+        switch self {
+        case .maintain: return "Hold a steady dose week to week."
+        case .titrateUp: return "Step the dose up gradually."
+        case .titrateDown: return "Taper the dose down gradually."
         }
     }
 }
@@ -131,25 +168,35 @@ struct AddVialFlowView: View {
     @State private var pickedCompound: String?
     @State private var vialSizeText: String = ""
     @State private var vialSizeUnit: VialSizeUnit = .mg
-    @State private var alreadyReconstituted: Bool? = nil
-    @State private var existingBacWaterMl: String = ""
+    @State private var bacWaterMl: String = ""
     @State private var chosenSuggestedMl: Double? = nil
     @State private var commonMlOptions: [Double] = [1, 2, 3, 5]
+
+    // Starting dose & strategy
+    @State private var startingDoseText: String = ""
+    @State private var startingDoseUnit: VialSizeUnit = .mcg
+    @State private var strategy: DoseStrategy = .maintain
+    @State private var titrationSteps: [TitrationScheduleStep] = []
+    @State private var titrationLoading: Bool = false
+    @State private var titrationError: String? = nil
+    @State private var aiNote: String = ""
+
     @State private var frequency: ReminderFrequency = .daily
     @State private var reminderTime: Date = AddVialFlowView.defaultMorningTime()
 
     // Discover flow
     @State private var pickedGoal: DiscoverGoal?
 
-    @State private var showVialScanner: Bool = false
-    @State private var showWhyThisAmount: Bool = false
     @State private var frequencyManuallySet: Bool = false
+    @State private var startingDoseManuallySet: Bool = false
     @FocusState private var focusedField: AddVialField?
 
     static func defaultMorningTime() -> Date {
         let cal = Calendar.current
         return cal.date(bySettingHour: 8, minute: 0, second: 0, of: Date()) ?? Date()
     }
+
+    // MARK: - Derived
 
     private var compoundProfile: CompoundProfile? {
         guard let pickedCompound else { return nil }
@@ -174,44 +221,15 @@ struct AddVialFlowView: View {
         switch vialSizeUnit {
         case .mg: return v
         case .mcg: return v / 1000.0
-        case .iu: return v // IU treated as mg-equivalent for now (HCG etc.)
+        case .iu: return v
         }
     }
 
-    /// Typical single dose in mcg from defaults / compound DB.
-    private var typicalDoseMcg: Double {
-        if let pd = protocolDefault {
-            let mid = pd.intermediate.midpoint
-            return pd.intermediate.unit == "mg" ? mid * 1000 : mid
-        }
-        return 250
-    }
-
-    /// Suggested BAC water volume that gives the cleanest whole-unit dosing on a U-100 0.5 mL syringe.
-    private var suggestedReconMl: Double {
-        guard let mg = vialSizeMg, mg > 0 else { return 2 }
-        let totalMcg = mg * 1000
-        // Try common volumes; pick one that gives target dose volume close to a multiple of 5 units (0.05 mL).
-        let candidates: [Double] = [1, 2, 3, 5]
-        let dose = max(typicalDoseMcg, 1)
-        let scored = candidates.map { ml -> (Double, Double) in
-            let concentration = totalMcg / ml // mcg/mL
-            let drawMl = dose / concentration
-            let drawUnits = drawMl * 100
-            // prefer 10-50 units, multiples of 5
-            let inRange = drawUnits >= 8 && drawUnits <= 60 ? 0.0 : 4.0
-            let snap = abs(drawUnits - (drawUnits / 5).rounded() * 5)
-            return (ml, inRange + snap)
-        }
-        return scored.min { $0.1 < $1.1 }?.0 ?? 2
-    }
-
+    /// User-entered BAC water volume. Required before any unit/dose math is shown.
     private var reconstitutedMl: Double? {
-        if alreadyReconstituted == true {
-            return Double(existingBacWaterMl.replacingOccurrences(of: ",", with: "."))
-        }
-        if alreadyReconstituted == false {
-            return chosenSuggestedMl ?? suggestedReconMl
+        if !needsReconstitution { return nil }
+        if let n = Double(bacWaterMl.replacingOccurrences(of: ",", with: ".")), n > 0 {
+            return n
         }
         return nil
     }
@@ -221,28 +239,78 @@ struct AddVialFlowView: View {
         return mg * 1000 / ml
     }
 
+    /// Starting dose in mcg, parsed from the user's input.
+    private var startingDoseMcg: Double? {
+        guard let v = Double(startingDoseText.replacingOccurrences(of: ",", with: ".")), v > 0 else { return nil }
+        switch startingDoseUnit {
+        case .mg: return v * 1000
+        case .mcg: return v
+        case .iu: return v
+        }
+    }
+
+    /// Default starting dose for the picked compound (in mcg) when nothing's typed yet.
+    private var defaultStartingDoseMcg: Double {
+        if let pd = protocolDefault {
+            let val = pd.beginner.low
+            return pd.beginner.unit == "mg" ? val * 1000 : val
+        }
+        return 250
+    }
+
+    /// Suggested BAC water volume that gives clean whole-unit dosing on a U-100 0.5 mL syringe.
+    private var suggestedReconMl: Double {
+        guard let mg = vialSizeMg, mg > 0 else { return 2 }
+        let totalMcg = mg * 1000
+        let candidates: [Double] = [1, 2, 3, 5]
+        let dose = max(startingDoseMcg ?? defaultStartingDoseMcg, 1)
+        let scored = candidates.map { ml -> (Double, Double) in
+            let concentration = totalMcg / ml
+            let drawMl = dose / concentration
+            let drawUnits = drawMl * 100
+            let inRange = drawUnits >= 8 && drawUnits <= 60 ? 0.0 : 4.0
+            let snap = abs(drawUnits - (drawUnits / 5).rounded() * 5)
+            return (ml, inRange + snap)
+        }
+        return scored.min { $0.1 < $1.1 }?.0 ?? 2
+    }
+
     private var pickedSyringe: SyringeSpec {
-        guard let conc = concentrationMcgPerMl else { return .u100_05 }
-        let drawMl = typicalDoseMcg / conc
+        guard let conc = concentrationMcgPerMl, let dose = startingDoseMcg ?? Optional(defaultStartingDoseMcg) else { return .u100_05 }
+        let drawMl = dose / conc
         if drawMl > 0.5 { return .u100_10 }
         if drawMl > 0.3 { return .u100_05 }
         return .u100_03
     }
 
+    private var unitsPerDose: Double? {
+        guard let conc = concentrationMcgPerMl, let dose = startingDoseMcg else { return nil }
+        return (dose / conc) * pickedSyringe.unitsPerMl
+    }
+
+    private var dosesPerVial: Int? {
+        guard let mg = vialSizeMg, let dose = startingDoseMcg, dose > 0 else { return nil }
+        return Int((mg * 1000) / dose)
+    }
+
+    private var weeksPerVial: Double? {
+        guard let count = dosesPerVial else { return nil }
+        return Double(count) / max(frequency.dosesPerWeek, 0.1)
+    }
+
     private var canContinue: Bool {
         guard pickedCompound != nil, vialSizeMg != nil else { return false }
-        if !needsReconstitution { return true }
-        if alreadyReconstituted == nil { return false }
-        if alreadyReconstituted == true {
-            return (Double(existingBacWaterMl) ?? 0) > 0
-        }
+        if needsReconstitution && reconstitutedMl == nil { return false }
+        if startingDoseMcg == nil { return false }
         return true
     }
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 18) {
+                VStack(spacing: 22) {
                     switch entry {
                     case .chooser:
                         chooserView
@@ -252,18 +320,20 @@ struct AddVialFlowView: View {
                         discoverFlowView
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 120)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 140)
                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: entry)
                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: pickedCompound)
                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: vialSizeMg != nil)
-                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: alreadyReconstituted)
+                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: reconstitutedMl != nil)
+                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: startingDoseMcg != nil)
+                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: strategy)
                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: pickedGoal?.id)
             }
             .scrollIndicators(.hidden)
             .appBackground()
-            .navigationTitle(navTitle)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -278,7 +348,15 @@ struct AddVialFlowView: View {
                             }
                         }
                     }
+                    .font(.system(size: 14, weight: .medium, design: .serif))
                     .foregroundStyle(PepTheme.textSecondary)
+                }
+                ToolbarItem(placement: .principal) {
+                    Text(navTitle)
+                        .font(.system(size: 14, weight: .semibold, design: .serif))
+                        .tracking(2)
+                        .textCase(.uppercase)
+                        .foregroundStyle(PepTheme.textSecondary)
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -294,11 +372,6 @@ struct AddVialFlowView: View {
                         .foregroundStyle(PepTheme.teal)
                 }
             }
-            .fullScreenCover(isPresented: $showVialScanner) {
-                VialScannerView { scan, _ in
-                    applyScanned(scan)
-                }
-            }
             .onAppear {
                 if let initial = initialCompound, !initial.isEmpty, pickedCompound == nil {
                     pickedCompound = initial
@@ -312,96 +385,109 @@ struct AddVialFlowView: View {
 
     private var navTitle: String {
         switch entry {
-        case .chooser: return "Add to Inventory"
+        case .chooser: return "Inventory"
         case .vial: return "Add a Vial"
-        case .discover: return pickedGoal == nil ? "Find Your Peptide" : pickedGoal!.title
+        case .discover: return pickedGoal == nil ? "Discover" : (pickedGoal?.title ?? "Discover")
         }
+    }
+
+    // MARK: - Editorial header
+
+    private func editorialHeader(eyebrow: String, title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(eyebrow)
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(2.5)
+                .textCase(.uppercase)
+                .foregroundStyle(PepTheme.teal)
+            Text(title)
+                .font(.system(size: 32, weight: .semibold, design: .serif))
+                .foregroundStyle(PepTheme.textPrimary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(subtitle)
+                .font(.system(size: 15, design: .serif))
+                .italic()
+                .foregroundStyle(PepTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Rectangle()
+                .fill(PepTheme.separatorColor)
+                .frame(height: 1)
+                .padding(.top, 6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Chooser
 
     private var chooserView: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Let's get you set up")
-                    .font(.system(.title2, design: .rounded, weight: .bold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Text("Pick the option that fits where you are right now.")
-                    .font(.subheadline)
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
-            .padding(.top, 8)
+        VStack(alignment: .leading, spacing: 24) {
+            editorialHeader(
+                eyebrow: "Vol. I — Setup",
+                title: "Build your protocol with intention.",
+                subtitle: "Whether the vial is on your counter or still on your wishlist, we'll meet you there."
+            )
 
-            chooserCard(
-                title: "Add a vial",
-                subtitle: "I have a peptide in hand and want to set it up",
-                icon: "testtube.2",
-                color: PepTheme.teal
-            ) {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                    entry = .vial
+            VStack(spacing: 14) {
+                chooserCard(
+                    title: "Add a vial",
+                    subtitle: "I have a peptide in hand and want to set it up.",
+                    icon: "testtube.2",
+                    color: PepTheme.teal
+                ) {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        entry = .vial
+                    }
+                }
+
+                chooserCard(
+                    title: "I don't have one yet",
+                    subtitle: "Help me find what fits my goals.",
+                    icon: "sparkle.magnifyingglass",
+                    color: PepTheme.violet
+                ) {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        entry = .discover
+                    }
                 }
             }
-
-            chooserCard(
-                title: "I don't have one yet",
-                subtitle: "Help me figure out what fits my goals",
-                icon: "sparkle.magnifyingglass",
-                color: PepTheme.violet
-            ) {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                    entry = .discover
-                }
-            }
-
-            HStack(spacing: 8) {
-                Image(systemName: "info.circle")
-                    .foregroundStyle(PepTheme.textSecondary)
-                Text("You can always scan a label instead — we'll auto-fill what we can read.")
-                    .font(.caption)
-                    .foregroundStyle(PepTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(PepTheme.elevated.opacity(0.5))
-            .clipShape(.rect(cornerRadius: 12))
         }
     }
 
     private func chooserCard(title: String, subtitle: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 14) {
+            HStack(spacing: 16) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(color.opacity(0.18))
+                        .fill(color.opacity(0.14))
                         .frame(width: 56, height: 56)
                     Image(systemName: icon)
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(color)
                 }
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .font(.system(size: 19, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.textPrimary)
                     Text(subtitle)
-                        .font(.caption)
+                        .font(.system(size: 13, design: .serif))
+                        .italic()
                         .foregroundStyle(PepTheme.textSecondary)
                         .multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
+                Image(systemName: "arrow.right")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(PepTheme.textSecondary)
             }
-            .padding(16)
+            .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(PepTheme.cardSurface)
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
-                    .stroke(color.opacity(0.25), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(color.opacity(0.18), lineWidth: 1)
             )
-            .clipShape(.rect(cornerRadius: 18))
+            .clipShape(.rect(cornerRadius: 20))
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact(weight: .medium), trigger: entry)
@@ -410,7 +496,13 @@ struct AddVialFlowView: View {
     // MARK: - Vial flow
 
     private var vialFlowView: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 22) {
+            editorialHeader(
+                eyebrow: "Chapter \(currentChapter) of 4",
+                title: vialHeaderTitle,
+                subtitle: vialHeaderSubtitle
+            )
+
             stepCompoundCard
             if pickedCompound != nil {
                 stepVialSizeCard
@@ -418,30 +510,64 @@ struct AddVialFlowView: View {
             if vialSizeMg != nil && needsReconstitution {
                 stepReconCard
             }
-            if vialSizeMg != nil && (alreadyReconstituted != nil || !needsReconstitution) {
-                if reconstitutedMl != nil {
-                    drawGuideCard
+            if vialSizeMg != nil && (reconstitutedMl != nil || !needsReconstitution) {
+                stepStartingDoseCard
+            }
+            if startingDoseMcg != nil && reconstitutedMl != nil {
+                doseCalculatorCard
+            }
+            if startingDoseMcg != nil {
+                strategyCard
+                if strategy != .maintain || !titrationSteps.isEmpty {
+                    titrationCard
                 }
+                vialDurationCard
                 stepFrequencyCard
             }
+        }
+    }
+
+    private var currentChapter: Int {
+        if startingDoseMcg != nil { return 4 }
+        if reconstitutedMl != nil || (!needsReconstitution && vialSizeMg != nil) { return 3 }
+        if vialSizeMg != nil { return 2 }
+        return 1
+    }
+
+    private var vialHeaderTitle: String {
+        switch currentChapter {
+        case 1: return "Tell us what's in the vial."
+        case 2: return needsReconstitution ? "How will you reconstitute?" : "How often will you take it?"
+        case 3: return "Pick your starting dose."
+        default: return "Confirm your schedule."
+        }
+    }
+
+    private var vialHeaderSubtitle: String {
+        switch currentChapter {
+        case 1: return "We'll source recommendations from there."
+        case 2: return needsReconstitution ? "BAC water volume drives every dose calculation that follows." : "We'll set up reminders that fit your week."
+        case 3: return "We'll suggest a titration plan you can edit in line."
+        default: return "Last review before we hand it back to you."
         }
     }
 
     // Step 1 — peptide name
     private var stepCompoundCard: some View {
         FlowCard(stepNumber: 1, title: "Peptide", subtitle: "Type to search the compound database") {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 if let picked = pickedCompound {
                     HStack(spacing: 10) {
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundStyle(PepTheme.teal)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(picked)
-                                .font(.system(.headline, design: .rounded, weight: .bold))
+                                .font(.system(size: 19, weight: .semibold, design: .serif))
                                 .foregroundStyle(PepTheme.textPrimary)
                             if let route = protocolDefault?.route ?? compoundProfile?.keyFacts.administrationRoute {
                                 Text(route)
-                                    .font(.caption)
+                                    .font(.system(size: 12, design: .serif))
+                                    .italic()
                                     .foregroundStyle(PepTheme.textSecondary)
                             }
                         }
@@ -457,12 +583,13 @@ struct AddVialFlowView: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(PepTheme.textSecondary)
                         TextField("e.g. BPC-157, Semaglutide…", text: $compoundQuery)
+                            .font(.system(size: 16, design: .serif))
                             .textInputAutocapitalization(.words)
                             .autocorrectionDisabled()
                             .submitLabel(.done)
                             .focused($focusedField, equals: .compoundQuery)
                     }
-                    .padding(12)
+                    .padding(14)
                     .background(PepTheme.elevated.opacity(0.6))
                     .clipShape(.rect(cornerRadius: 12))
 
@@ -478,7 +605,7 @@ struct AddVialFlowView: View {
                                             .frame(width: 24)
                                         VStack(alignment: .leading, spacing: 1) {
                                             Text(profile.name)
-                                                .font(.subheadline.weight(.semibold))
+                                                .font(.system(size: 15, weight: .semibold, design: .serif))
                                                 .foregroundStyle(PepTheme.textPrimary)
                                             Text(profile.peptideType)
                                                 .font(.caption2)
@@ -487,7 +614,7 @@ struct AddVialFlowView: View {
                                         }
                                         Spacer()
                                     }
-                                    .padding(.vertical, 8)
+                                    .padding(.vertical, 10)
                                     .padding(.horizontal, 12)
                                     .contentShape(.rect)
                                 }
@@ -500,22 +627,6 @@ struct AddVialFlowView: View {
                         .background(PepTheme.elevated.opacity(0.4))
                         .clipShape(.rect(cornerRadius: 12))
                     }
-
-                    Button {
-                        showVialScanner = true
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "camera.viewfinder")
-                            Text("Scan label instead")
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        .foregroundStyle(PepTheme.teal)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(PepTheme.teal.opacity(0.12))
-                        .clipShape(.rect(cornerRadius: 12))
-                    }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -534,12 +645,13 @@ struct AddVialFlowView: View {
     // Step 2 — vial size
     private var stepVialSizeCard: some View {
         FlowCard(stepNumber: 2, title: "Vial size", subtitle: "How much peptide is in the vial?") {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
                     TextField("e.g. 5", text: $vialSizeText)
+                        .font(.system(size: 18, weight: .semibold, design: .serif))
                         .keyboardType(.decimalPad)
                         .focused($focusedField, equals: .vialSize)
-                        .padding(12)
+                        .padding(14)
                         .background(PepTheme.elevated.opacity(0.6))
                         .clipShape(.rect(cornerRadius: 12))
                         .frame(maxWidth: .infinity)
@@ -558,7 +670,8 @@ struct AddVialFlowView: View {
                         Image(systemName: "info.circle.fill")
                             .foregroundStyle(PepTheme.amber)
                         Text(suggestion)
-                            .font(.caption)
+                            .font(.system(size: 12, design: .serif))
+                            .italic()
                             .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
@@ -575,158 +688,136 @@ struct AddVialFlowView: View {
 
     // Step 3 — reconstitution
     private var stepReconCard: some View {
-        FlowCard(stepNumber: 3, title: "Reconstitution", subtitle: "Has it already been mixed with BAC water?") {
+        FlowCard(stepNumber: 3, title: "Reconstitution", subtitle: "How much BAC water are you adding?") {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 10) {
-                    reconChip(title: "Already mixed", isSelected: alreadyReconstituted == true) {
-                        alreadyReconstituted = true
-                    }
-                    reconChip(title: "Not yet", isSelected: alreadyReconstituted == false) {
-                        alreadyReconstituted = false
-                    }
-                }
-
-                if alreadyReconstituted == true {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("BAC water added (mL)")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(PepTheme.textSecondary)
-                        TextField("e.g. 2", text: $existingBacWaterMl)
-                            .keyboardType(.decimalPad)
-                            .focused($focusedField, equals: .bacWater)
-                            .padding(12)
-                            .background(PepTheme.elevated.opacity(0.6))
-                            .clipShape(.rect(cornerRadius: 12))
-                    }
-                }
-
-                if alreadyReconstituted == false {
-                    suggestionPanel
-                }
-            }
-        }
-    }
-
-    private func reconChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isSelected ? PepTheme.background : PepTheme.textPrimary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(isSelected ? PepTheme.teal : PepTheme.elevated.opacity(0.6))
-                .clipShape(.rect(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: isSelected)
-    }
-
-    private var suggestionPanel: some View {
-        let recommended = suggestedReconMl
-        let chosen = chosenSuggestedMl ?? recommended
-        let blurb = suggestionBlurb(for: recommended)
-
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "drop.fill")
-                    .foregroundStyle(PepTheme.blue)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("We recommend \(formatMl(recommended)) of BAC water")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text(blurb)
-                        .font(.caption)
+                    Image(systemName: "drop.fill")
+                        .foregroundStyle(PepTheme.blue)
+                    TextField("e.g. 2", text: $bacWaterMl)
+                        .font(.system(size: 18, weight: .semibold, design: .serif))
+                        .keyboardType(.decimalPad)
+                        .focused($focusedField, equals: .bacWater)
+                    Text("mL")
+                        .font(.system(size: 14, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.textSecondary)
-                    if chosen != recommended {
-                        Text("You picked \(formatMl(chosen)) — that works too.")
-                            .font(.caption2)
-                            .foregroundStyle(PepTheme.textSecondary.opacity(0.8))
-                    }
                 }
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(PepTheme.blue.opacity(0.12))
-            .clipShape(.rect(cornerRadius: 12))
+                .padding(14)
+                .background(PepTheme.elevated.opacity(0.6))
+                .clipShape(.rect(cornerRadius: 12))
 
-            HStack(spacing: 8) {
-                ForEach(commonMlOptions, id: \.self) { ml in
-                    Button {
-                        chosenSuggestedMl = ml
-                    } label: {
-                        VStack(spacing: 2) {
-                            Text(formatMl(ml))
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(chosen == ml ? PepTheme.background : PepTheme.textPrimary)
-                            if ml == recommended {
-                                Text("recommended")
-                                    .font(.system(size: 8, weight: .bold))
-                                    .tracking(0.5)
-                                    .foregroundStyle(chosen == ml ? PepTheme.background.opacity(0.85) : PepTheme.teal)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(chosen == ml ? PepTheme.teal : PepTheme.elevated.opacity(0.6))
-                        .clipShape(.rect(cornerRadius: 10))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            Button {
-                withAnimation { showWhyThisAmount.toggle() }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: showWhyThisAmount ? "chevron.down" : "chevron.right")
-                        .font(.caption2.weight(.bold))
-                    Text("Why this amount?")
-                        .font(.caption.weight(.semibold))
-                }
-                .foregroundStyle(PepTheme.textSecondary)
-            }
-            .buttonStyle(.plain)
-
-            if showWhyThisAmount {
-                Text("Picking the right amount of BAC water means each dose lands on a clean, easy-to-read mark on your insulin syringe. We pick the volume that keeps your typical dose in the 10–50 unit range — easy to draw, hard to misread.")
-                    .font(.caption)
+                Text("Pick a quick suggestion")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.5)
+                    .textCase(.uppercase)
                     .foregroundStyle(PepTheme.textSecondary)
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(PepTheme.elevated.opacity(0.5))
-                    .clipShape(.rect(cornerRadius: 10))
+
+                HStack(spacing: 8) {
+                    ForEach(commonMlOptions, id: \.self) { ml in
+                        Button {
+                            bacWaterMl = formatVialNumber(ml)
+                            chosenSuggestedMl = ml
+                            focusedField = nil
+                        } label: {
+                            VStack(spacing: 2) {
+                                Text(formatMl(ml))
+                                    .font(.system(size: 13, weight: .semibold, design: .serif))
+                                    .foregroundStyle(isMlSelected(ml) ? PepTheme.invertedText : PepTheme.textPrimary)
+                                if ml == suggestedReconMl {
+                                    Text("recommended")
+                                        .font(.system(size: 8, weight: .bold))
+                                        .tracking(0.5)
+                                        .foregroundStyle(isMlSelected(ml) ? PepTheme.invertedText.opacity(0.85) : PepTheme.teal)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(isMlSelected(ml) ? PepTheme.teal : PepTheme.elevated.opacity(0.6))
+                            .clipShape(.rect(cornerRadius: 10))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if reconstitutedMl == nil {
+                    HStack(spacing: 6) {
+                        Image(systemName: "info.circle")
+                            .foregroundStyle(PepTheme.amber)
+                        Text("Your dose calculator unlocks the moment we know your BAC volume.")
+                            .font(.system(size: 12, design: .serif))
+                            .italic()
+                            .foregroundStyle(PepTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
         }
     }
 
-    private func suggestionBlurb(for ml: Double) -> String {
-        guard let mg = vialSizeMg else { return "Easy whole-unit dosing." }
-        let conc = mg * 1000 / ml
-        let drawMl = typicalDoseMcg / conc
-        let drawUnits = drawMl * 100
-        let cleanUnits = (drawUnits / 5).rounded() * 5
-        let usingClean = abs(cleanUnits - drawUnits) < 0.6
-        let unitsDisp = usingClean ? Int(cleanUnits) : Int(drawUnits.rounded())
-        let doseDisp = displayDose(typicalDoseMcg)
-        return "≈ \(unitsDisp) units per \(doseDisp) dose on a 0.5 mL insulin syringe."
+    private func isMlSelected(_ ml: Double) -> Bool {
+        guard let entered = Double(bacWaterMl.replacingOccurrences(of: ",", with: ".")) else { return false }
+        return abs(entered - ml) < 0.01
     }
 
-    // Inline draw guide
-    private var drawGuideCard: some View {
-        FlowCard(stepNumber: nil, title: "Your draw mark", subtitle: "Where to pull the plunger for each dose") {
+    // Step 4 — starting dose
+    private var stepStartingDoseCard: some View {
+        FlowCard(stepNumber: needsReconstitution ? 4 : 3, title: "Starting dose", subtitle: "What's your first prescribed dose?") {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    TextField(defaultDosePlaceholder, text: $startingDoseText)
+                        .font(.system(size: 18, weight: .semibold, design: .serif))
+                        .keyboardType(.decimalPad)
+                        .focused($focusedField, equals: .startingDose)
+                        .padding(14)
+                        .background(PepTheme.elevated.opacity(0.6))
+                        .clipShape(.rect(cornerRadius: 12))
+                        .frame(maxWidth: .infinity)
+                        .onChange(of: startingDoseText) { _, _ in
+                            startingDoseManuallySet = true
+                        }
+
+                    Picker("Unit", selection: $startingDoseUnit) {
+                        ForEach(VialSizeUnit.allCases) { u in
+                            Text(u.label).tag(u)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 150)
+                }
+
+                if let pd = protocolDefault {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(PepTheme.teal)
+                        Text("Beginner range: \(pd.beginner.displayString)")
+                            .font(.system(size: 12, design: .serif))
+                            .italic()
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                }
+            }
+        }
+    }
+
+    private var defaultDosePlaceholder: String {
+        formatVialNumber(displayDoseValue(defaultStartingDoseMcg, in: startingDoseUnit))
+    }
+
+    // Dose calculator (only when BAC water + dose entered)
+    private var doseCalculatorCard: some View {
+        FlowCard(stepNumber: nil, iconName: "syringe.fill", title: "Per-dose draw", subtitle: "Where to pull the plunger for each dose") {
             inlineSyringeVisual
         }
     }
 
     private var inlineSyringeVisual: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let conc = concentrationMcgPerMl {
+        VStack(alignment: .leading, spacing: 14) {
+            if let conc = concentrationMcgPerMl, let dose = startingDoseMcg {
                 HStack(spacing: 14) {
-                    miniStat("DOSE", displayDose(typicalDoseMcg))
-                    miniStat("DRAW TO", "\(formatUnits(typicalDoseMcg / conc * pickedSyringe.unitsPerMl)) u", highlight: true)
+                    miniStat("DOSE", displayDose(dose))
+                    miniStat("DRAW TO", "\(formatUnits(dose / conc * pickedSyringe.unitsPerMl)) u", highlight: true)
                     miniStat("SYRINGE", pickedSyringe.short)
                 }
-                inlineSyringe(conc: conc)
+                inlineSyringe(conc: conc, dose: dose)
                 Text("Each major tick = \(formatUnits(pickedSyringe.majorTick)) u • minor = \(formatUnits(pickedSyringe.minorTick)) u")
                     .font(.caption2)
                     .foregroundStyle(PepTheme.textSecondary)
@@ -741,14 +832,14 @@ struct AddVialFlowView: View {
                 .tracking(1)
                 .foregroundStyle(PepTheme.textSecondary)
             Text(value)
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .font(.system(size: 16, weight: .semibold, design: .serif))
                 .foregroundStyle(highlight ? PepTheme.teal : PepTheme.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func inlineSyringe(conc: Double) -> some View {
-        let drawMl = typicalDoseMcg / conc
+    private func inlineSyringe(conc: Double, dose: Double) -> some View {
+        let drawMl = dose / conc
         let drawUnits = drawMl * pickedSyringe.unitsPerMl
         let frac = min(1.0, max(0.04, drawUnits / pickedSyringe.totalUnits))
         return GeometryReader { geo in
@@ -783,9 +874,223 @@ struct AddVialFlowView: View {
         .frame(height: 60)
     }
 
-    // Step 4 — frequency
+    // Strategy card
+    private var strategyCard: some View {
+        FlowCard(stepNumber: nil, iconName: "chart.line.uptrend.xyaxis", title: "Dose strategy", subtitle: "How do you want this protocol to evolve?") {
+            VStack(spacing: 10) {
+                ForEach(DoseStrategy.allCases) { s in
+                    Button {
+                        strategy = s
+                        Task { await regenerateTitrationIfNeeded() }
+                    } label: {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill((strategy == s ? PepTheme.teal : PepTheme.elevated).opacity(strategy == s ? 0.18 : 0.6))
+                                    .frame(width: 36, height: 36)
+                                Image(systemName: s.icon)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(strategy == s ? PepTheme.teal : PepTheme.textSecondary)
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(s.rawValue)
+                                    .font(.system(size: 15, weight: .semibold, design: .serif))
+                                    .foregroundStyle(PepTheme.textPrimary)
+                                Text(s.blurb)
+                                    .font(.system(size: 12, design: .serif))
+                                    .italic()
+                                    .foregroundStyle(PepTheme.textSecondary)
+                            }
+                            Spacer()
+                            Image(systemName: strategy == s ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(strategy == s ? PepTheme.teal : PepTheme.textTertiary)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(strategy == s ? PepTheme.teal.opacity(0.08) : PepTheme.elevated.opacity(0.5))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(strategy == s ? PepTheme.teal.opacity(0.4) : PepTheme.separatorColor, lineWidth: 1)
+                        )
+                        .clipShape(.rect(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.selection, trigger: strategy)
+                }
+            }
+        }
+    }
+
+    // Titration card (AI-generated, inline editable)
+    private var titrationCard: some View {
+        FlowCard(stepNumber: nil, iconName: "list.number", title: "Titration plan", subtitle: titrationSubtitle) {
+            VStack(alignment: .leading, spacing: 12) {
+                if titrationLoading {
+                    HStack(spacing: 10) {
+                        ProgressView().tint(PepTheme.teal)
+                        Text("Drafting your schedule…")
+                            .font(.system(size: 13, design: .serif))
+                            .italic()
+                            .foregroundStyle(PepTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+                } else if let err = titrationError {
+                    Text(err)
+                        .font(.system(size: 12, design: .serif))
+                        .foregroundStyle(PepTheme.amber)
+                } else if titrationSteps.isEmpty {
+                    Button {
+                        Task { await regenerateTitrationIfNeeded(force: true) }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkles")
+                            Text("Suggest a schedule")
+                                .font(.system(size: 13, weight: .semibold, design: .serif))
+                        }
+                        .foregroundStyle(PepTheme.teal)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(PepTheme.teal.opacity(0.12))
+                        .clipShape(.rect(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    ForEach($titrationSteps) { $step in
+                        titrationRow(step: $step)
+                    }
+
+                    HStack(spacing: 10) {
+                        Button {
+                            addTitrationStep()
+                        } label: {
+                            Label("Add step", systemImage: "plus")
+                                .font(.system(size: 12, weight: .semibold, design: .serif))
+                                .foregroundStyle(PepTheme.teal)
+                        }
+                        .buttonStyle(.plain)
+
+                        Spacer()
+
+                        Button {
+                            Task { await regenerateTitrationIfNeeded(force: true) }
+                        } label: {
+                            Label("Regenerate", systemImage: "arrow.clockwise")
+                                .font(.system(size: 12, weight: .semibold, design: .serif))
+                                .foregroundStyle(PepTheme.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if !aiNote.isEmpty {
+                        Text(aiNote)
+                            .font(.system(size: 12, design: .serif))
+                            .italic()
+                            .foregroundStyle(PepTheme.textSecondary)
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(PepTheme.elevated.opacity(0.5))
+                            .clipShape(.rect(cornerRadius: 10))
+                    }
+                }
+            }
+        }
+    }
+
+    private var titrationSubtitle: String {
+        switch strategy {
+        case .maintain: return "Steady-state plan — edit any week as needed."
+        case .titrateUp: return "Stepping up over time — edit any week as needed."
+        case .titrateDown: return "Tapering down over time — edit any week as needed."
+        }
+    }
+
+    private func titrationRow(step: Binding<TitrationScheduleStep>) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("WEEK")
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(1)
+                    .foregroundStyle(PepTheme.textSecondary)
+                TextField("1", value: step.week, format: .number)
+                    .keyboardType(.numberPad)
+                    .font(.system(size: 16, weight: .semibold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                    .frame(width: 44)
+            }
+            Divider().frame(height: 30).background(PepTheme.separatorColor)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("DOSE")
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(1)
+                    .foregroundStyle(PepTheme.textSecondary)
+                HStack(spacing: 4) {
+                    TextField("0", value: step.doseMcg, format: .number)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 16, weight: .semibold, design: .serif))
+                        .foregroundStyle(PepTheme.teal)
+                        .frame(width: 70)
+                    Text("mcg")
+                        .font(.caption2)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+            Spacer()
+            Button {
+                if let idx = titrationSteps.firstIndex(where: { $0.id == step.id }) {
+                    titrationSteps.remove(at: idx)
+                }
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(PepTheme.textTertiary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(12)
+        .background(PepTheme.elevated.opacity(0.5))
+        .clipShape(.rect(cornerRadius: 10))
+    }
+
+    // Vial duration summary
+    private var vialDurationCard: some View {
+        FlowCard(stepNumber: nil, iconName: "hourglass", title: "How long this vial lasts", subtitle: "Based on your starting dose & frequency") {
+            HStack(spacing: 18) {
+                durationStat(
+                    value: weeksPerVial.map { formatWeeks($0) } ?? "—",
+                    label: "weeks"
+                )
+                Divider().frame(height: 44).background(PepTheme.separatorColor)
+                durationStat(
+                    value: dosesPerVial.map { "\($0)" } ?? "—",
+                    label: "doses"
+                )
+                Divider().frame(height: 44).background(PepTheme.separatorColor)
+                if let units = unitsPerDose {
+                    durationStat(value: "\(formatUnits(units))", label: "units / dose")
+                } else {
+                    durationStat(value: "—", label: "units / dose")
+                }
+            }
+        }
+    }
+
+    private func durationStat(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.system(size: 22, weight: .semibold, design: .serif))
+                .foregroundStyle(PepTheme.teal)
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1)
+                .textCase(.uppercase)
+                .foregroundStyle(PepTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // Step 5 — frequency
     private var stepFrequencyCard: some View {
-        FlowCard(stepNumber: needsReconstitution ? 4 : 3, title: "Reminder schedule", subtitle: "How often do you plan to dose? Just for reminders.") {
+        FlowCard(stepNumber: nil, iconName: "bell.fill", title: "Reminder schedule", subtitle: "How often do you plan to dose?") {
             VStack(alignment: .leading, spacing: 12) {
                 if let rec = recommendedFrequency, let raw = protocolDefault?.defaultFrequency {
                     HStack(spacing: 8) {
@@ -793,7 +1098,7 @@ struct AddVialFlowView: View {
                             .foregroundStyle(PepTheme.amber)
                         VStack(alignment: .leading, spacing: 1) {
                             Text("Recommended: \(rec.rawValue)")
-                                .font(.caption.weight(.bold))
+                                .font(.system(size: 12, weight: .semibold, design: .serif))
                                 .foregroundStyle(PepTheme.textPrimary)
                             Text(raw)
                                 .font(.caption2)
@@ -815,13 +1120,13 @@ struct AddVialFlowView: View {
                         } label: {
                             VStack(spacing: 2) {
                                 Text(f.rawValue)
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(frequency == f ? PepTheme.background : PepTheme.textPrimary)
+                                    .font(.system(size: 12, weight: .semibold, design: .serif))
+                                    .foregroundStyle(frequency == f ? PepTheme.invertedText : PepTheme.textPrimary)
                                 if recommendedFrequency == f {
                                     Text("recommended")
                                         .font(.system(size: 8, weight: .bold))
                                         .tracking(0.5)
-                                        .foregroundStyle(frequency == f ? PepTheme.background.opacity(0.85) : PepTheme.teal)
+                                        .foregroundStyle(frequency == f ? PepTheme.invertedText.opacity(0.85) : PepTheme.teal)
                                 }
                             }
                             .frame(maxWidth: .infinity)
@@ -835,7 +1140,7 @@ struct AddVialFlowView: View {
 
                 HStack {
                     Text("Reminder time")
-                        .font(.caption.weight(.semibold))
+                        .font(.system(size: 12, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.textSecondary)
                     Spacer()
                     DatePicker("", selection: $reminderTime, displayedComponents: .hourAndMinute)
@@ -853,20 +1158,20 @@ struct AddVialFlowView: View {
             Button {
                 save()
             } label: {
-                Text("Save vial & schedule reminders")
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .foregroundStyle(PepTheme.background)
+                Text("Save vial & schedule")
+                    .font(.system(size: 16, weight: .semibold, design: .serif))
+                    .foregroundStyle(PepTheme.invertedText)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 16)
                     .background(canContinue ? PepTheme.teal : PepTheme.elevated)
                     .clipShape(.rect(cornerRadius: 14))
             }
             .buttonStyle(.plain)
             .disabled(!canContinue)
             .sensoryFeedback(.success, trigger: canContinue)
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 8)
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 10)
         }
         .background(.ultraThinMaterial)
     }
@@ -874,7 +1179,7 @@ struct AddVialFlowView: View {
     // MARK: - Discover
 
     private var discoverFlowView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 18) {
             if pickedGoal == nil {
                 discoverGoalPicker
             } else if let goal = pickedGoal {
@@ -884,13 +1189,12 @@ struct AddVialFlowView: View {
     }
 
     private var discoverGoalPicker: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("What's your goal?")
-                .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(PepTheme.textPrimary)
-            Text("We'll show peptides commonly used for that goal.")
-                .font(.subheadline)
-                .foregroundStyle(PepTheme.textSecondary)
+        VStack(alignment: .leading, spacing: 18) {
+            editorialHeader(
+                eyebrow: "Discovery",
+                title: "What's the goal?",
+                subtitle: "We'll show you peptides commonly used for that aim."
+            )
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 ForEach(discoverGoals) { goal in
@@ -899,25 +1203,26 @@ struct AddVialFlowView: View {
                             pickedGoal = goal
                         }
                     } label: {
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 10) {
                             ZStack {
                                 Circle().fill(goal.color.opacity(0.18)).frame(width: 40, height: 40)
                                 Image(systemName: goal.icon)
                                     .foregroundStyle(goal.color)
                             }
                             Text(goal.title)
-                                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                                .font(.system(size: 16, weight: .semibold, design: .serif))
                                 .foregroundStyle(PepTheme.textPrimary)
                             Text(goal.blurb)
-                                .font(.caption2)
+                                .font(.system(size: 12, design: .serif))
+                                .italic()
                                 .foregroundStyle(PepTheme.textSecondary)
                                 .multilineTextAlignment(.leading)
                                 .lineLimit(3)
                         }
                         .padding(14)
-                        .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
+                        .frame(maxWidth: .infinity, minHeight: 140, alignment: .topLeading)
                         .background(PepTheme.cardSurface)
-                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(goal.color.opacity(0.25), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(goal.color.opacity(0.20), lineWidth: 1))
                         .clipShape(.rect(cornerRadius: 16))
                     }
                     .buttonStyle(.plain)
@@ -932,14 +1237,7 @@ struct AddVialFlowView: View {
             CompoundDatabase.all.first { $0.name == name }
         }
         return VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(goal.title)
-                    .font(.system(.title3, design: .rounded, weight: .bold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                Text(goal.blurb)
-                    .font(.subheadline)
-                    .foregroundStyle(PepTheme.textSecondary)
-            }
+            editorialHeader(eyebrow: "Discovery", title: goal.title, subtitle: goal.blurb)
 
             VStack(spacing: 10) {
                 ForEach(matches, id: \.id) { profile in
@@ -959,7 +1257,7 @@ struct AddVialFlowView: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(profile.name)
-                        .font(.system(.subheadline, design: .rounded, weight: .bold))
+                        .font(.system(size: 16, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.textPrimary)
                     Text(profile.peptideType)
                         .font(.caption2)
@@ -968,7 +1266,8 @@ struct AddVialFlowView: View {
                 Spacer()
             }
             Text(profile.overview)
-                .font(.caption)
+                .font(.system(size: 13, design: .serif))
+                .italic()
                 .foregroundStyle(PepTheme.textSecondary)
                 .lineLimit(3)
             HStack(spacing: 8) {
@@ -997,7 +1296,7 @@ struct AddVialFlowView: View {
                         Text("Add this vial")
                     }
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(PepTheme.background)
+                    .foregroundStyle(PepTheme.invertedText)
                     .padding(.vertical, 8)
                     .padding(.horizontal, 14)
                     .background(accent)
@@ -1024,9 +1323,13 @@ struct AddVialFlowView: View {
         pickedCompound = nil
         compoundQuery = ""
         vialSizeText = ""
-        alreadyReconstituted = nil
-        existingBacWaterMl = ""
+        bacWaterMl = ""
         chosenSuggestedMl = nil
+        startingDoseText = ""
+        startingDoseManuallySet = false
+        titrationSteps = []
+        aiNote = ""
+        titrationError = nil
     }
 
     private func resetVialFlow() {
@@ -1044,12 +1347,25 @@ struct AddVialFlowView: View {
         if !frequencyManuallySet, let rec = recommendedFrequency {
             frequency = rec
         }
+        if !startingDoseManuallySet, let pd = protocolDefault {
+            // Default to beginner low; choose unit close to the value's natural scale.
+            let val = pd.beginner.low
+            if pd.beginner.unit == "mg" {
+                startingDoseUnit = val < 0.1 ? .mcg : .mg
+                startingDoseText = startingDoseUnit == .mcg
+                    ? formatVialNumber(val * 1000)
+                    : formatVialNumber(val)
+            } else {
+                startingDoseUnit = .mcg
+                startingDoseText = formatVialNumber(val)
+            }
+            startingDoseManuallySet = false // keep auto-fillable until they edit
+        }
     }
 
     /// Maps the protocol default's freeform frequency string to a ReminderFrequency chip.
     private var recommendedFrequency: ReminderFrequency? {
         guard let raw = protocolDefault?.defaultFrequency.lowercased() else { return nil }
-        // Order matters — check most specific first.
         if raw.contains("2x daily") || raw.contains("2× daily") || raw.contains("twice daily") || raw.contains("1-2x daily") || raw.contains("1-3x daily") {
             return .twiceDaily
         }
@@ -1071,41 +1387,125 @@ struct AddVialFlowView: View {
         return nil
     }
 
-    private func applyScanned(_ scan: ScannedVialLabel) {
-        if !scan.compoundName.isEmpty {
-            pickedCompound = scan.compoundName
-            compoundQuery = scan.compoundName
-            syncDefaultsForCompound()
+    // MARK: - AI titration
+
+    private func regenerateTitrationIfNeeded(force: Bool = false) async {
+        guard let compound = pickedCompound, let dose = startingDoseMcg else { return }
+        if strategy == .maintain && !force {
+            // Minimal one-row plan for maintain
+            await MainActor.run {
+                titrationSteps = [TitrationScheduleStep(week: 1, doseMcg: dose, label: "Maintenance")]
+                aiNote = ""
+                titrationError = nil
+            }
+            return
         }
-        if let mg = scan.vialSizeMg {
-            vialSizeText = formatVialNumber(mg)
-            vialSizeUnit = .mg
+        await MainActor.run {
+            titrationLoading = true
+            titrationError = nil
         }
-        if scan.reconstitutedOn != nil {
-            alreadyReconstituted = true
+        do {
+            let result = try await fetchAITitration(
+                compound: compound,
+                startingDoseMcg: dose,
+                strategy: strategy,
+                frequency: frequency
+            )
+            await MainActor.run {
+                titrationSteps = result.steps
+                aiNote = result.note
+                titrationLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                titrationError = "Couldn't reach the suggester. You can still add steps manually."
+                titrationLoading = false
+                if titrationSteps.isEmpty {
+                    titrationSteps = [TitrationScheduleStep(week: 1, doseMcg: dose, label: "Start")]
+                }
+            }
         }
-        if let dml = scan.diluentVolumeMl {
-            existingBacWaterMl = formatVialNumber(dml)
-        }
-        entry = .vial
     }
 
+    private struct AITitrationResult {
+        let steps: [TitrationScheduleStep]
+        let note: String
+    }
+
+    private func fetchAITitration(
+        compound: String,
+        startingDoseMcg: Double,
+        strategy: DoseStrategy,
+        frequency: ReminderFrequency
+    ) async throws -> AITitrationResult {
+        let system = """
+        You are a careful peptide protocol assistant. Output ONLY valid JSON.
+        Schema: { "steps": [{ "week": int, "doseMcg": number, "label": string }], "note": string }
+        Use mcg for doseMcg (1 mg = 1000 mcg). Provide 3–6 steps spanning 8–20 weeks.
+        Honor the strategy strictly: maintain = flat, titrateUp = ascending, titrateDown = descending.
+        Keep doses within commonly used clinical ranges for the compound.
+        """
+        let user = """
+        Compound: \(compound)
+        Starting dose: \(startingDoseMcg) mcg
+        Strategy: \(strategy.rawValue)
+        Dosing frequency: \(frequency.rawValue)
+        Return JSON only, no prose.
+        """
+        let raw = try await OpenRouterClient.shared.chat(
+            tier: .fast,
+            systemPrompt: system,
+            userPrompt: user,
+            maxTokens: 600,
+            temperature: 0.4
+        )
+        let cleaned = OpenRouterClient.extractJSON(raw)
+        guard let data = cleaned.data(using: .utf8) else {
+            throw OpenRouterError.invalidResponse
+        }
+        struct DTO: Decodable {
+            struct Step: Decodable { let week: Int; let doseMcg: Double; let label: String? }
+            let steps: [Step]
+            let note: String?
+        }
+        let dto = try JSONDecoder().decode(DTO.self, from: data)
+        let steps = dto.steps.map {
+            TitrationScheduleStep(week: $0.week, doseMcg: $0.doseMcg, label: $0.label ?? "")
+        }
+        return AITitrationResult(steps: steps, note: dto.note ?? "")
+    }
+
+    private func addTitrationStep() {
+        let lastWeek = titrationSteps.map(\.week).max() ?? 0
+        let lastDose = titrationSteps.last?.doseMcg ?? (startingDoseMcg ?? 0)
+        let nextDose: Double = {
+            switch strategy {
+            case .maintain: return lastDose
+            case .titrateUp: return lastDose * 1.5
+            case .titrateDown: return max(lastDose * 0.66, 0)
+            }
+        }()
+        titrationSteps.append(TitrationScheduleStep(week: lastWeek + 4, doseMcg: nextDose, label: ""))
+    }
+
+    // MARK: - Save
+
     private func save() {
-        guard let name = pickedCompound, let mg = vialSizeMg else { return }
+        guard let name = pickedCompound, let mg = vialSizeMg, let dose = startingDoseMcg else { return }
 
         // 1. Add the vial to inventory
         let vial = Vial(
             compoundName: name,
             vialSizeMg: mg,
             diluentMl: needsReconstitution ? reconstitutedMl : nil,
-            reconstitutedOn: alreadyReconstituted == true ? Date() : nil,
+            reconstitutedOn: needsReconstitution ? Date() : nil,
             storage: .fridge,
-            typicalDoseMcg: typicalDoseMcg,
+            typicalDoseMcg: dose,
             budDays: ReconHelper.defaultBUDDays(for: name)
         )
         VialInventoryStore.shared.add(vial)
 
-        // 2. Build a lightweight protocol so the home protocol section reflects it
+        // 2. Build a protocol that captures starting dose + reconstitution
         let route: InjectionRoute = {
             let r = (protocolDefault?.route ?? compoundProfile?.keyFacts.administrationRoute ?? "Subcutaneous").lowercased()
             if r.contains("oral") { return .oral }
@@ -1117,7 +1517,7 @@ struct AddVialFlowView: View {
 
         let compound = ProtocolCompound(
             compoundName: name,
-            doseMcg: typicalDoseMcg,
+            doseMcg: dose,
             frequency: frequency.protocolFrequency,
             timeOfDay: reminderTime,
             injectionRoute: route,
@@ -1140,6 +1540,23 @@ struct AddVialFlowView: View {
             isExistingProtocol: false
         )
 
+        // 3. Persist titration schedule locally if it's a real plan
+        if titrationSteps.count >= 1 && (strategy != .maintain || titrationSteps.count > 1) {
+            let cal = Calendar.current
+            let comps = cal.dateComponents([.hour, .minute], from: reminderTime)
+            let schedule = TitrationSchedule(
+                protocolId: proto.id,
+                compoundName: name,
+                startDate: Date(),
+                steps: titrationSteps,
+                remindersEnabled: true,
+                reminderHour: comps.hour ?? 9,
+                reminderMinute: comps.minute ?? 0,
+                autoAdvanceDose: true
+            )
+            TitrationScheduleStore.shared.save(schedule)
+        }
+
         onComplete(proto)
         dismiss()
     }
@@ -1153,6 +1570,8 @@ struct AddVialFlowView: View {
         if profile.categories.contains(.tanning) { return .tanning }
         return .general
     }
+
+    // MARK: - Formatting
 
     private func formatMl(_ ml: Double) -> String {
         if ml == ml.rounded() { return "\(Int(ml)) mL" }
@@ -1169,6 +1588,11 @@ struct AddVialFlowView: View {
         return String(format: "%.2f", n)
     }
 
+    private func formatWeeks(_ w: Double) -> String {
+        if w >= 10 { return String(Int(w.rounded())) }
+        return String(format: "%.1f", w)
+    }
+
     private func displayDose(_ mcg: Double) -> String {
         if mcg >= 1000 {
             let mg = mcg / 1000
@@ -1176,38 +1600,55 @@ struct AddVialFlowView: View {
         }
         return "\(Int(mcg)) mcg"
     }
+
+    private func displayDoseValue(_ mcg: Double, in unit: VialSizeUnit) -> Double {
+        switch unit {
+        case .mg: return mcg / 1000
+        case .mcg, .iu: return mcg
+        }
+    }
 }
 
 // MARK: - Reusable card
 
 private struct FlowCard<Content: View>: View {
     let stepNumber: Int?
+    let iconName: String?
     let title: String
     let subtitle: String?
     @ViewBuilder var content: Content
 
+    init(stepNumber: Int?, iconName: String? = nil, title: String, subtitle: String?, @ViewBuilder content: () -> Content) {
+        self.stepNumber = stepNumber
+        self.iconName = iconName
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content()
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
                 if let n = stepNumber {
                     ZStack {
-                        Circle().fill(PepTheme.teal.opacity(0.18)).frame(width: 26, height: 26)
+                        Circle().fill(PepTheme.teal.opacity(0.14)).frame(width: 30, height: 30)
                         Text("\(n)")
-                            .font(.system(size: 12, weight: .heavy))
+                            .font(.system(size: 13, weight: .heavy, design: .serif))
                             .foregroundStyle(PepTheme.teal)
                     }
                 } else {
-                    Image(systemName: "syringe.fill")
+                    Image(systemName: iconName ?? "circle.fill")
                         .foregroundStyle(PepTheme.teal)
-                        .frame(width: 26, height: 26)
+                        .frame(width: 30, height: 30)
                 }
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(.subheadline, design: .rounded, weight: .bold))
+                        .font(.system(size: 18, weight: .semibold, design: .serif))
                         .foregroundStyle(PepTheme.textPrimary)
                     if let subtitle {
                         Text(subtitle)
-                            .font(.caption2)
+                            .font(.system(size: 12, design: .serif))
+                            .italic()
                             .foregroundStyle(PepTheme.textSecondary)
                     }
                 }
@@ -1215,10 +1656,14 @@ private struct FlowCard<Content: View>: View {
             }
             content
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(PepTheme.cardSurface)
-        .clipShape(.rect(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(PepTheme.separatorColor, lineWidth: 0.5)
+        )
+        .clipShape(.rect(cornerRadius: 20))
         .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 }
