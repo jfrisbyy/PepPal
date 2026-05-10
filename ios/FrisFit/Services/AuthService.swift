@@ -134,6 +134,42 @@ final class AuthService {
         try await supabase.auth.resetPasswordForEmail(email)
     }
 
+    /// Recover from a stale JWT (e.g. project's JWT signing keys were rotated
+    /// — PostgREST returns PGRST301 "No suitable key or wrong key type").
+    /// Tries a session refresh first; if that also fails, signs out so the next
+    /// sign-in mints a token under the current signing key.
+    /// Returns true if the session was successfully refreshed and callers can retry.
+    @discardableResult
+    func recoverFromInvalidJWT() async -> Bool {
+        do {
+            _ = try await supabase.auth.refreshSession()
+            print("[AuthService] Session refreshed after invalid-JWT error")
+            return true
+        } catch {
+            print("[AuthService] Refresh failed after invalid-JWT (\(error)). Signing out.")
+            try? await supabase.auth.signOut()
+            await MainActor.run {
+                self.session = nil
+                self.authState = .signedOut
+                self.errorMessage = "Your session expired. Please sign in again."
+                DebugBanner.shared.log(.error, "Session expired", "Please sign in again to continue syncing.")
+            }
+            return false
+        }
+    }
+
+    /// Returns true if the given error looks like a stale-JWT / signing-key
+    /// mismatch coming back from PostgREST (PGRST301).
+    nonisolated static func isInvalidJWTError(_ error: Error) -> Bool {
+        let desc = String(describing: error).lowercased()
+        if desc.contains("pgrst301") { return true }
+        if desc.contains("no suitable key") { return true }
+        if desc.contains("wrong key type") { return true }
+        if desc.contains("jwt expired") { return true }
+        if desc.contains("invalid jwt") { return true }
+        return false
+    }
+
     func currentUserId() throws -> String {
         // Prefer the SDK's authoritative current session (updated synchronously
         // by sign-up / sign-in / OAuth callbacks) over our cached `session`,

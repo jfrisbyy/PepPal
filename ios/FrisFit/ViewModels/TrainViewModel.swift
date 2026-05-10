@@ -455,6 +455,20 @@ final class TrainViewModel {
         } catch {
             print("[TrainVM] Failed to load programs from Supabase: \(error)")
             programsLoadedFromSupabase = false
+            // Stale JWT (e.g. Supabase project rotated its signing keys) shows up
+            // as PGRST301 "No suitable key or wrong key type". Try once to recover
+            // by refreshing the session, then retry the fetch silently.
+            if AuthService.isInvalidJWTError(error) {
+                let recovered = await AuthService.shared.recoverFromInvalidJWT()
+                if recovered {
+                    print("[TrainVM] Retrying program load after JWT recovery")
+                    await runLoadProgramsFromSupabase()
+                    return
+                }
+                // Refresh failed and the user was signed out — don't surface the
+                // raw Postgrest error, the auth banner already explains it.
+                return
+            }
             DebugBanner.shared.log(.error, "Program load failed", "\(error.localizedDescription)\n\nRaw: \(error)")
         }
     }
