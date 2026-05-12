@@ -298,6 +298,12 @@ final class ProfileViewModel {
             loadMockMarketItems()
             isLoadingProfile = false
             ProfileBannerStore.shared.syncRemote(urlString: sp.banner_url)
+            ProfileTabAvatarStore.shared.update(
+                avatarURL: sp.avatar_url,
+                initials: initials,
+                color: color,
+                colorKey: sp.avatar_color
+            )
             await loadUserPosts()
         } catch {
             profileError = error.localizedDescription

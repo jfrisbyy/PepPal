@@ -61,6 +61,9 @@ struct ContentView: View {
     @State private var showOnboarding: Bool = !OnboardingManager.hasCompleted
     @State private var showLoginFromOnboarding: Bool = false
     @State private var didReconcileOnboarding: Bool = false
+    @State private var profileTabAvatar = ProfileTabAvatarStore.shared
+    @State private var profileTabBootstrap = ProfileViewModel()
+    @State private var didBootstrapProfileTabAvatar: Bool = false
 
     var body: some View {
         let _ = print("APP_INIT: ContentView body evaluated, authState = \(authService.authState)")
@@ -132,8 +135,10 @@ struct ContentView: View {
                 Tab("Discover", systemImage: selectedTab == .discover ? AppTab.discover.activeIcon : AppTab.discover.icon, value: .discover) {
                     DiscoverView()
                 }
-                Tab("Profile", systemImage: selectedTab == .profile ? AppTab.profile.activeIcon : AppTab.profile.icon, value: .profile) {
+                Tab(value: AppTab.profile) {
                     ProfileView()
+                } label: {
+                    profileTabLabel
                 }
             }
             .tint(PepTheme.teal)
@@ -230,6 +235,13 @@ struct ContentView: View {
             }
         }
         .task(id: (try? authService.currentUserId()) ?? "") {
+            // Kick off a profile fetch once per signed-in session so the
+            // Profile tab can render the user's avatar before they ever
+            // visit the Profile tab itself.
+            if !didBootstrapProfileTabAvatar {
+                didBootstrapProfileTabAvatar = true
+                Task { await profileTabBootstrap.loadProfile() }
+            }
             print("APP_INIT: mainAppView .task started")
             // The disclaimer flag is per-user now — re-evaluate whenever the
             // signed-in user id changes so a switched account doesn't see
@@ -249,6 +261,21 @@ struct ContentView: View {
             } else {
                 print("APP_INIT: HealthKit NOT available on this device")
             }
+        }
+    }
+
+    @ViewBuilder
+    private var profileTabLabel: some View {
+        let isSelected = selectedTab == .profile
+        if let image = isSelected ? profileTabAvatar.selectedIcon : profileTabAvatar.icon {
+            Label {
+                Text("Profile")
+            } icon: {
+                Image(uiImage: image)
+                    .renderingMode(.original)
+            }
+        } else {
+            Label("Profile", systemImage: isSelected ? AppTab.profile.activeIcon : AppTab.profile.icon)
         }
     }
 
