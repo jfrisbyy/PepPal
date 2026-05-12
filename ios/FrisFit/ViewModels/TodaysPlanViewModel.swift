@@ -314,14 +314,12 @@ final class TodaysPlanViewModel {
             personalRecords: personalRecords
         )
 
-        if !hasPlan {
-            let fallback = templateFallback(
-                firstName: firstName,
-                activeProtocol: activeProtocol,
-                nutritionTarget: nutritionTarget
-            )
-            planResponse = fallback
-        }
+        // NOTE: We intentionally do NOT seed `planResponse` with a
+        // narrative-less template fallback here. Doing so caused the brief
+        // header to immediately drop into the generic `MorningBriefService`
+        // copy path (because `narrative` was nil) instead of rendering the
+        // loading state while the AI call ran. The view layer is responsible
+        // for showing a shimmer when `isLoading == true && planResponse == nil`.
         pendingTrigger = middayCatchUp ? "midday" : "window"
         pendingTier = tier(for: currentWindow())
         runHolisticRefresh(context: context)
@@ -393,7 +391,11 @@ final class TodaysPlanViewModel {
         let trigger = pendingTrigger
         let previousBrief = planResponse
         let previousMemo = currentPatternsMemo()
-        if hasPlan {
+        // Only treat the brief as "background refreshing" when we already have
+        // a real AI brief on screen (narrative present). Otherwise this is
+        // the first generation — use `isLoading` so the view shows shimmer.
+        let hasRealBrief = planResponse?.narrative != nil
+        if hasRealBrief {
             isBackgroundRefreshing = true
         } else {
             isLoading = true
@@ -417,12 +419,36 @@ final class TodaysPlanViewModel {
                 if trigger == "midday" {
                     self.markMiddayDone()
                 }
+                self.errorMessage = nil
             } catch {
                 print("[TodaysPlan] Holistic refresh error: \(error)")
+                // Surface the failure so the brief header can render an
+                // error/retry state instead of silently dropping into the
+                // local `MorningBriefService` generic copy path.
+                self.errorMessage = Self.userFacingError(for: error)
             }
             self.isLoading = false
             self.isBackgroundRefreshing = false
         }
+    }
+
+    /// Maps a thrown AI error to a short, user-readable message for the
+    /// brief header's error state. Keep these terse — the header is small.
+    private static func userFacingError(for error: Error) -> String {
+        if let planErr = error as? TodaysPlanError {
+            switch planErr {
+            case .apiError(let code):
+                if code == 401 || code == 403 { return "Sign-in needed to refresh your brief." }
+                if code == 429 { return "Rate limit hit \u{2014} try again in a moment." }
+                if (500...599).contains(code) { return "Our AI service is having a moment. Tap retry." }
+                return "Brief refresh failed (\(code)). Tap retry."
+            case .invalidResponse:
+                return "Brief response was malformed. Tap retry."
+            }
+        }
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain { return "Network hiccup. Tap retry when you're back online." }
+        return "Couldn't refresh your brief. Tap retry."
     }
 
     /// Manual force-refresh (e.g. pull-to-refresh, chat context builder).

@@ -106,7 +106,14 @@ struct PlanBriefHeaderView: View {
                 return "No saved brief for this day"
             }
         }
-        if todaysPlanVM.isLoading && narrative == nil { return "Generating your brief…" }
+        if !isHistorical && narrative == nil {
+            if todaysPlanVM.isLoading || todaysPlanVM.isBackgroundRefreshing {
+                return "Generating your brief…"
+            }
+            if todaysPlanVM.errorMessage != nil {
+                return "Tap to retry your brief"
+            }
+        }
         let h = headline
         return h.isEmpty ? greeting : h
     }
@@ -119,10 +126,20 @@ struct PlanBriefHeaderView: View {
                 .fill(PepTheme.violet.opacity(0.18))
                 .frame(height: 0.5)
 
-            if (todaysPlanVM.isLoading || todaysPlanVM.isLoadingHistorical) && narrative == nil && todaysPlanVM.activePlan == nil {
+            if isHistorical && todaysPlanVM.activePlan == nil {
+                if todaysPlanVM.isLoadingHistorical {
+                    shimmerContent
+                } else {
+                    emptyHistoricalContent
+                }
+            } else if !isHistorical && narrative == nil && (todaysPlanVM.isLoading || todaysPlanVM.isBackgroundRefreshing) {
+                // Initial AI generation — show shimmer instead of dropping
+                // into the local-data fallback copy. The fallback was making
+                // every brief look generic until the AI call finished (or
+                // worse, if it failed silently).
                 shimmerContent
-            } else if isHistorical && todaysPlanVM.activePlan == nil {
-                emptyHistoricalContent
+            } else if !isHistorical && narrative == nil && todaysPlanVM.errorMessage != nil {
+                errorRetryContent
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(headline)
@@ -256,6 +273,49 @@ struct PlanBriefHeaderView: View {
                     .background(PepTheme.violet.opacity(0.12))
                     .clipShape(.capsule)
             }
+        }
+    }
+
+    private var errorRetryContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PepTheme.amber)
+                Text("Couldn\u{2019}t generate your brief")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+
+            if let msg = todaysPlanVM.errorMessage, !msg.isEmpty {
+                Text(msg)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button {
+                onRefresh()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 10, weight: .bold))
+                    Text("Retry")
+                        .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                        .tracking(1.2)
+                }
+                .foregroundStyle(PepTheme.violet)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(PepTheme.violet.opacity(0.12))
+                .clipShape(.capsule)
+                .overlay(
+                    Capsule().strokeBorder(PepTheme.violet.opacity(0.22), lineWidth: 0.5)
+                )
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.impact(weight: .light), trigger: todaysPlanVM.isLoading)
         }
     }
 
