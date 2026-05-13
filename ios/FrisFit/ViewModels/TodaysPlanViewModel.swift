@@ -16,12 +16,27 @@ final class TodaysPlanViewModel {
     var historicalDate: Date?
     var isLoadingHistorical: Bool = false
 
-    private let cacheKey = "todaysPlanCache"
-    private let cacheHashKey = "todaysPlanHash"
-    private let cacheDateKey = "todaysPlanCacheTimestamp"
-    private let memoKey = "todaysPlanPatternsMemo"
-    private let memoDateKey = "todaysPlanPatternsMemoTimestamp"
-    private static let windowsDoneKey = "todaysPlanWindowsDone"
+    // Base keys — actual UserDefaults keys are scoped per-user via
+    // `LocalStateResetCoordinator.userScopedKey(_:userId:)` so one persona's
+    // cached brief can never bleed into another account's home screen.
+    private static let cacheKeyBase = "todaysPlanCache"
+    private static let cacheHashKeyBase = "todaysPlanHash"
+    private static let cacheDateKeyBase = "todaysPlanCacheTimestamp"
+    private static let memoKeyBase = "todaysPlanPatternsMemo"
+    private static let memoDateKeyBase = "todaysPlanPatternsMemoTimestamp"
+    private static let windowsDoneKeyBase = "todaysPlanWindowsDone"
+    private static let middayDoneKeyBase = "todaysPlanMiddayDone"
+
+    private var scopedUserId: String? {
+        LocalStateResetCoordinator.currentUserId()?.lowercased()
+    }
+    private var cacheKey: String { LocalStateResetCoordinator.userScopedKey(TodaysPlanViewModel.cacheKeyBase, userId: scopedUserId) }
+    private var cacheHashKey: String { LocalStateResetCoordinator.userScopedKey(TodaysPlanViewModel.cacheHashKeyBase, userId: scopedUserId) }
+    private var cacheDateKey: String { LocalStateResetCoordinator.userScopedKey(TodaysPlanViewModel.cacheDateKeyBase, userId: scopedUserId) }
+    private var memoKey: String { LocalStateResetCoordinator.userScopedKey(TodaysPlanViewModel.memoKeyBase, userId: scopedUserId) }
+    private var memoDateKey: String { LocalStateResetCoordinator.userScopedKey(TodaysPlanViewModel.memoDateKeyBase, userId: scopedUserId) }
+    private var windowsDoneKey: String { LocalStateResetCoordinator.userScopedKey(TodaysPlanViewModel.windowsDoneKeyBase, userId: scopedUserId) }
+    private var middayDoneKey: String { LocalStateResetCoordinator.userScopedKey(TodaysPlanViewModel.middayDoneKeyBase, userId: scopedUserId) }
     /// Pending trigger reason — set just before kicking off a refresh so the
     /// completion handler can record it alongside the cloud-saved briefing.
     private var pendingTrigger: String = "window"
@@ -31,9 +46,6 @@ final class TodaysPlanViewModel {
     private var debounceTask: Task<Void, Never>? = nil
     private var pendingDebouncedContext: ContextBundle? = nil
     private static let debounceSeconds: UInt64 = 30
-    /// Anchored 1pm Haiku key — stored as "yyyy-MM-dd" so we only fire once per
-    /// device-local day even if the app is foregrounded multiple times after 1pm.
-    private static let middayDoneKey = "todaysPlanMiddayDone"
     /// Identifier used by the recurring local push that nudges users to open
     /// the app at 1pm so the midday Haiku refresh runs against fresh logs.
     private static let middayPushID = "smart.tasks.middayBrief"
@@ -46,6 +58,44 @@ final class TodaysPlanViewModel {
         "dose", "sideEffect",
         "bloodwork"
     ]
+
+    private var authObserver: NSObjectProtocol?
+
+    private init() {
+        // Reset every piece of in-memory + on-disk brief state whenever the
+        // signed-in user changes. Without this, the singleton would keep the
+        // previous account's `planResponse` on screen until the next AI call
+        // finished — which is exactly the "Daily Brief shows another user's
+        // data" bug.
+        authObserver = NotificationCenter.default.addObserver(
+            forName: .authUserChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.handleSignOutOrUserSwitch() }
+        }
+    }
+
+    deinit {
+        if let authObserver { NotificationCenter.default.removeObserver(authObserver) }
+    }
+
+    /// Called on sign-out / account-switch. Drops in-memory plan state and
+    /// cancels any in-flight refresh so the new account's home screen renders
+    /// a loading shimmer instead of the previous user's brief.
+    func handleSignOutOrUserSwitch() {
+        planResponse = nil
+        historicalPlan = nil
+        historicalDate = nil
+        lastFetchDate = nil
+        errorMessage = nil
+        isLoading = false
+        isBackgroundRefreshing = false
+        isLoadingHistorical = false
+        debounceTask?.cancel()
+        debounceTask = nil
+        pendingDebouncedContext = nil
+    }
 
     var hasPlan: Bool { planResponse != nil }
 
@@ -237,7 +287,7 @@ final class TodaysPlanViewModel {
     }
 
     private func windowsDoneToday() -> Set<String> {
-        guard let raw = UserDefaults.standard.string(forKey: Self.windowsDoneKey) else { return [] }
+        guard let raw = UserDefaults.standard.string(forKey: windowsDoneKey) else { return [] }
         let parts = raw.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false)
         guard parts.count == 2, String(parts[0]) == Self.dayString(Date()) else { return [] }
         return Set(parts[1].split(separator: ",").map(String.init))
@@ -247,7 +297,7 @@ final class TodaysPlanViewModel {
         var done = windowsDoneToday()
         done.insert(currentWindow().rawValue)
         let today = Self.dayString(Date())
-        UserDefaults.standard.set("\(today)|\(done.sorted().joined(separator: ","))", forKey: Self.windowsDoneKey)
+        UserDefaults.standard.set("\(today)|\(done.sorted().joined(separator: ","))", forKey: windowsDoneKey)
     }
 
     private func isCurrentWindowDone() -> Bool {
@@ -261,12 +311,12 @@ final class TodaysPlanViewModel {
     /// time-of-day window hasn't been refreshed today. Otherwise is a no-op.
     /// Whether the 1pm Haiku has already fired today.
     private func isMiddayDone() -> Bool {
-        guard let raw = UserDefaults.standard.string(forKey: Self.middayDoneKey) else { return false }
+        guard let raw = UserDefaults.standard.string(forKey: middayDoneKey) else { return false }
         return raw == Self.dayString(Date())
     }
 
     private func markMiddayDone() {
-        UserDefaults.standard.set(Self.dayString(Date()), forKey: Self.middayDoneKey)
+        UserDefaults.standard.set(Self.dayString(Date()), forKey: middayDoneKey)
     }
 
     func refreshForWindowIfDue(

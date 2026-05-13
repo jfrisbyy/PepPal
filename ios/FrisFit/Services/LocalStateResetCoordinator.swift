@@ -238,6 +238,16 @@ enum LocalStateResetCoordinator {
         "peppal.medicalDisclaimer.acceptedDate.v1.",
         "peppal.medicalDisclaimer.acceptedVersion.v1.",
         "healthkit_enabled.",
+        // Daily Brief caches — per-user scoped via `userScopedKey`. Wiping
+        // on every account switch prevents the previous user's brief copy /
+        // patterns memo from leaking onto the new account's home screen.
+        "todaysPlanCache.",
+        "todaysPlanHash.",
+        "todaysPlanCacheTimestamp.",
+        "todaysPlanPatternsMemo.",
+        "todaysPlanPatternsMemoTimestamp.",
+        "todaysPlanWindowsDone.",
+        "todaysPlanMiddayDone.",
     ]
 
     /// Wipe every user-scoped piece of local state. Pass the previous user's
@@ -278,6 +288,9 @@ enum LocalStateResetCoordinator {
         Task { @MainActor in
             HealthKitService.shared.handleSignOutOrUserSwitch()
             PeptideAccessManager.shared.handleSignOutOrUserSwitch()
+            // Drop the previous user's in-memory Daily Brief so the new
+            // account renders a loading state instead of stale copy.
+            TodaysPlanViewModel.shared.handleSignOutOrUserSwitch()
         }
     }
 }
