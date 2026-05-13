@@ -2244,10 +2244,13 @@ async function screenshotSeedMe(admin: SupabaseClient, userId: string): Promise<
         biomarkers: 0,
         activity_logs: 0,
         daily_tasks: 0,
+        sleep_logs: 0,
+        side_effects: 0,
     };
     const errors: string[] = [];
     const now = Date.now();
     const DAY = 24 * 3600 * 1000;
+    let protocolIdForFixtures: string | null = null;
 
     // ------ 1) Own feed posts with media ------
     try {
@@ -2365,6 +2368,7 @@ async function screenshotSeedMe(admin: SupabaseClient, userId: string): Promise<
             } else if (pErr) errors.push(`protocol: ${pErr.message}`);
         }
         if (protocolId) {
+            protocolIdForFixtures = protocolId;
             const compounds = [
                 { compound_name: "Retatrutide", dose_mcg: 2000, frequency: "Weekly", injection_route: "Subcutaneous", vial_size_mg: 10 },
                 { compound_name: "BPC-157", dose_mcg: 250, frequency: "Daily", injection_route: "Subcutaneous", vial_size_mg: 5 },
@@ -2726,7 +2730,72 @@ async function screenshotSeedMe(admin: SupabaseClient, userId: string): Promise<
         }
     } catch (e) { errors.push(`tasks: ${String(e)}`); }
 
-    // ------ 13) Streak + FP bump on profile ------
+    // ------ 13) Manual sleep logs — 14 nights of durable history ------
+    // Mostly normal hours so the "rough sleep" detector does NOT fire today;
+    // one rough night sits 5 days back so the sleep trend chart shows a dip.
+    try {
+        const dateOnly = (d: Date) => d.toISOString().slice(0, 10);
+        // Hours pattern by nights-ago index (0 = last night):
+        // 0: 7.6h, 1: 8.1h, 2: 7.2h, 3: 6.9h, 4: 7.8h, 5: 4.8h (rough),
+        // 6: 6.4h, 7: 7.5h, 8: 8.0h, 9: 7.3h, 10: 6.8h, 11: 7.6h, 12: 7.9h, 13: 7.4h
+        const hoursPattern = [7.6, 8.1, 7.2, 6.9, 7.8, 4.8, 6.4, 7.5, 8.0, 7.3, 6.8, 7.6, 7.9, 7.4];
+        const qualityPattern = [4, 5, 4, 3, 4, 2, 3, 4, 5, 4, 3, 4, 5, 4];
+        const rows: Record<string, unknown>[] = [];
+        for (let i = 0; i < hoursPattern.length; i += 1) {
+            const night = new Date(now - (i + 1) * DAY); // i=0 -> "last night"
+            const wake = new Date(night);
+            wake.setUTCHours(7, 0, 0, 0);
+            const bed = new Date(wake.getTime() - hoursPattern[i] * 3600 * 1000);
+            rows.push({
+                user_id: userId,
+                night: dateOnly(night),
+                bedtime: bed.toISOString(),
+                wake_time: wake.toISOString(),
+                hours: hoursPattern[i],
+                quality: qualityPattern[i],
+                notes: i === 5 ? `rough night ${SCREENSHOT_MARK}` : SCREENSHOT_MARK,
+            });
+        }
+        const { error, count } = await admin
+            .from("manual_sleep_logs")
+            .upsert(rows, { onConflict: "user_id,night", ignoreDuplicates: true, count: "exact" });
+        if (error) errors.push(`sleep: ${error.message}`);
+        else summary.sleep_logs = count ?? rows.length;
+    } catch (e) { errors.push(`sleep: ${String(e)}`); }
+
+    // ------ 14) Side effect log — durable historical entries ------
+    // All entries are >48h old so the "side effect today" detector does NOT
+    // fire; the protocol screen still shows a populated symptom timeline.
+    try {
+        if (protocolIdForFixtures) {
+            const { count: existingSE } = await admin
+                .from("side_effect_logs")
+                .select("id", { count: "exact", head: true })
+                .eq("protocol_id", protocolIdForFixtures)
+                .ilike("notes", `%${SCREENSHOT_MARK}%`);
+            if ((existingSE ?? 0) < 4) {
+                const entries = [
+                    { symptom: "Nausea", severity: 2, hoursAgo: 4 * 24 + 3,  notes: "mild — settled after a meal" },
+                    { symptom: "Headache", severity: 2, hoursAgo: 6 * 24 + 7, notes: "front of head, water + nap helped" },
+                    { symptom: "Fatigue", severity: 1, hoursAgo: 9 * 24 + 11, notes: "second half of the day" },
+                    { symptom: "Injection site soreness", severity: 1, hoursAgo: 12 * 24 + 2, notes: "left abdomen, gone next morning" },
+                ];
+                const rows = entries.map((e) => ({
+                    user_id: userId,
+                    protocol_id: protocolIdForFixtures,
+                    symptom: e.symptom,
+                    severity: e.severity,
+                    notes: `${e.notes} ${SCREENSHOT_MARK}`,
+                    logged_at: new Date(now - e.hoursAgo * 3600 * 1000).toISOString(),
+                }));
+                const { error } = await admin.from("side_effect_logs").insert(rows);
+                if (error) errors.push(`side effects: ${error.message}`);
+                else summary.side_effects = rows.length;
+            }
+        }
+    } catch (e) { errors.push(`side effects: ${String(e)}`); }
+
+    // ------ 15) Streak + FP bump on profile ------
     try {
         await admin.from("profiles").update({
             current_streak: 47,
@@ -2760,6 +2829,8 @@ async function wipeMyScreenshotData(admin: SupabaseClient, userId: string): Prom
     try { await admin.from("activity_logs").delete().eq("user_id", userId).ilike("notes", `%${SCREENSHOT_MARK}%`); } catch (_) {}
     try { await admin.from("daily_tasks").delete().eq("user_id", userId).ilike("description", `%${SCREENSHOT_MARK}%`); } catch (_) {}
     try { await admin.from("bloodwork_entries").delete().eq("user_id", userId).ilike("notes", `%${SCREENSHOT_MARK}%`); } catch (_) {}
+    try { await admin.from("manual_sleep_logs").delete().eq("user_id", userId).ilike("notes", `%${SCREENSHOT_MARK}%`); } catch (_) {}
+    try { await admin.from("side_effect_logs").delete().eq("user_id", userId).ilike("notes", `%${SCREENSHOT_MARK}%`); } catch (_) {}
     try { await admin.from("training_programs").delete().eq("user_id", userId).ilike("name", `%${SCREENSHOT_MARK}%`); } catch (_) {}
     // Protocols (cascades to compounds, dose logs, side effects, supplements)
     try { await admin.from("protocols").delete().eq("user_id", userId).ilike("name", `%${SCREENSHOT_MARK}%`); } catch (_) {}
