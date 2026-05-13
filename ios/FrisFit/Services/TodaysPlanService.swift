@@ -430,6 +430,9 @@ final class TodaysPlanService {
     INCREMENTAL UPDATE MODE:
     You are refreshing an existing Daily Brief that was originally written by a deep-analysis model earlier today. The user must NOT be able to tell that a different model is producing this update — the language, sentence shape, specificity, and depth must match the prior brief exactly. Use the same number of modules, the same module types where still relevant, and the same level of cross-domain reasoning.
 
+    TIME REFERENCES — CRITICAL:
+    The PREVIOUS BRIEF was generated earlier in the day and any clock time, hour, or day name embedded in it (e.g. "4am Wednesday", "this morning", "tonight") is now STALE. NEVER copy a specific clock time, hour, AM/PM marker, or day-of-week from PREVIOUS BRIEF. Every time reference in your output must be derived solely from CURRENT CONTEXT > USER PROFILE > Current date/time and Time of day. If the prior body said "4am Wednesday" and the current time is 5:25pm Wednesday, your refreshed body must reflect "afternoon" / "evening" voice — not the stale phrase.
+
     You will be given:
     1. PATTERN MEMO — the durable cross-domain understanding of this user from the latest deep pass. Treat this as authoritative for everything the new logs do not directly contradict. You may quote any insight from the memo, but you MUST re-cite it with the freshest numbers from the current context.
     2. PREVIOUS BRIEF — the brief currently on screen.
@@ -446,6 +449,7 @@ final class TodaysPlanService {
 
     private static func deepUserPrompt(longTermSection: String, contextString: String) -> String {
         var sections: [String] = []
+        sections.append("CURRENT TIME (authoritative — every time/day reference in your output must reflect this):\n\(Self.currentTimeStamp())")
         if !longTermSection.isEmpty {
             sections.append(longTermSection)
         }
@@ -457,6 +461,8 @@ final class TodaysPlanService {
 
     private static func fastUserPrompt(memo: String, longTermSection: String, previousBrief: TodaysPlanResponse?, contextString: String) -> String {
         var sections: [String] = []
+        let nowStamp = Self.currentTimeStamp()
+        sections.append("CURRENT TIME (authoritative — overrides any time reference in PREVIOUS BRIEF):\n\(nowStamp)")
         sections.append("PATTERN MEMO (from latest deep pass — authoritative for cross-domain context):")
         sections.append(memo.isEmpty ? "(none — derive patterns from CURRENT CONTEXT only)" : memo)
         if !longTermSection.isEmpty {
@@ -470,6 +476,14 @@ final class TodaysPlanService {
         sections.append(contextString)
         sections.append("Produce the refreshed Daily Brief as JSON in the exact required shape.")
         return sections.joined(separator: "\n\n")
+    }
+
+    private static func currentTimeStamp() -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = .current
+        f.dateFormat = "EEEE, MMMM d, yyyy 'at' h:mm a zzz"
+        return f.string(from: Date())
     }
 
     private static func encodePreviousBrief(_ brief: TodaysPlanResponse) -> String? {

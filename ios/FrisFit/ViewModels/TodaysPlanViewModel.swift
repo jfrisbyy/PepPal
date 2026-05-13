@@ -135,8 +135,18 @@ final class TodaysPlanViewModel {
            let timestamp = UserDefaults.standard.object(forKey: cacheDateKey) as? Date,
            Calendar.current.isDateInToday(timestamp),
            let cached = try? JSONDecoder().decode(TodaysPlanResponse.self, from: data) {
+            // If the cached brief was generated in a different time-of-day
+            // window than "now" (e.g. cached at 4am, opening at 5pm), it
+            // almost always contains stale time/voice references like
+            // "4am Wednesday". Keep showing it as a placeholder, but force
+            // the current window to re-run so the visible brief catches up.
+            let cachedWindow = currentWindow(timestamp)
+            let nowWindow = currentWindow(Date())
             planResponse = cached
             lastFetchDate = timestamp
+            if cachedWindow != nowWindow {
+                invalidateCurrentWindowDone()
+            }
         }
         // Make sure the recurring 1pm push is registered. Idempotent.
         scheduleMiddayPushIfNeeded()
@@ -302,6 +312,28 @@ final class TodaysPlanViewModel {
 
     private func isCurrentWindowDone() -> Bool {
         windowsDoneToday().contains(currentWindow().rawValue)
+    }
+
+    /// Removes the current time-of-day window from the "done" set so the
+    /// next `refreshForWindowIfDue` will actually run. Used when we detect
+    /// the visible brief was generated in a prior window and is therefore
+    /// stale in its time references.
+    private func invalidateCurrentWindowDone() {
+        var done = windowsDoneToday()
+        let cur = currentWindow().rawValue
+        guard done.contains(cur) else { return }
+        done.remove(cur)
+        let today = Self.dayString(Date())
+        if done.isEmpty {
+            UserDefaults.standard.removeObject(forKey: windowsDoneKey)
+        } else {
+            UserDefaults.standard.set("\(today)|\(done.sorted().joined(separator: ","))", forKey: windowsDoneKey)
+        }
+        // Also clear the midday marker if we're in the afternoon slot so
+        // the catch-up branch can fire when the home view appears.
+        if cur == Window.afternoon.rawValue {
+            UserDefaults.standard.removeObject(forKey: middayDoneKey)
+        }
     }
 
     // MARK: - Refresh entry points
