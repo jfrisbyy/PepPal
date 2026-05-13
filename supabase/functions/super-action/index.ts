@@ -2738,6 +2738,85 @@ async function deepPopulateFakePersona(
     return { inserted, errors };
 }
 
+// ---- Handler: deepPopulateFakePersona (single user) ----------------
+//
+// Action payload: { user_id: string, archetype?: string }. Wipes prior
+// [fake-persona-seed] rows for the user, then re-seeds an archetype-tuned
+// profile: 90-day weight trend, program + 25–45 workouts, PRs, 60 days
+// of meals + macro targets, archetype-appropriate protocols/vials/doses,
+// optional bloodwork + side effects, sleep logs, daily tasks, activity
+// heatmap. Returns per-table counts.
+
+async function wipeFakePersonaSeed(admin: SupabaseClient, userId: string): Promise<void> {
+    const M = FAKE_SEED_MARK;
+    const safe = async (fn: () => Promise<unknown>) => { try { await fn(); } catch (_) {} };
+    await safe(() => admin.from("weight_logs").delete().eq("user_id", userId).ilike("note", `%${M}%`));
+    await safe(() => admin.from("workouts").delete().eq("user_id", userId).ilike("notes", `%${M}%`));
+    await safe(() => admin.from("activity_logs").delete().eq("user_id", userId).ilike("notes", `%${M}%`));
+    await safe(() => admin.from("daily_tasks").delete().eq("user_id", userId).ilike("description", `%${M}%`));
+    await safe(() => admin.from("bloodwork_entries").delete().eq("user_id", userId).ilike("notes", `%${M}%`));
+    await safe(() => admin.from("manual_sleep_logs").delete().eq("user_id", userId).ilike("notes", `%${M}%`));
+    await safe(() => admin.from("side_effect_logs").delete().eq("user_id", userId).ilike("notes", `%${M}%`));
+    await safe(() => admin.from("training_programs").delete().eq("user_id", userId).ilike("name", `%${M}%`));
+    await safe(() => admin.from("protocols").delete().eq("user_id", userId).ilike("name", `%${M}%`));
+    await safe(() => admin.from("vials").delete().eq("user_id", userId).like("client_id", "fake-vial-%"));
+    await safe(async () => {
+        const prIds = MY_PRS.map((p) => p.exercise_id);
+        await admin.from("personal_records").delete().eq("user_id", userId).in("exercise_id", prIds);
+    });
+    await safe(async () => {
+        const names = MEAL_BANK.map((m) => m.name);
+        await admin.from("logged_meals").delete().eq("user_id", userId).in("food_name", names);
+    });
+}
+
+async function deepPopulateFakePersonaAction(
+    admin: SupabaseClient,
+    payload: Record<string, unknown>,
+): Promise<Response> {
+    const userId = String(payload.user_id ?? "");
+    if (!userId) return json(400, { error: "missing_user_id" });
+    const requestedArchetype = typeof payload.archetype === "string" ? payload.archetype.toLowerCase() : "";
+
+    // Find the profile so we can locate (or pick) a matching curated persona.
+    const { data: profile, error: profErr } = await admin
+        .from("profiles")
+        .select("id, username, display_name, is_test_user, archetype_label")
+        .eq("id", userId)
+        .maybeSingle();
+    if (profErr) return json(500, { error: profErr.message });
+    if (!profile || profile.is_test_user !== true) {
+        return json(403, { error: "not_a_fake_user" });
+    }
+
+    let persona: Persona | null =
+        PERSONAS.find((p) => p.username === profile.username) ?? null;
+    if (!persona && requestedArchetype.length > 0) {
+        persona = PERSONAS.find((p) => p.archetype.toLowerCase() === requestedArchetype) ?? null;
+    }
+    if (!persona && typeof profile.archetype_label === "string") {
+        const label = profile.archetype_label.toLowerCase();
+        persona = PERSONAS.find((p) => p.archetype.toLowerCase() === label) ?? null;
+    }
+    if (!persona) {
+        persona = PERSONAS[0]; // safe fallback so we still produce data
+    }
+
+    // Idempotent: wipe prior [fake-persona-seed] rows before re-inserting.
+    await wipeFakePersonaSeed(admin, userId);
+
+    const { inserted, errors } = await deepPopulateFakePersona(admin, userId, persona);
+    return json(200, {
+        ok: errors.length === 0,
+        version: "deep-v2",
+        user_id: userId,
+        persona: persona.username,
+        archetype: persona.archetype,
+        inserted,
+        errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
+    });
+}
+
 async function deepPopulateAllFakes(
     admin: SupabaseClient,
     payload: Record<string, unknown>,
@@ -3558,6 +3637,85 @@ async function wipeMyScreenshotData(admin: SupabaseClient, userId: string): Prom
     return json(200, { ok: true, version: "seed-v2", deleted_marker: SCREENSHOT_MARK });
 }
 
+// ---- Handler: generateFakePersonas (one-button wrapper) -------------
+//
+// Runs sequentially: seedTestFriends → deepPopulateAllFakes →
+// bulkPopulateAllFakes. Accumulates counts. On phase error, returns
+// { ok: false, phase, error, partial } with a 200 status so the client
+// can render the partial result in the status line.
+
+async function generateFakePersonas(
+    admin: SupabaseClient,
+    callerId: string,
+): Promise<Response> {
+    const partial: Record<string, number> = {
+        personas: 0, workouts: 0, meals: 0, weights: 0, doses: 0, prs: 0,
+        posts: 0, groups: 0, dm_threads: 0,
+    };
+
+    // Phase 1: seedTestFriends ------------------------------------------
+    try {
+        const resp = await seedTestFriends(admin, callerId, {});
+        const body = await resp.json();
+        partial.personas = Number(body?.total_test_profiles ?? 0) || 0;
+        if (body?.ok === false) {
+            return json(200, {
+                ok: false, phase: "seedTestFriends",
+                error: String(body?.error ?? "seed_failed"), partial,
+            });
+        }
+    } catch (e) {
+        return json(200, { ok: false, phase: "seedTestFriends", error: String(e), partial });
+    }
+
+    // Phase 2: deepPopulateAllFakes -------------------------------------
+    try {
+        const resp = await deepPopulateAllFakes(admin, {});
+        const body = await resp.json();
+        partial.workouts = Number(body?.workouts ?? 0) || 0;
+        partial.meals = Number(body?.meals ?? 0) || 0;
+        partial.weights = Number(body?.weights ?? 0) || 0;
+        partial.doses = Number(body?.dose_logs ?? 0) || 0;
+        partial.prs = Number(body?.prs ?? 0) || 0;
+        if (body?.ok === false && Array.isArray(body?.errors) && body.errors.length > 0) {
+            // Soft-fail; continue to phase 3 so the social graph still seeds.
+        }
+    } catch (e) {
+        return json(200, { ok: false, phase: "deepPopulateAllFakes", error: String(e), partial });
+    }
+
+    // Phase 3: bulkPopulateAllFakes -------------------------------------
+    try {
+        const resp = await bulkPopulateAllFakes(admin, { level: "medium" }, callerId);
+        const body = await resp.json();
+        partial.posts = Number(body?.posts_added ?? 0) || 0;
+        partial.groups = Number(body?.groups_created ?? 0) || 0;
+        partial.dm_threads = Number(body?.dm_pairs ?? 0) || 0;
+        if (body?.ok === false) {
+            return json(200, {
+                ok: false, phase: "bulkPopulateAllFakes",
+                error: String(body?.error ?? "bulk_failed"), partial,
+            });
+        }
+    } catch (e) {
+        return json(200, { ok: false, phase: "bulkPopulateAllFakes", error: String(e), partial });
+    }
+
+    return json(200, {
+        ok: true,
+        version: "seed-v2",
+        personas: partial.personas,
+        workouts: partial.workouts,
+        meals: partial.meals,
+        weights: partial.weights,
+        doses: partial.doses,
+        prs: partial.prs,
+        posts: partial.posts,
+        groups: partial.groups,
+        dm_threads: partial.dm_threads,
+    });
+}
+
 // ---- Entry point ------------------------------------------------------
 
 Deno.serve(async (req) => {
@@ -3641,6 +3799,10 @@ Deno.serve(async (req) => {
             case "deepPopulateAllFakes":
             case "deepPopulateFake":
                 return await deepPopulateAllFakes(admin, payload);
+            case "deepPopulateFakePersona":
+                return await deepPopulateFakePersonaAction(admin, payload);
+            case "generateFakePersonas":
+                return await generateFakePersonas(admin, auth.userId);
             case "wipeMyScreenshotData":
                 return await wipeMyScreenshotData(admin, auth.userId);
             case "fakeDailyAutoLog":
