@@ -90,9 +90,31 @@ final class StepDetailViewModel {
 
     var todaySteps: Int { healthKit.steps }
 
-    var stepGoal: Int {
+    var baselineStepGoal: Int {
         get { UserDefaults.standard.integer(forKey: "step_goal").clamped(to: 1000...100000, default: 10000) }
         set { UserDefaults.standard.set(newValue, forKey: "step_goal") }
+    }
+
+    /// Step goal after applying any accepted adaptive bundle cap/raise lines.
+    var stepGoal: Int {
+        get {
+            var goal = baselineStepGoal
+            for line in AdaptiveAdjustmentService.shared.activeLines(in: .steps) {
+                switch line.kind {
+                case .stepCap(let s): goal = min(goal, s)
+                case .stepRaise(let s): goal = max(goal, s)
+                default: break
+                }
+            }
+            return goal
+        }
+        set { baselineStepGoal = newValue }
+    }
+
+    var adaptiveStepReason: String? {
+        let lines = AdaptiveAdjustmentService.shared.activeLines(in: .steps)
+        guard !lines.isEmpty else { return nil }
+        return lines.map { $0.summary }.joined(separator: " · ")
     }
 
     var todayProgress: Double {

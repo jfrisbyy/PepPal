@@ -3,9 +3,9 @@ import Foundation
 /// Deterministic cross-domain signal detector for the Daily Brief.
 ///
 /// Scans local stores (sleep, HK recovery, side effects, dose log, bloodwork,
-/// RHR/HRV, streak, nutrition) and surfaces 0–3 high-confidence scenarios that
-/// the brief must visibly account for. Each signal is rendered into the prompt
-/// so the AI weaves it into the narrative and emits a matching `adaptiveCallout`.
+/// RHR/HRV, streak, nutrition) and emits an `AdaptiveBundle` containing typed
+/// per-domain adjustment lines. The bundle is the source of truth — the AI
+/// only narrates it.
 @MainActor
 final class AdaptiveSignalsService {
     static let shared = AdaptiveSignalsService()
@@ -13,10 +13,31 @@ final class AdaptiveSignalsService {
 
     nonisolated struct Signal: Sendable {
         let kind: Kind
-        let trigger: String         // e.g. "Slept 5.1h last night (vs 7.4h avg)"
-        let recommendation: String  // e.g. "Cut working sets in half, anchor on form"
-        let priority: Int           // higher wins when we have too many
-        let adjustment: BriefAdjustment
+        let trigger: String
+        let recommendation: String
+        let priority: Int
+        let lines: [AdaptiveLine]
+
+        /// Legacy single-line shim used by the brief header until the bundle UI
+        /// fully replaces it. Returns the workout line if there is one,
+        /// otherwise a `.noChange` adjustment with the signal recommendation.
+        var adjustment: BriefAdjustment {
+            if let workout = lines.first(where: { $0.domain == .workout }) {
+                switch workout.kind {
+                case .halveSets:
+                    return BriefAdjustment(summary: workout.summary, kind: .halveSets, magnitude: 0.5)
+                case .halveReps:
+                    return BriefAdjustment(summary: workout.summary, kind: .halveReps, magnitude: 0.5)
+                case .deload(let m):
+                    return BriefAdjustment(summary: workout.summary, kind: .deload, magnitude: m)
+                case .mobilityOnly:
+                    return BriefAdjustment(summary: workout.summary, kind: .mobilityOnly, magnitude: nil)
+                default:
+                    return BriefAdjustment(summary: workout.summary, kind: .noChange, magnitude: nil)
+                }
+            }
+            return BriefAdjustment(summary: recommendation, kind: .noChange, magnitude: nil)
+        }
 
         nonisolated enum Kind: String, Sendable {
             case roughSleep
@@ -30,9 +51,6 @@ final class AdaptiveSignalsService {
 
     // MARK: - Cached top signal for today
 
-    /// In-memory cache of the most recently built top signal, keyed by yyyy-MM-dd.
-    /// The brief view reads this to render the structured adjustment strip
-    /// without depending on AI output.
     private(set) var todaysTopSignal: Signal? = nil
     private(set) var todaysTopSignalDateKey: String = ""
 
@@ -47,7 +65,9 @@ final class AdaptiveSignalsService {
         return todaysTopSignal
     }
 
-    /// Build up to 3 signals, sorted by priority (highest first).
+    /// Build up to 3 signals, sorted by priority (highest first), and ingest
+    /// the merged bundle into `AdaptiveAdjustmentService` so per-line decisions
+    /// reconcile against any prior state from earlier today.
     func buildSignals(activeProtocol: PeptideProtocol?) -> [Signal] {
         var out: [Signal] = []
         if let s = roughSleepSignal() { out.append(s) }
@@ -59,18 +79,76 @@ final class AdaptiveSignalsService {
         let sorted = Array(out.sorted { $0.priority > $1.priority }.prefix(3))
         todaysTopSignalDateKey = Self.todayKey()
         todaysTopSignal = sorted.first
+
+        // Ingest the merged bundle so the brief strip + domain VMs see it.
+        let bundle = makeBundle(from: sorted)
+        AdaptiveAdjustmentService.shared.ingest(bundle: bundle)
+
         return sorted
     }
 
+    /// Merge each signal's lines into a single bundle, de-duplicating by line.id
+    /// (later signals don't override earlier higher-priority lines). Workout
+    /// lines come first, then nutrition, water, steps, dose, sleep, info.
+    private func makeBundle(from signals: [Signal]) -> AdaptiveBundle {
+        var seen = Set<String>()
+        var merged: [AdaptiveLine] = []
+        for s in signals {
+            for line in s.lines where !seen.contains(line.id) {
+                seen.insert(line.id)
+                merged.append(line)
+            }
+        }
+        // Stable order by domain rank.
+        let rank: [AdaptiveDomain: Int] = [
+            .workout: 0, .nutrition: 1, .water: 2, .steps: 3, .dose: 4, .sleep: 5, .info: 6
+        ]
+        merged.sort { (rank[$0.domain] ?? 99) < (rank[$1.domain] ?? 99) }
+
+        let fingerprint = signals.map { $0.kind.rawValue }.sorted().joined(separator: "|")
+        let trigger = signals.first?.trigger ?? ""
+        return AdaptiveBundle(signalFingerprint: fingerprint, trigger: trigger, lines: merged)
+    }
+
     /// Compact, model-friendly section to splice into the prompt body.
-    /// Returns empty string when no signals fire so the prompt stays lean.
+    /// Always includes baseline targets so the AI can connect dots across domains.
     func promptSection(signals: [Signal]) -> String {
-        guard !signals.isEmpty else { return "" }
-        var lines: [String] = ["ADAPTIVE SIGNALS (deterministic — already validated against the user's data; the brief MUST acknowledge these and surface the top one as adaptiveCallout):"]
+        var lines: [String] = []
+        lines.append("TODAY'S CONTEXT (baseline targets + live data — use this to weave a one-sentence \"why\" into the brief body when adjustments fire):")
+        lines.append(contextBlock())
+
+        guard !signals.isEmpty else { return lines.joined(separator: "\n") }
+
+        lines.append("")
+        lines.append("ADAPTIVE BUNDLE (deterministic — already validated; the brief MUST acknowledge these in the body and emit the top one as adaptiveCallout. Do NOT invent extra changes; only narrate these lines):")
         for (idx, s) in signals.enumerated() {
-            lines.append("\(idx + 1). [\(s.kind.rawValue)] trigger=\"\(s.trigger)\" → recommendation=\"\(s.recommendation)\"")
+            lines.append("\(idx + 1). [\(s.kind.rawValue)] trigger=\"\(s.trigger)\" rationale=\"\(s.recommendation)\"")
+            for l in s.lines {
+                lines.append("   · \(l.domain.rawValue): \(l.summary)")
+            }
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// Pulls baseline daily targets + current vitals into a compact block.
+    private func contextBlock() -> String {
+        var rows: [String] = []
+        let hk = HealthKitService.shared
+        let water = WaterViewModel.shared
+        let nutritionTarget = NutritionViewModel.shared.dailyTarget
+        let stepGoal = UserDefaults.standard.integer(forKey: "step_goal")
+        let effectiveStepGoal = stepGoal > 0 ? stepGoal : 10000
+
+        rows.append("· water goal: \(water.dailyGoalMl)ml")
+        rows.append("· step goal: \(effectiveStepGoal)")
+        rows.append("· macros target: \(nutritionTarget.calories)kcal / \(nutritionTarget.protein)g P / \(nutritionTarget.carbs)g C / \(nutritionTarget.fat)g F")
+        if hk.sleepHours > 0 {
+            rows.append(String(format: "· last night sleep: %.1fh", hk.sleepHours))
+        }
+        if let hrv = hk.hrv { rows.append("· HRV: \(Int(hrv))ms") }
+        if let rhr = hk.restingHeartRate { rows.append("· RHR: \(Int(rhr)) bpm") }
+        if let recovery = hk.recoveryScore { rows.append("· recovery score: \(recovery)/100") }
+        return rows.joined(separator: "\n")
     }
 
     // MARK: - Detectors
@@ -87,15 +165,24 @@ final class AdaptiveSignalsService {
             trigger += " (vs \(String(format: "%.1f", avg))h avg)"
         }
         let rec: String
-        let adjustment: BriefAdjustment
+        var lines: [AdaptiveLine] = []
         if sleep < 5 {
             rec = "Recovery-first day. Skip heavy compounds, walk + mobility instead — pushing into a sleep debt rarely banks gains."
-            adjustment = BriefAdjustment(summary: "Swap today's lifts for mobility + zone 2 walk", kind: .mobilityOnly, magnitude: nil)
+            lines.append(AdaptiveLine(id: "roughSleep.workout", domain: .workout,
+                summary: "Swap today's lifts for mobility + zone 2 walk", kind: .mobilityOnly))
         } else {
             rec = "Cut working sets in half and anchor on form. Doing something beats skipping, but lifting to true failure today eats recovery."
-            adjustment = BriefAdjustment(summary: "Halve working sets on today's lifts", kind: .halveSets, magnitude: 0.5)
+            lines.append(AdaptiveLine(id: "roughSleep.workout", domain: .workout,
+                summary: "Halve working sets on today's lifts", kind: .halveSets))
         }
-        return Signal(kind: .roughSleep, trigger: trigger, recommendation: rec, priority: 80, adjustment: adjustment)
+        // Cross-domain pile-ons.
+        let proteinFloor = Int(Double(NutritionViewModel.shared.dailyTarget.protein) * 1.05)
+        lines.append(AdaptiveLine(id: "roughSleep.nutrition", domain: .nutrition,
+            summary: "Protein floor \(proteinFloor)g · prioritize whole-food sources",
+            kind: .proteinFloor(grams: proteinFloor)))
+        lines.append(AdaptiveLine(id: "roughSleep.sleep", domain: .sleep,
+            summary: "Wind down by 9:30pm tonight", kind: .windDown(hour: 21, minute: 30)))
+        return Signal(kind: .roughSleep, trigger: trigger, recommendation: rec, priority: 80, lines: lines)
     }
 
     private func sideEffectSignal(activeProtocol: PeptideProtocol?) -> Signal? {
@@ -104,7 +191,6 @@ final class AdaptiveSignalsService {
         let recent = proto.sideEffectLog.filter { $0.timestamp >= cutoff }
         guard !recent.isEmpty else { return nil }
 
-        // Pick the most severe / most recent
         let top = recent.sorted { lhs, rhs in
             if lhs.severity != rhs.severity { return lhs.severity > rhs.severity }
             return lhs.timestamp > rhs.timestamp
@@ -112,31 +198,48 @@ final class AdaptiveSignalsService {
 
         let effectLower = top.effect.lowercased()
         let recommendation: String
-        let adjustment: BriefAdjustment
+        var lines: [AdaptiveLine] = []
         if effectLower.contains("nausea") || effectLower.contains("gi") || effectLower.contains("stomach") {
-            recommendation = "Keep meals smaller and protein-forward today. Lean on easy-on-the-gut sources (eggs, yogurt, lean ground beef) and split your calories across 4–5 mini meals instead of forcing big plates."
-            adjustment = BriefAdjustment(summary: "Reduce load 20% · keep meals small & protein-forward", kind: .deload, magnitude: 0.8)
+            recommendation = "Keep meals smaller and protein-forward today. Lean on easy-on-the-gut sources and split your calories across 4–5 mini meals."
+            lines.append(AdaptiveLine(id: "sideEffect.workout", domain: .workout,
+                summary: "Deload to 80% load today", kind: .deload(magnitude: 0.8)))
+            lines.append(AdaptiveLine(id: "sideEffect.nutrition", domain: .nutrition,
+                summary: "Small frequent meals · easy on the gut", kind: .smallFrequentMeals))
+            let carbCap = max(120, NutritionViewModel.shared.dailyTarget.carbs - 60)
+            lines.append(AdaptiveLine(id: "sideEffect.carbs", domain: .nutrition,
+                summary: "Ease carbs to \(carbCap)g", kind: .carbCeiling(grams: carbCap)))
+            lines.append(AdaptiveLine(id: "sideEffect.steps", domain: .steps,
+                summary: "Cap steps at 6,000 today", kind: .stepCap(steps: 6000)))
         } else if effectLower.contains("headache") {
-            recommendation = "Front-load water and electrolytes before any training. Cap cardio at zone 2 and pull back overhead pressing — vascular load through a headache rarely pays off."
-            adjustment = BriefAdjustment(summary: "Deload 30% · skip overhead pressing today", kind: .deload, magnitude: 0.7)
+            recommendation = "Front-load water and electrolytes before any training. Cap cardio at zone 2 and pull back overhead pressing."
+            lines.append(AdaptiveLine(id: "sideEffect.workout", domain: .workout,
+                summary: "Skip overhead pressing today", kind: .skipMovementPattern("overhead")))
+            lines.append(AdaptiveLine(id: "sideEffect.water", domain: .water,
+                summary: "Bump water +750ml today", kind: .waterDelta(ml: 750)))
+            lines.append(AdaptiveLine(id: "sideEffect.electrolytes", domain: .nutrition,
+                summary: "Add an electrolyte serving before training", kind: .electrolyteNudge))
         } else if effectLower.contains("fatigue") || effectLower.contains("tired") {
             recommendation = "Half your normal volume, then reassess. Prioritize the compound lifts and skip accessories if energy doesn't show up."
-            adjustment = BriefAdjustment(summary: "Halve volume · compound lifts only", kind: .halveSets, magnitude: 0.5)
+            lines.append(AdaptiveLine(id: "sideEffect.workout", domain: .workout,
+                summary: "Halve volume · compound lifts only", kind: .halveSets))
+            lines.append(AdaptiveLine(id: "sideEffect.water", domain: .water,
+                summary: "Bump water +500ml", kind: .waterDelta(ml: 500)))
         } else if effectLower.contains("inject") || effectLower.contains("site") {
-            recommendation = "Rotate injection site and avoid loaded movements that compress the area. Warm compress before tonight's dose."
-            adjustment = BriefAdjustment(summary: "Soften intensity 20% around the injection site", kind: .deload, magnitude: 0.8)
+            recommendation = "Rotate injection site and avoid loaded movements that compress the area."
+            lines.append(AdaptiveLine(id: "sideEffect.workout", domain: .workout,
+                summary: "Soften intensity 20% around the injection site", kind: .deload(magnitude: 0.8)))
         } else {
-            recommendation = "Treat today as a yellow-light day. Maintain logging, soften training intensity by ~20%, and watch whether the effect tracks with dose timing."
-            adjustment = BriefAdjustment(summary: "Yellow-light day · soften intensity 20%", kind: .deload, magnitude: 0.8)
+            recommendation = "Treat today as a yellow-light day. Maintain logging, soften training intensity by ~20%."
+            lines.append(AdaptiveLine(id: "sideEffect.workout", domain: .workout,
+                summary: "Yellow-light day · soften intensity 20%", kind: .deload(magnitude: 0.8)))
         }
 
         let dayLabel: String
         if Calendar.current.isDateInToday(top.timestamp) { dayLabel = "today" }
         else if Calendar.current.isDateInYesterday(top.timestamp) { dayLabel = "yesterday" }
         else { dayLabel = "in the last 48h" }
-
         let trigger = "\(top.effect.capitalized) logged \(dayLabel) (severity \(top.severity)/5)"
-        return Signal(kind: .sideEffect, trigger: trigger, recommendation: recommendation, priority: 75, adjustment: adjustment)
+        return Signal(kind: .sideEffect, trigger: trigger, recommendation: recommendation, priority: 75, lines: lines)
     }
 
     private func missedDoseSignal(activeProtocol: PeptideProtocol?) -> Signal? {
@@ -158,15 +261,24 @@ final class AdaptiveSignalsService {
 
         let trigger = "\(compound.compoundName) — \(daysSince)d since last dose (frequency: \(compound.frequency.lowercased()))"
         let recommendation: String
+        var lines: [AdaptiveLine] = []
         if isWeekly {
-            recommendation = "Re-anchor today: take the dose, then reset the weekly cadence from this point. Expect appetite to return as levels rebuild over the next 48–72h — protein floor matters more than calorie ceiling this stretch."
+            recommendation = "Re-anchor today: take the dose, then reset the weekly cadence from this point. Expect appetite to rebuild over 48–72h — protein floor matters more than calorie ceiling this stretch."
+            lines.append(AdaptiveLine(id: "missedDose.reanchor", domain: .dose,
+                summary: "Re-anchor weekly cadence tonight", kind: .doseReanchorTonight))
+            let floor = Int(Double(NutritionViewModel.shared.dailyTarget.protein) * 1.1)
+            lines.append(AdaptiveLine(id: "missedDose.protein", domain: .nutrition,
+                summary: "Protein floor \(floor)g for the next 72h", kind: .proteinFloor(grams: floor)))
         } else if isDaily {
-            recommendation = "Log today's dose and don't double up to compensate. Use the missed-window data to flag any patterns (travel, schedule) so the next miss doesn't sneak up."
+            recommendation = "Log today's dose and don't double up to compensate. Use the missed-window data to spot patterns."
+            lines.append(AdaptiveLine(id: "missedDose.holdDouble", domain: .dose,
+                summary: "Don't double up · take today's dose only", kind: .doseHoldNoDoubleUp))
         } else {
-            recommendation = "Take today's dose and log it. Watch for appetite/side-effect rebound as levels climb back; nutrition and training stay neutral today."
+            recommendation = "Take today's dose and log it. Watch for appetite/side-effect rebound; training stays neutral today."
+            lines.append(AdaptiveLine(id: "missedDose.reanchor", domain: .dose,
+                summary: "Re-anchor your cadence tonight", kind: .doseReanchorTonight))
         }
-        let adjustment = BriefAdjustment(summary: "Hold training steady · protein floor over ceiling", kind: .noChange, magnitude: nil)
-        return Signal(kind: .missedDose, trigger: trigger, recommendation: recommendation, priority: 70, adjustment: adjustment)
+        return Signal(kind: .missedDose, trigger: trigger, recommendation: recommendation, priority: 70, lines: lines)
     }
 
     private func bloodworkShiftSignal() -> Signal? {
@@ -177,19 +289,26 @@ final class AdaptiveSignalsService {
             ? "Latest panel flagged for provider review — \(count) value\(count == 1 ? "" : "s") out of range"
             : "\(count) flagged value\(count == 1 ? "" : "s") on latest bloodwork"
         let recommendation = "Don't change protocol off this alone — pull the panel up, share it with your provider, and let this week's training/nutrition stay steady so the next recheck reads clean."
-        let adjustment = BriefAdjustment(summary: "Hold training & nutrition steady through next recheck", kind: .noChange, magnitude: nil)
-        return Signal(kind: .bloodworkShift, trigger: trigger, recommendation: recommendation, priority: 85, adjustment: adjustment)
+        let line = AdaptiveLine(id: "bloodwork.hold", domain: .info,
+            summary: "Hold training & nutrition steady through next recheck", kind: .info)
+        return Signal(kind: .bloodworkShift, trigger: trigger, recommendation: recommendation, priority: 85, lines: [line])
     }
 
     private func poorRecoverySignal() -> Signal? {
         let hk = HealthKitService.shared
         guard let score = hk.recoveryScore else {
-            // Fallback on RHR alone
             if let rhr = hk.restingHeartRate, rhr > 70 {
                 let trigger = "Resting HR elevated at \(Int(rhr)) bpm"
                 let recommendation = "Recovery looks taxed — push zone 2 cardio or mobility today and save the heavy session for tomorrow."
-                let adjustment = BriefAdjustment(summary: "Swap today's lifts for zone 2 + mobility", kind: .mobilityOnly, magnitude: nil)
-                return Signal(kind: .poorRecovery, trigger: trigger, recommendation: recommendation, priority: 50, adjustment: adjustment)
+                let lines: [AdaptiveLine] = [
+                    AdaptiveLine(id: "poorRecovery.workout", domain: .workout,
+                        summary: "Swap today's lifts for zone 2 + mobility", kind: .mobilityOnly),
+                    AdaptiveLine(id: "poorRecovery.water", domain: .water,
+                        summary: "Bump water +500ml today", kind: .waterDelta(ml: 500)),
+                    AdaptiveLine(id: "poorRecovery.sleep", domain: .sleep,
+                        summary: "Wind down by 10:00pm tonight", kind: .windDown(hour: 22, minute: 0))
+                ]
+                return Signal(kind: .poorRecovery, trigger: trigger, recommendation: recommendation, priority: 50, lines: lines)
             }
             return nil
         }
@@ -199,8 +318,17 @@ final class AdaptiveSignalsService {
         if let rhr = hk.restingHeartRate { triggerParts.append("RHR \(Int(rhr)) bpm") }
         let trigger = triggerParts.joined(separator: " · ")
         let recommendation = "Treat today as a deload. Same exercises, 60% of normal load, leave 2 reps in the tank on every set. Sleep and hydration matter more than the session right now."
-        let adjustment = BriefAdjustment(summary: "Deload to 60% load · same exercises, 2 RIR", kind: .deload, magnitude: 0.6)
-        return Signal(kind: .poorRecovery, trigger: trigger, recommendation: recommendation, priority: 65, adjustment: adjustment)
+        let lines: [AdaptiveLine] = [
+            AdaptiveLine(id: "poorRecovery.workout", domain: .workout,
+                summary: "Deload to 60% load · same exercises, 2 RIR", kind: .deload(magnitude: 0.6)),
+            AdaptiveLine(id: "poorRecovery.steps", domain: .steps,
+                summary: "Cap steps at 8,000", kind: .stepCap(steps: 8000)),
+            AdaptiveLine(id: "poorRecovery.water", domain: .water,
+                summary: "Bump water +500ml", kind: .waterDelta(ml: 500)),
+            AdaptiveLine(id: "poorRecovery.sleep", domain: .sleep,
+                summary: "Wind down by 9:45pm tonight", kind: .windDown(hour: 21, minute: 45))
+        ]
+        return Signal(kind: .poorRecovery, trigger: trigger, recommendation: recommendation, priority: 65, lines: lines)
     }
 
     private func streakBreakSignal() -> Signal? {
@@ -211,7 +339,8 @@ final class AdaptiveSignalsService {
             ? "Streak reset after the miss — longest run was \(longest)d"
             : "Streak reset yesterday"
         let recommendation = "Don't chase the lost streak with a hero day. One log — a meal, a walk, a weigh-in — restarts the counter. Consistency rebuilds faster than it ever broke."
-        let adjustment = BriefAdjustment(summary: "One small log restarts the streak — no hero day", kind: .noChange, magnitude: nil)
-        return Signal(kind: .streakBreak, trigger: trigger, recommendation: recommendation, priority: 40, adjustment: adjustment)
+        let line = AdaptiveLine(id: "streak.info", domain: .info,
+            summary: "One small log restarts the streak — no hero day", kind: .info)
+        return Signal(kind: .streakBreak, trigger: trigger, recommendation: recommendation, priority: 40, lines: [line])
     }
 }

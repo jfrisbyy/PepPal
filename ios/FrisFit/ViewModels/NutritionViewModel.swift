@@ -59,14 +59,41 @@ final class NutritionViewModel {
         Self.globalPendingPersistenceTasks.removeAll { t in tasks.contains { $0 == t } }
     }
 
-    var dailyTarget: MacroTarget {
+    /// Baseline macro target without adaptive bundle overrides.
+    var baselineTarget: MacroTarget {
         if AdaptiveMacroStore.shared.isEnabled, let t = AdaptiveMacroStore.shared.target {
             return t
         }
         return MacroTarget(calories: 2200, protein: 150, carbs: 250, fat: 73)
     }
 
+    /// Daily macro target with any currently-accepted adaptive bundle lines
+    /// applied (protein floor, carb ceiling, calorie delta).
+    var dailyTarget: MacroTarget {
+        var t = baselineTarget
+        for line in AdaptiveAdjustmentService.shared.activeLines(in: .nutrition) {
+            switch line.kind {
+            case .proteinFloor(let grams):
+                t = MacroTarget(calories: t.calories, protein: max(t.protein, grams), carbs: t.carbs, fat: t.fat)
+            case .carbCeiling(let grams):
+                t = MacroTarget(calories: t.calories, protein: t.protein, carbs: min(t.carbs, grams), fat: t.fat)
+            case .calorieDelta(let kcal):
+                t = MacroTarget(calories: max(1000, t.calories + kcal), protein: t.protein, carbs: t.carbs, fat: t.fat)
+            default:
+                break
+            }
+        }
+        return t
+    }
+
+    /// Compact reason string for the "Adaptive" chip on the nutrition surface.
+    /// Falls back to the baseline `AdaptiveMacroStore` reason when no bundle
+    /// override is active.
     var adaptiveTargetReason: String? {
+        let bundleLines = AdaptiveAdjustmentService.shared.activeLines(in: .nutrition)
+        if !bundleLines.isEmpty {
+            return bundleLines.map { $0.summary }.joined(separator: " · ")
+        }
         guard AdaptiveMacroStore.shared.isEnabled, let i = AdaptiveMacroStore.shared.inputs else { return nil }
         var parts: [String] = []
         parts.append("\(Int(i.weightKg))kg · \(i.goal.rawValue)")
@@ -75,6 +102,11 @@ final class NutritionViewModel {
             parts.append("+\(Int(i.trainingLoadBoost)) cal training boost")
         }
         return parts.joined(separator: " · ")
+    }
+
+    /// True when any nutrition-domain adjustment is active for today.
+    var hasAdaptiveNutritionOverride: Bool {
+        !AdaptiveAdjustmentService.shared.activeLines(in: .nutrition).isEmpty
     }
 
     var totalCalories: Int { loggedMeals.reduce(0) { $0 + $1.totalCalories } }

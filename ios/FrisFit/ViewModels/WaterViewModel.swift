@@ -47,8 +47,26 @@ final class WaterViewModel {
     }
 
     func progress(for date: Date) -> Double {
-        guard dailyGoalMl > 0 else { return 0 }
-        return min(Double(totalMl(for: date)) / Double(dailyGoalMl), 1.0)
+        let goal = effectiveDailyGoalMl
+        guard goal > 0 else { return 0 }
+        return min(Double(totalMl(for: date)) / Double(goal), 1.0)
+    }
+
+    /// Daily water goal after applying any accepted adaptive bundle delta.
+    var effectiveDailyGoalMl: Int {
+        var goal = dailyGoalMl
+        for line in AdaptiveAdjustmentService.shared.activeLines(in: .water) {
+            if case .waterDelta(let ml) = line.kind {
+                goal = max(500, goal + ml)
+            }
+        }
+        return goal
+    }
+
+    var adaptiveWaterReason: String? {
+        let lines = AdaptiveAdjustmentService.shared.activeLines(in: .water)
+        guard !lines.isEmpty else { return nil }
+        return lines.map { $0.summary }.joined(separator: " · ")
     }
 
     func setGoal(_ ml: Int) {

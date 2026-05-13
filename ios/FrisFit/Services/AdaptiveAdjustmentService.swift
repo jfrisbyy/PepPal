@@ -1,9 +1,10 @@
 import Foundation
 import SwiftUI
 
-/// One-line, structured workout adjustment paired with an adaptive callout.
-/// The `summary` is what the brief renders under the conversational body;
-/// `kind` + `magnitude` describe how to actually transform today's `ProgramDay`.
+/// Legacy single-line adjustment kept for backward compatibility with the
+/// existing Train view-model override path. New code should use
+/// `AdaptiveBundle` / `AdaptiveLine` and read overrides via
+/// `AdaptiveAdjustmentService.shared.activeLines(in:)`.
 nonisolated struct BriefAdjustment: Sendable, Codable, Equatable {
     let summary: String
     let kind: AdjustmentKind
@@ -11,112 +12,255 @@ nonisolated struct BriefAdjustment: Sendable, Codable, Equatable {
 }
 
 nonisolated enum AdjustmentKind: String, Sendable, Codable, Equatable {
-    /// Halve target set count on every exercise.
     case halveSets
-    /// Halve target rep range on every exercise.
     case halveReps
-    /// Multiply prescribed/last load by `magnitude` (e.g. 0.6 for a 60% deload).
     case deload
-    /// Replace the day with a mobility + zone-2 placeholder (no loaded work).
     case mobilityOnly
-    /// Non-training callout — informational only, nothing to apply to the workout.
     case noChange
 
     var isApplicable: Bool { self != .noChange }
 }
 
-/// Tracks the user's accept/skip decision for today's adaptive adjustment and
-/// applies the transform to the active `ProgramDay` when accepted.
+/// Tracks per-line accept/skip decisions for today's adaptive bundle and
+/// applies the workout transforms to the active `ProgramDay` when accepted.
 ///
-/// Decisions are keyed by calendar day so brief refreshes don't re-prompt.
-/// Persisted to `UserDefaults` so the override survives launches.
+/// Decisions persist to `UserDefaults` keyed by calendar day. Lines remain
+/// active until the signal fingerprint clears (auto-revert) or the user undoes
+/// the bundle manually.
 @MainActor
 @Observable
 final class AdaptiveAdjustmentService {
     static let shared = AdaptiveAdjustmentService()
 
-    enum DecisionState: String, Codable, Sendable {
+    enum LineState: String, Codable, Sendable, Equatable {
+        case pending
         case accepted
         case dismissed
     }
 
-    struct DailyDecision: Codable, Sendable, Equatable {
+    /// Per-line decision row.
+    struct LineDecision: Codable, Sendable, Equatable {
+        let line: AdaptiveLine
+        var state: LineState
+        var decidedAt: Date?
+    }
+
+    /// All decisions for a given day, keyed by date.
+    struct DailyBundleDecision: Codable, Sendable, Equatable {
+        let dateKey: String
+        let signalFingerprint: String
+        let trigger: String
+        var decisions: [LineDecision]
+    }
+
+    // MARK: - State
+
+    private(set) var bundleDecision: DailyBundleDecision?
+
+    // Legacy decision kept in sync with the workout line so existing
+    // call sites that still read `todaysDecision` keep working.
+    var todaysDecision: LegacyDailyDecision? {
+        guard let bundle = bundleDecisionForToday(),
+              let workout = bundle.decisions.first(where: { $0.line.domain == .workout }) else {
+            return nil
+        }
+        let legacy = legacyAdjustment(from: workout.line)
+        let state: LegacyDecisionState
+        switch workout.state {
+        case .accepted: state = .accepted
+        case .dismissed: state = .dismissed
+        case .pending: return nil
+        }
+        return LegacyDailyDecision(
+            dateKey: bundle.dateKey,
+            adjustment: legacy,
+            state: state,
+            decidedAt: workout.decidedAt ?? Date()
+        )
+    }
+
+    enum LegacyDecisionState: String, Codable, Sendable { case accepted, dismissed }
+
+    struct LegacyDailyDecision: Codable, Sendable, Equatable {
         let dateKey: String
         let adjustment: BriefAdjustment
-        let state: DecisionState
+        let state: LegacyDecisionState
         let decidedAt: Date
     }
 
-    private(set) var todaysDecision: DailyDecision?
+    // Re-exposed for views that referenced the older nested type name.
+    typealias DailyDecision = LegacyDailyDecision
+    typealias DecisionState = LegacyDecisionState
 
-    private let storageKey = "adaptive.adjustment.decision.v1"
+    private let storageKey = "adaptive.bundle.decision.v1"
 
     private init() {
         load()
     }
 
-    // MARK: - Public API
+    // MARK: - Bundle ingestion
 
-    /// The current decision for today, if any. Cleared lazily when the day rolls over.
-    func decisionForToday() -> DailyDecision? {
-        guard let d = todaysDecision else { return nil }
+    /// Called by `AdaptiveSignalsService` whenever it (re)builds the day's
+    /// bundle. If the fingerprint matches the stored decision, existing
+    /// per-line accept/skip state is preserved. If it changes, the previous
+    /// decision is discarded (signal cleared → auto-revert).
+    func ingest(bundle: AdaptiveBundle) {
+        let today = Self.todayKey()
+
+        if let existing = bundleDecision,
+           existing.dateKey == today,
+           existing.signalFingerprint == bundle.signalFingerprint {
+            // Same signal set — reconcile lines (new ones default to pending,
+            // dropped ones are removed, existing keep their state).
+            let existingById = Dictionary(uniqueKeysWithValues: existing.decisions.map { ($0.line.id, $0) })
+            let merged: [LineDecision] = bundle.lines.map { line in
+                if let prior = existingById[line.id] {
+                    return LineDecision(line: line, state: prior.state, decidedAt: prior.decidedAt)
+                }
+                return LineDecision(line: line, state: .pending, decidedAt: nil)
+            }
+            bundleDecision = DailyBundleDecision(
+                dateKey: today,
+                signalFingerprint: bundle.signalFingerprint,
+                trigger: bundle.trigger,
+                decisions: merged
+            )
+        } else {
+            // Fresh bundle (or signal set changed) — replace any prior state.
+            guard !bundle.isEmpty else {
+                bundleDecision = nil
+                persist()
+                return
+            }
+            bundleDecision = DailyBundleDecision(
+                dateKey: today,
+                signalFingerprint: bundle.signalFingerprint,
+                trigger: bundle.trigger,
+                decisions: bundle.lines.map { LineDecision(line: $0, state: .pending, decidedAt: nil) }
+            )
+        }
+        persist()
+    }
+
+    // MARK: - Lookup
+
+    func bundleDecisionForToday() -> DailyBundleDecision? {
+        guard let d = bundleDecision else { return nil }
         if d.dateKey != Self.todayKey() {
-            todaysDecision = nil
+            bundleDecision = nil
             persist()
             return nil
         }
         return d
     }
 
-    func accept(_ adjustment: BriefAdjustment) {
-        todaysDecision = DailyDecision(
-            dateKey: Self.todayKey(),
-            adjustment: adjustment,
-            state: .accepted,
-            decidedAt: Date()
-        )
+    /// All accepted lines in a given domain that are currently active.
+    func activeLines(in domain: AdaptiveDomain) -> [AdaptiveLine] {
+        guard let d = bundleDecisionForToday() else { return [] }
+        return d.decisions
+            .filter { $0.state == .accepted && $0.line.domain == domain }
+            .map { $0.line }
+    }
+
+    var hasAnyActiveLine: Bool {
+        guard let d = bundleDecisionForToday() else { return false }
+        return d.decisions.contains { $0.state == .accepted }
+    }
+
+    var hasActiveOverride: Bool {
+        !activeLines(in: .workout).isEmpty
+    }
+
+    // MARK: - Per-line decisions
+
+    func acceptLine(id: String) {
+        mutate { decision in
+            guard let idx = decision.decisions.firstIndex(where: { $0.line.id == id }) else { return }
+            decision.decisions[idx].state = .accepted
+            decision.decisions[idx].decidedAt = Date()
+        }
+    }
+
+    func dismissLine(id: String) {
+        mutate { decision in
+            guard let idx = decision.decisions.firstIndex(where: { $0.line.id == id }) else { return }
+            decision.decisions[idx].state = .dismissed
+            decision.decisions[idx].decidedAt = Date()
+        }
+    }
+
+    func acceptAll() {
+        mutate { decision in
+            for i in decision.decisions.indices where decision.decisions[i].state == .pending {
+                decision.decisions[i].state = .accepted
+                decision.decisions[i].decidedAt = Date()
+            }
+        }
+    }
+
+    func dismissAll() {
+        mutate { decision in
+            for i in decision.decisions.indices where decision.decisions[i].state == .pending {
+                decision.decisions[i].state = .dismissed
+                decision.decisions[i].decidedAt = Date()
+            }
+        }
+    }
+
+    /// Reset all lines back to pending so the brief surfaces the bundle again.
+    func undo() {
+        mutate { decision in
+            for i in decision.decisions.indices {
+                decision.decisions[i].state = .pending
+                decision.decisions[i].decidedAt = nil
+            }
+        }
+    }
+
+    private func mutate(_ block: (inout DailyBundleDecision) -> Void) {
+        guard var current = bundleDecisionForToday() else { return }
+        block(&current)
+        bundleDecision = current
         persist()
+    }
+
+    // MARK: - Legacy API shims (preserve existing call sites)
+
+    /// Apply currently accepted workout-domain lines to the day's program.
+    func applyOverrideIfAny(to days: [ProgramDay]) -> [ProgramDay] {
+        let workoutLines = activeLines(in: .workout)
+        guard !workoutLines.isEmpty else { return days }
+        return days.map { day in
+            var copy = day
+            for line in workoutLines {
+                copy = transform(copy, with: line.kind)
+            }
+            return copy
+        }
+    }
+
+    func accept(_ adjustment: BriefAdjustment) {
+        // Bridge: if the bundle has a workout line, accept it.
+        guard let decision = bundleDecisionForToday() else { return }
+        if let workout = decision.decisions.first(where: { $0.line.domain == .workout }) {
+            acceptLine(id: workout.line.id)
+        }
+        _ = adjustment
     }
 
     func dismiss(_ adjustment: BriefAdjustment) {
-        todaysDecision = DailyDecision(
-            dateKey: Self.todayKey(),
-            adjustment: adjustment,
-            state: .dismissed,
-            decidedAt: Date()
-        )
-        persist()
-    }
-
-    /// Wipe today's decision so the brief surfaces the callout again.
-    func undo() {
-        todaysDecision = nil
-        persist()
-    }
-
-    /// Transparently rewrite today's program days when the user has accepted
-    /// an adjustment. Called by `TrainViewModel.todayWorkoutDays`.
-    func applyOverrideIfAny(to days: [ProgramDay]) -> [ProgramDay] {
-        guard let decision = decisionForToday(),
-              decision.state == .accepted,
-              decision.adjustment.kind.isApplicable else {
-            return days
+        guard let decision = bundleDecisionForToday() else { return }
+        if let workout = decision.decisions.first(where: { $0.line.domain == .workout }) {
+            dismissLine(id: workout.line.id)
         }
-        return days.map { transform($0, with: decision.adjustment) }
+        _ = adjustment
     }
 
-    /// True when today's program is currently rewritten by an accepted adjustment.
-    /// Surfaces small "ADJUSTED" badges in the training UI.
-    var hasActiveOverride: Bool {
-        guard let d = decisionForToday() else { return false }
-        return d.state == .accepted && d.adjustment.kind.isApplicable
-    }
+    // MARK: - Workout transforms
 
-    // MARK: - Transforms
-
-    private func transform(_ day: ProgramDay, with adjustment: BriefAdjustment) -> ProgramDay {
+    private func transform(_ day: ProgramDay, with kind: AdaptiveLineKind) -> ProgramDay {
         var copy = day
-        switch adjustment.kind {
+        switch kind {
         case .halveSets:
             copy.exercises = day.exercises.map { ex in
                 var e = ex
@@ -130,34 +274,48 @@ final class AdaptiveAdjustmentService {
                 e.targetRepsMax = max(e.targetRepsMin, Int((Double(ex.targetRepsMax) * 0.5).rounded()))
                 return e
             }
-        case .deload:
-            let m = adjustment.magnitude ?? 0.6
+        case .deload(let magnitude):
             copy.exercises = day.exercises.map { ex in
                 var e = ex
                 if let w = ex.prescribedWeight {
-                    e.prescribedWeight = (w * m).rounded()
+                    e.prescribedWeight = (w * magnitude).rounded()
                 }
-                // Trim one set so the deload also lowers volume a touch.
                 if ex.targetSets > 1 {
                     e.targetSets = max(1, ex.targetSets - 1)
                 }
                 return e
             }
         case .mobilityOnly:
-            // Keep the day shell but drop loaded work — the running workout
-            // screen treats an empty exercise list as a mobility / walk session.
             copy.exercises = []
-        case .noChange:
+        case .skipMovementPattern(let pattern):
+            let p = pattern.lowercased()
+            copy.exercises = day.exercises.filter { !$0.exerciseName.lowercased().contains(p) }
+        default:
             break
         }
         return copy
+    }
+
+    private func legacyAdjustment(from line: AdaptiveLine) -> BriefAdjustment {
+        switch line.kind {
+        case .halveSets:
+            return BriefAdjustment(summary: line.summary, kind: .halveSets, magnitude: 0.5)
+        case .halveReps:
+            return BriefAdjustment(summary: line.summary, kind: .halveReps, magnitude: 0.5)
+        case .deload(let m):
+            return BriefAdjustment(summary: line.summary, kind: .deload, magnitude: m)
+        case .mobilityOnly:
+            return BriefAdjustment(summary: line.summary, kind: .mobilityOnly, magnitude: nil)
+        default:
+            return BriefAdjustment(summary: line.summary, kind: .noChange, magnitude: nil)
+        }
     }
 
     // MARK: - Persistence
 
     private func persist() {
         let defaults = UserDefaults.standard
-        if let d = todaysDecision, let data = try? JSONEncoder().encode(d) {
+        if let d = bundleDecision, let data = try? JSONEncoder().encode(d) {
             defaults.set(data, forKey: storageKey)
         } else {
             defaults.removeObject(forKey: storageKey)
@@ -167,14 +325,14 @@ final class AdaptiveAdjustmentService {
     private func load() {
         let defaults = UserDefaults.standard
         guard let data = defaults.data(forKey: storageKey),
-              let decoded = try? JSONDecoder().decode(DailyDecision.self, from: data) else {
-            todaysDecision = nil
+              let decoded = try? JSONDecoder().decode(DailyBundleDecision.self, from: data) else {
+            bundleDecision = nil
             return
         }
         if decoded.dateKey == Self.todayKey() {
-            todaysDecision = decoded
+            bundleDecision = decoded
         } else {
-            todaysDecision = nil
+            bundleDecision = nil
             defaults.removeObject(forKey: storageKey)
         }
     }

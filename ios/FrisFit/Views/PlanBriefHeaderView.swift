@@ -52,11 +52,11 @@ struct PlanBriefHeaderView: View {
         narrative?.adaptiveCallout
     }
 
-    /// Deterministic structured adjustment paired with the callout. Built
-    /// alongside the prompt so the strip can render a concrete one-liner and
-    /// actually mutate today's workout when accepted.
-    private var topAdjustment: BriefAdjustment? {
-        AdaptiveSignalsService.shared.topSignalForToday()?.adjustment
+    /// Today's deterministic bundle — the brief strip renders one row per
+    /// `AdaptiveLine`, each with its own Accept / Skip. A bulk Apply All /
+    /// Skip All sits at the bottom for the common case.
+    private var bundle: AdaptiveAdjustmentService.DailyBundleDecision? {
+        AdaptiveAdjustmentService.shared.bundleDecisionForToday()
     }
 
     @State private var pulsePhase: CGFloat = 0
@@ -167,11 +167,15 @@ struct PlanBriefHeaderView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                if let callout = adaptiveCallout,
+                if let bundle, !bundle.decisions.isEmpty, !isHistorical {
+                    adaptiveBundleStrip(bundle: bundle, callout: adaptiveCallout)
+                } else if let callout = adaptiveCallout,
                    !callout.trigger.isEmpty,
                    !callout.recommendation.isEmpty,
                    !isHistorical {
-                    adaptiveCalloutStrip(callout: callout, adjustment: topAdjustment)
+                    // Legacy fallback: render the AI callout if no deterministic
+                    // bundle was ingested for some reason.
+                    legacyCalloutStrip(callout: callout)
                 }
 
                 if let watchFor, !isHistorical || !watchFor.isEmpty {
@@ -390,9 +394,13 @@ struct PlanBriefHeaderView: View {
     }
 
     @ViewBuilder
-    private func adaptiveCalloutStrip(callout: AdaptiveCallout, adjustment: BriefAdjustment?) -> some View {
-        let decision = AdaptiveAdjustmentService.shared.decisionForToday()
-        VStack(alignment: .leading, spacing: 10) {
+    private func adaptiveBundleStrip(bundle: AdaptiveAdjustmentService.DailyBundleDecision, callout: AdaptiveCallout?) -> some View {
+        let pending = bundle.decisions.filter { $0.state == .pending }
+        let accepted = bundle.decisions.filter { $0.state == .accepted }
+        let allDecided = pending.isEmpty
+        let triggerLabel = (callout?.trigger.isEmpty == false ? callout!.trigger : bundle.trigger).uppercased()
+
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 ZStack {
                     Circle()
@@ -402,7 +410,7 @@ struct PlanBriefHeaderView: View {
                         .font(.system(size: 10, weight: .heavy))
                         .foregroundStyle(PepTheme.amber)
                 }
-                Text("TODAY’S ADJUSTMENT")
+                Text("TODAY’S ADJUSTMENTS")
                     .font(.system(size: 9, weight: .heavy, design: .monospaced))
                     .tracking(1.6)
                     .foregroundStyle(PepTheme.amber)
@@ -410,7 +418,7 @@ struct PlanBriefHeaderView: View {
                     .fill(PepTheme.amber.opacity(0.45))
                     .frame(height: 1)
                     .frame(maxWidth: 18)
-                Text(callout.trigger.uppercased())
+                Text(triggerLabel)
                     .font(.system(size: 9, weight: .semibold, design: .monospaced))
                     .tracking(1.0)
                     .foregroundStyle(PepTheme.amber.opacity(0.85))
@@ -419,12 +427,100 @@ struct PlanBriefHeaderView: View {
                 Spacer(minLength: 0)
             }
 
-            if let decision, decision.state == .accepted {
-                appliedAdjustmentRow(decision: decision)
-            } else if let decision, decision.state == .dismissed {
-                skippedAdjustmentRow(decision: decision)
+            VStack(spacing: 6) {
+                ForEach(bundle.decisions, id: \.line.id) { row in
+                    bundleLineRow(row: row)
+                }
+            }
+
+            if !allDecided {
+                pulsingScanLine()
+                HStack(spacing: 8) {
+                    Button {
+                        AdaptiveAdjustmentService.shared.acceptAll()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .heavy))
+                            Text("APPLY ALL")
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                .tracking(1.2)
+                        }
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(PepTheme.amber)
+                        .clipShape(.capsule)
+                    }
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.success, trigger: accepted.count)
+
+                    Button {
+                        AdaptiveAdjustmentService.shared.dismissAll()
+                    } label: {
+                        Text("SKIP ALL")
+                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                            .tracking(1.2)
+                            .foregroundStyle(PepTheme.amber.opacity(0.85))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .overlay(
+                                Capsule().strokeBorder(PepTheme.amber.opacity(0.35), lineWidth: 0.5)
+                            )
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer(minLength: 0)
+                }
+            } else if !accepted.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundStyle(PepTheme.amber)
+                    Text("\(accepted.count) adjustment\(accepted.count == 1 ? "" : "s") applied to today")
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .tracking(0.6)
+                        .foregroundStyle(PepTheme.amber.opacity(0.9))
+                    Spacer(minLength: 0)
+                    Button {
+                        AdaptiveAdjustmentService.shared.undo()
+                    } label: {
+                        Text("UNDO")
+                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                            .tracking(1.2)
+                            .foregroundStyle(PepTheme.amber.opacity(0.8))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .overlay(
+                                Capsule().strokeBorder(PepTheme.amber.opacity(0.3), lineWidth: 0.5)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
             } else {
-                pendingAdjustmentRow(adjustment: adjustment, callout: callout)
+                HStack(spacing: 10) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundStyle(PepTheme.amber.opacity(0.7))
+                    Text("Skipped — keeping today as planned")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary.opacity(0.78))
+                    Spacer(minLength: 0)
+                    Button {
+                        AdaptiveAdjustmentService.shared.undo()
+                    } label: {
+                        Text("RECONSIDER")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.2)
+                            .foregroundStyle(PepTheme.amber.opacity(0.8))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .overlay(
+                                Capsule().strokeBorder(PepTheme.amber.opacity(0.3), lineWidth: 0.5)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
         .padding(.vertical, 12)
@@ -441,131 +537,97 @@ struct PlanBriefHeaderView: View {
             RoundedRectangle(cornerRadius: 10)
                 .strokeBorder(PepTheme.amber.opacity(0.28), lineWidth: 0.5)
         )
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: decision)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: bundle)
     }
 
     @ViewBuilder
-    private func pendingAdjustmentRow(adjustment: BriefAdjustment?, callout: AdaptiveCallout) -> some View {
-        let line = adjustment?.summary ?? callout.recommendation
-        VStack(alignment: .leading, spacing: 8) {
-            Text(line)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(PepTheme.textPrimary.opacity(0.95))
-                .fixedSize(horizontal: false, vertical: true)
-                .lineSpacing(2)
-
-            pulsingScanLine()
-
-            HStack(spacing: 8) {
-                Button {
-                    guard let adjustment else { return }
-                    AdaptiveAdjustmentService.shared.accept(adjustment)
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 10, weight: .heavy))
-                        Text(adjustment?.kind.isApplicable == true ? "APPLY TO TODAY" : "GOT IT")
-                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                            .tracking(1.2)
-                    }
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(PepTheme.amber)
-                    .clipShape(.capsule)
-                }
-                .buttonStyle(.plain)
-                .sensoryFeedback(.success, trigger: AdaptiveAdjustmentService.shared.todaysDecision?.state)
-                .disabled(adjustment == nil)
-
-                Button {
-                    let toDismiss = adjustment ?? BriefAdjustment(summary: callout.recommendation, kind: .noChange, magnitude: nil)
-                    AdaptiveAdjustmentService.shared.dismiss(toDismiss)
-                } label: {
-                    Text("SKIP")
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .tracking(1.2)
-                        .foregroundStyle(PepTheme.amber.opacity(0.85))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .overlay(
-                            Capsule().strokeBorder(PepTheme.amber.opacity(0.35), lineWidth: 0.5)
-                        )
-                }
-                .buttonStyle(.plain)
-
-                Spacer(minLength: 0)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func appliedAdjustmentRow(decision: AdaptiveAdjustmentService.DailyDecision) -> some View {
+    private func bundleLineRow(row: AdaptiveAdjustmentService.LineDecision) -> some View {
+        let isPending = row.state == .pending
+        let isAccepted = row.state == .accepted
         HStack(alignment: .center, spacing: 10) {
             ZStack {
                 Circle()
-                    .fill(PepTheme.amber)
-                    .frame(width: 20, height: 20)
-                Image(systemName: "checkmark")
-                    .font(.system(size: 10, weight: .heavy))
-                    .foregroundStyle(.black)
+                    .fill(isAccepted ? PepTheme.amber : PepTheme.amber.opacity(0.16))
+                    .frame(width: 18, height: 18)
+                Image(systemName: domainIcon(row.line.domain))
+                    .font(.system(size: 9, weight: .heavy))
+                    .foregroundStyle(isAccepted ? Color.black : PepTheme.amber)
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(decision.adjustment.summary)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary.opacity(0.92))
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(decision.adjustment.kind.isApplicable ? "Applied to today’s workout" : "Got it — no schedule change needed")
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                    .tracking(0.8)
-                    .foregroundStyle(PepTheme.amber.opacity(0.85))
+
+            Text(row.line.summary)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(
+                    row.state == .dismissed
+                        ? PepTheme.textPrimary.opacity(0.45)
+                        : PepTheme.textPrimary.opacity(0.92)
+                )
+                .strikethrough(row.state == .dismissed, color: PepTheme.textPrimary.opacity(0.45))
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if isPending {
+                Button {
+                    AdaptiveAdjustmentService.shared.acceptLine(id: row.line.id)
+                } label: {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundStyle(PepTheme.amber)
+                        .frame(width: 26, height: 26)
+                        .background(PepTheme.amber.opacity(0.14))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .sensoryFeedback(.impact(weight: .light), trigger: row.state)
+
+                Button {
+                    AdaptiveAdjustmentService.shared.dismissLine(id: row.line.id)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundStyle(PepTheme.amber.opacity(0.7))
+                        .frame(width: 26, height: 26)
+                        .overlay(
+                            Circle().strokeBorder(PepTheme.amber.opacity(0.3), lineWidth: 0.5)
+                        )
+                }
+                .buttonStyle(.plain)
             }
-            Spacer(minLength: 0)
-            Button {
-                AdaptiveAdjustmentService.shared.undo()
-            } label: {
-                Text("UNDO")
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                    .tracking(1.2)
-                    .foregroundStyle(PepTheme.amber.opacity(0.8))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .overlay(
-                        Capsule().strokeBorder(PepTheme.amber.opacity(0.3), lineWidth: 0.5)
-                    )
-            }
-            .buttonStyle(.plain)
+        }
+    }
+
+    private func domainIcon(_ domain: AdaptiveDomain) -> String {
+        switch domain {
+        case .workout: return "dumbbell.fill"
+        case .nutrition: return "fork.knife"
+        case .water: return "drop.fill"
+        case .steps: return "figure.walk"
+        case .dose: return "syringe.fill"
+        case .sleep: return "moon.fill"
+        case .info: return "info"
         }
     }
 
     @ViewBuilder
-    private func skippedAdjustmentRow(decision: AdaptiveAdjustmentService.DailyDecision) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "xmark")
-                .font(.system(size: 10, weight: .heavy))
-                .foregroundStyle(PepTheme.amber.opacity(0.7))
-                .frame(width: 20, height: 20)
-                .background(PepTheme.amber.opacity(0.12))
-                .clipShape(Circle())
-            Text("Skipped — keeping today as planned")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(PepTheme.textPrimary.opacity(0.78))
-            Spacer(minLength: 0)
-            Button {
-                AdaptiveAdjustmentService.shared.undo()
-            } label: {
-                Text("RECONSIDER")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.2)
-                    .foregroundStyle(PepTheme.amber.opacity(0.8))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .overlay(
-                        Capsule().strokeBorder(PepTheme.amber.opacity(0.3), lineWidth: 0.5)
-                    )
+    private func legacyCalloutStrip(callout: AdaptiveCallout) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.triangle.branch")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundStyle(PepTheme.amber)
+                Text(callout.trigger.uppercased())
+                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                    .tracking(1.0)
+                    .foregroundStyle(PepTheme.amber.opacity(0.85))
+                Spacer()
             }
-            .buttonStyle(.plain)
+            Text(callout.recommendation)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary.opacity(0.92))
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(12)
+        .background(PepTheme.amber.opacity(0.08))
+        .clipShape(.rect(cornerRadius: 10))
     }
 
     @ViewBuilder
