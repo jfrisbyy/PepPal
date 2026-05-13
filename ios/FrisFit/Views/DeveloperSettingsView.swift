@@ -1,28 +1,14 @@
 import SwiftUI
 
 struct DeveloperSettingsView: View {
-    @State private var isSeeding: Bool = false
+    @State private var isGenerating: Bool = false
     @State private var isRemoving: Bool = false
+    @State private var isWipingMyData: Bool = false
     @State private var statusMessage: String?
     @State private var statusIsError: Bool = false
     @State private var showRemoveConfirm: Bool = false
-    @State private var isBulkPopulating: Bool = false
-    @State private var bulkLevel: BulkPopulateLevel = .medium
-    @State private var isWipingMyData: Bool = false
     @State private var showWipeMyDataConfirm: Bool = false
-    @State private var isDeepPopulating: Bool = false
-
-    enum BulkPopulateLevel: String, CaseIterable, Identifiable {
-        case light, medium, heavy
-        var id: String { rawValue }
-        var label: String {
-            switch self {
-            case .light:  return "Light"
-            case .medium: return "Medium"
-            case .heavy:  return "Heavy"
-            }
-        }
-    }
+    @State private var showStreakDebug: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -31,25 +17,19 @@ struct DeveloperSettingsView: View {
                 .foregroundStyle(PepTheme.textSecondary)
                 .tracking(0.8)
 
-            Text("Tools for testing. Manages the shared pool of 25 realistic fake personas everyone follows.")
+            Text("One button to create + fully populate the shared pool of fake personas in Supabase. Everything else is housekeeping.")
                 .font(.caption)
                 .foregroundStyle(PepTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             VStack(spacing: 0) {
-                seedRow
-                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 fakeAccountSwitcherRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
-                bulkPopulateRow
-                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
-                deepPopulateRow
-                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
-                wipeMyDataRow
-                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
-                refreshRow
+                generatePersonasRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 removeRow
+                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
+                wipeMyDataRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 resetOnboardingRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
@@ -64,8 +44,12 @@ struct DeveloperSettingsView: View {
 
             if let msg = statusMessage {
                 HStack(spacing: 8) {
-                    Image(systemName: statusIsError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                        .foregroundStyle(statusIsError ? .red : .green)
+                    if isGenerating || isRemoving || isWipingMyData {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: statusIsError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                            .foregroundStyle(statusIsError ? .red : .green)
+                    }
                     Text(msg)
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
@@ -73,6 +57,7 @@ struct DeveloperSettingsView: View {
                 }
                 .padding(10)
                 .background((statusIsError ? Color.red : Color.green).opacity(0.1), in: .rect(cornerRadius: 10))
+                .animation(.easeInOut(duration: 0.2), value: statusMessage)
             }
         }
         .padding(16)
@@ -100,91 +85,7 @@ struct DeveloperSettingsView: View {
         }
     }
 
-    private var seedRow: some View {
-        Button { Task { await seed(refresh: false) } } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "person.3.sequence.fill")
-                    .font(.body)
-                    .foregroundStyle(PepTheme.teal)
-                    .frame(width: 24)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Seed 25 fake personas")
-                        .font(.body)
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("Curated profiles with avatars, banners, posts, streaks, and a follow graph")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .multilineTextAlignment(.leading)
-                }
-                Spacer()
-                if isSeeding {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(PepTheme.textSecondary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .disabled(isSeeding || isRemoving)
-    }
-
-    private var refreshRow: some View {
-        Button { Task { await seed(refresh: true) } } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.body)
-                    .foregroundStyle(PepTheme.violet)
-                    .frame(width: 24)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Refresh fake personas")
-                        .font(.body)
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("Re-runs the seed idempotently — syncs profiles, posts, and follows")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .multilineTextAlignment(.leading)
-                }
-                Spacer()
-                if isSeeding {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(PepTheme.textSecondary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .disabled(isSeeding || isRemoving)
-    }
-
-    private var removeRow: some View {
-        Button { showRemoveConfirm = true } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "trash.fill")
-                    .font(.body)
-                    .foregroundStyle(.red)
-                    .frame(width: 24)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Remove fake personas")
-                        .font(.body)
-                        .foregroundStyle(.red)
-                    Text("Deletes every seeded profile, their auth user, and their data")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .multilineTextAlignment(.leading)
-                }
-                Spacer()
-                if isRemoving {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(PepTheme.textSecondary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .disabled(isSeeding || isRemoving)
-    }
-
-    @State private var showStreakDebug: Bool = false
+    // MARK: - Fake persona rows
 
     private var fakeAccountSwitcherRow: some View {
         NavigationLink {
@@ -209,7 +110,7 @@ struct DeveloperSettingsView: View {
                                 .background(.orange, in: .capsule)
                         }
                     }
-                    Text("Create, switch into, and generate activity for fake accounts. Full functionality — post, DM, log everything.")
+                    Text("Sign in as any fake persona. Switching back restores your real account.")
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
                         .multilineTextAlignment(.leading)
@@ -221,67 +122,24 @@ struct DeveloperSettingsView: View {
         .buttonStyle(.plain)
     }
 
-    private var bulkPopulateRow: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                Image(systemName: "sparkles")
-                    .font(.body)
-                    .foregroundStyle(PepTheme.violet)
-                    .frame(width: 24)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Populate all fake accounts")
-                        .font(.body)
-                        .foregroundStyle(PepTheme.textPrimary)
-                    Text("One-time backfill: 30–90d posts, cross likes/comments, 7 themed groups, DMs between fakes.")
-                        .font(.caption)
-                        .foregroundStyle(PepTheme.textSecondary)
-                        .multilineTextAlignment(.leading)
-                }
-                Spacer()
-            }
-            HStack(spacing: 8) {
-                Picker("Depth", selection: $bulkLevel) {
-                    ForEach(BulkPopulateLevel.allCases) { lvl in
-                        Text(lvl.label).tag(lvl)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 220)
-                Spacer()
-                Button {
-                    Task { await bulkPopulate() }
-                } label: {
-                    if isBulkPopulating {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Text("Run").font(.caption.weight(.semibold))
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .disabled(isBulkPopulating || isSeeding || isRemoving)
-            }
-        }
-    }
-
-    private var deepPopulateRow: some View {
-        Button { Task { await deepPopulate() } } label: {
+    private var generatePersonasRow: some View {
+        Button { Task { await generate() } } label: {
             HStack(spacing: 12) {
                 Image(systemName: "wand.and.stars")
                     .font(.body)
                     .foregroundStyle(PepTheme.teal)
                     .frame(width: 24)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Fully populate all fakes")
+                    Text("Generate fake personas")
                         .font(.body)
                         .foregroundStyle(PepTheme.textPrimary)
-                    Text("Archetype-tuned weight history, workouts, PRs, meals, protocols, doses, bloodwork — so impersonating a fake feels like a real, lived-in account.")
+                    Text("Creates the 25-persona pool and fully populates every account in Supabase — workouts, weights, meals, doses, PRs, posts, groups, DMs. Idempotent — safe to re-run anytime.")
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
                         .multilineTextAlignment(.leading)
                 }
                 Spacer()
-                if isDeepPopulating {
+                if isGenerating {
                     ProgressView().controlSize(.small)
                 } else {
                     Image(systemName: "chevron.right").font(.caption).foregroundStyle(PepTheme.textSecondary)
@@ -289,30 +147,35 @@ struct DeveloperSettingsView: View {
             }
         }
         .buttonStyle(.plain)
-        .disabled(isDeepPopulating || isBulkPopulating || isSeeding || isRemoving)
+        .disabled(isGenerating || isRemoving)
     }
 
-    private func deepPopulate() async {
-        isDeepPopulating = true
-        statusMessage = nil
-        defer { isDeepPopulating = false }
-        do {
-            let res = try await FakeAccountService.shared.deepPopulateAllFakes()
-            let parts = [
-                "\(res.workouts ?? 0) workouts",
-                "\(res.meals ?? 0) meals",
-                "\(res.weights ?? 0) weight logs",
-                "\(res.dose_logs ?? 0) doses",
-                "\(res.prs ?? 0) PRs",
-            ].joined(separator: " · ")
-            statusMessage = "Deep-populated \(res.fakes ?? 0) fakes — \(parts)."
-            statusIsError = false
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        } catch {
-            statusMessage = error.localizedDescription
-            statusIsError = true
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
+    private var removeRow: some View {
+        Button { showRemoveConfirm = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "trash.fill")
+                    .font(.body)
+                    .foregroundStyle(.red)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Delete all fake personas")
+                        .font(.body)
+                        .foregroundStyle(.red)
+                    Text("Wipes every fake auth user and their data from Supabase.")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+                if isRemoving {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(PepTheme.textSecondary)
+                }
+            }
         }
+        .buttonStyle(.plain)
+        .disabled(isGenerating || isRemoving)
     }
 
     private var wipeMyDataRow: some View {
@@ -326,7 +189,7 @@ struct DeveloperSettingsView: View {
                     Text("Wipe my seeded data")
                         .font(.body)
                         .foregroundStyle(.red)
-                    Text("Removes the screenshot-mode data from your account only. Use before App Store submission.")
+                    Text("Removes screenshot-mode data from your own account. Use before App Store submission.")
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
                         .multilineTextAlignment(.leading)
@@ -340,8 +203,10 @@ struct DeveloperSettingsView: View {
             }
         }
         .buttonStyle(.plain)
-        .disabled(isWipingMyData || isBulkPopulating)
+        .disabled(isWipingMyData)
     }
+
+    // MARK: - Housekeeping rows (unchanged)
 
     private var streakDebugRow: some View {
         Button { showStreakDebug = true } label: {
@@ -436,7 +301,7 @@ struct DeveloperSettingsView: View {
                     Text("Re-run onboarding now")
                         .font(.body)
                         .foregroundStyle(PepTheme.textPrimary)
-                    Text("Re-presents the flow immediately on this account — useful for QA on partially-complete users. Supabase rows are kept; local draft + completion flag are cleared.")
+                    Text("Re-presents the flow immediately. Supabase rows are kept; local draft + completion flag are cleared.")
                         .font(.caption)
                         .foregroundStyle(PepTheme.textSecondary)
                         .multilineTextAlignment(.leading)
@@ -476,24 +341,25 @@ struct DeveloperSettingsView: View {
         .buttonStyle(.plain)
     }
 
-    private func seed(refresh: Bool) async {
-        isSeeding = true
-        statusMessage = nil
-        defer { isSeeding = false }
+    // MARK: - Actions
+
+    private func generate() async {
+        isGenerating = true
+        statusIsError = false
+        statusMessage = "Starting…"
+        defer { isGenerating = false }
         do {
-            let res = try await TestFriendsService.shared.seed()
-            let created = res.created ?? 0
-            let existed = res.existed ?? 0
-            let total = res.total_test_profiles ?? (created + existed)
-            if refresh {
-                statusMessage = "Refreshed \(total) fake personas."
-            } else {
-                statusMessage = "\(total) fake personas ready — \(created) new, \(existed) existing."
+            let result = try await FakeAccountService.shared.generateFakePersonas { phase in
+                Task { @MainActor in
+                    statusMessage = phase
+                }
             }
+            let summary = "\(result.totalPersonas) personas · \(result.workouts) workouts · \(result.meals) meals · \(result.weights) weights · \(result.doses) doses · \(result.prs) PRs · \(result.posts) posts · \(result.groups) groups · \(result.dmThreads) DM threads."
+            statusMessage = summary
             statusIsError = false
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         } catch {
-            statusMessage = error.localizedDescription
+            statusMessage = "Failed: \(error.localizedDescription)"
             statusIsError = true
             UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
@@ -501,7 +367,8 @@ struct DeveloperSettingsView: View {
 
     private func wipeMyData() async {
         isWipingMyData = true
-        statusMessage = nil
+        statusMessage = "Wiping your seeded data…"
+        statusIsError = false
         defer { isWipingMyData = false }
         do {
             try await FakeAccountService.shared.wipeMyScreenshotData()
@@ -509,30 +376,7 @@ struct DeveloperSettingsView: View {
             statusIsError = false
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         } catch {
-            statusMessage = error.localizedDescription
-            statusIsError = true
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
-        }
-    }
-
-    private func bulkPopulate() async {
-        isBulkPopulating = true
-        statusMessage = nil
-        defer { isBulkPopulating = false }
-        do {
-            let res = try await FakeAccountService.shared.bulkPopulateAll(level: bulkLevel.rawValue)
-            let parts = [
-                "\(res.posts_added ?? 0) posts",
-                "\(res.likes ?? 0) likes",
-                "\(res.comments ?? 0) comments",
-                "\(res.groups_created ?? 0) new groups",
-                "\(res.dm_pairs ?? 0) DM threads",
-            ].joined(separator: " · ")
-            statusMessage = "Populated \(res.fakes ?? 0) fakes — \(parts)."
-            statusIsError = false
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        } catch {
-            statusMessage = error.localizedDescription
+            statusMessage = "Failed: \(error.localizedDescription)"
             statusIsError = true
             UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
@@ -540,7 +384,8 @@ struct DeveloperSettingsView: View {
 
     private func remove() async {
         isRemoving = true
-        statusMessage = nil
+        statusMessage = "Removing fake personas…"
+        statusIsError = false
         defer { isRemoving = false }
         do {
             let res = try await TestFriendsService.shared.remove()
@@ -548,7 +393,7 @@ struct DeveloperSettingsView: View {
             statusIsError = false
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         } catch {
-            statusMessage = error.localizedDescription
+            statusMessage = "Failed: \(error.localizedDescription)"
             statusIsError = true
             UINotificationFeedbackGenerator().notificationOccurred(.error)
         }

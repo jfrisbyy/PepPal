@@ -337,4 +337,55 @@ final class FakeAccountService {
 
     var isImpersonating: Bool { OriginalSessionStash.shared.hasStash }
     var stashedOriginalEmail: String? { OriginalSessionStash.shared.load()?.email }
+
+    // MARK: - One-shot generator
+
+    /// Result of `generateFakePersonas` — aggregates the three phases so the
+    /// caller can show a single summary line in the UI.
+    struct GenerateAllResult: Sendable {
+        let totalPersonas: Int
+        let created: Int
+        let existed: Int
+        let workouts: Int
+        let meals: Int
+        let weights: Int
+        let doses: Int
+        let prs: Int
+        let posts: Int
+        let groups: Int
+        let dmThreads: Int
+    }
+
+    /// The single tried-and-true entry point. Seeds the 25-persona pool (idempotent),
+    /// deep-populates every persona with archetype-tuned workouts/meals/weights/doses,
+    /// then layers feed posts, likes/comments, groups, and DMs on top. Safe to re-run.
+    /// `onPhase` is called from the main actor with a human-readable status line
+    /// after each phase so the dev settings UI can stream progress.
+    func generateFakePersonas(onPhase: ((String) -> Void)? = nil) async throws -> GenerateAllResult {
+        onPhase?("Seeding personas\u{2026}")
+        let seed = try await TestFriendsService.shared.seed()
+        let created = seed.created ?? 0
+        let existed = seed.existed ?? 0
+        let total = seed.total_test_profiles ?? (created + existed)
+
+        onPhase?("Seeded \(total) personas \u{2014} populating workouts, meals, weights\u{2026}")
+        let deep = try await deepPopulateAllFakes()
+
+        onPhase?("Populated data \u{2014} adding posts, groups, and DMs\u{2026}")
+        let bulk = try await bulkPopulateAll(level: "medium")
+
+        return GenerateAllResult(
+            totalPersonas: total,
+            created: created,
+            existed: existed,
+            workouts: deep.workouts ?? 0,
+            meals: deep.meals ?? 0,
+            weights: deep.weights ?? 0,
+            doses: deep.dose_logs ?? 0,
+            prs: deep.prs ?? 0,
+            posts: bulk.posts_added ?? 0,
+            groups: bulk.groups_created ?? 0,
+            dmThreads: bulk.dm_pairs ?? 0
+        )
+    }
 }
