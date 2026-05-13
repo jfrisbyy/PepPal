@@ -48,6 +48,10 @@ struct PlanBriefHeaderView: View {
         return narrative?.watchFor ?? lines.watchFor
     }
 
+    private var adaptiveCallout: AdaptiveCallout? {
+        narrative?.adaptiveCallout
+    }
+
     var body: some View {
         Group {
             if isCollapsed {
@@ -152,6 +156,12 @@ struct PlanBriefHeaderView: View {
                         .foregroundStyle(PepTheme.textPrimary.opacity(0.78))
                         .lineSpacing(4)
                         .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let callout = adaptiveCallout,
+                   !callout.trigger.isEmpty,
+                   !callout.recommendation.isEmpty {
+                    adaptiveCalloutStrip(callout)
                 }
 
                 if let watchFor, !isHistorical || !watchFor.isEmpty {
@@ -367,6 +377,57 @@ struct PlanBriefHeaderView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func adaptiveCalloutStrip(_ callout: AdaptiveCallout) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(PepTheme.amber.opacity(0.18))
+                    .frame(width: 26, height: 26)
+                Image(systemName: "arrow.triangle.branch")
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundStyle(PepTheme.amber)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text("TODAY’S ADJUSTMENT")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.6)
+                        .foregroundStyle(PepTheme.amber)
+                    Rectangle()
+                        .fill(PepTheme.amber.opacity(0.55))
+                        .frame(width: 14, height: 1)
+                    Text(callout.trigger.uppercased())
+                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                        .tracking(1.0)
+                        .foregroundStyle(PepTheme.amber.opacity(0.8))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                Text(callout.recommendation)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary.opacity(0.92))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 11)
+        .padding(.horizontal, 12)
+        .background(
+            LinearGradient(
+                colors: [PepTheme.amber.opacity(0.14), PepTheme.amber.opacity(0.04)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .clipShape(.rect(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(PepTheme.amber.opacity(0.25), lineWidth: 0.5)
+        )
     }
 
     private func buildPlanContextString() -> String {

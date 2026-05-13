@@ -42,6 +42,38 @@ nonisolated struct BriefNarrative: Codable, Sendable {
     let headline: String
     let body: String
     let watchFor: String?
+    /// Optional cross-domain adjustment surfaced when an adaptive signal fires
+    /// (rough sleep, side effect, missed dose, bloodwork shift, poor recovery,
+    /// streak break). Rendered as a distinct strip in the brief header.
+    let adaptiveCallout: AdaptiveCallout?
+
+    enum CodingKeys: String, CodingKey {
+        case greeting, headline, body, watchFor, adaptiveCallout
+    }
+
+    init(greeting: String, headline: String, body: String, watchFor: String?, adaptiveCallout: AdaptiveCallout? = nil) {
+        self.greeting = greeting
+        self.headline = headline
+        self.body = body
+        self.watchFor = watchFor
+        self.adaptiveCallout = adaptiveCallout
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.greeting = try c.decode(String.self, forKey: .greeting)
+        self.headline = try c.decode(String.self, forKey: .headline)
+        self.body = try c.decode(String.self, forKey: .body)
+        self.watchFor = try? c.decodeIfPresent(String.self, forKey: .watchFor)
+        self.adaptiveCallout = try? c.decodeIfPresent(AdaptiveCallout.self, forKey: .adaptiveCallout)
+    }
+}
+
+nonisolated struct AdaptiveCallout: Codable, Sendable {
+    /// What fired this callout, in the user's data terms (e.g. "Slept 5.1h vs 7.4h avg").
+    let trigger: String
+    /// The specific adjustment to make today (e.g. "Cut working sets in half, anchor on form").
+    let recommendation: String
 }
 
 nonisolated struct PlanActionItem: Codable, Sendable, Identifiable {
@@ -112,6 +144,9 @@ nonisolated struct ContextBundle: Sendable {
     let bloodworkContext: BloodworkContext?
     let supplementsContext: SupplementsContext?
     let healthContext: HealthContext?
+    /// Pre-computed cross-domain signals (already validated against the user's
+    /// data) that the AI must acknowledge and surface as `adaptiveCallout`.
+    var adaptiveSignalsSection: String = ""
 
     var contentHash: String {
         var parts: [String] = []
@@ -361,6 +396,10 @@ nonisolated struct ContextBundle: Sendable {
             if h.mindfulMinutesToday > 0 { hs += "Mindful minutes today: \(Int(h.mindfulMinutesToday))\n" }
             if h.dietaryWater > 0 { hs += "Water logged (HK): \(Int(h.dietaryWater)) mL\n" }
             sections.append(hs.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+
+        if !adaptiveSignalsSection.isEmpty {
+            sections.append(adaptiveSignalsSection)
         }
 
         return sections.joined(separator: "\n\n")

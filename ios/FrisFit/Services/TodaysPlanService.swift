@@ -44,7 +44,8 @@ final class TodaysPlanService {
         "greeting": "3-6 words, casual and personal using the user's first name (e.g. 'Morning, Alex.').",
         "headline": "6-12 words. One concrete insight tying at least two domains together (recovery+training, dose+nutrition, etc.) — reference real numbers.",
         "body": "2-4 sentences that read like a smart friend's 30-second morning brief. Connect at least two domains. Reference specific numbers. End with one clear action for today.",
-        "watchFor": "Optional: one short pattern or correlation worth watching today, or null if nothing stands out."
+        "watchFor": "Optional: one short pattern or correlation worth watching today, or null if nothing stands out.",
+        "adaptiveCallout": { "trigger": "short phrase naming what fired this (e.g. 'Slept 5.1h vs 7.4h avg')", "recommendation": "one-sentence concrete adjustment for today" }
       },
       "summary": "2-3 sentence opening paragraph covering the most important things about this user's day right now, connecting insights across domains where relevant. This is distinct from narrative.body — summary is denser and more analytical; narrative is the warm morning-brief voice.",
       "modules": [
@@ -131,6 +132,14 @@ final class TodaysPlanService {
 
     SAFETY GUARDRAILS:
     If the context bundle shows extreme values (weight loss exceeding 3 lbs/week, very low calorie intake under 800 cal consistently, severe or escalating side effects), the tone should shift to clearly recommend consulting a healthcare provider. Frame it as: "This is something your provider should know about."
+
+    ADAPTIVE CALLOUT (CRITICAL — the cross-stream proof):
+    The context may include an "ADAPTIVE SIGNALS" block. These are deterministic, already-validated cross-domain triggers (rough sleep, side effect logged, missed dose, bloodwork shift, poor recovery, streak break). When that block is present:
+    1. You MUST emit a populated `adaptiveCallout` object whose `trigger` and `recommendation` faithfully reflect the TOP signal (the first one listed). You may tighten the phrasing for tone, but never invert the meaning or change the domain.
+    2. The narrative body MUST visibly account for that signal — e.g. if sleep is rough, training direction in the body should match the half-reps / form-day framing, not push for a PR.
+    3. If multiple signals are listed, weave the secondary ones into the body or watchFor where they fit; do not stack two callouts.
+    4. When the ADAPTIVE SIGNALS block is absent, emit `adaptiveCallout: null`. Do NOT invent a callout from thin data.
+    The callout is the most visible cross-stream proof in the app — it has to be real, specific, and grounded in the signal that fired.
     """
 
     private func systemPromptWithMemory() -> String {
@@ -787,6 +796,7 @@ final class TodaysPlanService {
             return "Tomorrow"
         }()
 
+        // (signals are appended after the rest of the bundle is built)
         let trainingContext = TrainingContext(
             todayWorkout: todaysPlan.isRestDay ? nil : todaysPlan.name,
             completedToday: completedToday,
@@ -936,7 +946,7 @@ final class TodaysPlanService {
             )
         }()
 
-        return ContextBundle(
+        var bundle = ContextBundle(
             userProfile: userProfile,
             protocolContext: protocolContext,
             compoundKnowledge: compoundKnowledge,
@@ -949,6 +959,13 @@ final class TodaysPlanService {
             supplementsContext: supplementsContext,
             healthContext: healthContext
         )
+
+        // Deterministic cross-domain signals. These get spliced into the
+        // prompt so the AI emits a matching `adaptiveCallout` and tilts the
+        // narrative to match (e.g. half-reps day after rough sleep).
+        let signals = AdaptiveSignalsService.shared.buildSignals(activeProtocol: activeProtocol)
+        bundle.adaptiveSignalsSection = AdaptiveSignalsService.shared.promptSection(signals: signals)
+        return bundle
     }
 }
 
