@@ -31,6 +31,9 @@ struct HomeWaterCard: View {
                     Text("Water")
                         .font(.system(.subheadline, weight: .semibold))
                         .foregroundStyle(PepTheme.textPrimary)
+                    if let reason = waterVM.adaptiveWaterReason {
+                        AdjustedChip(reason: reason, tint: PepTheme.blue)
+                    }
                     Spacer()
                     Button {
                         showWaterDetail = true

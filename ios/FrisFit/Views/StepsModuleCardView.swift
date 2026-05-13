@@ -11,6 +11,12 @@ struct StepsModuleCardView: View {
         return stored > 0 ? stored : 10000
     }
 
+    private var adaptiveReason: String? {
+        let lines = AdaptiveAdjustmentService.shared.activeLines(in: .steps)
+        guard !lines.isEmpty else { return nil }
+        return lines.map { $0.summary }.joined(separator: " · ")
+    }
+
     private var progress: Double {
         min(Double(healthKit.steps) / Double(max(goal, 1)), 1.0)
     }
@@ -22,10 +28,15 @@ struct StepsModuleCardView: View {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .top, spacing: 18) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("TODAY")
-                            .font(.system(size: 10, weight: .heavy))
-                            .tracking(2.4)
-                            .foregroundStyle(PepTheme.teal)
+                        HStack(spacing: 8) {
+                            Text("TODAY")
+                                .font(.system(size: 10, weight: .heavy))
+                                .tracking(2.4)
+                                .foregroundStyle(PepTheme.teal)
+                            if let reason = adaptiveReason {
+                                AdjustedChip(reason: reason, tint: PepTheme.teal)
+                            }
+                        }
 
                         Text(Self.formattedStepsNumber(healthKit.steps))
                             .font(.system(size: 48, weight: .semibold, design: .serif))

@@ -134,12 +134,12 @@ final class TodaysPlanService {
     If the context bundle shows extreme values (weight loss exceeding 3 lbs/week, very low calorie intake under 800 cal consistently, severe or escalating side effects), the tone should shift to clearly recommend consulting a healthcare provider. Frame it as: "This is something your provider should know about."
 
     ADAPTIVE CALLOUT (CRITICAL — the cross-stream proof):
-    The context may include an "ADAPTIVE SIGNALS" block. These are deterministic, already-validated cross-domain triggers (rough sleep, side effect logged, missed dose, bloodwork shift, poor recovery, streak break). When that block is present:
+    The context always includes a "TODAY'S CONTEXT" block with baseline targets and live vitals. When deterministic cross-domain triggers fire (rough sleep, side effect logged, missed dose, bloodwork shift, poor recovery, streak break), an "ADAPTIVE BUNDLE" block follows it — these adjustments are already validated by the app. When the ADAPTIVE BUNDLE block is present:
     1. You MUST emit a populated `adaptiveCallout` object whose `trigger` and `recommendation` faithfully reflect the TOP signal (the first one listed). You may tighten the phrasing for tone, but never invert the meaning or change the domain.
-    2. The narrative body MUST visibly account for that signal — e.g. if sleep is rough, training direction in the body should match the half-reps / form-day framing, not push for a PR.
+    2. The narrative body MUST visibly account for that signal AND weave in the "why" using a value from TODAY'S CONTEXT (e.g. "slept 5.1h vs your 7.4h baseline, so we're halving working sets today").
     3. If multiple signals are listed, weave the secondary ones into the body or watchFor where they fit; do not stack two callouts.
-    4. When the ADAPTIVE SIGNALS block is absent, emit `adaptiveCallout: null`. Do NOT invent a callout from thin data.
-    The callout is the most visible cross-stream proof in the app — it has to be real, specific, and grounded in the signal that fired.
+    4. When no ADAPTIVE BUNDLE block is present, emit `adaptiveCallout: null`. Do NOT invent a callout or fabricate adjustments from the context block alone.
+    5. Never describe an adjustment the bundle did not authorize. The typed bundle lines are the source of truth — your job is to narrate them, not extend them.
     """
 
     private func systemPromptWithMemory() -> String {
