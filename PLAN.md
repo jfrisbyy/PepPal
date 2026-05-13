@@ -18,8 +18,11 @@ Instead of building separate "adaptive cards," the cross-stream scenarios live i
 - [x] Render `adaptiveCallout` in `PlanBriefHeaderView` as a distinct strip directly below WATCH FOR (different accent so it reads as "today's adjustment").
 - [x] runChecks passes.
 
-**Out of scope (intentional)**
+**Apply/Skip pass (this turn)**
 
-- No new home cards. No new screens.
-- No write-back of "I accepted the adjustment" — pure surface for now.
-- No changes to the screenshot seeder; it stays as documented previously and will exercise these signals organically once data is rich.
+- [x] Extend `Signal` with a deterministic `BriefAdjustment { summary, kind, magnitude }` so each conversational callout is paired with an actionable one-liner.
+- [x] `AdaptiveAdjustmentService` — per-day decision store (`accepted` / `dismissed`) + transform that rewrites today's `ProgramDay` based on adjustment kind (halve sets, halve reps, deload 60%, mobility/form-only).
+- [x] `TrainViewModel.todayWorkoutDays` overlays the override transparently when today has an accepted decision, so the change flows everywhere the workout is read.
+- [x] Brief strip redesign in `PlanBriefHeaderView`: trigger label, one-line adjustment, a pulsing scan line, and Apply / Skip buttons. After Apply the strip morphs into a checkmark confirmation with a tap-to-undo.
+- [x] State survives brief refreshes for the same calendar day.
+- [x] runChecks passes.

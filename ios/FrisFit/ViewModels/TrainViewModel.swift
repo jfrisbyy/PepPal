@@ -92,6 +92,14 @@ final class TrainViewModel {
     }
 
     var todayWorkoutDays: [ProgramDay] {
+        let base = baseTodayWorkoutDays
+        // Overlay any accepted adaptive adjustment so the conversational
+        // "halve your reps today" callout actually flows into the running
+        // workout screen, weekly plan, etc.
+        return AdaptiveAdjustmentService.shared.applyOverrideIfAny(to: base)
+    }
+
+    private var baseTodayWorkoutDays: [ProgramDay] {
         guard let program = activeProgram else { return [] }
         let weekday = currentMondayBasedWeekday()
         if program.days.contains(where: { $0.scheduledWeekday != nil }) {

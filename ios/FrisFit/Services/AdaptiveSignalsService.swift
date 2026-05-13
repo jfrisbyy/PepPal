@@ -7,14 +7,16 @@ import Foundation
 /// the brief must visibly account for. Each signal is rendered into the prompt
 /// so the AI weaves it into the narrative and emits a matching `adaptiveCallout`.
 @MainActor
-struct AdaptiveSignalsService {
+final class AdaptiveSignalsService {
     static let shared = AdaptiveSignalsService()
+    private init() {}
 
     nonisolated struct Signal: Sendable {
         let kind: Kind
         let trigger: String         // e.g. "Slept 5.1h last night (vs 7.4h avg)"
         let recommendation: String  // e.g. "Cut working sets in half, anchor on form"
         let priority: Int           // higher wins when we have too many
+        let adjustment: BriefAdjustment
 
         nonisolated enum Kind: String, Sendable {
             case roughSleep
@@ -26,6 +28,25 @@ struct AdaptiveSignalsService {
         }
     }
 
+    // MARK: - Cached top signal for today
+
+    /// In-memory cache of the most recently built top signal, keyed by yyyy-MM-dd.
+    /// The brief view reads this to render the structured adjustment strip
+    /// without depending on AI output.
+    private(set) var todaysTopSignal: Signal? = nil
+    private(set) var todaysTopSignalDateKey: String = ""
+
+    static func todayKey(_ date: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: date)
+    }
+
+    func topSignalForToday() -> Signal? {
+        guard todaysTopSignalDateKey == Self.todayKey() else { return nil }
+        return todaysTopSignal
+    }
+
     /// Build up to 3 signals, sorted by priority (highest first).
     func buildSignals(activeProtocol: PeptideProtocol?) -> [Signal] {
         var out: [Signal] = []
@@ -35,7 +56,10 @@ struct AdaptiveSignalsService {
         if let s = bloodworkShiftSignal() { out.append(s) }
         if let s = poorRecoverySignal() { out.append(s) }
         if let s = streakBreakSignal() { out.append(s) }
-        return Array(out.sorted { $0.priority > $1.priority }.prefix(3))
+        let sorted = Array(out.sorted { $0.priority > $1.priority }.prefix(3))
+        todaysTopSignalDateKey = Self.todayKey()
+        todaysTopSignal = sorted.first
+        return sorted
     }
 
     /// Compact, model-friendly section to splice into the prompt body.
@@ -63,12 +87,15 @@ struct AdaptiveSignalsService {
             trigger += " (vs \(String(format: "%.1f", avg))h avg)"
         }
         let rec: String
+        let adjustment: BriefAdjustment
         if sleep < 5 {
             rec = "Recovery-first day. Skip heavy compounds, walk + mobility instead — pushing into a sleep debt rarely banks gains."
+            adjustment = BriefAdjustment(summary: "Swap today's lifts for mobility + zone 2 walk", kind: .mobilityOnly, magnitude: nil)
         } else {
             rec = "Cut working sets in half and anchor on form. Doing something beats skipping, but lifting to true failure today eats recovery."
+            adjustment = BriefAdjustment(summary: "Halve working sets on today's lifts", kind: .halveSets, magnitude: 0.5)
         }
-        return Signal(kind: .roughSleep, trigger: trigger, recommendation: rec, priority: 80)
+        return Signal(kind: .roughSleep, trigger: trigger, recommendation: rec, priority: 80, adjustment: adjustment)
     }
 
     private func sideEffectSignal(activeProtocol: PeptideProtocol?) -> Signal? {
@@ -85,16 +112,22 @@ struct AdaptiveSignalsService {
 
         let effectLower = top.effect.lowercased()
         let recommendation: String
+        let adjustment: BriefAdjustment
         if effectLower.contains("nausea") || effectLower.contains("gi") || effectLower.contains("stomach") {
             recommendation = "Keep meals smaller and protein-forward today. Lean on easy-on-the-gut sources (eggs, yogurt, lean ground beef) and split your calories across 4–5 mini meals instead of forcing big plates."
+            adjustment = BriefAdjustment(summary: "Reduce load 20% · keep meals small & protein-forward", kind: .deload, magnitude: 0.8)
         } else if effectLower.contains("headache") {
             recommendation = "Front-load water and electrolytes before any training. Cap cardio at zone 2 and pull back overhead pressing — vascular load through a headache rarely pays off."
+            adjustment = BriefAdjustment(summary: "Deload 30% · skip overhead pressing today", kind: .deload, magnitude: 0.7)
         } else if effectLower.contains("fatigue") || effectLower.contains("tired") {
             recommendation = "Half your normal volume, then reassess. Prioritize the compound lifts and skip accessories if energy doesn't show up."
+            adjustment = BriefAdjustment(summary: "Halve volume · compound lifts only", kind: .halveSets, magnitude: 0.5)
         } else if effectLower.contains("inject") || effectLower.contains("site") {
             recommendation = "Rotate injection site and avoid loaded movements that compress the area. Warm compress before tonight's dose."
+            adjustment = BriefAdjustment(summary: "Soften intensity 20% around the injection site", kind: .deload, magnitude: 0.8)
         } else {
             recommendation = "Treat today as a yellow-light day. Maintain logging, soften training intensity by ~20%, and watch whether the effect tracks with dose timing."
+            adjustment = BriefAdjustment(summary: "Yellow-light day · soften intensity 20%", kind: .deload, magnitude: 0.8)
         }
 
         let dayLabel: String
@@ -103,7 +136,7 @@ struct AdaptiveSignalsService {
         else { dayLabel = "in the last 48h" }
 
         let trigger = "\(top.effect.capitalized) logged \(dayLabel) (severity \(top.severity)/5)"
-        return Signal(kind: .sideEffect, trigger: trigger, recommendation: recommendation, priority: 75)
+        return Signal(kind: .sideEffect, trigger: trigger, recommendation: recommendation, priority: 75, adjustment: adjustment)
     }
 
     private func missedDoseSignal(activeProtocol: PeptideProtocol?) -> Signal? {
@@ -132,7 +165,8 @@ struct AdaptiveSignalsService {
         } else {
             recommendation = "Take today's dose and log it. Watch for appetite/side-effect rebound as levels climb back; nutrition and training stay neutral today."
         }
-        return Signal(kind: .missedDose, trigger: trigger, recommendation: recommendation, priority: 70)
+        let adjustment = BriefAdjustment(summary: "Hold training steady · protein floor over ceiling", kind: .noChange, magnitude: nil)
+        return Signal(kind: .missedDose, trigger: trigger, recommendation: recommendation, priority: 70, adjustment: adjustment)
     }
 
     private func bloodworkShiftSignal() -> Signal? {
@@ -143,7 +177,8 @@ struct AdaptiveSignalsService {
             ? "Latest panel flagged for provider review — \(count) value\(count == 1 ? "" : "s") out of range"
             : "\(count) flagged value\(count == 1 ? "" : "s") on latest bloodwork"
         let recommendation = "Don't change protocol off this alone — pull the panel up, share it with your provider, and let this week's training/nutrition stay steady so the next recheck reads clean."
-        return Signal(kind: .bloodworkShift, trigger: trigger, recommendation: recommendation, priority: 85)
+        let adjustment = BriefAdjustment(summary: "Hold training & nutrition steady through next recheck", kind: .noChange, magnitude: nil)
+        return Signal(kind: .bloodworkShift, trigger: trigger, recommendation: recommendation, priority: 85, adjustment: adjustment)
     }
 
     private func poorRecoverySignal() -> Signal? {
@@ -153,7 +188,8 @@ struct AdaptiveSignalsService {
             if let rhr = hk.restingHeartRate, rhr > 70 {
                 let trigger = "Resting HR elevated at \(Int(rhr)) bpm"
                 let recommendation = "Recovery looks taxed — push zone 2 cardio or mobility today and save the heavy session for tomorrow."
-                return Signal(kind: .poorRecovery, trigger: trigger, recommendation: recommendation, priority: 50)
+                let adjustment = BriefAdjustment(summary: "Swap today's lifts for zone 2 + mobility", kind: .mobilityOnly, magnitude: nil)
+                return Signal(kind: .poorRecovery, trigger: trigger, recommendation: recommendation, priority: 50, adjustment: adjustment)
             }
             return nil
         }
@@ -163,7 +199,8 @@ struct AdaptiveSignalsService {
         if let rhr = hk.restingHeartRate { triggerParts.append("RHR \(Int(rhr)) bpm") }
         let trigger = triggerParts.joined(separator: " · ")
         let recommendation = "Treat today as a deload. Same exercises, 60% of normal load, leave 2 reps in the tank on every set. Sleep and hydration matter more than the session right now."
-        return Signal(kind: .poorRecovery, trigger: trigger, recommendation: recommendation, priority: 65)
+        let adjustment = BriefAdjustment(summary: "Deload to 60% load · same exercises, 2 RIR", kind: .deload, magnitude: 0.6)
+        return Signal(kind: .poorRecovery, trigger: trigger, recommendation: recommendation, priority: 65, adjustment: adjustment)
     }
 
     private func streakBreakSignal() -> Signal? {
@@ -174,6 +211,7 @@ struct AdaptiveSignalsService {
             ? "Streak reset after the miss — longest run was \(longest)d"
             : "Streak reset yesterday"
         let recommendation = "Don't chase the lost streak with a hero day. One log — a meal, a walk, a weigh-in — restarts the counter. Consistency rebuilds faster than it ever broke."
-        return Signal(kind: .streakBreak, trigger: trigger, recommendation: recommendation, priority: 40)
+        let adjustment = BriefAdjustment(summary: "One small log restarts the streak — no hero day", kind: .noChange, magnitude: nil)
+        return Signal(kind: .streakBreak, trigger: trigger, recommendation: recommendation, priority: 40, adjustment: adjustment)
     }
 }
