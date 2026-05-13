@@ -67,6 +67,23 @@ nonisolated struct FakeBulkPopulateResponse: Codable, Sendable {
     let group_messages: Int?
     let dm_pairs: Int?
     let dm_messages: Int?
+    let deep_workouts: Int?
+    let deep_meals: Int?
+    let deep_doses: Int?
+    let deep_weights: Int?
+    let error: String?
+}
+
+nonisolated struct FakeDeepPopulateResponse: Codable, Sendable {
+    let ok: Bool?
+    let fakes: Int?
+    let workouts: Int?
+    let meals: Int?
+    let dose_logs: Int?
+    let protocols: Int?
+    let weights: Int?
+    let sleep_logs: Int?
+    let prs: Int?
     let error: String?
 }
 
@@ -234,6 +251,18 @@ final class FakeAccountService {
         }
     }
 
+    func deepPopulateAllFakes(userId: String? = nil) async throws -> FakeDeepPopulateResponse {
+        var p = FakeActionRequest.Payload()
+        p.user_id = userId
+        let body = FakeActionRequest(action: "deepPopulateAllFakes", payload: p)
+        let res: FakeDeepPopulateResponse = try await supabase.functions
+            .invoke("super-action", options: FunctionInvokeOptions(body: body))
+        if let err = res.error, !err.isEmpty {
+            throw NSError(domain: "FakeAccountService", code: 0, userInfo: [NSLocalizedDescriptionKey: err])
+        }
+        return res
+    }
+
     func bulkPopulateAll(level: String = "medium") async throws -> FakeBulkPopulateResponse {
         var p = FakeActionRequest.Payload()
         p.level = level
@@ -263,6 +292,7 @@ final class FakeAccountService {
     /// If a stash already exists (we're already impersonating), it is kept
     /// so the user can always get back to their *real* account.
     func switchTo(userId: String) async throws {
+        let previousUserId: String? = try? AuthService.shared.currentUserId()
         if !OriginalSessionStash.shared.hasStash {
             let session = try await supabase.auth.session
             OriginalSessionStash.shared.save(
@@ -278,7 +308,18 @@ final class FakeAccountService {
         }
         // Tear down any active realtime channels under the previous session
         await RealtimeLifecycleCoordinator.shared.unsubscribeAll()
+        // Belt-and-suspenders: scrub the previous user's locally-persisted
+        // caches BEFORE the new sign-in lands. The auth listener will run
+        // its own purge when the user id changes, but doing it eagerly here
+        // means observers see a clean slate the moment the new session lights up.
+        LocalStateResetCoordinator.purgeUserScopedState(previousUserId: previousUserId)
         try await supabase.auth.signIn(email: email, password: password)
+        // Kick off a deep-populate in the background so freshly-created fakes
+        // (and any populated with the older feed-only seed) get rich data on
+        // first impersonation. Idempotent server-side, safe to fire and forget.
+        Task.detached { [weak self] in
+            _ = try? await self?.deepPopulateAllFakes(userId: userId)
+        }
     }
 
     /// Restore the operator's real account from the keychain stash. Safe
@@ -287,7 +328,9 @@ final class FakeAccountService {
         guard let stash = OriginalSessionStash.shared.load() else {
             throw NSError(domain: "FakeAccountService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No original account stashed"])
         }
+        let previousUserId: String? = try? AuthService.shared.currentUserId()
         await RealtimeLifecycleCoordinator.shared.unsubscribeAll()
+        LocalStateResetCoordinator.purgeUserScopedState(previousUserId: previousUserId)
         _ = try await supabase.auth.setSession(accessToken: stash.accessToken, refreshToken: stash.refreshToken)
         OriginalSessionStash.shared.clear()
     }

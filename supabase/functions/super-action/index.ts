@@ -1409,6 +1409,15 @@ async function createFakeUser(
         } catch (e) {
             console.error("populate inline failed", e);
         }
+        // For medium/heavy, also run the deep-persona seed so the fake account
+        // has weight history, workouts, meals, etc. — not just feed posts.
+        if ((populateLevel === "medium" || populateLevel === "heavy") && matchedPersona) {
+            try {
+                await deepPopulateFakePersona(admin, userId, matchedPersona);
+            } catch (e) {
+                console.error("deep populate inline failed", e);
+            }
+        }
     }
 
     return json(200, {
@@ -1733,6 +1742,23 @@ async function bulkPopulateAllFakes(
         }
     }
 
+    // Deep-populate each fake with archetype-tuned weight history, workouts,
+    // meals, protocols, etc. so they look like real accounts when impersonated.
+    let deepWorkouts = 0, deepMeals = 0, deepDoses = 0, deepWeights = 0;
+    for (const f of fakes) {
+        const persona = PERSONAS.find((p) => p.username === f.username) ?? null;
+        if (!persona) continue;
+        try {
+            const { inserted } = await deepPopulateFakePersona(admin, f.id, persona);
+            deepWorkouts += inserted.workouts;
+            deepMeals += inserted.meals;
+            deepDoses += inserted.dose_logs;
+            deepWeights += inserted.weights;
+        } catch (e) {
+            console.error("deep populate", f.username, e);
+        }
+    }
+
     const interactions = await generateCrossInteractions(admin, ids, level);
     const replies = await generateCommentReplies(admin, ids, level);
     const groups = await seedFakeGroups(admin, ids);
@@ -1755,6 +1781,10 @@ async function bulkPopulateAllFakes(
         version: "seed-v2",
         fakes: ids.length,
         posts_added: postsAdded,
+        deep_workouts: deepWorkouts,
+        deep_meals: deepMeals,
+        deep_doses: deepDoses,
+        deep_weights: deepWeights,
         likes: interactions.likes,
         comments: interactions.comments,
         groups_created: groups.groups,
@@ -2076,6 +2106,682 @@ async function logClientError(
     const { error } = await admin.from("client_errors").insert(row);
     if (error) return json(500, { error: error.message });
     return json(200, { ok: true });
+}
+
+// ---- Handler: deepPopulateFakePersona --------------------------------
+//
+// Make a fake persona feel like a real, lived-in account. Seeds 90 days
+// of weight logs, a training program + workout history, archetype-tuned
+// meals + macros, daily tasks + activity, and — only for archetypes
+// that would actually use them — protocols, compounds, vials, dose
+// logs, bloodwork, and side effects. Idempotent: rows are tagged with
+// FAKE_SEED_MARK so re-running tops up rather than duplicates.
+
+const FAKE_SEED_MARK = "[fake-persona-seed]";
+
+type ArchetypeFlavor = {
+    kind: "strength" | "running" | "cycling" | "yoga" | "hooper" | "climber" | "cali"
+        | "crossfit" | "bjj" | "triathlon" | "recomp" | "bb" | "glp" | "beginner"
+        | "postpartum" | "rugby" | "optimizer" | "protocol" | "hybrid" | "coach" | "dad" | "sleep";
+    usesProtocols: boolean;
+    usesBloodwork: boolean;
+    weightTrend: "down" | "up" | "flat";
+    startWeightLbs: number;
+    targetWeightLbs: number;
+    workoutNames: string[]; // subset of WORKOUT_BANK names
+    programName: string;
+    macros: { calories: number; protein: number; carbs: number; fat: number };
+    sleepLogs: boolean;
+    insertPRs: boolean;
+};
+
+function archetypeFlavorFor(persona: Persona): ArchetypeFlavor {
+    const a = persona.archetype.toLowerCase();
+    const has = (s: string) => a.includes(s);
+    // Defaults (general lifter)
+    let f: ArchetypeFlavor = {
+        kind: "strength",
+        usesProtocols: false,
+        usesBloodwork: false,
+        weightTrend: "flat",
+        startWeightLbs: 180,
+        targetWeightLbs: 180,
+        workoutNames: ["Squat Day", "Bench Day", "Deadlift Day", "Pull Day", "Push Day"],
+        programName: "5/3/1 BBB",
+        macros: { calories: 2800, protein: 200, carbs: 320, fat: 80 },
+        sleepLogs: false,
+        insertPRs: true,
+    };
+    if (has("marathoner") || has("5k")) {
+        f = { ...f, kind: "running", workoutNames: ["Easy Run", "Long Run", "Track Intervals", "Tempo Run"],
+            programName: "Marathon Build Block", insertPRs: false,
+            startWeightLbs: 155, targetWeightLbs: 152, weightTrend: "flat",
+            macros: { calories: 2600, protein: 130, carbs: 360, fat: 75 } };
+    } else if (has("yoga") || has("mobility") || has("breathwork")) {
+        f = { ...f, kind: "yoga", workoutNames: ["Easy Run"], programName: "Daily Mobility + Flow",
+            insertPRs: false, startWeightLbs: 138, targetWeightLbs: 138, weightTrend: "flat",
+            macros: { calories: 2100, protein: 110, carbs: 240, fat: 70 }, sleepLogs: true };
+    } else if (has("hooper") || has("basketball")) {
+        f = { ...f, kind: "hooper", workoutNames: ["Push Day", "Pull Day", "Easy Run"],
+            programName: "Hooper Strength + Plyo", startWeightLbs: 178, targetWeightLbs: 178,
+            macros: { calories: 2900, protein: 180, carbs: 360, fat: 85 } };
+    } else if (has("cyclist")) {
+        f = { ...f, kind: "cycling", workoutNames: ["Z2 Bike", "Easy Run"], programName: "Build to FTP",
+            insertPRs: false, startWeightLbs: 150, targetWeightLbs: 148,
+            macros: { calories: 2700, protein: 130, carbs: 380, fat: 70 } };
+    } else if (has("calisthenics") || has("climber")) {
+        f = { ...f, kind: a.includes("climber") ? "climber" : "cali",
+            workoutNames: ["Pull Day", "Push Day"], programName: "Skill + Strength",
+            startWeightLbs: 152, targetWeightLbs: 150,
+            macros: { calories: 2400, protein: 160, carbs: 280, fat: 70 } };
+    } else if (has("peptide") || has("health optimizer") || has("optimizer")) {
+        f = { ...f, kind: a.includes("optimizer") ? "optimizer" : "protocol",
+            usesProtocols: true, usesBloodwork: true, sleepLogs: true,
+            workoutNames: ["Squat Day", "Bench Day", "Easy Run"], programName: "Recovery + Recomp Stack",
+            startWeightLbs: 178, targetWeightLbs: 172, weightTrend: "down",
+            macros: { calories: 2500, protein: 200, carbs: 240, fat: 80 } };
+    } else if (has("hybrid") || has("trail")) {
+        f = { ...f, kind: "hybrid", workoutNames: ["Squat Day", "Long Run", "Pull Day", "Easy Run"],
+            programName: "Hybrid 4-Day", startWeightLbs: 172, targetWeightLbs: 170,
+            macros: { calories: 2900, protein: 180, carbs: 340, fat: 80 } };
+    } else if (has("powerlifter") || has("5/3/1") || has("strength (patient)")) {
+        f = { ...f, kind: "strength", programName: "5/3/1 BBB",
+            startWeightLbs: 195, targetWeightLbs: 195,
+            macros: { calories: 3200, protein: 200, carbs: 380, fat: 90 } };
+    } else if (has("crossfit")) {
+        f = { ...f, kind: "crossfit", workoutNames: ["Squat Day", "Push Day", "Pull Day", "Easy Run"],
+            programName: "Open Prep Cycle", startWeightLbs: 170, targetWeightLbs: 170,
+            macros: { calories: 2900, protein: 190, carbs: 340, fat: 85 } };
+    } else if (has("coach")) {
+        f = { ...f, kind: "coach", programName: "Coach Template Block",
+            startWeightLbs: 168, targetWeightLbs: 168,
+            macros: { calories: 2700, protein: 180, carbs: 300, fat: 80 } };
+    } else if (has("triathlete") || has("triathlon")) {
+        f = { ...f, kind: "triathlon", workoutNames: ["Easy Run", "Z2 Bike", "Track Intervals"],
+            programName: "Sprint Tri Build", insertPRs: false,
+            startWeightLbs: 162, targetWeightLbs: 160,
+            macros: { calories: 2700, protein: 150, carbs: 360, fat: 75 } };
+    } else if (has("recomp") || has("nutrition")) {
+        f = { ...f, kind: "recomp", workoutNames: ["Push Day", "Pull Day", "Squat Day"],
+            programName: "PPL Recomp", startWeightLbs: 168, targetWeightLbs: 162, weightTrend: "down",
+            macros: { calories: 2200, protein: 180, carbs: 220, fat: 70 } };
+    } else if (has("bodybuilder") || has("ppl") || has("bikini") || has("prep")) {
+        const cutting = has("bikini") || has("prep");
+        f = { ...f, kind: "bb", workoutNames: ["Push Day", "Pull Day", "Squat Day", "Bench Day"],
+            programName: cutting ? "Bikini Prep PPL" : "PPL 6-Day",
+            startWeightLbs: cutting ? 138 : 188, targetWeightLbs: cutting ? 128 : 192,
+            weightTrend: cutting ? "down" : "up",
+            macros: cutting
+                ? { calories: 1700, protein: 145, carbs: 160, fat: 50 }
+                : { calories: 3400, protein: 220, carbs: 420, fat: 95 } };
+    } else if (has("5k") || has("half")) {
+        f = { ...f, kind: "running", workoutNames: ["Easy Run", "Long Run", "Tempo Run"],
+            programName: "First Half Block", insertPRs: false,
+            startWeightLbs: 142, targetWeightLbs: 140,
+            macros: { calories: 2200, protein: 110, carbs: 320, fat: 65 } };
+    } else if (has("beginner")) {
+        f = { ...f, kind: "beginner", workoutNames: ["Push Day", "Pull Day"],
+            programName: "Beginner Full Body", startWeightLbs: 174, targetWeightLbs: 172,
+            macros: { calories: 2500, protein: 150, carbs: 280, fat: 75 } };
+    } else if (has("postpartum")) {
+        f = { ...f, kind: "postpartum", workoutNames: ["Push Day"], programName: "Postpartum Rebuild",
+            startWeightLbs: 152, targetWeightLbs: 145, weightTrend: "down",
+            macros: { calories: 2200, protein: 140, carbs: 240, fat: 75 } };
+    } else if (has("rugby")) {
+        f = { ...f, kind: "rugby", workoutNames: ["Squat Day", "Deadlift Day", "Push Day", "Easy Run"],
+            programName: "Rugby Offseason", startWeightLbs: 210, targetWeightLbs: 208,
+            macros: { calories: 3400, protein: 220, carbs: 380, fat: 95 } };
+    } else if (has("glp")) {
+        f = { ...f, kind: "glp", usesProtocols: true, usesBloodwork: true,
+            workoutNames: ["Push Day", "Pull Day", "Easy Run"], programName: "GLP-1 Recomp",
+            startWeightLbs: 220, targetWeightLbs: 192, weightTrend: "down",
+            macros: { calories: 1900, protein: 180, carbs: 180, fat: 60 } };
+    } else if (has("home gym") || has("dad")) {
+        f = { ...f, kind: "dad", programName: "Garage 5-Day",
+            startWeightLbs: 200, targetWeightLbs: 195,
+            macros: { calories: 2900, protein: 180, carbs: 320, fat: 90 } };
+    } else if (has("recovery") || has("sleep")) {
+        f = { ...f, kind: "sleep", sleepLogs: true,
+            workoutNames: ["Push Day", "Easy Run"], programName: "Sleep-First Lifter",
+            startWeightLbs: 170, targetWeightLbs: 170,
+            macros: { calories: 2600, protein: 170, carbs: 300, fat: 80 } };
+    } else if (has("bjj") || has("grappler")) {
+        f = { ...f, kind: "bjj", workoutNames: ["Pull Day", "Push Day", "Easy Run"],
+            programName: "BJJ S&C Block", startWeightLbs: 175, targetWeightLbs: 173,
+            macros: { calories: 2700, protein: 180, carbs: 300, fat: 80 } };
+    }
+    // Strength personas that use creatine / ipamorelin / etc. — Finn included
+    if (persona.username === "finnpowerlifts" || persona.username === "liamlifts531") {
+        f.usesProtocols = true;
+    }
+    return f;
+}
+
+async function deepPopulateFakePersona(
+    admin: SupabaseClient,
+    userId: string,
+    persona: Persona,
+): Promise<{ inserted: Record<string, number>; errors: string[] }> {
+    const flavor = archetypeFlavorFor(persona);
+    const inserted: Record<string, number> = {
+        weights: 0, workouts: 0, program: 0, prs: 0, meals: 0,
+        protocols: 0, compounds: 0, vials: 0, dose_logs: 0,
+        bloodwork: 0, biomarkers: 0, activity: 0, daily_tasks: 0,
+        sleep_logs: 0, side_effects: 0,
+    };
+    const errors: string[] = [];
+    const now = Date.now();
+    const DAY = 24 * 3600 * 1000;
+
+    // ---- Weight logs: 36 points across ~84 days w/ archetype trend ------
+    try {
+        const { count: existing } = await admin
+            .from("weight_logs").select("id", { count: "exact", head: true })
+            .eq("user_id", userId).ilike("note", `%${FAKE_SEED_MARK}%`);
+        if ((existing ?? 0) < 30) {
+            const points = 36;
+            const start = flavor.startWeightLbs;
+            const end = flavor.weightTrend === "down" ? flavor.targetWeightLbs
+                      : flavor.weightTrend === "up"   ? flavor.targetWeightLbs
+                      : flavor.startWeightLbs;
+            const rows: Record<string, unknown>[] = [];
+            for (let i = 0; i < points; i += 1) {
+                const t = i / (points - 1);
+                const noise = Math.sin(i * 0.9 + persona.avatarSeed) * 0.4;
+                const w = start + (end - start) * t + noise;
+                const daysAgo = Math.round((1 - t) * 84);
+                rows.push({
+                    user_id: userId,
+                    weight: Math.round(w * 10) / 10,
+                    unit: "lbs",
+                    note: i === 0 ? `start ${FAKE_SEED_MARK}` : i === points - 1 ? `today ${FAKE_SEED_MARK}` : FAKE_SEED_MARK,
+                    logged_at: new Date(now - daysAgo * DAY).toISOString(),
+                });
+            }
+            for (let i = 0; i < rows.length; i += 200) {
+                const { error } = await admin.from("weight_logs").insert(rows.slice(i, i + 200));
+                if (error) errors.push(`weights ${persona.username}: ${error.message}`);
+                else inserted.weights += Math.min(200, rows.length - i);
+            }
+        }
+    } catch (e) { errors.push(`weights: ${String(e)}`); }
+
+    // ---- Profile weight + target -----------------------------------------
+    try {
+        await admin.from("profiles").update({
+            weight_kg: Math.round(flavor.startWeightLbs / 2.20462 * 10) / 10,
+            target_weight_kg: Math.round(flavor.targetWeightLbs / 2.20462 * 10) / 10,
+        }).eq("id", userId);
+    } catch (_) {}
+
+    // ---- Training program -------------------------------------------------
+    try {
+        const { count: existingProgs } = await admin
+            .from("training_programs").select("id", { count: "exact", head: true })
+            .eq("user_id", userId).ilike("name", `%${FAKE_SEED_MARK}%`);
+        if ((existingProgs ?? 0) === 0) {
+            const days = flavor.workoutNames.map((n) => ({ name: n, exercises: [] as string[] }));
+            const { error } = await admin.from("training_programs").insert({
+                user_id: userId,
+                name: `${flavor.programName} ${FAKE_SEED_MARK}`,
+                program_type: "custom",
+                days_per_week: Math.max(3, Math.min(6, flavor.workoutNames.length)),
+                days_json: JSON.stringify(days),
+                is_active: true,
+                current_week: 3 + (persona.avatarSeed % 6),
+                start_day_offset: 0,
+            });
+            if (!error) inserted.program = 1;
+        }
+    } catch (e) { errors.push(`program: ${String(e)}`); }
+
+    // ---- Workouts: 40–50 sessions over ~85 days, archetype-filtered -----
+    try {
+        const { count: existingW } = await admin
+            .from("workouts").select("id", { count: "exact", head: true })
+            .eq("user_id", userId).ilike("notes", `%${FAKE_SEED_MARK}%`);
+        if ((existingW ?? 0) < 30) {
+            const archBank = WORKOUT_BANK.filter((w) => flavor.workoutNames.includes(w.name));
+            const bank = archBank.length > 0 ? archBank : WORKOUT_BANK;
+            const target = flavor.kind === "beginner" || flavor.kind === "postpartum" ? 25 : 45;
+            const rows: Record<string, unknown>[] = [];
+            for (let i = 0; i < target; i += 1) {
+                const w = bank[i % bank.length];
+                const daysAgo = Math.floor(i * 1.85) + (i % 2);
+                const completedAt = new Date(now - daysAgo * DAY - (i % 4) * 3600 * 1000);
+                const startedAt = new Date(completedAt.getTime() - w.mins * 60 * 1000);
+                const notesObj: Record<string, unknown> = { mark: FAKE_SEED_MARK };
+                if (w.volume) notesObj.totalVolume = w.volume;
+                rows.push({
+                    user_id: userId,
+                    date: completedAt.toISOString().slice(0, 10),
+                    name: w.name,
+                    sport: w.sport ?? null,
+                    workout_type: w.type,
+                    duration_minutes: w.mins,
+                    calories_burned: w.cals,
+                    distance: w.distance ?? null,
+                    exercises: w.exercises ? JSON.stringify(w.exercises) : null,
+                    notes: JSON.stringify(notesObj),
+                    fp_earned: w.mins * 5 + Math.floor(w.cals / 10),
+                    started_at: startedAt.toISOString(),
+                    completed_at: completedAt.toISOString(),
+                });
+            }
+            for (let i = 0; i < rows.length; i += 200) {
+                const { error } = await admin.from("workouts").insert(rows.slice(i, i + 200));
+                if (error) errors.push(`workouts ${persona.username}: ${error.message}`);
+                else inserted.workouts += Math.min(200, rows.length - i);
+            }
+        }
+    } catch (e) { errors.push(`workouts: ${String(e)}`); }
+
+    // ---- Personal records (strength-relevant archetypes only) ------------
+    try {
+        if (flavor.insertPRs) {
+            const subset = flavor.kind === "beginner" || flavor.kind === "postpartum"
+                ? MY_PRS.slice(0, 3).map((p) => ({ ...p, best_weight: Math.round(p.best_weight * 0.55), best_one_rm: Math.round(p.best_one_rm * 0.55), best_volume: Math.round(p.best_volume * 0.55) }))
+                : flavor.kind === "bb"
+                    ? MY_PRS.map((p) => ({ ...p, best_weight: Math.round(p.best_weight * 0.85), best_one_rm: Math.round(p.best_one_rm * 0.85), best_volume: Math.round(p.best_volume * 0.85) }))
+                    : MY_PRS;
+            const prRows = subset.map((p) => ({ user_id: userId, ...p, updated_at: new Date(now - 3 * DAY).toISOString() }));
+            const { error } = await admin.from("personal_records")
+                .upsert(prRows, { onConflict: "user_id,exercise_id" });
+            if (!error) inserted.prs = prRows.length;
+        }
+    } catch (e) { errors.push(`prs: ${String(e)}`); }
+
+    // ---- Meals: ~60 days, archetype-flavored macros ----------------------
+    try {
+        const { count: existingMeals } = await admin
+            .from("logged_meals").select("id", { count: "exact", head: true })
+            .eq("user_id", userId);
+        if ((existingMeals ?? 0) < 60) {
+            const rows: Record<string, unknown>[] = [];
+            for (let d = 0; d < 60; d += 1) {
+                if ((d * 7) % 11 < 2) continue;
+                const dayBase = now - d * DAY;
+                const breakfasts = MEAL_BANK.filter((m) => m.time === "breakfast");
+                const lunches = MEAL_BANK.filter((m) => m.time === "lunch");
+                const dinners = MEAL_BANK.filter((m) => m.time === "dinner");
+                const snacks = MEAL_BANK.filter((m) => m.time === "snack");
+                const meals = [
+                    { m: breakfasts[(d + persona.avatarSeed) % breakfasts.length], hours: 8 },
+                    { m: lunches[(d + persona.avatarSeed) % lunches.length], hours: 13 },
+                    { m: dinners[(d + persona.avatarSeed) % dinners.length], hours: 19 },
+                ];
+                if (d % 3 === 0) meals.push({ m: snacks[(d + persona.avatarSeed) % snacks.length], hours: 16 });
+                for (const { m, hours } of meals) {
+                    const ts = new Date(dayBase);
+                    ts.setUTCHours(hours, 0, 0, 0);
+                    rows.push({
+                        user_id: userId,
+                        food_name: m.name,
+                        food_brand: m.brand ?? null,
+                        calories: m.cal,
+                        protein_g: m.p,
+                        carbs_g: m.c,
+                        fat_g: m.f,
+                        servings: 1,
+                        meal_time: m.time,
+                        logged_at: ts.toISOString(),
+                    });
+                }
+            }
+            for (let i = 0; i < rows.length; i += 200) {
+                const { error } = await admin.from("logged_meals").insert(rows.slice(i, i + 200));
+                if (error) errors.push(`meals ${persona.username}: ${error.message}`);
+                else inserted.meals += Math.min(200, rows.length - i);
+            }
+        }
+        await admin.from("macro_targets").upsert({
+            user_id: userId,
+            calories: flavor.macros.calories,
+            protein_g: flavor.macros.protein,
+            carbs_g: flavor.macros.carbs,
+            fat_g: flavor.macros.fat,
+            source: "adaptive",
+        }, { onConflict: "user_id" });
+    } catch (e) { errors.push(`meals: ${String(e)}`); }
+
+    // ---- Protocols / compounds / vials / doses ---------------------------
+    let protocolIdForFixtures: string | null = null;
+    if (flavor.usesProtocols) {
+        try {
+            const { data: existingProto } = await admin
+                .from("protocols").select("id").eq("user_id", userId).ilike("name", `%${FAKE_SEED_MARK}%`).limit(1);
+            let protocolId: string | null = ((existingProto ?? []) as Array<{ id: string }>)[0]?.id ?? null;
+            if (!protocolId) {
+                const startDate = new Date(now - 56 * DAY).toISOString().slice(0, 10);
+                const protoName =
+                    flavor.kind === "glp"      ? `Tirzepatide Recomp ${FAKE_SEED_MARK}` :
+                    flavor.kind === "optimizer" ? `Optimizer Stack ${FAKE_SEED_MARK}` :
+                    flavor.kind === "protocol"  ? `Recovery + Recomp Stack ${FAKE_SEED_MARK}` :
+                                                  `Performance Stack ${FAKE_SEED_MARK}`;
+                const { data: created, error } = await admin.from("protocols").insert({
+                    user_id: userId, name: protoName, goal: flavor.weightTrend === "down" ? "Fat Loss" : "Performance",
+                    start_date: startDate, total_weeks: 12, loading_weeks: 2, maintenance_weeks: 8,
+                    tapering_weeks: 1, off_cycle_weeks: 1, is_active: true,
+                }).select("id").single();
+                if (!error && created) {
+                    protocolId = (created as { id: string }).id;
+                    inserted.protocols = 1;
+                }
+            }
+            if (protocolId) {
+                protocolIdForFixtures = protocolId;
+                const compounds = flavor.kind === "glp"
+                    ? [{ compound_name: "Tirzepatide", dose_mcg: 7500, frequency: "Weekly", injection_route: "Subcutaneous", vial_size_mg: 10 }]
+                    : flavor.kind === "optimizer"
+                    ? [
+                        { compound_name: "BPC-157", dose_mcg: 250, frequency: "Daily", injection_route: "Subcutaneous", vial_size_mg: 5 },
+                        { compound_name: "TB-500", dose_mcg: 500, frequency: "Twice weekly", injection_route: "Subcutaneous", vial_size_mg: 5 },
+                      ]
+                    : flavor.kind === "protocol"
+                    ? [
+                        { compound_name: "Retatrutide", dose_mcg: 2000, frequency: "Weekly", injection_route: "Subcutaneous", vial_size_mg: 10 },
+                        { compound_name: "BPC-157", dose_mcg: 250, frequency: "Daily", injection_route: "Subcutaneous", vial_size_mg: 5 },
+                      ]
+                    : [
+                        { compound_name: "Ipamorelin", dose_mcg: 300, frequency: "Pre-bed", injection_route: "Subcutaneous", vial_size_mg: 5 },
+                      ];
+                for (const c of compounds) {
+                    const { count } = await admin.from("protocol_compounds")
+                        .select("id", { count: "exact", head: true })
+                        .eq("protocol_id", protocolId).eq("compound_name", c.compound_name);
+                    if ((count ?? 0) === 0) {
+                        const { error } = await admin.from("protocol_compounds").insert({
+                            protocol_id: protocolId, ...c,
+                            reconstitution_volume_ml: 2.0,
+                            time_of_day: new Date(now).toISOString(),
+                        });
+                        if (!error) inserted.compounds += 1;
+                    }
+                }
+                // Vials
+                for (let i = 0; i < compounds.length; i += 1) {
+                    const c = compounds[i];
+                    const clientId = `fake-vial-${i + 1}-${userId.slice(0, 8)}`;
+                    const { count } = await admin.from("vials")
+                        .select("id", { count: "exact", head: true }).eq("user_id", userId).eq("client_id", clientId);
+                    if ((count ?? 0) === 0) {
+                        const { error } = await admin.from("vials").insert({
+                            user_id: userId, client_id: clientId,
+                            compound_name: c.compound_name, vial_size_mg: c.vial_size_mg,
+                            diluent_ml: 2.0,
+                            reconstituted_on: new Date(now - (21 - i * 5) * DAY).toISOString(),
+                            storage: "Fridge", lot_number: `LOT-${2000 + i * 19}`,
+                            vial_number: `${i + 1}`,
+                            expiration_date: new Date(now + (60 - i * 10) * DAY).toISOString(),
+                            typical_dose_mcg: c.dose_mcg,
+                            mcg_used: c.dose_mcg * (6 - i),
+                            bud_days: 30,
+                        });
+                        if (!error) inserted.vials += 1;
+                    }
+                }
+                // Dose logs
+                const { count: existingDoses } = await admin
+                    .from("dose_logs").select("id", { count: "exact", head: true }).eq("protocol_id", protocolId);
+                if ((existingDoses ?? 0) < 20) {
+                    const sites = ["Left Abdomen", "Right Abdomen", "Left Thigh", "Right Thigh"];
+                    const rows: Record<string, unknown>[] = [];
+                    for (const c of compounds) {
+                        const isDaily = c.frequency === "Daily";
+                        const isWeekly = c.frequency === "Weekly" || c.frequency === "Pre-bed";
+                        if (isDaily) {
+                            for (let d = 0; d < 28; d += 1) {
+                                rows.push({
+                                    user_id: userId, protocol_id: protocolId,
+                                    compound_name: c.compound_name, dose_mcg: c.dose_mcg,
+                                    injection_site: sites[d % sites.length],
+                                    was_skipped: d === 11,
+                                    skip_reason: d === 11 ? "travel" : null,
+                                    notes: null,
+                                    logged_at: new Date(now - (28 - d) * DAY).toISOString(),
+                                });
+                            }
+                        } else if (isWeekly) {
+                            for (let w = 0; w < 8; w += 1) {
+                                rows.push({
+                                    user_id: userId, protocol_id: protocolId,
+                                    compound_name: c.compound_name, dose_mcg: c.dose_mcg,
+                                    injection_site: sites[w % sites.length],
+                                    was_skipped: false, notes: null,
+                                    logged_at: new Date(now - (7 * (8 - w)) * DAY).toISOString(),
+                                });
+                            }
+                        } else {
+                            for (let w = 0; w < 6; w += 1) {
+                                for (const off of [0, 3]) {
+                                    rows.push({
+                                        user_id: userId, protocol_id: protocolId,
+                                        compound_name: c.compound_name, dose_mcg: c.dose_mcg,
+                                        injection_site: sites[(w * 2 + off) % sites.length],
+                                        was_skipped: false, notes: null,
+                                        logged_at: new Date(now - (7 * (6 - w) + off) * DAY).toISOString(),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    for (let i = 0; i < rows.length; i += 200) {
+                        const { error } = await admin.from("dose_logs").insert(rows.slice(i, i + 200));
+                        if (error) errors.push(`doses ${persona.username}: ${error.message}`);
+                        else inserted.dose_logs += Math.min(200, rows.length - i);
+                    }
+                }
+            }
+        } catch (e) { errors.push(`protocol: ${String(e)}`); }
+    }
+
+    // ---- Bloodwork (optimizer / protocol / GLP) --------------------------
+    if (flavor.usesBloodwork) {
+        try {
+            const { count: existingBio } = await admin
+                .from("bloodwork_entries").select("id", { count: "exact", head: true })
+                .eq("user_id", userId).ilike("notes", `%${FAKE_SEED_MARK}%`);
+            if ((existingBio ?? 0) < 2) {
+                const panels = [
+                    { daysAgo: 70, notes: `Baseline panel ${FAKE_SEED_MARK}`, results: [
+                        { biomarker: "Total Cholesterol", value: 194 },
+                        { biomarker: "LDL", value: 118 },
+                        { biomarker: "HDL", value: 46 },
+                        { biomarker: "Triglycerides", value: 140 },
+                        { biomarker: "Fasting Glucose", value: 96 },
+                        { biomarker: "HbA1c", value: 5.5 },
+                    ]},
+                    { daysAgo: 10, notes: `Mid-protocol follow-up ${FAKE_SEED_MARK}`, results: [
+                        { biomarker: "Total Cholesterol", value: 176 },
+                        { biomarker: "LDL", value: 100 },
+                        { biomarker: "HDL", value: 52 },
+                        { biomarker: "Triglycerides", value: 112 },
+                        { biomarker: "Fasting Glucose", value: 90 },
+                        { biomarker: "HbA1c", value: 5.3 },
+                    ]},
+                ];
+                for (const panel of panels) {
+                    const entryDate = new Date(now - panel.daysAgo * DAY).toISOString().slice(0, 10);
+                    const { data: entry, error } = await admin.from("bloodwork_entries")
+                        .insert({ user_id: userId, entry_date: entryDate, notes: panel.notes })
+                        .select("id").single();
+                    if (error || !entry) { errors.push(`bloodwork: ${error?.message}`); continue; }
+                    inserted.bloodwork += 1;
+                    const entryId = (entry as { id: string }).id;
+                    const { error: bErr } = await admin.from("biomarker_results")
+                        .insert(panel.results.map((r) => ({ entry_id: entryId, ...r })));
+                    if (!bErr) inserted.biomarkers += panel.results.length;
+                }
+            }
+        } catch (e) { errors.push(`bloodwork: ${String(e)}`); }
+    }
+
+    // ---- Activity logs (heatmap) -----------------------------------------
+    try {
+        const { count: existingActivity } = await admin
+            .from("activity_logs").select("id", { count: "exact", head: true })
+            .eq("user_id", userId).ilike("notes", `%${FAKE_SEED_MARK}%`);
+        if ((existingActivity ?? 0) < 20) {
+            const rows: Record<string, unknown>[] = [];
+            for (let d = 0; d < 60; d += 1) {
+                if ((d * 5 + persona.avatarSeed) % 13 < 2) continue;
+                const date = new Date(now - d * DAY);
+                rows.push({
+                    user_id: userId,
+                    activity_date: date.toISOString().slice(0, 10),
+                    activity_type: d % 3 === 0 ? "workout" : d % 3 === 1 ? "cardio" : "steps",
+                    sport: d % 3 === 1 ? (flavor.kind === "cycling" ? "Cycling" : "Running") : null,
+                    duration_minutes: 20 + (d % 40),
+                    calories_burned: 180 + (d % 12) * 35,
+                    notes: `auto ${FAKE_SEED_MARK}`,
+                });
+            }
+            for (let i = 0; i < rows.length; i += 200) {
+                const { error } = await admin.from("activity_logs").insert(rows.slice(i, i + 200));
+                if (error) errors.push(`activity: ${error.message}`);
+                else inserted.activity += Math.min(200, rows.length - i);
+            }
+        }
+    } catch (e) { errors.push(`activity: ${String(e)}`); }
+
+    // ---- Daily tasks (last 7 days) ---------------------------------------
+    try {
+        const taskBank = [
+            { title: "Hit protein target", icon: "flame.fill", category: "Nutrition" },
+            { title: "10k steps", icon: "figure.walk", category: "Movement" },
+            { title: "Drink 1 gal water", icon: "drop.fill", category: "Hydration" },
+            { title: "8h sleep", icon: "moon.zzz.fill", category: "Recovery" },
+            { title: "Workout", icon: "dumbbell.fill", category: "Training" },
+        ];
+        if (flavor.usesProtocols) taskBank.push({ title: "Log dose", icon: "syringe.fill", category: "Protocol" });
+        for (let d = 0; d < 7; d += 1) {
+            const date = new Date(now - d * DAY).toISOString().slice(0, 10);
+            const { count } = await admin.from("daily_tasks")
+                .select("id", { count: "exact", head: true })
+                .eq("user_id", userId).eq("task_date", date);
+            if ((count ?? 0) >= 4) continue;
+            const rows = taskBank.map((t, i) => ({
+                user_id: userId, title: t.title, description: FAKE_SEED_MARK,
+                category: t.category, action_link: "None",
+                target_value: 0, goal_description: null,
+                is_completed: d > 0 ? (i % 7 !== 5) : i < 2,
+                task_date: date, schedule_type: "Daily",
+                scheduled_days: [1, 2, 3, 4, 5, 6, 7],
+                icon: t.icon, is_user_created: false, custom_category_id: null,
+            }));
+            const { error } = await admin.from("daily_tasks").insert(rows);
+            if (!error) inserted.daily_tasks += rows.length;
+        }
+    } catch (e) { errors.push(`tasks: ${String(e)}`); }
+
+    // ---- Sleep logs (recovery / optimizer / yoga) -----------------------
+    if (flavor.sleepLogs) {
+        try {
+            const hoursPattern = [7.6, 8.1, 7.2, 6.9, 7.8, 5.6, 6.4, 7.5, 8.0, 7.3, 6.8, 7.6, 7.9, 7.4];
+            const qualityPattern = [4, 5, 4, 3, 4, 2, 3, 4, 5, 4, 3, 4, 5, 4];
+            const rows: Record<string, unknown>[] = [];
+            for (let i = 0; i < hoursPattern.length; i += 1) {
+                const night = new Date(now - (i + 1) * DAY);
+                const wake = new Date(night);
+                wake.setUTCHours(7, 0, 0, 0);
+                const bed = new Date(wake.getTime() - hoursPattern[i] * 3600 * 1000);
+                rows.push({
+                    user_id: userId,
+                    night: night.toISOString().slice(0, 10),
+                    bedtime: bed.toISOString(),
+                    wake_time: wake.toISOString(),
+                    hours: hoursPattern[i],
+                    quality: qualityPattern[i],
+                    notes: FAKE_SEED_MARK,
+                });
+            }
+            const { error, count } = await admin
+                .from("manual_sleep_logs")
+                .upsert(rows, { onConflict: "user_id,night", ignoreDuplicates: true, count: "exact" });
+            if (!error) inserted.sleep_logs = count ?? rows.length;
+        } catch (e) { errors.push(`sleep: ${String(e)}`); }
+    }
+
+    // ---- Side effects (protocol personas only) ---------------------------
+    if (protocolIdForFixtures && flavor.usesProtocols) {
+        try {
+            const { count: existingSE } = await admin.from("side_effect_logs")
+                .select("id", { count: "exact", head: true })
+                .eq("protocol_id", protocolIdForFixtures)
+                .ilike("notes", `%${FAKE_SEED_MARK}%`);
+            if ((existingSE ?? 0) < 3) {
+                const entries = [
+                    { symptom: "Nausea", severity: 2, hoursAgo: 4 * 24 + 3, notes: "mild after first dose" },
+                    { symptom: "Headache", severity: 2, hoursAgo: 7 * 24 + 7, notes: "water + nap helped" },
+                    { symptom: "Injection site soreness", severity: 1, hoursAgo: 12 * 24, notes: "gone by morning" },
+                ];
+                const rows = entries.map((e) => ({
+                    user_id: userId, protocol_id: protocolIdForFixtures,
+                    symptom: e.symptom, severity: e.severity,
+                    notes: `${e.notes} ${FAKE_SEED_MARK}`,
+                    logged_at: new Date(now - e.hoursAgo * 3600 * 1000).toISOString(),
+                }));
+                const { error } = await admin.from("side_effect_logs").insert(rows);
+                if (!error) inserted.side_effects = rows.length;
+            }
+        } catch (e) { errors.push(`side effects: ${String(e)}`); }
+    }
+
+    // ---- Profile streak/FP bump matching the persona --------------------
+    try {
+        await admin.from("profiles").update({
+            current_streak: persona.streak,
+            total_fp: persona.totalFp,
+        }).eq("id", userId);
+    } catch (_) {}
+
+    return { inserted, errors };
+}
+
+async function deepPopulateAllFakes(
+    admin: SupabaseClient,
+    payload: Record<string, unknown>,
+): Promise<Response> {
+    const onlyUserId = typeof payload.user_id === "string" ? payload.user_id : null;
+    const { data: profiles } = await admin
+        .from("profiles").select("id, username").eq("is_test_user", true);
+    const rows = ((profiles ?? []) as Array<{ id: string; username: string | null }>)
+        .filter((r) => !onlyUserId || r.id === onlyUserId);
+    if (rows.length === 0) return json(200, { ok: true, fakes: 0 });
+
+    let totalWorkouts = 0, totalMeals = 0, totalDoses = 0, totalProtocols = 0,
+        totalWeights = 0, totalSleep = 0, totalPRs = 0;
+    const errors: string[] = [];
+    for (const row of rows) {
+        const persona = PERSONAS.find((p) => p.username === row.username);
+        if (!persona) continue; // can only deep-populate curated personas
+        try {
+            const { inserted, errors: errs } = await deepPopulateFakePersona(admin, row.id, persona);
+            totalWorkouts += inserted.workouts;
+            totalMeals += inserted.meals;
+            totalDoses += inserted.dose_logs;
+            totalProtocols += inserted.protocols;
+            totalWeights += inserted.weights;
+            totalSleep += inserted.sleep_logs;
+            totalPRs += inserted.prs;
+            errors.push(...errs.slice(0, 3));
+        } catch (e) {
+            errors.push(`${row.username}: ${String(e)}`);
+        }
+    }
+    return json(200, {
+        ok: errors.length === 0,
+        version: "deep-v1",
+        fakes: rows.length,
+        workouts: totalWorkouts,
+        meals: totalMeals,
+        dose_logs: totalDoses,
+        protocols: totalProtocols,
+        weights: totalWeights,
+        sleep_logs: totalSleep,
+        prs: totalPRs,
+        errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
+    });
 }
 
 // ---- Handler: screenshotSeedMe ---------------------------------------
@@ -2932,6 +3638,9 @@ Deno.serve(async (req) => {
                 return await bulkPopulateAllFakes(admin, payload, auth.userId);
             case "screenshotSeedMe":
                 return await screenshotSeedMe(admin, auth.userId);
+            case "deepPopulateAllFakes":
+            case "deepPopulateFake":
+                return await deepPopulateAllFakes(admin, payload);
             case "wipeMyScreenshotData":
                 return await wipeMyScreenshotData(admin, auth.userId);
             case "fakeDailyAutoLog":

@@ -10,6 +10,7 @@ struct DeveloperSettingsView: View {
     @State private var bulkLevel: BulkPopulateLevel = .medium
     @State private var isWipingMyData: Bool = false
     @State private var showWipeMyDataConfirm: Bool = false
+    @State private var isDeepPopulating: Bool = false
 
     enum BulkPopulateLevel: String, CaseIterable, Identifiable {
         case light, medium, heavy
@@ -41,6 +42,8 @@ struct DeveloperSettingsView: View {
                 fakeAccountSwitcherRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 bulkPopulateRow
+                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
+                deepPopulateRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 wipeMyDataRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
@@ -258,6 +261,57 @@ struct DeveloperSettingsView: View {
                 .controlSize(.small)
                 .disabled(isBulkPopulating || isSeeding || isRemoving)
             }
+        }
+    }
+
+    private var deepPopulateRow: some View {
+        Button { Task { await deepPopulate() } } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "wand.and.stars")
+                    .font(.body)
+                    .foregroundStyle(PepTheme.teal)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Fully populate all fakes")
+                        .font(.body)
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("Archetype-tuned weight history, workouts, PRs, meals, protocols, doses, bloodwork — so impersonating a fake feels like a real, lived-in account.")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+                if isDeepPopulating {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isDeepPopulating || isBulkPopulating || isSeeding || isRemoving)
+    }
+
+    private func deepPopulate() async {
+        isDeepPopulating = true
+        statusMessage = nil
+        defer { isDeepPopulating = false }
+        do {
+            let res = try await FakeAccountService.shared.deepPopulateAllFakes()
+            let parts = [
+                "\(res.workouts ?? 0) workouts",
+                "\(res.meals ?? 0) meals",
+                "\(res.weights ?? 0) weight logs",
+                "\(res.dose_logs ?? 0) doses",
+                "\(res.prs ?? 0) PRs",
+            ].joined(separator: " · ")
+            statusMessage = "Deep-populated \(res.fakes ?? 0) fakes — \(parts)."
+            statusIsError = false
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } catch {
+            statusMessage = error.localizedDescription
+            statusIsError = true
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
     }
 
