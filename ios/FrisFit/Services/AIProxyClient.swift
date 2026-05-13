@@ -53,14 +53,65 @@ enum AIProxyClient {
         return respData
     }
 
-    /// Convenience: extract `choices[0].message.content` (string content variant).
+    /// Convenience: extract `choices[0].message.content`.
+    ///
+    /// Handles every shape OpenRouter has been observed to emit:
+    /// - `content` as a plain string (OpenAI / most models)
+    /// - `content` as an array of blocks `[{"type":"text","text":"…"}]`
+    ///   (Anthropic via OpenRouter, especially with prompt-cache enabled)
+    /// - `content` null/empty but a sibling `reasoning` string present
+    ///   (some Anthropic refresh paths)
+    /// Falls through to `invalidResponse` only when there is genuinely no
+    /// usable text anywhere in the choice. Logs the top-level keys on
+    /// failure so we can diagnose new upstream shapes quickly.
     static func extractContent(_ data: Data) throws -> String {
         guard
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            print("[AIProxy] extractContent: response is not a JSON object")
+            throw AIProxyError.invalidResponse
+        }
+
+        // Upstream errors that came through with 200 (rare but possible).
+        if let err = json["error"] as? [String: Any] {
+            let msg = err["message"] as? String ?? "unknown"
+            print("[AIProxy] extractContent: upstream returned error in 200 body: \(msg)")
+            throw AIProxyError.invalidResponse
+        }
+
+        guard
             let choices = json["choices"] as? [[String: Any]],
-            let message = choices.first?["message"] as? [String: Any],
-            let content = message["content"] as? String
-        else { throw AIProxyError.invalidResponse }
-        return content
+            let first = choices.first,
+            let message = first["message"] as? [String: Any]
+        else {
+            let keys = (json.keys).joined(separator: ",")
+            print("[AIProxy] extractContent: missing choices[0].message — keys=[\(keys)]")
+            throw AIProxyError.invalidResponse
+        }
+
+        // Shape 1: plain string content.
+        if let str = message["content"] as? String, !str.isEmpty {
+            return str
+        }
+
+        // Shape 2: array-of-blocks content (Anthropic-style).
+        if let blocks = message["content"] as? [[String: Any]] {
+            let combined = blocks.compactMap { block -> String? in
+                if let text = block["text"] as? String, !text.isEmpty { return text }
+                return nil
+            }.joined(separator: "\n")
+            if !combined.isEmpty { return combined }
+        }
+
+        // Shape 3: content empty but reasoning present (some Anthropic paths).
+        if let reasoning = message["reasoning"] as? String, !reasoning.isEmpty {
+            return reasoning
+        }
+
+        // Surface why we couldn't extract so the next failure is debuggable.
+        let finish = first["finish_reason"] as? String ?? (first["native_finish_reason"] as? String ?? "unknown")
+        let msgKeys = message.keys.joined(separator: ",")
+        print("[AIProxy] extractContent: empty content. finish_reason=\(finish) message.keys=[\(msgKeys)]")
+        throw AIProxyError.invalidResponse
     }
 }

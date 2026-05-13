@@ -165,7 +165,12 @@ final class TodaysPlanService {
             throw TodaysPlanError.invalidResponse
         }
 
-        return try parseModule(content, expectedType: domain)
+        do {
+            return try parseModule(content, expectedType: domain)
+        } catch {
+            print("[TodaysPlan] parseModule failed: \(error). Raw content prefix: \(content.prefix(400))")
+            throw TodaysPlanError.invalidResponse
+        }
     }
 
     private func parseModule(_ text: String, expectedType: String) throws -> TodaysPlanModule {
@@ -268,7 +273,13 @@ final class TodaysPlanService {
             throw TodaysPlanError.invalidResponse
         }
 
-        let parsed = try parseResponse(content)
+        let parsed: TodaysPlanResponse
+        do {
+            parsed = try parseResponse(content)
+        } catch {
+            print("[TodaysPlan] parseResponse failed: \(error). Raw content prefix: \(content.prefix(400))")
+            throw TodaysPlanError.invalidResponse
+        }
         // Carry the memo forward when Haiku ran but didn't restate it (allowed
         // by the prompt — saves output tokens). Stamp the model tier inline.
         let memoOut = parsed.patternsMemo?.isEmpty == false ? parsed.patternsMemo : previousMemo
