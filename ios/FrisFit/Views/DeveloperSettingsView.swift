@@ -8,6 +8,8 @@ struct DeveloperSettingsView: View {
     @State private var showRemoveConfirm: Bool = false
     @State private var isBulkPopulating: Bool = false
     @State private var bulkLevel: BulkPopulateLevel = .medium
+    @State private var isWipingMyData: Bool = false
+    @State private var showWipeMyDataConfirm: Bool = false
 
     enum BulkPopulateLevel: String, CaseIterable, Identifiable {
         case light, medium, heavy
@@ -39,6 +41,8 @@ struct DeveloperSettingsView: View {
                 fakeAccountSwitcherRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 bulkPopulateRow
+                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
+                wipeMyDataRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 refreshRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
@@ -84,6 +88,12 @@ struct DeveloperSettingsView: View {
             Button("Remove", role: .destructive) { Task { await remove() } }
         } message: {
             Text("Deletes every fake persona globally — their auth users, profiles, posts, and follow rows. Affects all users.")
+        }
+        .alert("Wipe my seeded screenshot data?", isPresented: $showWipeMyDataConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Wipe", role: .destructive) { Task { await wipeMyData() } }
+        } message: {
+            Text("Removes seeded posts, workouts, weight logs, meals, protocols, vials, dose logs, biomarkers, daily tasks, and activity from your account. Real data you logged yourself is preserved.")
         }
     }
 
@@ -251,6 +261,34 @@ struct DeveloperSettingsView: View {
         }
     }
 
+    private var wipeMyDataRow: some View {
+        Button { showWipeMyDataConfirm = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "eraser.fill")
+                    .font(.body)
+                    .foregroundStyle(.red)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Wipe my seeded data")
+                        .font(.body)
+                        .foregroundStyle(.red)
+                    Text("Removes the screenshot-mode data from your account only. Use before App Store submission.")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+                if isWipingMyData {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isWipingMyData || isBulkPopulating)
+    }
+
     private var streakDebugRow: some View {
         Button { showStreakDebug = true } label: {
             HStack(spacing: 12) {
@@ -398,6 +436,22 @@ struct DeveloperSettingsView: View {
             } else {
                 statusMessage = "\(total) fake personas ready — \(created) new, \(existed) existing."
             }
+            statusIsError = false
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } catch {
+            statusMessage = error.localizedDescription
+            statusIsError = true
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+    }
+
+    private func wipeMyData() async {
+        isWipingMyData = true
+        statusMessage = nil
+        defer { isWipingMyData = false }
+        do {
+            try await FakeAccountService.shared.wipeMyScreenshotData()
+            statusMessage = "Wiped your seeded screenshot data."
             statusIsError = false
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         } catch {

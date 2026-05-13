@@ -1594,17 +1594,46 @@ async function seedFakeGroups(admin: SupabaseClient, fakeIds: string[]): Promise
         }
         const { count: existingMsgs } = await admin
             .from("group_messages").select("id", { count: "exact", head: true }).eq("group_id", groupId);
-        if ((existingMsgs ?? 0) === 0) {
-            const msgRows = seed.posts.map((text, i) => {
-                const sender = matchingMembers[i % matchingMembers.length];
-                const daysAgo = (seed.posts.length - i) * 4 + Math.floor(Math.random() * 3);
-                return {
-                    group_id: groupId, sender_id: sender, text_content: text,
-                    created_at: new Date(Date.now() - daysAgo * 24 * 3600 * 1000).toISOString(),
-                };
-            });
-            await admin.from("group_messages").insert(msgRows);
-            messagesPosted += msgRows.length;
+        const have = existingMsgs ?? 0;
+        const targetMessages = 28;
+        if (have < targetMessages) {
+            // Build a bigger conversation: seed posts + filler chat lines
+            const filler = [
+                "who else is in tonight?",
+                "deload week feels too short tbh",
+                "send the playlist",
+                "that program is a grinder but it works",
+                "i'm in for saturday long run",
+                "anyone running a similar block?",
+                "hot take but caffeine ruins my sleep below 8hrs",
+                "trying the new warmup you posted, it's clean",
+                "recovery is the limiter for me rn",
+                "watching this thread closely 👀",
+                "feeling it today fr",
+                "meet day countdown is on",
+                "chicken rice broccoli stays undefeated",
+                "who's doing the friday run",
+                "i'm logging 2 weeks of macros to recalibrate",
+                "new shoes tomorrow, will report back",
+                "protein hit was easier than i thought today",
+                "sleeping 8h was the cheat code all along",
+            ];
+            const lines = [...seed.posts, ...filler];
+            const toAdd = Math.min(targetMessages - have, lines.length);
+            const baseDays = 14;
+            const msgRows: Record<string, unknown>[] = [];
+            for (let i = 0; i < toAdd; i += 1) {
+                const sender = matchingMembers[(i * 3) % matchingMembers.length];
+                const minutesAgo = Math.round((baseDays * 24 * 60) * ((toAdd - i) / toAdd)) + Math.floor(Math.random() * 25);
+                msgRows.push({
+                    group_id: groupId, sender_id: sender, text_content: lines[i],
+                    created_at: new Date(Date.now() - minutesAgo * 60 * 1000).toISOString(),
+                });
+            }
+            if (msgRows.length > 0) {
+                const { error } = await admin.from("group_messages").insert(msgRows);
+                if (!error) messagesPosted += msgRows.length;
+            }
         }
     }
     return { groups: groupsCreated, members: membersAdded, messages: messagesPosted };
@@ -1664,6 +1693,7 @@ async function seedFakeDMs(admin: SupabaseClient, fakeIds: string[], pairsCount:
 async function bulkPopulateAllFakes(
     admin: SupabaseClient,
     payload: Record<string, unknown>,
+    callerId: string | null = null,
 ): Promise<Response> {
     const level = String(payload.level ?? "medium").toLowerCase();
     const fakes = await fakePersonaIds(admin);
@@ -1687,8 +1717,13 @@ async function bulkPopulateAllFakes(
         const rows = subset.map((text, idx) => {
             const daysAgo = randInt(0, depth.daysBack);
             const created = new Date(now - daysAgo * 24 * 3600 * 1000 - idx * 90 * 60 * 1000).toISOString();
+            // Attach media to ~60% of posts so the feed looks alive
+            const includeMedia = (idx + (persona?.avatarSeed ?? 0)) % 5 < 3;
+            const mediaSeed = `${persona?.bannerSeed ?? "post"}-${idx}`;
             return {
-                user_id: f.id, text_content: text, media_urls: [], tags: persona?.interests ?? [],
+                user_id: f.id, text_content: text,
+                media_urls: includeMedia ? [mediaUrlForSeed(mediaSeed)] : [],
+                tags: persona?.interests ?? [],
                 created_at: created, updated_at: created,
             };
         });
@@ -1699,8 +1734,21 @@ async function bulkPopulateAllFakes(
     }
 
     const interactions = await generateCrossInteractions(admin, ids, level);
+    const replies = await generateCommentReplies(admin, ids, level);
     const groups = await seedFakeGroups(admin, ids);
     const dms = await seedFakeDMs(admin, ids, level === "heavy" ? 30 : level === "medium" ? 18 : 8);
+
+    // When caller is signed in, also seed their personal account so every
+    // tab is screenshot-ready in one tap.
+    let mySeed: unknown = null;
+    if (callerId) {
+        try {
+            const resp = await screenshotSeedMe(admin, callerId);
+            mySeed = await resp.json();
+        } catch (e) {
+            console.error("screenshotSeedMe inline failed", e);
+        }
+    }
 
     return json(200, {
         ok: true,
@@ -1714,7 +1762,59 @@ async function bulkPopulateAllFakes(
         group_messages: groups.messages,
         dm_pairs: dms.pairs,
         dm_messages: dms.messages,
+        comment_replies: replies,
+        my_account: mySeed,
     });
+}
+
+async function generateCommentReplies(
+    admin: SupabaseClient,
+    fakeIds: string[],
+    level: string,
+): Promise<number> {
+    if (fakeIds.length < 2) return 0;
+    const target = level === "heavy" ? 80 : level === "medium" ? 40 : 15;
+    // Pull recent comments to reply to
+    const { data: parents } = await admin
+        .from("post_comments")
+        .select("id, post_id, user_id")
+        .in("user_id", fakeIds)
+        .is("parent_comment_id", null)
+        .order("created_at", { ascending: false })
+        .limit(target * 2);
+    const parentRows = (parents ?? []) as Array<{ id: string; post_id: string; user_id: string }>;
+    if (parentRows.length === 0) return 0;
+    const replies: Record<string, unknown>[] = [];
+    const replyBank = [
+        "this 100%",
+        "hard agree",
+        "how long did you build to that",
+        "saving this",
+        "yes — my coach said the same",
+        "stealing this. thank you",
+        "send the program 🙏",
+        "underrated take",
+        "this changed my training tbh",
+        "called out lol",
+    ];
+    for (let i = 0; i < Math.min(target, parentRows.length); i += 1) {
+        const parent = parentRows[i];
+        const replier = fakeIds[(i * 13) % fakeIds.length];
+        if (replier === parent.user_id) continue;
+        const text = replyBank[i % replyBank.length];
+        const minutesOff = randInt(2, 60 * 12);
+        replies.push({
+            post_id: parent.post_id,
+            user_id: replier,
+            content: text,
+            parent_comment_id: parent.id,
+            created_at: new Date(Date.now() - minutesOff * 60 * 1000).toISOString(),
+        });
+    }
+    if (replies.length === 0) return 0;
+    const { error } = await admin.from("post_comments").insert(replies);
+    if (error) console.error("reply insert", error);
+    return error ? 0 : replies.length;
 }
 
 // Cron-fired twice-daily auto-log: pick ~40% of fakes, each posts 0-1
@@ -1978,6 +2078,709 @@ async function logClientError(
     return json(200, { ok: true });
 }
 
+// ---- Handler: screenshotSeedMe ---------------------------------------
+//
+// Populate the caller's OWN account with rich, realistic data across
+// every major surface so App Store screenshots look like a power user:
+// own feed posts (with media), auto-join 5 themed groups, DM threads
+// with named personas, a full protocol stack with vials + dose history,
+// a training program + 45+ workout logs + PRs, a 90-day weight trend,
+// meals logged on ~80% of days, biomarker results, activity heatmap,
+// and daily-task history. Idempotent: tops up anything thin.
+
+const SCREENSHOT_MARK = "[screenshot-seed]"; // suffix to identify rows for wipe
+
+const MY_POST_BANK: { text: string; media?: string[] }[] = [
+    { text: "squat day done. felt heavy but moved well. trusting the program.", media: ["barbell-personal-1"] },
+    { text: "easy 10k this morning. kept HR under 142 the whole way. zone 2 finally clicking", media: ["morning-run-personal"] },
+    { text: "week 6 of titration. side effects mild. appetite cues are night and day. logging continues." },
+    { text: "meal prep sunday — 12 portions of chicken, rice, broccoli. boring? yes. effective? extremely.", media: ["meal-prep-personal"] },
+    { text: "hit a 405 deadlift today. five years in the making. crying in the parking lot 😭 #PR", media: ["deadlift-pr-personal"] },
+    { text: "protein at every meal is the only diet rule that ever actually moved the needle for me" },
+    { text: "bloods back from last week — lipids actually improved on the protocol. cautiously optimistic." },
+    { text: "long run done. 16k. legs feel weirdly fresh. taper week 1 of 3.", media: ["long-run-personal"] },
+    { text: "new training block starts monday. 4 days lift + 3 run. wish me luck" },
+    { text: "showing up on the bad days is the whole sport. that's it. that's the post." },
+    { text: "my coach told me to stop chasing PRs and start chasing consistency. it's working.", media: ["gym-mirror-personal"] },
+    { text: "updated my stack — added BPC-157 for the rotator cuff that won't quit. logging side effects daily." },
+];
+
+const MY_GROUP_NAMES = [
+    "Heavy Tuesdays",
+    "Easy Miles Club",
+    "Hybrid Lab",
+    "Protocol Logbook",
+    "Recomp Receipts",
+];
+
+const DM_THREADS: { personaUsername: string; messages: { from: "me" | "them"; text: string; hoursAgo: number }[] }[] = [
+    { personaUsername: "marcusruns", messages: [
+        { from: "them", text: "yo, your zone 2 post — what watch are you using to keep HR honest?", hoursAgo: 36 },
+        { from: "me",   text: "polar h10 strap. wrist optical lies on intervals", hoursAgo: 35 },
+        { from: "them", text: "yeah i suspected. ordering one tonight", hoursAgo: 34 },
+        { from: "me",   text: "trust me. game changer for easy days", hoursAgo: 33 },
+        { from: "them", text: "how's marathon prep going?", hoursAgo: 8 },
+        { from: "me",   text: "long run was clean. taper this week. nervous but ready", hoursAgo: 6 },
+        { from: "them", text: "you're gonna eat. send the splits after", hoursAgo: 5 },
+    ]},
+    { personaUsername: "finnpowerlifts", messages: [
+        { from: "me",   text: "opener selection — go 96% gym single or 92%? meet in 8 wks", hoursAgo: 60 },
+        { from: "them", text: "92. always. you'll thank me", hoursAgo: 59 },
+        { from: "me",   text: "i hate that you're right", hoursAgo: 58 },
+        { from: "them", text: "haha — gym singles lie. meet day adrenaline is +5%", hoursAgo: 58 },
+        { from: "me",   text: "sending you my peak this week, lmk if it looks dumb", hoursAgo: 12 },
+        { from: "them", text: "deal. send raw numbers, no commentary", hoursAgo: 10 },
+    ]},
+    { personaUsername: "priyamoves", messages: [
+        { from: "me",   text: "hip opener flow you posted last week actually unlocked me. squat depth is nuts", hoursAgo: 22 },
+        { from: "them", text: "YESS. add couch stretch every other day, your hip flexors will thank you", hoursAgo: 22 },
+        { from: "me",   text: "on it. you teaching saturday?", hoursAgo: 21 },
+        { from: "them", text: "6am slow flow. come early, i'll save you a spot near the window", hoursAgo: 20 },
+        { from: "me",   text: "see you sat 🫡", hoursAgo: 2 },
+    ]},
+    { personaUsername: "ninapeptides", messages: [
+        { from: "me",   text: "thinking about adding tesa to the stack — your experience?", hoursAgo: 48 },
+        { from: "them", text: "loved it for healing but pulled my appetite up. worth knowing if you're cutting", hoursAgo: 47 },
+        { from: "me",   text: "good call. on a recomp so maybe later in the cycle", hoursAgo: 47 },
+        { from: "them", text: "that's the move. and log everything from day 1, you will forget", hoursAgo: 46 },
+        { from: "me",   text: "already a step ahead — got a whole spreadsheet 😅", hoursAgo: 4 },
+    ]},
+    { personaUsername: "avalifts", messages: [
+        { from: "them", text: "saw your deadlift PR. 405?? insane.", hoursAgo: 14 },
+        { from: "me",   text: "five years 🥲. wanted to quit so many times", hoursAgo: 13 },
+        { from: "them", text: "that's the post tho. consistency > everything", hoursAgo: 13 },
+        { from: "me",   text: "appreciate you. you're next, i can see your bar speed", hoursAgo: 1 },
+    ]},
+    { personaUsername: "mayarecomp", messages: [
+        { from: "me",   text: "how are you logging cals on the cut? eyeballing or weighing?", hoursAgo: 30 },
+        { from: "them", text: "weighing. i hate it but it's the only thing keeping me honest", hoursAgo: 29 },
+        { from: "me",   text: "yeah same. 2 weeks in and it's autopilot now", hoursAgo: 29 },
+        { from: "them", text: "exactly. you'll never go back", hoursAgo: 28 },
+        { from: "me",   text: "down 4lb this month. slow and clean", hoursAgo: 6 },
+        { from: "them", text: "that's the rate. perfect.", hoursAgo: 5 },
+    ]},
+];
+
+const MEAL_BANK: { name: string; brand?: string; cal: number; p: number; c: number; f: number; time: "breakfast" | "lunch" | "dinner" | "snack" }[] = [
+    { name: "Oats, banana, peanut butter", cal: 540, p: 22, c: 78, f: 18, time: "breakfast" },
+    { name: "Greek yogurt + berries + granola", cal: 380, p: 28, c: 48, f: 8, time: "breakfast" },
+    { name: "3 egg omelette, toast, avocado", cal: 510, p: 32, c: 32, f: 28, time: "breakfast" },
+    { name: "Protein shake + bagel + jam", cal: 480, p: 38, c: 70, f: 6, time: "breakfast" },
+    { name: "Chicken rice bowl", cal: 680, p: 52, c: 78, f: 14, time: "lunch" },
+    { name: "Salmon, sweet potato, broccoli", cal: 620, p: 44, c: 56, f: 22, time: "lunch" },
+    { name: "Burrito bowl (Chipotle)", brand: "Chipotle", cal: 780, p: 48, c: 86, f: 24, time: "lunch" },
+    { name: "Turkey sandwich + chips", cal: 640, p: 36, c: 78, f: 18, time: "lunch" },
+    { name: "Steak, rice, asparagus", cal: 720, p: 56, c: 64, f: 26, time: "dinner" },
+    { name: "Ground beef pasta", cal: 760, p: 48, c: 82, f: 24, time: "dinner" },
+    { name: "Chicken thighs, potatoes, salad", cal: 650, p: 50, c: 54, f: 22, time: "dinner" },
+    { name: "Sushi (16 pc)", cal: 720, p: 38, c: 100, f: 14, time: "dinner" },
+    { name: "Whey shake", cal: 160, p: 30, c: 6, f: 2, time: "snack" },
+    { name: "Rice cakes + peanut butter", cal: 240, p: 8, c: 28, f: 12, time: "snack" },
+    { name: "Cottage cheese + honey", cal: 220, p: 24, c: 18, f: 4, time: "snack" },
+];
+
+const WORKOUT_BANK: { name: string; type: string; sport?: string; mins: number; cals: number; volume?: number; distance?: number; exercises?: { name: string; sets: { setNumber: number; weight: number; reps: number }[] }[] }[] = [
+    { name: "Squat Day", type: "strength", mins: 65, cals: 480, volume: 12400, exercises: [
+        { name: "Back Squat", sets: [{ setNumber: 1, weight: 225, reps: 5 }, { setNumber: 2, weight: 275, reps: 5 }, { setNumber: 3, weight: 315, reps: 3 }, { setNumber: 4, weight: 335, reps: 3 }, { setNumber: 5, weight: 355, reps: 1 }] },
+        { name: "Romanian Deadlift", sets: [{ setNumber: 1, weight: 225, reps: 8 }, { setNumber: 2, weight: 245, reps: 8 }, { setNumber: 3, weight: 265, reps: 6 }] },
+        { name: "Walking Lunge", sets: [{ setNumber: 1, weight: 40, reps: 20 }, { setNumber: 2, weight: 40, reps: 20 }] },
+    ]},
+    { name: "Bench Day", type: "strength", mins: 58, cals: 410, volume: 9200, exercises: [
+        { name: "Bench Press", sets: [{ setNumber: 1, weight: 135, reps: 8 }, { setNumber: 2, weight: 185, reps: 5 }, { setNumber: 3, weight: 225, reps: 3 }, { setNumber: 4, weight: 245, reps: 1 }] },
+        { name: "Incline DB Press", sets: [{ setNumber: 1, weight: 70, reps: 10 }, { setNumber: 2, weight: 70, reps: 10 }, { setNumber: 3, weight: 75, reps: 8 }] },
+        { name: "Cable Fly", sets: [{ setNumber: 1, weight: 30, reps: 12 }, { setNumber: 2, weight: 30, reps: 12 }, { setNumber: 3, weight: 35, reps: 10 }] },
+    ]},
+    { name: "Deadlift Day", type: "strength", mins: 70, cals: 520, volume: 14200, exercises: [
+        { name: "Deadlift", sets: [{ setNumber: 1, weight: 225, reps: 5 }, { setNumber: 2, weight: 315, reps: 3 }, { setNumber: 3, weight: 365, reps: 1 }, { setNumber: 4, weight: 385, reps: 1 }, { setNumber: 5, weight: 405, reps: 1 }] },
+        { name: "Barbell Row", sets: [{ setNumber: 1, weight: 135, reps: 8 }, { setNumber: 2, weight: 155, reps: 8 }, { setNumber: 3, weight: 175, reps: 6 }] },
+    ]},
+    { name: "Pull Day", type: "strength", mins: 60, cals: 430, volume: 8800, exercises: [
+        { name: "Pull-up", sets: [{ setNumber: 1, weight: 0, reps: 10 }, { setNumber: 2, weight: 0, reps: 10 }, { setNumber: 3, weight: 25, reps: 6 }] },
+        { name: "Lat Pulldown", sets: [{ setNumber: 1, weight: 140, reps: 10 }, { setNumber: 2, weight: 160, reps: 8 }, { setNumber: 3, weight: 180, reps: 6 }] },
+        { name: "Face Pull", sets: [{ setNumber: 1, weight: 40, reps: 15 }, { setNumber: 2, weight: 40, reps: 15 }] },
+    ]},
+    { name: "Easy Run", type: "sport", sport: "Running", mins: 48, cals: 520, distance: 5.2 },
+    { name: "Long Run", type: "sport", sport: "Running", mins: 92, cals: 980, distance: 10.0 },
+    { name: "Track Intervals", type: "sport", sport: "Running", mins: 52, cals: 580, distance: 5.8 },
+    { name: "Tempo Run", type: "sport", sport: "Running", mins: 38, cals: 460, distance: 4.4 },
+    { name: "Z2 Bike", type: "sport", sport: "Cycling", mins: 75, cals: 620, distance: 22.0 },
+    { name: "Push Day", type: "strength", mins: 55, cals: 400, volume: 7600, exercises: [
+        { name: "Overhead Press", sets: [{ setNumber: 1, weight: 95, reps: 8 }, { setNumber: 2, weight: 115, reps: 5 }, { setNumber: 3, weight: 135, reps: 3 }] },
+        { name: "Dip", sets: [{ setNumber: 1, weight: 0, reps: 12 }, { setNumber: 2, weight: 25, reps: 8 }, { setNumber: 3, weight: 25, reps: 8 }] },
+        { name: "Lateral Raise", sets: [{ setNumber: 1, weight: 15, reps: 15 }, { setNumber: 2, weight: 15, reps: 15 }, { setNumber: 3, weight: 20, reps: 12 }] },
+    ]},
+];
+
+const MY_PRS: { exercise_id: string; exercise_name: string; best_weight: number; best_one_rm: number; best_volume: number }[] = [
+    { exercise_id: "back_squat", exercise_name: "Back Squat", best_weight: 355, best_one_rm: 380, best_volume: 12400 },
+    { exercise_id: "deadlift", exercise_name: "Deadlift", best_weight: 405, best_one_rm: 425, best_volume: 14200 },
+    { exercise_id: "bench_press", exercise_name: "Bench Press", best_weight: 245, best_one_rm: 260, best_volume: 9200 },
+    { exercise_id: "overhead_press", exercise_name: "Overhead Press", best_weight: 135, best_one_rm: 145, best_volume: 4200 },
+    { exercise_id: "pull_up", exercise_name: "Pull-up", best_weight: 25, best_one_rm: 50, best_volume: 1800 },
+    { exercise_id: "barbell_row", exercise_name: "Barbell Row", best_weight: 185, best_one_rm: 200, best_volume: 4800 },
+    { exercise_id: "front_squat", exercise_name: "Front Squat", best_weight: 265, best_one_rm: 285, best_volume: 6800 },
+    { exercise_id: "romanian_deadlift", exercise_name: "Romanian Deadlift", best_weight: 285, best_one_rm: 305, best_volume: 7200 },
+];
+
+function mediaUrlForSeed(seed: string): string {
+    return `https://picsum.photos/seed/${encodeURIComponent(seed)}/1080/1080`;
+}
+
+async function screenshotSeedMe(admin: SupabaseClient, userId: string): Promise<Response> {
+    const summary: Record<string, number> = {
+        own_posts: 0,
+        groups_joined: 0,
+        dm_threads: 0,
+        dm_messages: 0,
+        protocols: 0,
+        compounds: 0,
+        vials: 0,
+        dose_logs: 0,
+        workouts: 0,
+        prs: 0,
+        weights: 0,
+        meals: 0,
+        biomarker_entries: 0,
+        biomarkers: 0,
+        activity_logs: 0,
+        daily_tasks: 0,
+    };
+    const errors: string[] = [];
+    const now = Date.now();
+    const DAY = 24 * 3600 * 1000;
+
+    // ------ 1) Own feed posts with media ------
+    try {
+        const { count: existingPosts } = await admin
+            .from("feed_posts").select("id", { count: "exact", head: true })
+            .eq("user_id", userId).ilike("text_content", `%${SCREENSHOT_MARK}%`);
+        if ((existingPosts ?? 0) < MY_POST_BANK.length) {
+            const rows = MY_POST_BANK.map((p, i) => {
+                const daysAgo = i * 7 + (i % 3);
+                const created = new Date(now - daysAgo * DAY - i * 3 * 3600 * 1000).toISOString();
+                return {
+                    user_id: userId,
+                    text_content: `${p.text} ${SCREENSHOT_MARK}`,
+                    media_urls: (p.media ?? []).map(mediaUrlForSeed),
+                    tags: [] as string[],
+                    created_at: created,
+                    updated_at: created,
+                };
+            });
+            const { error } = await admin.from("feed_posts").insert(rows);
+            if (error) errors.push(`own posts: ${error.message}`);
+            else summary.own_posts = rows.length;
+        }
+    } catch (e) { errors.push(`own posts: ${String(e)}`); }
+
+    // ------ 2) Auto-join 5 themed groups ------
+    try {
+        const { data: gRows } = await admin
+            .from("groups").select("id, name").in("name", MY_GROUP_NAMES);
+        const groups = (gRows ?? []) as Array<{ id: string; name: string }>;
+        if (groups.length > 0) {
+            const memberRows = groups.map((g) => ({ group_id: g.id, user_id: userId, role: "Member" as const }));
+            const { count } = await admin.from("group_members")
+                .upsert(memberRows, { onConflict: "group_id,user_id", ignoreDuplicates: true, count: "exact" });
+            summary.groups_joined = count ?? memberRows.length;
+        }
+    } catch (e) { errors.push(`groups join: ${String(e)}`); }
+
+    // ------ 3) DM threads with named personas ------
+    try {
+        const usernames = DM_THREADS.map((t) => t.personaUsername);
+        const { data: personaRows } = await admin
+            .from("profiles").select("id, username").in("username", usernames);
+        const idByUser = new Map<string, string>();
+        for (const r of (personaRows ?? []) as Array<{ id: string; username: string }>) {
+            idByUser.set(r.username, r.id);
+        }
+        for (const thread of DM_THREADS) {
+            const otherId = idByUser.get(thread.personaUsername);
+            if (!otherId) continue;
+            // Find existing conversation between caller and other
+            let convId: string | null = null;
+            const { data: myConvs } = await admin
+                .from("conversation_participants").select("conversation_id").eq("user_id", userId);
+            const ids = ((myConvs ?? []) as Array<{ conversation_id: string }>).map((r) => r.conversation_id);
+            if (ids.length > 0) {
+                const { data: matches } = await admin
+                    .from("conversation_participants").select("conversation_id")
+                    .in("conversation_id", ids).eq("user_id", otherId);
+                convId = ((matches ?? []) as Array<{ conversation_id: string }>)[0]?.conversation_id ?? null;
+            }
+            if (!convId) {
+                const { data: newConv, error: convErr } = await admin
+                    .from("conversations").insert({}).select("id").single();
+                if (convErr || !newConv) continue;
+                convId = (newConv as { id: string }).id;
+                await admin.from("conversation_participants").insert([
+                    { conversation_id: convId, user_id: userId },
+                    { conversation_id: convId, user_id: otherId },
+                ]);
+            }
+            // Check existing messages — skip if already seeded a chunk
+            const { count: existing } = await admin
+                .from("direct_messages").select("id", { count: "exact", head: true }).eq("conversation_id", convId);
+            if ((existing ?? 0) >= thread.messages.length) continue;
+            const msgRows = thread.messages.map((m) => ({
+                conversation_id: convId!,
+                sender_id: m.from === "me" ? userId : otherId,
+                text_content: m.text,
+                is_read: true,
+                created_at: new Date(now - m.hoursAgo * 3600 * 1000).toISOString(),
+            }));
+            const { error: insErr } = await admin.from("direct_messages").insert(msgRows);
+            if (insErr) errors.push(`dm ${thread.personaUsername}: ${insErr.message}`);
+            else { summary.dm_threads += 1; summary.dm_messages += msgRows.length; }
+        }
+    } catch (e) { errors.push(`dms: ${String(e)}`); }
+
+    // ------ 4) Protocol + compounds + vials + dose history ------
+    try {
+        // Idempotent: only create if no active screenshot-marked protocol
+        const { data: existingProto } = await admin
+            .from("protocols").select("id, name").eq("user_id", userId).ilike("name", `%${SCREENSHOT_MARK}%`).limit(1);
+        let protocolId: string | null = ((existingProto ?? []) as Array<{ id: string }>)[0]?.id ?? null;
+        if (!protocolId) {
+            const startDate = new Date(now - 56 * DAY).toISOString().slice(0, 10);
+            const { data: created, error: pErr } = await admin
+                .from("protocols")
+                .insert({
+                    user_id: userId,
+                    name: `Cut + Recovery Stack ${SCREENSHOT_MARK}`,
+                    goal: "Fat Loss",
+                    start_date: startDate,
+                    total_weeks: 12,
+                    loading_weeks: 2,
+                    maintenance_weeks: 8,
+                    tapering_weeks: 1,
+                    off_cycle_weeks: 1,
+                    is_active: true,
+                })
+                .select("id").single();
+            if (!pErr && created) {
+                protocolId = (created as { id: string }).id;
+                summary.protocols = 1;
+            } else if (pErr) errors.push(`protocol: ${pErr.message}`);
+        }
+        if (protocolId) {
+            const compounds = [
+                { compound_name: "Retatrutide", dose_mcg: 2000, frequency: "Weekly", injection_route: "Subcutaneous", vial_size_mg: 10 },
+                { compound_name: "BPC-157", dose_mcg: 250, frequency: "Daily", injection_route: "Subcutaneous", vial_size_mg: 5 },
+                { compound_name: "TB-500", dose_mcg: 500, frequency: "Twice weekly", injection_route: "Subcutaneous", vial_size_mg: 5 },
+            ];
+            for (const c of compounds) {
+                const { count } = await admin.from("protocol_compounds")
+                    .select("id", { count: "exact", head: true }).eq("protocol_id", protocolId).eq("compound_name", c.compound_name);
+                if ((count ?? 0) === 0) {
+                    const { error } = await admin.from("protocol_compounds").insert({
+                        protocol_id: protocolId, ...c,
+                        reconstitution_volume_ml: 2.0,
+                        time_of_day: new Date(now).toISOString(),
+                    });
+                    if (!error) summary.compounds += 1;
+                }
+            }
+            // Vials (compound_name reused; client_id stable per compound)
+            for (let i = 0; i < compounds.length; i += 1) {
+                const c = compounds[i];
+                const clientId = `screenshot-vial-${i + 1}-${userId.slice(0, 8)}`;
+                const { count } = await admin.from("vials")
+                    .select("id", { count: "exact", head: true }).eq("user_id", userId).eq("client_id", clientId);
+                if ((count ?? 0) === 0) {
+                    const { error } = await admin.from("vials").insert({
+                        user_id: userId,
+                        client_id: clientId,
+                        compound_name: c.compound_name,
+                        vial_size_mg: c.vial_size_mg,
+                        diluent_ml: 2.0,
+                        reconstituted_on: new Date(now - (28 - i * 7) * DAY).toISOString(),
+                        storage: "Fridge",
+                        lot_number: `LOT-${1000 + i * 37}`,
+                        vial_number: `${i + 1}`,
+                        expiration_date: new Date(now + (60 - i * 10) * DAY).toISOString(),
+                        typical_dose_mcg: c.dose_mcg,
+                        mcg_used: c.dose_mcg * (8 - i * 2),
+                        bud_days: 30,
+                    });
+                    if (!error) summary.vials += 1;
+                    else errors.push(`vial ${c.compound_name}: ${error.message}`);
+                }
+            }
+            // Dose log history — last 8 weeks, site rotation
+            const { count: existingDoses } = await admin
+                .from("dose_logs").select("id", { count: "exact", head: true }).eq("protocol_id", protocolId);
+            if ((existingDoses ?? 0) < 40) {
+                const sites = ["Left Abdomen", "Right Abdomen", "Left Thigh", "Right Thigh", "Left Glute", "Right Glute"];
+                const rows: Record<string, unknown>[] = [];
+                // Retatrutide weekly for 8 weeks
+                for (let w = 0; w < 8; w += 1) {
+                    rows.push({
+                        user_id: userId, protocol_id: protocolId,
+                        compound_name: "Retatrutide", dose_mcg: 2000 + w * 500,
+                        injection_site: sites[w % sites.length],
+                        was_skipped: false,
+                        notes: w === 3 ? "slight nausea day 2, resolved" : null,
+                        logged_at: new Date(now - (7 * (8 - w)) * DAY).toISOString(),
+                    });
+                }
+                // BPC-157 daily for last 28 days
+                for (let d = 0; d < 28; d += 1) {
+                    rows.push({
+                        user_id: userId, protocol_id: protocolId,
+                        compound_name: "BPC-157", dose_mcg: 250,
+                        injection_site: sites[d % sites.length],
+                        was_skipped: d === 12 || d === 21,
+                        skip_reason: (d === 12 || d === 21) ? "travel" : null,
+                        notes: null,
+                        logged_at: new Date(now - (28 - d) * DAY).toISOString(),
+                    });
+                }
+                // TB-500 twice weekly for 6 weeks
+                for (let w = 0; w < 6; w += 1) {
+                    for (const dayOffset of [0, 3]) {
+                        rows.push({
+                            user_id: userId, protocol_id: protocolId,
+                            compound_name: "TB-500", dose_mcg: 500,
+                            injection_site: sites[(w * 2 + dayOffset) % sites.length],
+                            was_skipped: false,
+                            notes: null,
+                            logged_at: new Date(now - (7 * (6 - w) + dayOffset) * DAY).toISOString(),
+                        });
+                    }
+                }
+                for (let i = 0; i < rows.length; i += 200) {
+                    const { error } = await admin.from("dose_logs").insert(rows.slice(i, i + 200));
+                    if (error) errors.push(`doses chunk: ${error.message}`);
+                    else summary.dose_logs += Math.min(200, rows.length - i);
+                }
+            }
+        }
+    } catch (e) { errors.push(`protocol: ${String(e)}`); }
+
+    // ------ 5) Training program ------
+    try {
+        const { count: existingProgs } = await admin
+            .from("training_programs").select("id", { count: "exact", head: true })
+            .eq("user_id", userId).ilike("name", `%${SCREENSHOT_MARK}%`);
+        if ((existingProgs ?? 0) === 0) {
+            const days = [
+                { name: "Squat", exercises: ["Back Squat", "Romanian Deadlift", "Walking Lunge"] },
+                { name: "Bench", exercises: ["Bench Press", "Incline DB Press", "Cable Fly"] },
+                { name: "Deadlift", exercises: ["Deadlift", "Barbell Row", "Pull-up"] },
+                { name: "Press", exercises: ["Overhead Press", "Dip", "Lateral Raise"] },
+            ];
+            await admin.from("training_programs").insert({
+                user_id: userId,
+                name: `Hybrid 4-Day ${SCREENSHOT_MARK}`,
+                program_type: "custom",
+                days_per_week: 4,
+                days_json: JSON.stringify(days),
+                is_active: true,
+                current_week: 5,
+                start_day_offset: 0,
+            });
+        }
+    } catch (e) { errors.push(`program: ${String(e)}`); }
+
+    // ------ 6) Workouts: ~50 sessions over 90 days ------
+    try {
+        const { count: existingW } = await admin
+            .from("workouts").select("id", { count: "exact", head: true })
+            .eq("user_id", userId).ilike("notes", `%${SCREENSHOT_MARK}%`);
+        if ((existingW ?? 0) < 40) {
+            const target = 50;
+            const rows: Record<string, unknown>[] = [];
+            for (let i = 0; i < target; i += 1) {
+                const w = WORKOUT_BANK[i % WORKOUT_BANK.length];
+                const daysAgo = Math.floor(i * 1.7) + (i % 2);
+                const completedAt = new Date(now - daysAgo * DAY - (i % 4) * 3600 * 1000);
+                const startedAt = new Date(completedAt.getTime() - w.mins * 60 * 1000);
+                const notesObj: Record<string, unknown> = { mark: SCREENSHOT_MARK };
+                if (w.volume) notesObj.totalVolume = w.volume;
+                rows.push({
+                    user_id: userId,
+                    date: completedAt.toISOString().slice(0, 10),
+                    name: w.name,
+                    sport: w.sport ?? null,
+                    workout_type: w.type,
+                    duration_minutes: w.mins,
+                    calories_burned: w.cals,
+                    distance: w.distance ?? null,
+                    exercises: w.exercises ? JSON.stringify(w.exercises) : null,
+                    notes: JSON.stringify(notesObj),
+                    fp_earned: w.mins * 5 + Math.floor(w.cals / 10),
+                    started_at: startedAt.toISOString(),
+                    completed_at: completedAt.toISOString(),
+                });
+            }
+            for (let i = 0; i < rows.length; i += 200) {
+                const { error } = await admin.from("workouts").insert(rows.slice(i, i + 200));
+                if (error) errors.push(`workouts: ${error.message}`);
+                else summary.workouts += Math.min(200, rows.length - i);
+            }
+        }
+    } catch (e) { errors.push(`workouts: ${String(e)}`); }
+
+    // ------ 7) PRs ------
+    try {
+        const prRows = MY_PRS.map((p) => ({ user_id: userId, ...p, updated_at: new Date(now - 3 * DAY).toISOString() }));
+        const { error } = await admin.from("personal_records")
+            .upsert(prRows, { onConflict: "user_id,exercise_id" });
+        if (error) errors.push(`prs: ${error.message}`);
+        else summary.prs = prRows.length;
+    } catch (e) { errors.push(`prs: ${String(e)}`); }
+
+    // ------ 8) Weight logs (90 days, smooth downward trend) ------
+    try {
+        const { count: existingWeights } = await admin
+            .from("weight_logs").select("id", { count: "exact", head: true })
+            .eq("user_id", userId).ilike("note", `%${SCREENSHOT_MARK}%`);
+        if ((existingWeights ?? 0) < 30) {
+            const rows: Record<string, unknown>[] = [];
+            const startWeight = 192.4;
+            const endWeight = 184.2;
+            const points = 36;
+            for (let i = 0; i < points; i += 1) {
+                const t = i / (points - 1);
+                const noise = Math.sin(i * 0.9) * 0.4;
+                const w = startWeight + (endWeight - startWeight) * t + noise;
+                const daysAgo = Math.round((1 - t) * 84);
+                rows.push({
+                    user_id: userId,
+                    weight: Math.round(w * 10) / 10,
+                    unit: "lbs",
+                    note: i === 0 ? `start ${SCREENSHOT_MARK}` : i === points - 1 ? `today ${SCREENSHOT_MARK}` : SCREENSHOT_MARK,
+                    logged_at: new Date(now - daysAgo * DAY).toISOString(),
+                });
+            }
+            for (let i = 0; i < rows.length; i += 200) {
+                const { error } = await admin.from("weight_logs").insert(rows.slice(i, i + 200));
+                if (error) errors.push(`weights: ${error.message}`);
+                else summary.weights += Math.min(200, rows.length - i);
+            }
+        }
+    } catch (e) { errors.push(`weights: ${String(e)}`); }
+
+    // ------ 9) Meals on ~80% of last 60 days ------
+    try {
+        const { count: existingMeals } = await admin
+            .from("logged_meals").select("id", { count: "exact", head: true })
+            .eq("user_id", userId);
+        if ((existingMeals ?? 0) < 80) {
+            const rows: Record<string, unknown>[] = [];
+            for (let d = 0; d < 60; d += 1) {
+                if ((d * 7) % 11 < 2) continue; // skip ~18% of days
+                const dayBase = now - d * DAY;
+                const breakfasts = MEAL_BANK.filter((m) => m.time === "breakfast");
+                const lunches = MEAL_BANK.filter((m) => m.time === "lunch");
+                const dinners = MEAL_BANK.filter((m) => m.time === "dinner");
+                const snacks = MEAL_BANK.filter((m) => m.time === "snack");
+                const meals = [
+                    { m: breakfasts[d % breakfasts.length], hours: 8 },
+                    { m: lunches[d % lunches.length], hours: 13 },
+                    { m: dinners[d % dinners.length], hours: 19 },
+                ];
+                if (d % 3 === 0) meals.push({ m: snacks[d % snacks.length], hours: 16 });
+                for (const { m, hours } of meals) {
+                    const ts = new Date(dayBase);
+                    ts.setUTCHours(hours, 0, 0, 0);
+                    rows.push({
+                        user_id: userId,
+                        food_name: m.name,
+                        food_brand: m.brand ?? null,
+                        calories: m.cal,
+                        protein_g: m.p,
+                        carbs_g: m.c,
+                        fat_g: m.f,
+                        servings: 1,
+                        meal_time: m.time,
+                        logged_at: ts.toISOString(),
+                    });
+                }
+            }
+            for (let i = 0; i < rows.length; i += 200) {
+                const { error } = await admin.from("logged_meals").insert(rows.slice(i, i + 200));
+                if (error) errors.push(`meals: ${error.message}`);
+                else summary.meals += Math.min(200, rows.length - i);
+            }
+        }
+        // Macro targets
+        await admin.from("macro_targets").upsert({
+            user_id: userId, calories: 2400, protein_g: 200, carbs_g: 260, fat_g: 75, source: "adaptive",
+        }, { onConflict: "user_id" });
+    } catch (e) { errors.push(`meals: ${String(e)}`); }
+
+    // ------ 10) Biomarker entries ------
+    try {
+        const { count: existingBio } = await admin
+            .from("bloodwork_entries").select("id", { count: "exact", head: true })
+            .eq("user_id", userId).ilike("notes", `%${SCREENSHOT_MARK}%`);
+        if ((existingBio ?? 0) < 2) {
+            const panels = [
+                { daysAgo: 70, notes: `Baseline panel ${SCREENSHOT_MARK}`, results: [
+                    { biomarker: "Total Cholesterol", value: 188 },
+                    { biomarker: "LDL", value: 112 },
+                    { biomarker: "HDL", value: 48 },
+                    { biomarker: "Triglycerides", value: 132 },
+                    { biomarker: "Fasting Glucose", value: 94 },
+                    { biomarker: "HbA1c", value: 5.4 },
+                    { biomarker: "ALT", value: 28 },
+                    { biomarker: "AST", value: 24 },
+                    { biomarker: "Testosterone", value: 612 },
+                ]},
+                { daysAgo: 10, notes: `Mid-protocol follow-up ${SCREENSHOT_MARK}`, results: [
+                    { biomarker: "Total Cholesterol", value: 172 },
+                    { biomarker: "LDL", value: 96 },
+                    { biomarker: "HDL", value: 54 },
+                    { biomarker: "Triglycerides", value: 108 },
+                    { biomarker: "Fasting Glucose", value: 88 },
+                    { biomarker: "HbA1c", value: 5.2 },
+                    { biomarker: "ALT", value: 24 },
+                    { biomarker: "AST", value: 22 },
+                    { biomarker: "Testosterone", value: 668 },
+                ]},
+            ];
+            for (const panel of panels) {
+                const entryDate = new Date(now - panel.daysAgo * DAY).toISOString().slice(0, 10);
+                const { data: entry, error: eErr } = await admin
+                    .from("bloodwork_entries")
+                    .insert({ user_id: userId, entry_date: entryDate, notes: panel.notes })
+                    .select("id").single();
+                if (eErr || !entry) { errors.push(`bloodwork: ${eErr?.message}`); continue; }
+                summary.biomarker_entries += 1;
+                const entryId = (entry as { id: string }).id;
+                const bioRows = panel.results.map((r) => ({ entry_id: entryId, ...r }));
+                const { error: bErr } = await admin.from("biomarker_results").insert(bioRows);
+                if (bErr) errors.push(`biomarkers: ${bErr.message}`);
+                else summary.biomarkers += bioRows.length;
+            }
+        }
+    } catch (e) { errors.push(`biomarkers: ${String(e)}`); }
+
+    // ------ 11) Activity logs (heatmap) — last 60 days ------
+    try {
+        const dateOnly = (d: Date) => d.toISOString().slice(0, 10);
+        const { count: existingActivity } = await admin
+            .from("activity_logs").select("id", { count: "exact", head: true })
+            .eq("user_id", userId).ilike("notes", `%${SCREENSHOT_MARK}%`);
+        if ((existingActivity ?? 0) < 30) {
+            const rows: Record<string, unknown>[] = [];
+            for (let d = 0; d < 60; d += 1) {
+                if ((d * 5) % 13 < 2) continue;
+                const date = new Date(now - d * DAY);
+                rows.push({
+                    user_id: userId,
+                    activity_date: dateOnly(date),
+                    activity_type: d % 3 === 0 ? "workout" : d % 3 === 1 ? "cardio" : "steps",
+                    sport: d % 3 === 1 ? "Running" : null,
+                    duration_minutes: 20 + (d % 40),
+                    calories_burned: 180 + (d % 12) * 35,
+                    notes: `auto ${SCREENSHOT_MARK}`,
+                });
+            }
+            for (let i = 0; i < rows.length; i += 200) {
+                const { error } = await admin.from("activity_logs").insert(rows.slice(i, i + 200));
+                if (error) errors.push(`activity: ${error.message}`);
+                else summary.activity_logs += Math.min(200, rows.length - i);
+            }
+        }
+    } catch (e) { errors.push(`activity: ${String(e)}`); }
+
+    // ------ 12) Daily tasks (recent week) ------
+    try {
+        const taskBank = [
+            { title: "Hit protein target", icon: "flame.fill", category: "Nutrition" },
+            { title: "10k steps", icon: "figure.walk", category: "Movement" },
+            { title: "Log dose", icon: "syringe.fill", category: "Protocol" },
+            { title: "Drink 1 gal water", icon: "drop.fill", category: "Hydration" },
+            { title: "8h sleep", icon: "moon.zzz.fill", category: "Recovery" },
+            { title: "Workout", icon: "dumbbell.fill", category: "Training" },
+        ];
+        for (let d = 0; d < 7; d += 1) {
+            const date = new Date(now - d * DAY).toISOString().slice(0, 10);
+            const { count } = await admin.from("daily_tasks")
+                .select("id", { count: "exact", head: true })
+                .eq("user_id", userId).eq("task_date", date);
+            if ((count ?? 0) >= 4) continue;
+            const rows = taskBank.map((t, i) => ({
+                user_id: userId,
+                title: t.title,
+                description: SCREENSHOT_MARK,
+                category: t.category,
+                action_link: "None",
+                target_value: 0,
+                goal_description: null,
+                is_completed: d > 0 ? (i % 7 !== 5) : i < 3,
+                task_date: date,
+                schedule_type: "Daily",
+                scheduled_days: [1, 2, 3, 4, 5, 6, 7],
+                icon: t.icon,
+                is_user_created: false,
+                custom_category_id: null,
+            }));
+            const { error } = await admin.from("daily_tasks").insert(rows);
+            if (error) errors.push(`tasks ${date}: ${error.message}`);
+            else summary.daily_tasks += rows.length;
+        }
+    } catch (e) { errors.push(`tasks: ${String(e)}`); }
+
+    // ------ 13) Streak + FP bump on profile ------
+    try {
+        await admin.from("profiles").update({
+            current_streak: 47,
+            total_fp: 12480,
+        }).eq("id", userId);
+    } catch (_) {}
+
+    return json(200, {
+        ok: errors.length === 0,
+        version: "seed-v2",
+        summary,
+        errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
+    });
+}
+
+async function wipeMyScreenshotData(admin: SupabaseClient, userId: string): Promise<Response> {
+    const deleted: Record<string, number> = {};
+    async function del(table: string, builder: (q: ReturnType<typeof admin.from>) => unknown): Promise<void> {
+        try {
+            const q = admin.from(table).delete().eq("user_id", userId);
+            const final = builder(q as unknown as ReturnType<typeof admin.from>);
+            // deno-lint-ignore no-explicit-any
+            const { count } = await (final as any).select("id", { count: "exact", head: true });
+            deleted[table] = count ?? 0;
+        } catch (_) { deleted[table] = 0; }
+    }
+    // Simpler approach: per-table tagged deletes
+    try { await admin.from("feed_posts").delete().eq("user_id", userId).ilike("text_content", `%${SCREENSHOT_MARK}%`); } catch (_) {}
+    try { await admin.from("weight_logs").delete().eq("user_id", userId).ilike("note", `%${SCREENSHOT_MARK}%`); } catch (_) {}
+    try { await admin.from("workouts").delete().eq("user_id", userId).ilike("notes", `%${SCREENSHOT_MARK}%`); } catch (_) {}
+    try { await admin.from("activity_logs").delete().eq("user_id", userId).ilike("notes", `%${SCREENSHOT_MARK}%`); } catch (_) {}
+    try { await admin.from("daily_tasks").delete().eq("user_id", userId).ilike("description", `%${SCREENSHOT_MARK}%`); } catch (_) {}
+    try { await admin.from("bloodwork_entries").delete().eq("user_id", userId).ilike("notes", `%${SCREENSHOT_MARK}%`); } catch (_) {}
+    try { await admin.from("training_programs").delete().eq("user_id", userId).ilike("name", `%${SCREENSHOT_MARK}%`); } catch (_) {}
+    // Protocols (cascades to compounds, dose logs, side effects, supplements)
+    try { await admin.from("protocols").delete().eq("user_id", userId).ilike("name", `%${SCREENSHOT_MARK}%`); } catch (_) {}
+    // Vials by client_id prefix
+    try { await admin.from("vials").delete().eq("user_id", userId).like("client_id", "screenshot-vial-%"); } catch (_) {}
+    // PRs from our list
+    try {
+        const prIds = MY_PRS.map((p) => p.exercise_id);
+        await admin.from("personal_records").delete().eq("user_id", userId).in("exercise_id", prIds);
+    } catch (_) {}
+    // Logged meals — meals don't have a mark column; only delete recent
+    // ones that match our bank to avoid removing user's real data
+    try {
+        const names = MEAL_BANK.map((m) => m.name);
+        await admin.from("logged_meals").delete().eq("user_id", userId).in("food_name", names);
+    } catch (_) {}
+    // Leave group memberships and DM threads intact — they're shared
+    // social state with real personas; safe to keep across screenshot sessions.
+    return json(200, { ok: true, version: "seed-v2", deleted_marker: SCREENSHOT_MARK });
+}
+
 // ---- Entry point ------------------------------------------------------
 
 Deno.serve(async (req) => {
@@ -2055,7 +2858,11 @@ Deno.serve(async (req) => {
             case "deleteFakeUser":
                 return await deleteFakeUser(admin, payload);
             case "bulkPopulateAllFakes":
-                return await bulkPopulateAllFakes(admin, payload);
+                return await bulkPopulateAllFakes(admin, payload, auth.userId);
+            case "screenshotSeedMe":
+                return await screenshotSeedMe(admin, auth.userId);
+            case "wipeMyScreenshotData":
+                return await wipeMyScreenshotData(admin, auth.userId);
             case "fakeDailyAutoLog":
                 return await fakeDailyAutoLog(admin, payload);
             default:

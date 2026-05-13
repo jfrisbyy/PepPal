@@ -220,6 +220,20 @@ final class FakeAccountService {
         return res.inserted ?? 0
     }
 
+    nonisolated struct WipeMyDataResponse: Codable, Sendable {
+        let ok: Bool?
+        let error: String?
+    }
+
+    func wipeMyScreenshotData() async throws {
+        let body = FakeActionRequest(action: "wipeMyScreenshotData", payload: nil)
+        let res: WipeMyDataResponse = try await supabase.functions
+            .invoke("super-action", options: FunctionInvokeOptions(body: body))
+        if let err = res.error, !err.isEmpty {
+            throw NSError(domain: "FakeAccountService", code: 0, userInfo: [NSLocalizedDescriptionKey: err])
+        }
+    }
+
     func bulkPopulateAll(level: String = "medium") async throws -> FakeBulkPopulateResponse {
         var p = FakeActionRequest.Payload()
         p.level = level
