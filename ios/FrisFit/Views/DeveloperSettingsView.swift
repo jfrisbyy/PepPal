@@ -9,6 +9,7 @@ struct DeveloperSettingsView: View {
     @State private var showRemoveConfirm: Bool = false
     @State private var showWipeMyDataConfirm: Bool = false
     @State private var showStreakDebug: Bool = false
+    @State private var screenshotMode = ScreenshotMode.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -24,6 +25,8 @@ struct DeveloperSettingsView: View {
 
             VStack(spacing: 0) {
                 demoModeRow
+                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
+                screenshotChromeRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 resetOnboardingRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
@@ -235,6 +238,31 @@ struct DeveloperSettingsView: View {
         }
         .buttonStyle(.plain)
         .disabled(isWipingMyData)
+    }
+
+    // MARK: - Screenshot mode
+
+    private var screenshotChromeRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "camera.viewfinder")
+                .font(.body)
+                .foregroundStyle(PepTheme.violet)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Hide floating chrome")
+                    .font(.body)
+                    .foregroundStyle(PepTheme.textPrimary)
+                Text("Hides the top action pill, bottom tab bar, and green FAB on Home so you can capture clean scrolling screenshots. Content stays at the same proportions.")
+                    .font(.caption)
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Toggle("", isOn: $screenshotMode.hideChrome)
+                .labelsHidden()
+                .tint(PepTheme.teal)
+        }
     }
 
     // MARK: - Housekeeping rows (unchanged)

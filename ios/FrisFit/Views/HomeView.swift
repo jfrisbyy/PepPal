@@ -35,6 +35,7 @@ struct HomeView: View {
     @State private var notifStore = SmartNotificationStore.shared
     @State private var isCalendarRevealExpanded: Bool = false
     @State private var scrollOffset: CGFloat = 0
+    @State private var screenshotMode = ScreenshotMode.shared
 
     var body: some View {
         NavigationStack {
@@ -111,10 +112,13 @@ struct HomeView: View {
                 Color.clear.frame(height: 0)
             }
             .overlay(alignment: .topTrailing) {
-                floatingActionPill
-                    .padding(.top, 6)
-                    .padding(.trailing, 14)
+                if !screenshotMode.hideChrome {
+                    floatingActionPill
+                        .padding(.top, 6)
+                        .padding(.trailing, 14)
+                }
             }
+            .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
             .onAppear { performHomeAppear() }
             .onReceive(NotificationCenter.default.publisher(for: .demoPersonaChanged)) { note in
                 if let scenario = note.object as? DemoScenario {

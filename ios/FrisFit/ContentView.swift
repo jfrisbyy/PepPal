@@ -64,6 +64,7 @@ struct ContentView: View {
     @State private var profileTabAvatar = ProfileTabAvatarStore.shared
     @State private var profileTabBootstrap = ProfileViewModel()
     @State private var didBootstrapProfileTabAvatar: Bool = false
+    @State private var screenshotMode = ScreenshotMode.shared
 
     var body: some View {
         let _ = print("APP_INIT: ContentView body evaluated, authState = \(authService.authState)")
@@ -156,7 +157,7 @@ struct ContentView: View {
                 workoutIndicatorBar
             }
 
-            if selectedTab != .discover && selectedTab != .community {
+            if selectedTab != .discover && selectedTab != .community && !screenshotMode.hideChrome {
                 ExpandableFABView(isExpanded: $fabExpanded, actions: fabActions)
             }
         }
