@@ -45,7 +45,7 @@ nonisolated enum DemoScenario: String, CaseIterable, Sendable {
         switch self {
         case .maya: return "Hypertrophy lifter"
         case .priya: return "GLP-1 journey"
-        case .theo: return "Peptide stack · BPC-157"
+        case .theo: return "Tendon recovery · BPC-157"
         case .marcus: return "Health optimizer · TRT"
         case .ava: return "Endurance runner"
         case .shayla: return "Recomp · learning"
@@ -55,7 +55,7 @@ nonisolated enum DemoScenario: String, CaseIterable, Sendable {
     var teaser: String {
         switch self {
         case .maya: return "4h 38m last night, HRV -18%, RHR +6. Leg day today — half-volume bundle ready."
-        case .priya: return "Tirzepatide 5mg yesterday, GI discomfort logged 4h ago. Low-FODMAP plan armed for 48h."
+        case .priya: return "Tirzepatide 5mg yesterday, stomach discomfort logged 4h ago. Easy-on-the-gut plan armed for 48h."
         case .theo: return "BPC-157 missed Wednesday. Compound level dipped, Saturday pull flagged."
         case .marcus: return "ALT 38 → 52 → 68. LDL creeping. Two compounds flagged for review."
         case .ava: return "RHR +8 bpm for 5 mornings, sleep normal. Two-path prompt waiting."
@@ -176,7 +176,7 @@ nonisolated enum DemoModeProbe {
             return """
             Maya Chen, 32, hypertrophy block week 6, three years of training age. Running Upper/Lower Hypertrophy 4x/week (Lower A, Upper A, Lower B, Upper B). Recomp goal — currently 139.4 lb, target 138 lb, started at 142 lb. Calorie target 2,100, protein floor 145 g. Recent PR: back squat 185x5 twelve days ago, off a prior 175 lb best.
             Cross-domain patterns: training adherence ~92% over the last four weeks, push days move clean, leg days slip when sleep dips under 6h. Hip thrust and RDL are her strongest lifts. Protein lands in the 130-150 g band most days; calories run within 10% of target 5 of 7 days.
-            No active peptide protocol. Sleep baseline ~7.1h; current night was 4h 38m (rough — HRV -18%, RHR +6). Recovery green most weeks except after low-sleep nights, which line up with regressions on squat speed-out.
+            Peptide stack: low-dose Retatrutide 1 mg weekly (microdose for the last two recomp pounds, week 6 of 16) + GHK-Cu 1 mg daily under-the-skin (skin and recovery support during the lean phase, no GH stack). Sleep baseline ~7.1h; current night was 4h 38m (rough — HRV -18%, RHR +6). Recovery green most weeks except after low-sleep nights, which line up with regressions on squat speed-out.
             Voice: direct, lift-friend tone, lead with the number, never preachy. No emojis.
             """
         case .priya:
@@ -1055,8 +1055,51 @@ enum DemoDataGenerator {
 
         switch scenario {
         case .maya:
-            // No peptide protocol — Maya's story is sleep/recovery, not pharmacology.
-            return []
+            // Low-dose Retatrutide 1 mg weekly (microdose for the last recomp pounds) +
+            // GHK-Cu 1 mg daily under-the-skin for skin/recovery support during the lean.
+            // Retatrutide vial: 10 mg / 2 mL → 5 mg/mL → 0.2 mL per 1 mg dose.
+            // GHK-Cu vial: 50 mg / 5 mL → 10 mg/mL → 0.1 mL per 1 mg dose.
+            let reta = ProtocolCompound(
+                compoundName: "Retatrutide", doseMcg: 1000, frequency: "Weekly",
+                injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 10
+            )
+            let ghk = ProtocolCompound(
+                compoundName: "GHK-Cu", doseMcg: 1000, frequency: "Daily",
+                injectionRoute: .subcutaneous, reconstitutionVolume: 5.0, vialSizeMg: 50
+            )
+            var logs: [DoseLogEntry] = []
+            // Retatrutide: weekly on Mondays for 6 weeks of clean adherence.
+            for w in 0..<6 {
+                let d = w * 7 + 1
+                logs.append(DoseLogEntry(
+                    compoundName: "Retatrutide", doseMcg: 1000,
+                    timestamp: ts(daysAgo: d), injectionSite: sites[w % sites.count]
+                ))
+            }
+            // GHK-Cu: daily, ~95% adherence across the 6 weeks.
+            for d in 0..<42 {
+                // Two missed days early (week 1) — feels real, not robotic.
+                if d == 37 || d == 35 {
+                    logs.append(DoseLogEntry(
+                        compoundName: "GHK-Cu", doseMcg: 1000,
+                        timestamp: ts(daysAgo: d), injectionSite: sites[d % sites.count],
+                        wasSkipped: true,
+                        skipReason: "Out of town, forgot kit"
+                    ))
+                    continue
+                }
+                logs.append(DoseLogEntry(
+                    compoundName: "GHK-Cu", doseMcg: 1000,
+                    timestamp: ts(daysAgo: d), injectionSite: sites[d % sites.count]
+                ))
+            }
+            let proto = PeptideProtocol(
+                name: "Recomp Finish + Skin Support", goal: .weightLoss, compounds: [reta, ghk],
+                startDate: ts(daysAgo: 42), totalWeeks: 16, loadingWeeks: 2,
+                maintenanceWeeks: 12, taperingWeeks: 2, offCycleWeeks: 4,
+                isActive: true, doseLog: logs
+            )
+            return [proto]
 
         case .priya:
             // Tirzepatide 5 mg weekly. Vial = 10 mg reconstituted with 2 mL diluent
