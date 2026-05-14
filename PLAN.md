@@ -1,25 +1,17 @@
-# Hardcode the Daily Brief per demo persona (for screenshots)
+# Fill the friends page with live mock friends, pulsing presence, and active groups in every demo account
 
-## Why we're doing this
+**What's wrong now**
+The friends tab uses real backend data first and only falls back to mock friends when the backend returns absolutely nothing. In demo mode the backend often returns an empty-but-valid payload, so the mocks never appear — leaving the page blank. Groups have no demo fallback at all, and the "currently doing" pulsing dots only seed for one or two friends with no scenario context.
 
-The AI-generated brief has been brittle across persona switches: it either pulls in the real-account memo, truncates JSON on dense personas (Theo, Marcus), or shows "3am, nothing logged" at off-hours because today's persona meals haven't been "logged yet" in the live context. We've patched it multiple times and it still drifts. For screenshots we need 100% determinism — the brief must mirror the persona's cross-stream "aha" scenario, every time, with no AI roundtrip.
+**Fix**
 
-## What I'll do
+- [x] **Always seed mock friends in demo mode.** When a demo scenario is active, skip the backend entirely and load directly from the curated mock friend list so every screenshot account has a populated friends grid.
+- [x] **Scenario-aware friend cast.** Each of the six demo accounts gets a tailored friend roster that reinforces their narrative.
+- [x] **Live "currently doing" pulse.** Pre-seed 3–4 friends as active right now (Running, Lifting, Cycling, Recovery walk, Mobility flow) with the existing green pulsing dot.
+- [x] **Recent activity feed.** Every demo account shows a fresh activity timeline sorted newest first.
+- [x] **Mock groups with members.** 3 curated groups per demo account each with 6–12 visible members, last-message previews, accent colors.
+- [x] **Group activity ticker.** Inside each mock group, surface 2–3 recent member messages.
+- [x] **Subtle presence rotation.** Active friends rotate every minute on the client.
 
-- **Add `DemoBriefLibrary`** — one hand-crafted `TodaysPlanResponse` per persona (Maya, Priya, Theo, Marcus, Ava, Shayla) that bakes in the exact cross-stream scenario from the brief:
-  - Maya: rough sleep → half-volume leg day
-  - Priya: dose-day GI → low-FODMAP nutrition pivot
-  - Theo: missed BPC-157 → Saturday pull soft-warning
-  - Marcus: ALT/LDL drift → omega-3 + provider conversation
-  - Ava: RHR +8 for 5 days → overtraining vs illness fork
-  - Shayla: borrowed Marcus's stack → start at half-dose
-  Each response has a full `narrative` (greeting/headline/body/watchFor/adaptiveCallout), `summary`, `modules` (protocol/nutrition/training/body where relevant), and 2-4 `actionItems`.
-- **Short-circuit `TodaysPlanViewModel`** — when `DemoModeProbe.isActive`, every refresh path (`refreshForWindowIfDue`, `handleDataChange`, `forceRefresh`, `loadCachedPlan`) sets `planResponse` directly from the library and skips the AI call entirely. No more "could not generate," no more stale time references.
-- **Repaint on persona switch** — `resetForPersonaSwitch` immediately re-applies the hardcoded brief for the new scenario instead of leaving an empty shimmer.
-
-## How I'll verify it
-
-- Switch into any of the 6 personas → brief loads instantly with persona-specific narrative, modules, and adaptive callout that match the persona's mock data.
-- No network call to the AI proxy in demo mode.
-- Switch personas back-to-back → second persona's brief shows immediately, no leftover content.
-- Sign out of demo mode → real account's AI brief returns as before.
+**Result**
+Open any of the six demo accounts → tap Community → Friends tab is full of friends with avatars, streak counts, weekly stats, pulsing "Running"/"Lifting" indicators, a live activity feed, and a Groups section with multiple populated rooms. Ready for screenshots.

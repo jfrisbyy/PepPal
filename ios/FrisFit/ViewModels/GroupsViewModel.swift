@@ -51,6 +51,15 @@ final class GroupsViewModel {
     // MARK: - Load
 
     func refresh() async {
+        // Demo mode: skip backend and serve curated groups so the screenshot
+        // path is always populated.
+        if let scenario = DemoModeProbe.activeScenario {
+            isLoading = false
+            loadError = nil
+            myGroups = MockGroupsService.shared.groups(for: scenario)
+            discoverGroups = []
+            return
+        }
         guard let uid = currentUserId else {
             myGroups = []
             discoverGroups = []

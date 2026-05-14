@@ -32,6 +32,27 @@ final class FriendsStatsViewModel {
         var snapshots: [FriendStatSnapshot] = []
         var events: [FriendActivityEvent] = []
 
+        // In demo mode, skip backend entirely and use curated mocks so every
+        // screenshot account has a populated friends grid + activity feed.
+        if DemoModeProbe.isActive {
+            snapshots = MockFriendsService.shared.snapshots()
+            events = MockFriendsService.shared.activityEvents()
+            snapshots.sort { $0.streak > $1.streak }
+            events.sort { $0.timestamp > $1.timestamp }
+            for i in snapshots.indices {
+                if snapshots[i].lastActivityTitle != nil { continue }
+                let userId = snapshots[i].user.id
+                if let recent = events.first(where: { $0.user.id == userId }) {
+                    snapshots[i].lastActivityTitle = recent.title
+                    snapshots[i].lastActivityAt = recent.timestamp
+                }
+            }
+            self.friends = snapshots
+            self.activityEvents = Array(events.prefix(40))
+            FriendSocialService.shared.seedDemoPresence(friendIds: snapshots.map { $0.id.uuidString })
+            return
+        }
+
         if let feed = try? await backend.fetchFeed() {
             for friend in feed.friends ?? [] {
                 let user = socialService.socialUserFromAuthor(friend.profile)

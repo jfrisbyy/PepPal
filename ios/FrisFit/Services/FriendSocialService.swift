@@ -118,6 +118,44 @@ final class FriendSocialService {
         persistPresence()
     }
 
+    /// Force-seed 3–4 friends as currently active for demo mode. Rotates every
+    /// minute by hashing on the current 60-second bucket so screenshots taken
+    /// at different times look organic.
+    func seedDemoPresence(friendIds: [String]) {
+        guard !friendIds.isEmpty else { return }
+        // Drop any stale demo presences for these ids first.
+        for id in friendIds { friendPresences.removeValue(forKey: id) }
+
+        let activities = [
+            "Running", "Lifting", "Cycling", "Mobility flow",
+            "Recovery walk", "Tempo run", "Pull day", "Push day", "Zone 2"
+        ]
+        // Bucket per minute → rotates organically.
+        let bucket = Int(Date().timeIntervalSince1970 / 60)
+        var hasher = Hasher()
+        hasher.combine(friendIds.sorted().joined())
+        hasher.combine(bucket)
+        let seed = abs(hasher.finalize())
+
+        let sorted = friendIds.sorted()
+        let pickCount = min(sorted.count, 4)
+        // Rotating window of active friends.
+        let startIdx = seed % max(1, sorted.count)
+        var picked: [String] = []
+        for i in 0..<pickCount {
+            picked.append(sorted[(startIdx + i) % sorted.count])
+        }
+
+        for (offset, id) in picked.enumerated() {
+            let activity = activities[(seed &+ offset * 7) % activities.count]
+            // Started 2–28 minutes ago.
+            let minutesAgo = (seed &+ offset * 13) % 27 + 2
+            let startedAt = Date().addingTimeInterval(-Double(minutesAgo) * 60)
+            friendPresences[id] = FriendPresence(friendId: id, activity: activity, startedAt: startedAt)
+        }
+        persistPresence()
+    }
+
     func seedMockPresence(friendIds: [String]) {
         guard !friendIds.isEmpty else { return }
         let hasRealMock = friendPresences.values.contains(where: { friendIds.contains($0.friendId) && $0.isActive })
