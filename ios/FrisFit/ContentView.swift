@@ -147,25 +147,29 @@ struct ContentView: View {
             TabView(selection: $selectedTab) {
                 Tab("Home", systemImage: selectedTab == .home ? AppTab.home.activeIcon : AppTab.home.icon, value: .home) {
                     HomeView()
+                        .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
                 }
                 Tab("Train", systemImage: selectedTab == .train ? AppTab.train.activeIcon : AppTab.train.icon, value: .train) {
                     TrainView()
+                        .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
                 }
                 Tab("Community", systemImage: selectedTab == .community ? AppTab.community.activeIcon : AppTab.community.icon, value: .community) {
                     SocialView()
+                        .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
                 }
                 Tab("Discover", systemImage: selectedTab == .discover ? AppTab.discover.activeIcon : AppTab.discover.icon, value: .discover) {
                     DiscoverView()
+                        .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
                 }
                 Tab(value: AppTab.profile) {
                     ProfileView()
+                        .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
                 } label: {
                     profileTabLabel
                 }
             }
             .tint(PepTheme.teal)
             .simultaneousGesture(screenshotSwipeGesture, including: screenshotMode.hideChrome ? .all : .none)
-            .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
 
             if sessionManager.isSessionActive && !sessionManager.showActiveWorkout {
                 VStack {
