@@ -234,6 +234,13 @@ nonisolated enum PKChartRange: String, CaseIterable, Sendable, Identifiable {
 enum PKSampleBuilder {
     /// Sample the medication-level curve for a given range, marking points
     /// after `now` as future (for dotted rendering).
+    ///
+    /// The grid is *adaptive*: uniform sampling across the whole range, plus
+    /// dense extra samples around every dose so that short-half-life peptides
+    /// (e.g. GHK-Cu, BPC-157) render as continuous rise/fall curves instead of
+    /// aliased dots. A sample exactly at `now` is always included so that the
+    /// past-solid and future-dotted line series share a point and connect
+    /// visually without a gap.
     static func samples(
         doses: [PKDose],
         profile: PKProfile,
@@ -247,17 +254,73 @@ enum PKSampleBuilder {
         let count = max(2, range.sampleCount)
         let step = end.timeIntervalSince(start) / Double(count - 1)
 
-        var out: [PKSamplePoint] = []
-        out.reserveCapacity(count)
+        // 1) Uniform base grid across the visible range.
+        var times: [TimeInterval] = []
+        times.reserveCapacity(count + 64)
         for i in 0..<count {
-            let t = start.addingTimeInterval(step * Double(i))
+            times.append(start.timeIntervalSince1970 + step * Double(i))
+        }
+
+        // 2) Always include `now` so past+future series meet cleanly.
+        times.append(now.timeIntervalSince1970)
+
+        // 3) Dose-anchored dense samples. Window covers ~6 half-lives after
+        //    each dose (>98% cleared), with ~24 samples per half-life so even
+        //    sub-hour peptides render a smooth spike+decay.
+        let halfLifeHours = profile.halfLifeHours
+        let windowHours = max(2.0, halfLifeHours * 6.0)
+        let windowSeconds = windowHours * 3600.0
+        let denseStepSeconds = max(60.0, (halfLifeHours * 3600.0) / 24.0)
+        // Also include a quick rise window (absorption phase): a few samples
+        // before the dose's peak based on ka, so we don't miss the leading edge.
+        let absorptionHours = profile.ka > 0 ? (log(2.0) / profile.ka) : 0.5
+        let preWindowSeconds = max(180.0, absorptionHours * 3600.0 * 0.5)
+
+        let startTS = start.timeIntervalSince1970
+        let endTS = end.timeIntervalSince1970
+        for dose in doses {
+            let dTS = dose.time.timeIntervalSince1970
+            // Skip doses whose entire influence falls outside the visible range.
+            if dTS + windowSeconds < startTS { continue }
+            if dTS - preWindowSeconds > endTS { continue }
+
+            // Pre-dose anchor (baseline just before the spike).
+            let pre = dTS - preWindowSeconds
+            if pre >= startTS && pre <= endTS { times.append(pre) }
+            // The dose moment itself.
+            if dTS >= startTS && dTS <= endTS { times.append(dTS) }
+            // Dense post-dose samples.
+            var t = dTS + denseStepSeconds
+            let lastT = min(endTS, dTS + windowSeconds)
+            while t <= lastT {
+                if t >= startTS { times.append(t) }
+                t += denseStepSeconds
+            }
+        }
+
+        // 4) Sort & dedupe (within 1s) to keep the line monotonic in x.
+        times.sort()
+        var deduped: [TimeInterval] = []
+        deduped.reserveCapacity(times.count)
+        for ts in times {
+            if let last = deduped.last, ts - last < 1.0 { continue }
+            deduped.append(ts)
+        }
+
+        let nowTS = now.timeIntervalSince1970
+        var out: [PKSamplePoint] = []
+        out.reserveCapacity(deduped.count)
+        for ts in deduped {
+            let t = Date(timeIntervalSince1970: ts)
             let mg = PeptidePharmacology.levelMg(
                 at: t,
                 doses: doses,
                 ka: profile.ka,
                 ke: profile.ke
             )
-            out.append(PKSamplePoint(time: t, mg: mg, isFuture: t > now))
+            // `now` itself is treated as past so the solid line includes it;
+            // the future series will also include it as its anchor point.
+            out.append(PKSamplePoint(time: t, mg: mg, isFuture: ts > nowTS))
         }
         return out
     }

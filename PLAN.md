@@ -1,25 +1,23 @@
-# Cleaner protocol detail header, floating top buttons, and global screenshot chrome
+# Make Maya's peptide chart show a continuous, accurate level curve
 
-## Protocol detail page — cleaner header
+**The issue**
 
-- Remove the "Days Left" stat and the circular adherence ring from the top of the page.
-- Replace them with two more useful at-a-glance numbers:
-  - **Next dose** — countdown like "in 3h 20m" (or "Now" when due, "—" when no upcoming dose).
-  - **Total logged** — cumulative dose this cycle (e.g. "12.5 mg" or "1,250 mcg" using the protocol's preferred unit).
-- Keep **Phase**, **Compounds**, **Doses** alongside the two new stats, in a clean evenly-spaced row with thin dividers.  
-and for all demo accounts , ensure that all the charts are accurate and make sense and the dots are connected 
+Maya's stack mixes two very different peptides:
+- **Retatrutide** — half-life ~6 days, dosed weekly. Should look like a smooth rolling wave that builds over weeks.
+- **GHK-Cu** — half-life under an hour, dosed daily. Each dose spikes and clears in a few hours.
 
-## Floating back & menu buttons (no nav bar)
+Right now the chart samples the curve at evenly spaced intervals (~every 1¾ hours on the 7-day view). For Retatrutide that's fine, but for GHK-Cu each spike is briefer than the sample spacing, so the curve only catches the tip of each spike at random — producing the "bunch of disconnected dots" you saw. The line also visually breaks at the "Now" marker because past and future are drawn as two separate series.
 
-- Hide the system navigation bar on the protocol detail page.
-- Add a floating **back arrow** in the top-left and a floating **ellipsis menu** in the top-right, both as small circular glass buttons that sit above the banner image.
-- They stay pinned as you scroll so the banner never covers them, and gently fade/shrink slightly once the page is scrolled (matching the Home pill feel).
-- The protocol name stays as the big serif title at the top of the content (already there), so removing the nav title doesn't lose context.
+**What I'll fix**
 
-## Global screenshot chrome on every page
+- **Add dense sampling around every logged dose**, so fast peptides like GHK-Cu show the actual rise-and-fall shape after each injection instead of being missed by the regular sample grid. Slow peptides like Retatrutide stay perfectly smooth.
+- **Stitch the past and projected-future line into one continuous curve** so it doesn't visually break at the "Now" line. The future portion stays dotted to indicate projection; the past stays solid — they just meet cleanly at "Now."
+- **Keep the dose dots** sitting exactly on the curve at each injection time, with the line passing through them rather than floating beside them.
+- **Apply this everywhere the chart appears**: protocol detail hero chart, compound detail page chart, and the small inline sparkline on protocol cards — so every persona's chart (Maya, Theo's BPC-157/TB-500, Marcus's Ipamorelin, etc.) reads as a real pharmacokinetic curve.
 
-- When the "Hide chrome for screenshots" toggle is on in Developer Settings, the floating **camera** (capture) button and chrome hiding apply across the whole app — Home, Train, Body, Nutrition, Friends, Discover, Community, and every detail page (Protocol Detail, Compound Detail, etc.).
-- The capture button uses the same tile-and-stitch approach already working on Home — it finds the tallest scrollable view on whatever screen you're currently on and captures it as one tall PNG, then opens the share sheet.
-- Tab bar and floating action pills/FABs are hidden everywhere while the toggle is on so nothing chrome-y leaks into screenshots.
-- Capture button briefly disappears during capture so it never shows up in the resulting image.
+**Result for Maya specifically**
 
+- **Retatrutide** — a smooth wave that climbs across her 6 weekly doses and settles into a steady ~1.8–2 mg circulating level, with the dotted projection trailing forward from today.
+- **GHK-Cu** — a daily sawtooth that clearly spikes up after each morning dose and clears by evening, with two visible gaps where she skipped doses while traveling. You'll be able to scrub across any moment and see exactly how much was in her body.
+
+No copy or layout changes — just the chart itself becoming accurate and properly connected.

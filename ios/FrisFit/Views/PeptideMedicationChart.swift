@@ -32,12 +32,24 @@ struct PeptideMedicationChart: View {
         }
     }
 
+    /// Split samples into past (incl. `now`) and future (anchored at `now`) so
+    /// the solid and dotted line series share a point and connect visually.
+    private func splitAtNow(_ samples: [PKSamplePoint]) -> (past: [PKSamplePoint], future: [PKSamplePoint]) {
+        let past = samples.filter { !$0.isFuture }
+        var future = samples.filter { $0.isFuture }
+        if let bridge = past.last, future.first?.time != bridge.time {
+            future.insert(bridge, at: 0)
+        }
+        return (past, future)
+    }
+
     // MARK: - Chart
 
     private var chart: some View {
         Chart {
+            let primarySplit = splitAtNow(primary.samples)
             // Primary past (solid line + gradient area)
-            ForEach(primary.samples.filter { !$0.isFuture }) { p in
+            ForEach(primarySplit.past) { p in
                 LineMark(
                     x: .value("Time", p.time),
                     y: .value("mg", p.mg),
@@ -64,7 +76,7 @@ struct PeptideMedicationChart: View {
             }
 
             // Primary future (dotted projection)
-            ForEach(primary.samples.filter { $0.isFuture }) { p in
+            ForEach(primarySplit.future) { p in
                 LineMark(
                     x: .value("Time", p.time),
                     y: .value("mg", p.mg),
@@ -77,7 +89,8 @@ struct PeptideMedicationChart: View {
 
             // Comparison line
             if let comp = comparison {
-                ForEach(comp.samples.filter { !$0.isFuture }) { p in
+                let compSplit = splitAtNow(comp.samples)
+                ForEach(compSplit.past) { p in
                     LineMark(
                         x: .value("Time", p.time),
                         y: .value("mg", p.mg),
@@ -87,7 +100,7 @@ struct PeptideMedicationChart: View {
                     .interpolationMethod(.catmullRom)
                     .lineStyle(StrokeStyle(lineWidth: 1.8))
                 }
-                ForEach(comp.samples.filter { $0.isFuture }) { p in
+                ForEach(compSplit.future) { p in
                     LineMark(
                         x: .value("Time", p.time),
                         y: .value("mg", p.mg),
