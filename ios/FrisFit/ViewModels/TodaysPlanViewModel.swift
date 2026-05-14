@@ -83,6 +83,27 @@ final class TodaysPlanViewModel {
     /// Called on sign-out / account-switch. Drops in-memory plan state and
     /// cancels any in-flight refresh so the new account's home screen renders
     /// a loading shimmer instead of the previous user's brief.
+    /// Apply the hardcoded brief for the active demo persona, if any.
+    /// Returns true when a demo brief was applied so callers can short-circuit
+    /// the AI pipeline entirely. The hardcoded brief is the source of truth
+    /// for every persona screenshot — no network call, no stale time refs.
+    @discardableResult
+    private func applyDemoBriefIfActive() -> Bool {
+        guard let scenario = DemoModeProbe.activeScenario else { return false }
+        let brief = DemoBriefLibrary.brief(for: scenario)
+        planResponse = brief
+        historicalPlan = nil
+        historicalDate = nil
+        lastFetchDate = Date()
+        errorMessage = nil
+        isLoading = false
+        isBackgroundRefreshing = false
+        debounceTask?.cancel()
+        debounceTask = nil
+        pendingDebouncedContext = nil
+        return true
+    }
+
     func handleSignOutOrUserSwitch() {
         planResponse = nil
         historicalPlan = nil
@@ -121,6 +142,9 @@ final class TodaysPlanViewModel {
         UserDefaults.standard.removeObject(forKey: memoDateKey)
         UserDefaults.standard.removeObject(forKey: windowsDoneKey)
         UserDefaults.standard.removeObject(forKey: middayDoneKey)
+        // Immediately repaint with the new persona's hardcoded brief so the
+        // home screen never flashes an empty shimmer between personas.
+        applyDemoBriefIfActive()
     }
 
     var hasPlan: Bool { planResponse != nil }
@@ -157,6 +181,8 @@ final class TodaysPlanViewModel {
     }
 
     func loadCachedPlan() {
+        // Demo mode bypass — always render the persona's hardcoded brief.
+        if applyDemoBriefIfActive() { return }
         if let data = UserDefaults.standard.data(forKey: cacheKey),
            let timestamp = UserDefaults.standard.object(forKey: cacheDateKey) as? Date,
            Calendar.current.isDateInToday(timestamp),
@@ -396,6 +422,8 @@ final class TodaysPlanViewModel {
         personalRecords: [TrainPersonalRecord] = []
     ) {
         guard !isLoading else { return }
+        // Demo mode bypass — hardcoded brief, no AI call.
+        if applyDemoBriefIfActive() { return }
         // Catch-up for the anchored 1pm Haiku: if it's past 1pm, the user
         // hasn't gotten their midday refresh yet, and we're inside the
         // afternoon window, run it even if the window slot has been marked done.
@@ -456,6 +484,8 @@ final class TodaysPlanViewModel {
         personalRecords: [TrainPersonalRecord] = []
     ) {
         guard Self.logTriggerSources.contains(source) else { return }
+        // Demo mode bypass — hardcoded brief, no AI call.
+        if applyDemoBriefIfActive() { return }
 
         let context = TodaysPlanService.shared.assembleContext(
             firstName: firstName,
@@ -625,6 +655,8 @@ final class TodaysPlanViewModel {
         weeklyMuscleVolumes: [WeeklyMuscleVolume] = [],
         personalRecords: [TrainPersonalRecord] = []
     ) {
+        // Demo mode bypass — hardcoded brief, no AI call.
+        if applyDemoBriefIfActive() { return }
         let context = TodaysPlanService.shared.assembleContext(
             firstName: firstName,
             activeProtocol: activeProtocol,

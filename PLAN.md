@@ -1,29 +1,25 @@
-# Make demo briefs actually mirror the persona's data, and stop Theo's brief from breaking
+# Hardcode the Daily Brief per demo persona (for screenshots)
 
-## What's going wrong today
+## Why we're doing this
 
-Two separate issues, both rooted in the same place: the Daily Brief is pulling in real-account data even when a demo persona is active.
+The AI-generated brief has been brittle across persona switches: it either pulls in the real-account memo, truncates JSON on dense personas (Theo, Marcus), or shows "3am, nothing logged" at off-hours because today's persona meals haven't been "logged yet" in the live context. We've patched it multiple times and it still drifts. For screenshots we need 100% determinism — the brief must mirror the persona's cross-stream "aha" scenario, every time, with no AI roundtrip.
 
-**Theo's "couldn't generate" error**
-Theo has the densest bundle of any persona — a heavy program (5/3/1 BBB, 4 day split), two compounds (BPC-157 + TB-500) with full side-effect knowledge, 138 workouts of history, weekly volumes and PRs. When that gets layered on top of the signed-in user's long-term memory and the previous brief, the model's response runs past its output cap and the JSON closes mid-sentence, which we surface as "malformed."
+## What I'll do
 
-**Maya's brief saying one thing while her adjustments say another**
-The deterministic adjustment strip (rough sleep → half-volume etc.) is built from the demo-injected vitals, so it looks right. But the narrative body comes from the AI — and the AI is being fed the *real signed-in user's* long-term profile memo (from Supabase) and, on cold start, the *real user's* most recent cloud-saved brief. The model trusts that "authoritative" history over the mock data, so the narrative reads like the real account.
-
-## What I'll fix
-
-- **Quarantine demo mode from the cloud brief pipeline.** When a persona is active, the brief never hydrates from Supabase, never writes back to Supabase, and never reads the real user's long-term memory or pattern memo. Persona switches start from a clean slate every time.
-- **Give each persona its own seeded long-term memory.** A short, hand-tuned profile memo per persona (Maya / Priya / Theo / Marcus / Ava / Shayla) gets injected so the AI has the right "who this person is" anchor instead of falling back to the signed-in account's memo.
-- **Use the persona's display name in the brief greeting.** Right now the greeting depends on `ProfileService.cachedDisplayName`, which we already set — but I'll harden it so it never falls through to "there" or the real account's first name during a persona switch.
-- **Stop Theo's brief from truncating.**
-  - Raise the model's output ceiling on the deep pass so dense personas have room to land valid JSON.
-  - Tighten the compoundKnowledge block (cap side-effect lists, drop watch-out text on the second compound) so multi-compound personas like Theo and Marcus don't burn budget on boilerplate.
-  - On a malformed response, retry once with a smaller, leaner prompt instead of immediately surfacing the error.
-- **Make persona switching truly clean.** After switching personas, fully clear the in-memory previous brief, the window-done markers, the pattern memo, and the cloud-cached "latest briefing" snapshot — and only kick off the new fetch after the injected view-model state has settled.
+- **Add `DemoBriefLibrary`** — one hand-crafted `TodaysPlanResponse` per persona (Maya, Priya, Theo, Marcus, Ava, Shayla) that bakes in the exact cross-stream scenario from the brief:
+  - Maya: rough sleep → half-volume leg day
+  - Priya: dose-day GI → low-FODMAP nutrition pivot
+  - Theo: missed BPC-157 → Saturday pull soft-warning
+  - Marcus: ALT/LDL drift → omega-3 + provider conversation
+  - Ava: RHR +8 for 5 days → overtraining vs illness fork
+  - Shayla: borrowed Marcus's stack → start at half-dose
+  Each response has a full `narrative` (greeting/headline/body/watchFor/adaptiveCallout), `summary`, `modules` (protocol/nutrition/training/body where relevant), and 2-4 `actionItems`.
+- **Short-circuit `TodaysPlanViewModel`** — when `DemoModeProbe.isActive`, every refresh path (`refreshForWindowIfDue`, `handleDataChange`, `forceRefresh`, `loadCachedPlan`) sets `planResponse` directly from the library and skips the AI call entirely. No more "could not generate," no more stale time references.
+- **Repaint on persona switch** — `resetForPersonaSwitch` immediately re-applies the hardcoded brief for the new scenario instead of leaving an empty shimmer.
 
 ## How I'll verify it
 
-- Switch into Maya → the brief greeting says "Maya," references her 2,100 cal / 145g protein targets, her Upper/Lower Hypertrophy program, her squat/bench numbers, and the 4h 38m sleep + HRV -18% adjustment lines up with the narrative body (not contradicting it).
-- Switch into Theo → the brief loads without the "malformed" error, references his 5/3/1 BBB block, BPC-157 + TB-500 stack, and his recent pull numbers.
-- Bounce between two personas back-to-back and the second persona's brief never shows the first one's name, numbers, or program.
-- Sign out of demo mode → the real account's brief returns as before.
+- Switch into any of the 6 personas → brief loads instantly with persona-specific narrative, modules, and adaptive callout that match the persona's mock data.
+- No network call to the AI proxy in demo mode.
+- Switch personas back-to-back → second persona's brief shows immediately, no leftover content.
+- Sign out of demo mode → real account's AI brief returns as before.
