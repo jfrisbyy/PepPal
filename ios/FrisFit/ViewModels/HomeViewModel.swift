@@ -660,6 +660,7 @@ final class HomeViewModel {
     // MARK: - Historical loaders
 
     func loadWeeklyHistory(force: Bool = false) async {
+        if DemoModeManager.shared.isActive { return }
         let cal = Calendar.current
         let weekStart = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedWeekStart)) ?? selectedWeekStart
         let weekEnd = cal.date(byAdding: .day, value: 7, to: weekStart) ?? weekStart
@@ -671,6 +672,7 @@ final class HomeViewModel {
     }
 
     func loadMonthlyHistory(force: Bool = false) async {
+        if DemoModeManager.shared.isActive { return }
         let cal = Calendar.current
         let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: selectedMonthDate)) ?? selectedMonthDate
         let monthEnd = cal.date(byAdding: .month, value: 1, to: monthStart) ?? monthStart
@@ -1117,6 +1119,7 @@ final class HomeViewModel {
     }
 
     func loadTasksFromSupabase() {
+        if DemoModeManager.shared.isActive { return }
         guard AuthService.shared.authState == .signedIn else { return }
         tasksLoaded = true
         Task {
@@ -1482,6 +1485,7 @@ final class HomeViewModel {
     }
 
     func refresh() async {
+        if DemoModeManager.shared.isActive { return }
         if healthKit.isAuthorized {
             await healthKit.fetchAllData()
         }

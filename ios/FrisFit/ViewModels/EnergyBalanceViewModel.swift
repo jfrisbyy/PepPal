@@ -215,6 +215,7 @@ final class EnergyBalanceViewModel {
     }
 
     func loadData() {
+        if DemoModeManager.shared.isActive { hasLoaded = true; isLoading = false; return }
         if !hasLoaded {
             hasLoaded = true
             isLoading = true
@@ -258,6 +259,7 @@ final class EnergyBalanceViewModel {
     }
 
     func refresh() async {
+        if DemoModeManager.shared.isActive { return }
         await NutritionViewModel.sharedPersistenceWaiter()
         await fetchEnergyData()
     }

@@ -1,65 +1,60 @@
-# Six bulletproof demo personas baked into the app for screenshots
+# Make every demo persona internally consistent and let insights actually read the mock data
 
-## The approach
+## What's wrong today
 
-Instead of fighting Supabase seeding, we ship six **fully hardcoded demo personas** as Swift data inside the app. When you tap one in the new Demo Mode menu, the whole app reads from that persona's bundled data — dashboard, workouts, meals, protocols, labs, sleep, social, profile. No network, no edge functions, no RLS, no flakiness. Same data every time, perfect for screenshots.
+- Protocols and dose logs disagree with their own frequencies (Theo's TB-500 says "twice weekly" but logs every 3 days; Shayla "borrows Marcus's cut" but uses a compound Marcus doesn't run).
+- Persona bios contradict the data (Priya bio says 5.2 mg, protocol says 5 mg).
+- The runner gets bench-press exercises inside a "Long 14 mi" workout, and every persona shares the same chest/back/biceps weekly volume.
+- No persona has a real active program — only a string label that never reaches the app.
+- Every day in meal history is a copy-paste of today.
+- The daily brief is a hardcoded tagline; it never looks at the persona's weights, workouts, labs, sleep, or doses.
+- Sleep nights, HRV, resting heart rate, water, and steps don't exist as data anywhere — so "4h 38m last night" and "RHR +8 for 5 mornings" are just banner copy.
 
-## The six personas (each tuned to one scenario)
+## What I'll change
 
-1. **Maya — Rough Sleep → Adaptive Lift**
-  Hypertrophy lifter. 4h 38m sleep last night, sleep score 54, HRV ‑18%, RHR +6. Today is leg day. Dashboard surfaces the half-volume adaptive bundle with one-tap accept.
-2. **Priya — Side Effect → Nutrition Pivot**
-  GLP-1 journey. Tirzepatide dose yesterday, GI discomfort logged 4h ago. Nutrition tab swapped to low-FODMAP for 48h; camera meal log flags a burrito with a swap suggestion.
-3. **Theo — Missed Dose → Recalibrated Everything**
-  Peptide protocols. Wednesday's BPC-157 missed. Compound level sparkline dips, Saturday's heavy pull session carries a soft warning, next dose pushed forward.
-4. **Marcus — Bloodwork Shifted → Protocol + Plate Changes**
-  Health optimizer. Three panels showing ALT 38→52→68 and LDL 118→138→162. Two compounds flagged, omega-3 + fiber priorities active, hydration goal bumped, provider-conversation prompt.
-5. **Ava — RHR Elevated 5 Days → Illness/Overtraining Fork**
-  Endurance runner. Five mornings of RHR +8 with normal sleep. Two-path adaptive prompt on dashboard with real branches.
-6. **Shayla — Friend's protocol borrow + your context**  
-You borrow Marcus's cut protocol from the feed → App doesn't just copy it. It cross-checks against your current bloodwork, your sleep baseline, and your training load, then says *"Marcus runs this at 5mg — based on your labs and recovery, start at 2.5mg for 2 weeks."* The social feature becomes safer than Reddit because your data is the filter.
+**Protocols, dosages, frequencies — make them line up**
 
-## What every persona ships with
+- Theo: TB-500 logged twice weekly to match its label; BPC-157 daily with the Wednesday miss preserved.
+- Shayla: borrowed protocol switches to the same compound family Marcus runs, started at half-dose with a 2-week taper note, so the "Marcus runs this at 5 mg, you start at 2.5 mg" story is literally true.
+- Priya: bio, compound, and dose log all say 5 mg Tirzepatide weekly with the realistic titration ramp (2.5 → 5 mg).
+- Marcus: Test Cyp 100 mg weekly + Ipamorelin 300 mcg daily kept, vial sizes/reconstitution made internally consistent so the math works on the compound detail screen.
+- Maya: Ipamorelin replaced with a recovery-tied protocol that connects to her "listening to recovery for the first time" arc.
+- Ava: low-dose Ipamorelin kept, but tied to her endurance-recovery story with realistic cycle length.
+- Vial inventory and supply forecasts populated to match each protocol so the supply line in the brief has real numbers.
 
-Each of the six gets a complete, realistic 180-day history baked in:
+**Every persona gets a real active program**
 
-- **Profile**: name, archetype, avatar, bio, current/longest streak tuned to scenario
-- **Dashboard**: today's Daily Brief written for the scenario, today's tasks, banners, recovery score
-- **Workouts**: active program + archived prior block, 90–120 logged sessions over 180 days with sets/reps/RPE/notes, 8–15 PRs scaled to archetype
-- **Nutrition**: 150 days of meals at 3–5/day (~600 rows), macro targets, water + step logs
-- **Protocols**: active stack + completed prior stack, 4–6 vials, 120 days of dose logs with site rotation
-- **Bloodwork**: 3–4 panels spaced 8–12 weeks apart, 18–25 biomarkers each
-- **Sleep**: 90 nights with realistic variance
-- **Social**: a populated feed of posts/comments from the other five personas, 2–3 group memberships with active members and posts, 3–5 DM threads with real conversation history, a friends list full of friends that also have mock data and recent activity logs and profiles 
-- **Achievements**: badges, milestones, daily-task history at ~75% completion
+- A proper program object (not just a name) is injected for each persona: weekly day pattern, current week, deload weeks, sample lift targets where it applies, or weekly mileage where it applies.
+- An archived prior block is included so the program history isn't empty.
+- Workout names are pulled from the program's day list, and exercises inside each workout match the day (runner's "Long 14 mi" contains a long run, lifter's "Lower A" contains squat/RDL/hip thrust, etc.).
 
-## How it plugs in
+**Workout, meal, and recovery realism**
 
-- A new **Demo Mode** entry in Developer Settings (and a hidden long-press on the profile avatar) opens a clean picker showing just these six cards with the scenario name, archetype, and a one-line teaser.
-- Tapping a persona flips a global Demo Mode flag and swaps the active "user" in memory. All view models read from the persona's bundled dataset instead of Supabase while Demo Mode is on.
-- An exit button in the top status bar returns to your real account.
-- Old bloat removed: the conflicting "refresh fake personas / fully populate / seed 25 fakes / generate fake activity" buttons get deleted. Demo Mode is the single source of truth.
+- Workouts: 90–120 sessions across 180 days, named by program day, exercises consistent with that day, set/rep/weight scaled to archetype, ~5–6 PRs spread across the timeline.
+- Meals: 30 days of variance instead of the same three meals every day — breakfast/lunch/dinner pools per persona, weekend cheat meals, archetype-appropriate foods (low-FODMAP rotation for Priya around dose day, higher-carb long-run fuel for Ava, etc.).
+- Muscle recovery and weekly volumes: per-persona — Ava sees calves/hamstrings/hips with running mileage volumes, Theo sees posterior-chain-heavy lifter volumes, Priya sees beginner full-body, etc.
+- Bloodwork: persona-appropriate panels — Priya gets GLP-1-relevant markers, Ava gets ferritin/vit-D/iron, Maya gets a baseline hormone panel.
 
-## Design
+**New signals so insights have something to say**
 
-- Demo picker uses a dark hero card per persona with the scenario headline ("Rough sleep → adaptive lift"), persona name + archetype chip, and a tiny stat strip (streak, workouts, protocol).
-- A subtle persistent pill at the top of the screen reads **"Demo: Maya"** so screenshots can be retaken cleanly and you always know you're in demo mode.
-- Everything else looks exactly like the real app — that's the point.
+- Sleep nights for the last 90 days (Maya's last night = 4h 38m to match her scenario; Ava normal; Shayla averaging ~6.2h to match her brief copy).
+- Resting heart rate + HRV daily series (Ava's RHR +8 bpm streak baked in for the last 5 mornings; Maya's HRV −18% today).
+- Daily steps and water for the last 90 days, scaled to each archetype.
+- Side-effect log already exists for Priya; extended with realistic timing so the nutrition pivot story checks out.
 
-## Pages / Screens
+**Daily brief that reflects the data**
 
-- **Demo Mode picker** (new) — six persona cards, scenario-first.
-- **Dashboard** — reads scenario-specific Daily Brief + adaptive banner for the active persona.
-- **Workouts, Nutrition, Protocols, Bloodwork, Sleep, Social, Profile** — all transparently sourced from the persona's bundled dataset when Demo Mode is on.
-- **Developer Settings** — cleaned up: old fake-persona controls removed, replaced by a single "Open Demo Mode" entry.
+- The brief stops being a single hardcoded paragraph. Demo mode keeps each persona's headline as the hook, then the body lines are generated by the existing brief generator reading the (now real) injected data — recovery line from sleep/HRV, dose line from the protocol log, training line from today's program day and recovery state, nutrition line from macro target and recent intake, supply line from the vial inventory, bloodwork line where applicable.
+- If a line has nothing to say for a given persona it's dropped, so each persona's brief naturally focuses on its scenario.
 
-## Out of scope
+**One coherence check at the end**
 
-- No changes to Supabase, no edge function edits, no migrations.
-- Real accounts are untouched; Demo Mode is purely a local read-layer override.
+- A self-test pass that, for each persona, asserts: protocol frequency matches dose-log cadence, vial math is consistent, active program day count matches workout history naming, bloodwork panel matches archetype, sleep/HRV/RHR snapshot matches the persona's scenario, and the brief generator produces non-empty body lines.
 
-## Confirm before I build
+## What the user sees after the change
 
-- Six personas as listed, or include Jordan (borrowed protocol) as #7?
-- OK to fully delete the old fake-persona seeder buttons / edge-function action handlers from the client UI (server code untouched, just hidden)?
+- Tapping any of the six demo personas loads a coherent profile: bio matches protocol matches dose log matches vial math.
+- Every persona has an active program visible on the Train screen, with archived blocks behind it.
+- The daily brief reads like a synthesis of that persona's data, not a tagline — Maya's brief calls out her 4h 38m night and HRV drop, Ava's references the 5-morning RHR pattern, Marcus's quotes his actual ALT/LDL trend numbers from his real panels, Priya's swaps tonight's meal because of her real side-effect log, Theo's flags Saturday because of his real missed dose, Shayla's recommends 2.5 mg because Marcus's real protocol shows 5 mg.
+- Meal history, recovery, weekly volume, and bloodwork all look like they belong to that specific person, not a generic template.t user 
 

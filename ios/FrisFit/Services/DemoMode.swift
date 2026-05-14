@@ -46,7 +46,7 @@ nonisolated enum DemoScenario: String, CaseIterable, Sendable {
         case .maya: return "Hypertrophy lifter"
         case .priya: return "GLP-1 journey"
         case .theo: return "Peptide stack · BPC-157"
-        case .marcus: return "Health optimizer"
+        case .marcus: return "Health optimizer · TRT"
         case .ava: return "Endurance runner"
         case .shayla: return "Recomp · learning"
         }
@@ -55,11 +55,11 @@ nonisolated enum DemoScenario: String, CaseIterable, Sendable {
     var teaser: String {
         switch self {
         case .maya: return "4h 38m last night, HRV -18%, RHR +6. Leg day today — half-volume bundle ready."
-        case .priya: return "Tirzepatide yesterday, GI discomfort logged 4h ago. Low-FODMAP plan armed for 48h."
+        case .priya: return "Tirzepatide 5mg yesterday, GI discomfort logged 4h ago. Low-FODMAP plan armed for 48h."
         case .theo: return "BPC-157 missed Wednesday. Compound level dipped, Saturday pull flagged."
         case .marcus: return "ALT 38 → 52 → 68. LDL creeping. Two compounds flagged for review."
         case .ava: return "RHR +8 bpm for 5 mornings, sleep normal. Two-path prompt waiting."
-        case .shayla: return "Borrowed Marcus's cut at 5mg. Your labs say start at 2.5mg, 2 weeks."
+        case .shayla: return "Marcus runs Test Cyp at 100mg. Your labs say start at 50mg."
         }
     }
 
@@ -91,10 +91,6 @@ nonisolated struct DemoPersona: Sendable {
     let totalWorkouts: Int
     let followers: Int
     let following: Int
-    let dailyBriefHeadline: String
-    let dailyBriefBody: String
-    let adaptiveBannerTitle: String
-    let adaptiveBannerBody: String
     let goalType: String
     let macroCalories: Int
     let macroProtein: Int
@@ -125,7 +121,6 @@ final class DemoModeManager {
         if let raw = UserDefaults.standard.string(forKey: storageKey),
            let s = DemoScenario(rawValue: raw) {
             activeScenario = s
-            // Defer applying until next runloop tick so shared stores exist.
             DispatchQueue.main.async { [weak self] in
                 guard let self, let s = self.activeScenario else { return }
                 self.applyData(for: s)
@@ -143,14 +138,12 @@ final class DemoModeManager {
     func deactivate() {
         activeScenario = nil
         UserDefaults.standard.removeObject(forKey: storageKey)
-        // Wipe injected demo state so views fall back to real data.
         DemoDataInjector.clearAll()
         NotificationCenter.default.post(name: .demoPersonaChanged, object: nil)
     }
 
     private func applyData(for scenario: DemoScenario) {
-        guard let persona = DemoPersonaLibrary.persona(for: scenario) else { return }
-        DemoDataInjector.inject(persona: persona)
+        DemoDataInjector.injectShared(scenario: scenario)
     }
 }
 
@@ -159,75 +152,19 @@ extension Notification.Name {
 }
 
 // MARK: - Data injector
-// Pushes a persona's bundled data into the existing shared stores so
-// every screen reads it transparently.
 
 @MainActor
 enum DemoDataInjector {
-    static func inject(persona: DemoPersona) {
-        let p = persona
-
-        // 1) Profile / display name
-        ProfileService.shared.cachedDisplayName = p.scenario.fullName
-
-        // 2) Weight history — generate 180-day trend with daily noise.
-        let weights = DemoDataGenerator.weightSeries(
-            startLbs: p.weightStartLbs,
-            endLbs: p.weightTodayLbs,
-            days: 180
-        )
-
-        // 3) Workout history (90–120 sessions).
-        let workouts = DemoDataGenerator.workoutHistory(scenario: p.scenario, days: 180)
-
-        // 4) Personal records.
-        let prs = DemoDataGenerator.personalRecords(scenario: p.scenario)
-
-        // 5) Bloodwork.
-        let bw = DemoDataGenerator.bloodwork(scenario: p.scenario)
-
-        // 6) Protocol(s).
-        let protocols = DemoDataGenerator.protocols(scenario: p.scenario)
-
-        // 7) Macro target + today meals.
-        let macros = MacroTarget(calories: p.macroCalories, protein: p.macroProtein, carbs: p.macroCarbs, fat: p.macroFat)
-        let todayMeals = DemoDataGenerator.todayMeals(scenario: p.scenario)
-        let muscleRecovery = DemoDataGenerator.muscleRecovery(scenario: p.scenario)
-        let weeklyVolumes = DemoDataGenerator.weeklyVolumes(scenario: p.scenario)
-
-        InsightsDataStore.shared.update(
-            firstName: p.scenario.displayName,
-            activeProtocols: protocols,
-            workoutHistory: workouts,
-            todayMeals: todayMeals,
-            macroTarget: macros,
-            weightEntries: weights,
-            bodyMeasurements: [],
-            startingWeight: p.weightStartLbs,
-            targetWeight: p.weightTargetLbs,
-            bloodwork: bw,
-            muscleRecovery: muscleRecovery,
-            weeklyVolumes: weeklyVolumes,
-            personalRecords: prs,
-            activeProgram: nil
-        )
-
-        // 8) Recent meals by day (150 days at 3–4 meals/day, but cap to ~30 for memory).
-        let mealsByDay = DemoDataGenerator.mealsByDay(scenario: p.scenario, days: 30)
-        for (date, meals) in mealsByDay {
-            InsightsDataStore.shared.ingestDailyMeals(date: date, meals: meals)
-            NutritionViewModel.shared.mealsByDay[NutritionViewModel.dayKey(for: date)] = meals
-        }
-
-        // 9) Streak — seed N days into the activity log.
-        let logs = DemoDataGenerator.activityLogs(scenario: p.scenario)
-        StreakManager.shared.activityLog = logs
-        StreakManager.shared.recalculateStreak()
+    /// Inject the shared singletons (no view-model touch). Used at app launch /
+    /// `DemoModeManager.activate` before HomeView mounts.
+    static func injectShared(scenario: DemoScenario) {
+        guard let p = DemoPersonaLibrary.persona(for: scenario) else { return }
+        let bundle = DemoDataGenerator.buildBundle(scenario: scenario, persona: p)
+        applySharedSingletons(persona: p, bundle: bundle)
     }
 
-    /// Apply persona data into the per-screen ViewModels that HomeView owns.
-    /// These VMs are @State-owned (not singletons), so they need a direct push
-    /// every time the persona changes or the home screen reappears.
+    /// Inject the persona's bundled data into the per-screen view-models that
+    /// HomeView owns. Called every time the persona changes or HomeView reappears.
     static func injectInto(
         home: HomeViewModel,
         train: TrainViewModel,
@@ -236,24 +173,25 @@ enum DemoDataInjector {
         scenario: DemoScenario
     ) {
         guard let p = DemoPersonaLibrary.persona(for: scenario) else { return }
-        let protocols = DemoDataGenerator.protocols(scenario: scenario)
-        let workouts = DemoDataGenerator.workoutHistory(scenario: scenario, days: 180)
-        let prs = DemoDataGenerator.personalRecords(scenario: scenario)
-        let weights = DemoDataGenerator.weightSeries(startLbs: p.weightStartLbs, endLbs: p.weightTodayLbs, days: 180)
-        let muscleRec = DemoDataGenerator.muscleRecovery(scenario: scenario)
-        let weeklyVol = DemoDataGenerator.weeklyVolumes(scenario: scenario)
-        let mealsByDay = DemoDataGenerator.mealsByDay(scenario: scenario, days: 60)
+        let bundle = DemoDataGenerator.buildBundle(scenario: scenario, persona: p)
 
-        // HomeViewModel — protocols
-        home.allProtocols = protocols
-        home.activeProtocol = protocols.first { $0.isActive } ?? protocols.first
+        // Programs — feed both HomeViewModel and TrainViewModel so Train screen,
+        // Today's Plan, and the brief all see a real active program.
+        train.savedPrograms = [bundle.activeProgram, bundle.archivedProgram]
+        train.activeProgram = bundle.activeProgram
+        home.activeProgram = bundle.activeProgram
+        home.allActivePrograms = [bundle.activeProgram]
 
-        // TrainViewModel — workouts + PRs + recovery + weekly volume
-        train.workoutHistory = workouts
-        train.personalRecords = prs
+        // Protocols
+        home.allProtocols = bundle.protocols
+        home.activeProtocol = bundle.protocols.first(where: { $0.isActive }) ?? bundle.protocols.first
 
-        // BodyGoalViewModel — weights, target, starting, goal
-        body.weightEntries = weights.sorted { $0.date < $1.date }
+        // Train data
+        train.workoutHistory = bundle.workouts
+        train.personalRecords = bundle.prs
+
+        // Body goal
+        body.weightEntries = bundle.weights.sorted { $0.date < $1.date }
         body.targetWeight = p.weightTargetLbs
         body.goalTargetWeightText = String(format: "%.1f", p.weightTargetLbs)
         body.heightCm = p.heightCm
@@ -266,33 +204,81 @@ enum DemoDataInjector {
         }
         body.hasLoaded = true
 
-        // NutritionViewModel — meals by day
-        for (date, meals) in mealsByDay {
+        // Nutrition — 30 days of varied meals
+        for (date, meals) in bundle.mealsByDay {
             nutrition.mealsByDay[NutritionViewModel.dayKey(for: date)] = meals
         }
 
-        // Insights store mirrors
-        InsightsDataStore.shared.update(
+        // Shared singletons (insights store, sleep, HK, vials, streak, profile)
+        applySharedSingletons(persona: p, bundle: bundle, weights: body.weightEntries, todayMeals: bundle.todayMeals)
+    }
+
+    private static func applySharedSingletons(
+        persona p: DemoPersona,
+        bundle: DemoPersonaBundle,
+        weights: [WeightEntry]? = nil,
+        todayMeals: [LoggedMeal]? = nil
+    ) {
+        let weightSeries = weights ?? bundle.weights.sorted { $0.date < $1.date }
+        let today = todayMeals ?? bundle.todayMeals
+
+        // Profile display
+        ProfileService.shared.cachedDisplayName = p.scenario.fullName
+
+        // Insights data store
+        let store = InsightsDataStore.shared
+        store.update(
             firstName: p.scenario.displayName,
-            activeProtocols: protocols,
-            workoutHistory: workouts,
-            todayMeals: DemoDataGenerator.todayMeals(scenario: scenario),
+            activeProtocols: bundle.protocols,
+            workoutHistory: bundle.workouts,
+            todayMeals: today,
             macroTarget: MacroTarget(calories: p.macroCalories, protein: p.macroProtein, carbs: p.macroCarbs, fat: p.macroFat),
-            weightEntries: body.weightEntries,
+            weightEntries: weightSeries,
             bodyMeasurements: [],
             startingWeight: p.weightStartLbs,
             targetWeight: p.weightTargetLbs,
-            bloodwork: DemoDataGenerator.bloodwork(scenario: scenario),
-            muscleRecovery: muscleRec,
-            weeklyVolumes: weeklyVol,
-            personalRecords: prs,
-            activeProgram: nil
+            bloodwork: bundle.bloodwork,
+            muscleRecovery: bundle.muscleRecovery,
+            weeklyVolumes: bundle.weeklyVolumes,
+            personalRecords: bundle.prs,
+            activeProgram: bundle.activeProgram
         )
-        ProfileService.shared.cachedDisplayName = p.scenario.fullName
+        for (date, meals) in bundle.mealsByDay {
+            store.ingestDailyMeals(date: date, meals: meals)
+        }
+        store.updateInventory(vials: bundle.vials, lowStock: bundle.lowStock)
+        store.updateGoal(goalType: p.goalType, adaptiveReason: nil)
+        if let interp = bundle.bloodworkInterpretation {
+            store.updateBloodworkInterpretation(interp)
+            BloodworkInterpretationService.shared.interpretation = interp
+        } else {
+            store.updateBloodworkInterpretation(nil)
+            BloodworkInterpretationService.shared.interpretation = nil
+        }
+
+        // Vial inventory (drives compound detail vial math & supply line)
+        VialInventoryStore.shared.vials = bundle.vials
+
+        // Sleep logs — last 90 nights
+        let sleepVM = SleepLogViewModel.shared
+        for log in bundle.sleepLogs {
+            sleepVM.manualByNight[SleepLogViewModel.nightKey(for: log.night)] = log
+        }
+
+        // HealthKit snapshot — sleep/HRV/RHR/steps for the brief
+        let hk = HealthKitService.shared
+        hk.isAuthorized = true
+        hk.sleepHours = bundle.todaySleepHours
+        hk.hrv = bundle.todayHRV
+        hk.restingHeartRate = bundle.todayRHR
+        hk.steps = bundle.todaySteps
 
         // Streak
-        StreakManager.shared.activityLog = DemoDataGenerator.activityLogs(scenario: scenario)
+        StreakManager.shared.activityLog = bundle.activityLogs
         StreakManager.shared.recalculateStreak()
+
+        // Coherence self-test (printed once per activate)
+        DemoCoherenceCheck.run(persona: p, bundle: bundle)
     }
 
     static func clearAll() {
@@ -312,8 +298,18 @@ enum DemoDataInjector {
             personalRecords: [],
             activeProgram: nil
         )
+        InsightsDataStore.shared.updateInventory(vials: [], lowStock: [])
+        InsightsDataStore.shared.updateBloodworkInterpretation(nil)
+        BloodworkInterpretationService.shared.interpretation = nil
+        VialInventoryStore.shared.vials = []
+        SleepLogViewModel.shared.manualByNight = [:]
         StreakManager.shared.activityLog = []
         StreakManager.shared.recalculateStreak()
+        let hk = HealthKitService.shared
+        hk.sleepHours = 0
+        hk.hrv = nil
+        hk.restingHeartRate = nil
+        hk.steps = 0
     }
 }
 
@@ -324,174 +320,144 @@ nonisolated enum DemoPersonaLibrary {
         switch scenario {
         case .maya:
             return DemoPersona(
-                scenario: .maya,
-                bio: "Hypertrophy program · 3 yr training age · listening to recovery for the first time",
-                heightCm: 168,
-                currentStreak: 23,
-                longestStreak: 58,
-                weightStartLbs: 142,
-                weightTodayLbs: 139.4,
-                weightTargetLbs: 138,
-                activeProgramName: "Upper/Lower Hypertrophy",
-                archivedProgramName: "PPL 5-day",
-                totalWorkouts: 112,
-                followers: 184,
-                following: 96,
-                dailyBriefHeadline: "Last night cost you tonight",
-                dailyBriefBody: "4h 38m of sleep with HRV down 18% means your leg day will cost more than it gives. Half-volume keeps the stimulus, cuts the damage.",
-                adaptiveBannerTitle: "Something > nothing",
-                adaptiveBannerBody: "Try 3×5 instead of 5×5 at the same intensity. Reflow the missed volume to next week.",
+                scenario: .maya, bio: "Hypertrophy block · 3 yr training age · listening to recovery for the first time",
+                heightCm: 168, currentStreak: 23, longestStreak: 58,
+                weightStartLbs: 142, weightTodayLbs: 139.4, weightTargetLbs: 138,
+                activeProgramName: "Upper/Lower Hypertrophy", archivedProgramName: "Push/Pull/Legs",
+                totalWorkouts: 112, followers: 184, following: 96,
                 goalType: "Recomp",
-                macroCalories: 2100,
-                macroProtein: 145,
-                macroCarbs: 220,
-                macroFat: 70,
-                avgStepsPerDay: 8600,
-                avgSleepHours: 7.1
+                macroCalories: 2100, macroProtein: 145, macroCarbs: 220, macroFat: 70,
+                avgStepsPerDay: 8600, avgSleepHours: 7.1
             )
         case .priya:
             return DemoPersona(
-                scenario: .priya,
-                bio: "GLP-1 journey · 5.2mg Tirzepatide · learning what foods love me back",
-                heightCm: 162,
-                currentStreak: 41,
-                longestStreak: 41,
-                weightStartLbs: 198,
-                weightTodayLbs: 174.8,
-                weightTargetLbs: 158,
-                activeProgramName: "Beginner Strength 3x",
-                archivedProgramName: "Walking + Mobility",
-                totalWorkouts: 47,
-                followers: 312,
-                following: 88,
-                dailyBriefHeadline: "Yesterday's dose · today's plate",
-                dailyBriefBody: "GI discomfort 4h ago means your gut is still settling. Low-FODMAP, lower-fat, higher-protein for the next 48h — your protein floor still stands.",
-                adaptiveBannerTitle: "Low-FODMAP swaps loaded",
-                adaptiveBannerBody: "We swapped tonight's burrito suggestion for a rice bowl. Your hydration target is up 12 oz.",
+                scenario: .priya, bio: "GLP-1 journey · Tirzepatide 5 mg weekly · learning what foods love me back",
+                heightCm: 162, currentStreak: 41, longestStreak: 41,
+                weightStartLbs: 198, weightTodayLbs: 174.8, weightTargetLbs: 158,
+                activeProgramName: "Full Body Beginner 3x", archivedProgramName: "Walk + Mobility",
+                totalWorkouts: 47, followers: 312, following: 88,
                 goalType: "Weight Loss",
-                macroCalories: 1500,
-                macroProtein: 130,
-                macroCarbs: 130,
-                macroFat: 50,
-                avgStepsPerDay: 9100,
-                avgSleepHours: 7.4
+                macroCalories: 1500, macroProtein: 130, macroCarbs: 130, macroFat: 50,
+                avgStepsPerDay: 9100, avgSleepHours: 7.4
             )
         case .theo:
             return DemoPersona(
-                scenario: .theo,
-                bio: "Powerlifter rebuild · tendon recovery stack · trying to come back smart",
-                heightCm: 183,
-                currentStreak: 14,
-                longestStreak: 102,
-                weightStartLbs: 198,
-                weightTodayLbs: 201.2,
-                weightTargetLbs: 205,
-                activeProgramName: "5/3/1 BBB · Pull Focus",
-                archivedProgramName: "Conjugate · 2024",
-                totalWorkouts: 138,
-                followers: 421,
-                following: 134,
-                dailyBriefHeadline: "Wednesday's dose is rippling through your week",
-                dailyBriefBody: "BPC-157 missed on Wednesday. Compound level is below your usual baseline. Saturday's heavy pull session carries a soft warning — consider deload or push to Monday.",
-                adaptiveBannerTitle: "Tissue support is low",
-                adaptiveBannerBody: "Push the heavy pull to Monday. Next dose is shifted forward, not skipped.",
+                scenario: .theo, bio: "Powerlifter rebuild · BPC-157 + TB-500 tendon stack · coming back smart",
+                heightCm: 183, currentStreak: 14, longestStreak: 102,
+                weightStartLbs: 198, weightTodayLbs: 201.2, weightTargetLbs: 205,
+                activeProgramName: "5/3/1 · BBB", archivedProgramName: "Conjugate 2024",
+                totalWorkouts: 138, followers: 421, following: 134,
                 goalType: "Recovery + Strength",
-                macroCalories: 3000,
-                macroProtein: 200,
-                macroCarbs: 350,
-                macroFat: 90,
-                avgStepsPerDay: 7200,
-                avgSleepHours: 7.6
+                macroCalories: 3000, macroProtein: 200, macroCarbs: 350, macroFat: 90,
+                avgStepsPerDay: 7200, avgSleepHours: 7.6
             )
         case .marcus:
             return DemoPersona(
-                scenario: .marcus,
-                bio: "Health optimization · quarterly bloodwork · adjusting before the next draw",
-                heightCm: 180,
-                currentStreak: 89,
-                longestStreak: 89,
-                weightStartLbs: 192,
-                weightTodayLbs: 188.6,
-                weightTargetLbs: 190,
-                activeProgramName: "Optimizer Split",
-                archivedProgramName: "Pre-cycle Conditioning",
-                totalWorkouts: 165,
-                followers: 1840,
-                following: 211,
-                dailyBriefHeadline: "Your last 3 labs tell a story",
-                dailyBriefBody: "ALT trended 38 → 52 → 68 and LDL 118 → 138 → 162 over your last three panels. Two compounds in your current stack are most associated with hepatic load.",
-                adaptiveBannerTitle: "Adjust before the next draw",
-                adaptiveBannerBody: "Omega-3 + fiber are now priority foods. Hydration goal bumped 16 oz. Pre-built provider conversation ready.",
+                scenario: .marcus, bio: "Health optimization · Test Cyp 100 mg/wk + Ipamorelin · quarterly bloodwork",
+                heightCm: 180, currentStreak: 89, longestStreak: 89,
+                weightStartLbs: 192, weightTodayLbs: 188.6, weightTargetLbs: 190,
+                activeProgramName: "Optimizer PPL", archivedProgramName: "Pre-cycle Conditioning",
+                totalWorkouts: 165, followers: 1840, following: 211,
                 goalType: "Optimization",
-                macroCalories: 2600,
-                macroProtein: 180,
-                macroCarbs: 250,
-                macroFat: 90,
-                avgStepsPerDay: 11400,
-                avgSleepHours: 7.8
+                macroCalories: 2600, macroProtein: 180, macroCarbs: 250, macroFat: 90,
+                avgStepsPerDay: 11400, avgSleepHours: 7.8
             )
         case .ava:
             return DemoPersona(
-                scenario: .ava,
-                bio: "Marathon block · base phase · listening to the data this cycle",
-                heightCm: 170,
-                currentStreak: 67,
-                longestStreak: 142,
-                weightStartLbs: 132,
-                weightTodayLbs: 131.4,
-                weightTargetLbs: 130,
-                activeProgramName: "Marathon Base · Block 2",
-                archivedProgramName: "Marathon Base · Block 1",
-                totalWorkouts: 154,
-                followers: 612,
-                following: 188,
-                dailyBriefHeadline: "Five mornings of the same signal",
-                dailyBriefBody: "RHR is +8 bpm vs your 30-day baseline for 5 straight mornings, but sleep is normal. This pattern usually means one of two things — and the call is yours.",
-                adaptiveBannerTitle: "Two paths · pick one",
-                adaptiveBannerBody: "Feeling fine → 30% training deload this week. Feeling off → ipamorelin paused 5 days, hydration & sleep tasks bumped.",
+                scenario: .ava, bio: "Marathon block · base phase · low-dose ipamorelin for tendon recovery",
+                heightCm: 170, currentStreak: 67, longestStreak: 142,
+                weightStartLbs: 132, weightTodayLbs: 131.4, weightTargetLbs: 130,
+                activeProgramName: "Marathon Base · Block 2", archivedProgramName: "Marathon Base · Block 1",
+                totalWorkouts: 154, followers: 612, following: 188,
                 goalType: "Endurance",
-                macroCalories: 2400,
-                macroProtein: 120,
-                macroCarbs: 330,
-                macroFat: 80,
-                avgStepsPerDay: 14200,
-                avgSleepHours: 7.9
+                macroCalories: 2400, macroProtein: 120, macroCarbs: 330, macroFat: 80,
+                avgStepsPerDay: 14200, avgSleepHours: 7.9
             )
         case .shayla:
             return DemoPersona(
-                scenario: .shayla,
-                bio: "Year 2 of training · learning to read my own data · curious not chasing",
-                heightCm: 165,
-                currentStreak: 31,
-                longestStreak: 31,
-                weightStartLbs: 154,
-                weightTodayLbs: 149.8,
-                weightTargetLbs: 145,
-                activeProgramName: "Upper/Lower 4x",
-                archivedProgramName: "Full body 3x",
-                totalWorkouts: 72,
-                followers: 224,
-                following: 142,
-                dailyBriefHeadline: "Marcus runs this at 5mg",
-                dailyBriefBody: "You borrowed Marcus's cut protocol. Cross-checked against your labs (slightly elevated marker), sleep baseline (6.2h avg), and training load (high) — start at 2.5mg for 2 weeks.",
-                adaptiveBannerTitle: "Your data is the filter",
-                adaptiveBannerBody: "Recommended start 2.5mg · taper window 2 weeks · re-evaluate after next bloodwork.",
+                scenario: .shayla, bio: "Year 2 of training · borrowed Marcus's stack at half-dose · curious not chasing",
+                heightCm: 165, currentStreak: 31, longestStreak: 31,
+                weightStartLbs: 154, weightTodayLbs: 149.8, weightTargetLbs: 145,
+                activeProgramName: "Upper/Lower 4x", archivedProgramName: "Full Body 3x",
+                totalWorkouts: 72, followers: 224, following: 142,
                 goalType: "Cutting",
-                macroCalories: 1800,
-                macroProtein: 140,
-                macroCarbs: 170,
-                macroFat: 65,
-                avgStepsPerDay: 9600,
-                avgSleepHours: 6.4
+                macroCalories: 1800, macroProtein: 140, macroCarbs: 170, macroFat: 65,
+                avgStepsPerDay: 9600, avgSleepHours: 6.4
             )
         }
     }
 }
 
-// MARK: - Data generator
-// Deterministic procedural generation — same persona always produces the same series.
+// MARK: - Bundle
 
-nonisolated enum DemoDataGenerator {
+nonisolated struct DemoPersonaBundle: Sendable {
+    let activeProgram: TrainingProgram
+    let archivedProgram: TrainingProgram
+    let workouts: [WorkoutHistoryDetail]
+    let prs: [TrainPersonalRecord]
+    let protocols: [PeptideProtocol]
+    let vials: [Vial]
+    let lowStock: [SupplyForecast]
+    let weights: [WeightEntry]
+    let bloodwork: [BloodworkEntry]
+    let bloodworkInterpretation: BloodworkInterpretation?
+    let mealsByDay: [Date: [LoggedMeal]]
+    let todayMeals: [LoggedMeal]
+    let muscleRecovery: [MuscleRecoveryItem]
+    let weeklyVolumes: [WeeklyMuscleVolume]
+    let sleepLogs: [ManualSleepLog]
+    let todaySleepHours: Double
+    let todayHRV: Double?
+    let todayRHR: Double?
+    let todaySteps: Int
+    let activityLogs: [ActivityLog]
+}
+
+// MARK: - Data generator
+
+@MainActor
+enum DemoDataGenerator {
+    static func buildBundle(scenario: DemoScenario, persona p: DemoPersona) -> DemoPersonaBundle {
+        let (active, archived) = programs(for: scenario)
+        let workouts = workoutHistory(scenario: scenario, program: active, days: 180)
+        let prs = personalRecords(scenario: scenario)
+        let protocols = protocolStack(scenario: scenario)
+        let vials = vialInventory(for: protocols)
+        let lowStock = SupplyForecastService.lowStockForecasts(from: protocols)
+        let weights = weightSeries(startLbs: p.weightStartLbs, endLbs: p.weightTodayLbs, days: 180)
+        let bloodwork = bloodworkPanels(scenario: scenario)
+        let interp = bloodworkInterpretation(scenario: scenario, panels: bloodwork)
+        let mealsByDay = mealsByDay(scenario: scenario, days: 30)
+        let todayMeals = mealsByDay[Calendar.current.startOfDay(for: Date())] ?? mealsForToday(scenario: scenario)
+        let (muscleRec, weeklyVol) = muscleSnapshots(scenario: scenario, workouts: workouts)
+        let (sleepLogs, todaySleep, todayHRV, todayRHR) = sleepBundle(scenario: scenario, persona: p)
+
+        return DemoPersonaBundle(
+            activeProgram: active,
+            archivedProgram: archived,
+            workouts: workouts,
+            prs: prs,
+            protocols: protocols,
+            vials: vials,
+            lowStock: lowStock,
+            weights: weights,
+            bloodwork: bloodwork,
+            bloodworkInterpretation: interp,
+            mealsByDay: mealsByDay,
+            todayMeals: todayMeals,
+            muscleRecovery: muscleRec,
+            weeklyVolumes: weeklyVol,
+            sleepLogs: sleepLogs,
+            todaySleepHours: todaySleep,
+            todayHRV: todayHRV,
+            todayRHR: todayRHR,
+            todaySteps: stepsForToday(scenario: scenario, persona: p),
+            activityLogs: activityLogs(scenario: scenario, persona: p)
+        )
+    }
+
+    // MARK: Seeded RNG
+
     private static func seededRandom(_ seed: Int) -> () -> Double {
         var state = UInt64(bitPattern: Int64(seed &* 2654435761))
         if state == 0 { state = 0x9E3779B97F4A7C15 }
@@ -509,85 +475,398 @@ nonisolated enum DemoDataGenerator {
         return base &* 31 &+ salt
     }
 
+    // MARK: Weights
+
     static func weightSeries(startLbs: Double, endLbs: Double, days: Int) -> [WeightEntry] {
         let rand = seededRandom(Int(startLbs * 100) &+ Int(endLbs * 100))
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
-        let delta = (endLbs - startLbs) / Double(days - 1)
+        let delta = (endLbs - startLbs) / Double(max(1, days - 1))
         var out: [WeightEntry] = []
         out.reserveCapacity(days)
         for i in 0..<days {
             let dayOffset = -(days - 1 - i)
             guard let date = cal.date(byAdding: .day, value: dayOffset, to: today) else { continue }
-            let noise = (rand() - 0.5) * 1.6
+            let noise = (rand() - 0.5) * 1.4
             let weight = startLbs + delta * Double(i) + noise
             out.append(WeightEntry(weight: round(weight * 10) / 10, date: date))
         }
         return out
     }
 
-    static func workoutHistory(scenario: DemoScenario, days: Int) -> [WorkoutHistoryDetail] {
+    // MARK: Programs
+
+    private static func ex(_ id: String, sets: Int = 3, repsMin: Int = 8, repsMax: Int = 12) -> ProgramExercise? {
+        guard let exercise = ExerciseLibrary.all.first(where: { $0.id == id }) else { return nil }
+        return ProgramExercise(exercise: exercise, targetSets: sets, targetRepsMin: repsMin, targetRepsMax: repsMax)
+    }
+
+    private static func day(_ name: String, weekday: ProgramWeekday, _ exercises: [ProgramExercise?]) -> ProgramDay {
+        ProgramDay(name: name, exercises: exercises.compactMap { $0 }, scheduledWeekday: weekday.rawValue)
+    }
+
+    static func programs(for scenario: DemoScenario) -> (active: TrainingProgram, archived: TrainingProgram) {
+        switch scenario {
+        case .maya:
+            let lowerA = day("Lower A", weekday: .monday, [
+                ex("barbell-squat", sets: 4, repsMin: 6, repsMax: 8),
+                ex("romanian-deadlift", sets: 3, repsMin: 8, repsMax: 10),
+                ex("hip-thrust", sets: 3, repsMin: 8, repsMax: 12),
+                ex("leg-press", sets: 3, repsMin: 10, repsMax: 12),
+                ex("standing-calf-raise", sets: 3, repsMin: 12, repsMax: 15)
+            ])
+            let upperA = day("Upper A", weekday: .tuesday, [
+                ex("barbell-bench-press", sets: 4, repsMin: 6, repsMax: 8),
+                ex("barbell-row", sets: 4, repsMin: 6, repsMax: 8),
+                ex("dumbbell-shoulder-press", sets: 3, repsMin: 8, repsMax: 12),
+                ex("lat-pulldown", sets: 3, repsMin: 10, repsMax: 12),
+                ex("dumbbell-curl", sets: 3, repsMin: 10, repsMax: 12)
+            ])
+            let lowerB = day("Lower B", weekday: .thursday, [
+                ex("hip-thrust", sets: 4, repsMin: 6, repsMax: 8),
+                ex("front-squat", sets: 3, repsMin: 6, repsMax: 8),
+                ex("dumbbell-rdl", sets: 3, repsMin: 8, repsMax: 10),
+                ex("walking-lunges", sets: 3, repsMin: 10, repsMax: 12),
+                ex("seated-leg-curl", sets: 3, repsMin: 10, repsMax: 12)
+            ])
+            let upperB = day("Upper B", weekday: .friday, [
+                ex("incline-dumbbell-press", sets: 4, repsMin: 8, repsMax: 10),
+                ex("dumbbell-row", sets: 4, repsMin: 8, repsMax: 10),
+                ex("lateral-raises", sets: 3, repsMin: 12, repsMax: 15),
+                ex("face-pulls", sets: 3, repsMin: 12, repsMax: 15),
+                ex("tricep-pushdown", sets: 3, repsMin: 12, repsMax: 15)
+            ])
+            let active = TrainingProgram(name: "Upper/Lower Hypertrophy", type: .recurringSplit, daysPerWeek: 4, days: [lowerA, upperA, lowerB, upperB], isActive: true)
+            let archived = TrainingProgram(name: "Push/Pull/Legs", type: .recurringSplit, daysPerWeek: 6, days: pplArchive(), isActive: false)
+            return (active, archived)
+
+        case .priya:
+            let fbA = day("Full Body A", weekday: .monday, [
+                ex("goblet-squat", sets: 3, repsMin: 8, repsMax: 12),
+                ex("dumbbell-row", sets: 3, repsMin: 10, repsMax: 12),
+                ex("push-ups", sets: 3, repsMin: 6, repsMax: 10),
+                ex("plank", sets: 3, repsMin: 30, repsMax: 45)
+            ])
+            let fbB = day("Full Body B", weekday: .wednesday, [
+                ex("dumbbell-rdl", sets: 3, repsMin: 10, repsMax: 12),
+                ex("lat-pulldown", sets: 3, repsMin: 10, repsMax: 12),
+                ex("dumbbell-shoulder-press", sets: 3, repsMin: 10, repsMax: 12),
+                ex("glute-bridge", sets: 3, repsMin: 12, repsMax: 15)
+            ])
+            let fbC = day("Full Body C", weekday: .friday, [
+                ex("goblet-squat", sets: 3, repsMin: 10, repsMax: 12),
+                ex("seated-cable-row", sets: 3, repsMin: 10, repsMax: 12),
+                ex("incline-dumbbell-press", sets: 3, repsMin: 10, repsMax: 12),
+                ex("dead-bug", sets: 3, repsMin: 8, repsMax: 10)
+            ])
+            let active = TrainingProgram(name: "Full Body Beginner 3x", type: .recurringSplit, daysPerWeek: 3, days: [fbA, fbB, fbC], isActive: true)
+            let walking = day("Walk + Mobility", weekday: .saturday, [
+                ex("plank", sets: 3, repsMin: 20, repsMax: 30)
+            ])
+            let archived = TrainingProgram(name: "Walk + Mobility", type: .flexible, daysPerWeek: 5, days: [walking], isActive: false)
+            return (active, archived)
+
+        case .theo:
+            let bench = day("Bench Day", weekday: .monday, [
+                ex("barbell-bench-press", sets: 5, repsMin: 3, repsMax: 5),
+                ex("incline-barbell-press", sets: 5, repsMin: 8, repsMax: 10),
+                ex("barbell-row", sets: 4, repsMin: 6, repsMax: 8),
+                ex("tricep-pushdown", sets: 3, repsMin: 10, repsMax: 12)
+            ])
+            let squat = day("Squat Day", weekday: .tuesday, [
+                ex("barbell-squat", sets: 5, repsMin: 3, repsMax: 5),
+                ex("front-squat", sets: 5, repsMin: 5, repsMax: 8),
+                ex("romanian-deadlift", sets: 3, repsMin: 6, repsMax: 8),
+                ex("standing-calf-raise", sets: 3, repsMin: 10, repsMax: 12)
+            ])
+            let press = day("OHP Day", weekday: .thursday, [
+                ex("overhead-press", sets: 5, repsMin: 3, repsMax: 5),
+                ex("dumbbell-shoulder-press", sets: 5, repsMin: 8, repsMax: 10),
+                ex("pull-ups", sets: 4, repsMin: 5, repsMax: 8),
+                ex("dumbbell-curl", sets: 3, repsMin: 8, repsMax: 10)
+            ])
+            let pull = day("Deadlift Day", weekday: .saturday, [
+                ex("barbell-deadlift", sets: 5, repsMin: 1, repsMax: 3),
+                ex("barbell-row", sets: 5, repsMin: 6, repsMax: 8),
+                ex("lat-pulldown", sets: 3, repsMin: 8, repsMax: 10),
+                ex("plank", sets: 3, repsMin: 45, repsMax: 60)
+            ])
+            let active = TrainingProgram(name: "5/3/1 · BBB", type: .timedProgram, daysPerWeek: 4, days: [bench, squat, press, pull], isActive: true)
+            let archived = TrainingProgram(name: "Conjugate 2024", type: .recurringSplit, daysPerWeek: 4, days: [
+                day("Max Effort Upper", weekday: .monday, [ex("barbell-bench-press", sets: 5, repsMin: 1, repsMax: 3)]),
+                day("Max Effort Lower", weekday: .wednesday, [ex("barbell-squat", sets: 5, repsMin: 1, repsMax: 3)])
+            ], isActive: false)
+            return (active, archived)
+
+        case .marcus:
+            let push = day("Push", weekday: .monday, [
+                ex("incline-barbell-press", sets: 4, repsMin: 5, repsMax: 8),
+                ex("dumbbell-shoulder-press", sets: 3, repsMin: 8, repsMax: 12),
+                ex("chest-dips", sets: 3, repsMin: 8, repsMax: 12),
+                ex("tricep-pushdown", sets: 3, repsMin: 12, repsMax: 15),
+                ex("lateral-raises", sets: 3, repsMin: 12, repsMax: 15)
+            ])
+            let pull = day("Pull", weekday: .tuesday, [
+                ex("pull-ups", sets: 4, repsMin: 5, repsMax: 8),
+                ex("barbell-row", sets: 4, repsMin: 6, repsMax: 8),
+                ex("seated-cable-row", sets: 3, repsMin: 10, repsMax: 12),
+                ex("face-pulls", sets: 3, repsMin: 12, repsMax: 15),
+                ex("dumbbell-curl", sets: 3, repsMin: 10, repsMax: 12)
+            ])
+            let legs = day("Legs", weekday: .thursday, [
+                ex("front-squat", sets: 4, repsMin: 5, repsMax: 8),
+                ex("romanian-deadlift", sets: 3, repsMin: 6, repsMax: 8),
+                ex("walking-lunges", sets: 3, repsMin: 10, repsMax: 12),
+                ex("seated-leg-curl", sets: 3, repsMin: 10, repsMax: 12),
+                ex("standing-calf-raise", sets: 3, repsMin: 12, repsMax: 15)
+            ])
+            let cond = day("Conditioning", weekday: .saturday, [
+                ex("rowing-machine", sets: 1, repsMin: 20, repsMax: 30),
+                ex("kettlebell-swing", sets: 5, repsMin: 15, repsMax: 20)
+            ])
+            let active = TrainingProgram(name: "Optimizer PPL", type: .recurringSplit, daysPerWeek: 4, days: [push, pull, legs, cond], isActive: true)
+            let archived = TrainingProgram(name: "Pre-cycle Conditioning", type: .recurringSplit, daysPerWeek: 3, days: [
+                day("Conditioning A", weekday: .monday, [ex("rowing-machine", sets: 1, repsMin: 30, repsMax: 30)]),
+                day("Conditioning B", weekday: .wednesday, [ex("cycling", sets: 1, repsMin: 45, repsMax: 45)])
+            ], isActive: false)
+            return (active, archived)
+
+        case .ava:
+            // Runner program: easy + tempo + intervals + long run + 1 strength maint.
+            let easy = day("Easy Run · 6 mi", weekday: .monday, [
+                ex("treadmill-run", sets: 1, repsMin: 50, repsMax: 60)
+            ])
+            let tempo = day("Tempo · 4 mi", weekday: .tuesday, [
+                ex("treadmill-run", sets: 1, repsMin: 35, repsMax: 40)
+            ])
+            let strength = day("Strength Maint.", weekday: .wednesday, [
+                ex("dumbbell-rdl", sets: 3, repsMin: 8, repsMax: 10),
+                ex("walking-lunges", sets: 3, repsMin: 10, repsMax: 12),
+                ex("plank", sets: 3, repsMin: 45, repsMax: 60),
+                ex("standing-calf-raise", sets: 3, repsMin: 12, repsMax: 15)
+            ])
+            let intervals = day("Intervals · 6x800m", weekday: .thursday, [
+                ex("treadmill-run", sets: 1, repsMin: 40, repsMax: 45)
+            ])
+            let long = day("Long Run · 14 mi", weekday: .saturday, [
+                ex("treadmill-run", sets: 1, repsMin: 105, repsMax: 120)
+            ])
+            let active = TrainingProgram(name: "Marathon Base · Block 2", type: .timedProgram, daysPerWeek: 5, days: [easy, tempo, strength, intervals, long], isActive: true)
+            let archived = TrainingProgram(name: "Marathon Base · Block 1", type: .timedProgram, daysPerWeek: 4, days: [
+                day("Easy", weekday: .monday, [ex("treadmill-run", sets: 1, repsMin: 40, repsMax: 50)]),
+                day("Long", weekday: .saturday, [ex("treadmill-run", sets: 1, repsMin: 75, repsMax: 90)])
+            ], isActive: false)
+            return (active, archived)
+
+        case .shayla:
+            let upperA = day("Upper A", weekday: .monday, [
+                ex("dumbbell-bench-press", sets: 4, repsMin: 8, repsMax: 10),
+                ex("seated-cable-row", sets: 4, repsMin: 8, repsMax: 10),
+                ex("lateral-raises", sets: 3, repsMin: 12, repsMax: 15),
+                ex("dumbbell-curl", sets: 3, repsMin: 10, repsMax: 12),
+                ex("tricep-pushdown", sets: 3, repsMin: 12, repsMax: 15)
+            ])
+            let lowerA = day("Lower A", weekday: .tuesday, [
+                ex("hip-thrust", sets: 4, repsMin: 8, repsMax: 10),
+                ex("goblet-squat", sets: 3, repsMin: 10, repsMax: 12),
+                ex("dumbbell-rdl", sets: 3, repsMin: 8, repsMax: 10),
+                ex("walking-lunges", sets: 3, repsMin: 10, repsMax: 12)
+            ])
+            let upperB = day("Upper B", weekday: .thursday, [
+                ex("incline-dumbbell-press", sets: 4, repsMin: 8, repsMax: 10),
+                ex("lat-pulldown", sets: 4, repsMin: 10, repsMax: 12),
+                ex("face-pulls", sets: 3, repsMin: 12, repsMax: 15),
+                ex("hammer-curl", sets: 3, repsMin: 10, repsMax: 12)
+            ])
+            let lowerB = day("Lower B", weekday: .friday, [
+                ex("hip-thrust", sets: 3, repsMin: 10, repsMax: 12),
+                ex("leg-press", sets: 3, repsMin: 10, repsMax: 12),
+                ex("seated-leg-curl", sets: 3, repsMin: 12, repsMax: 15),
+                ex("standing-calf-raise", sets: 3, repsMin: 12, repsMax: 15)
+            ])
+            let active = TrainingProgram(name: "Upper/Lower 4x", type: .recurringSplit, daysPerWeek: 4, days: [upperA, lowerA, upperB, lowerB], isActive: true)
+            let archived = TrainingProgram(name: "Full Body 3x", type: .recurringSplit, daysPerWeek: 3, days: [
+                day("FB A", weekday: .monday, [ex("goblet-squat", sets: 3, repsMin: 10, repsMax: 12)]),
+                day("FB B", weekday: .wednesday, [ex("dumbbell-rdl", sets: 3, repsMin: 10, repsMax: 12)])
+            ], isActive: false)
+            return (active, archived)
+        }
+    }
+
+    private static func pplArchive() -> [ProgramDay] {
+        return [
+            day("Push", weekday: .monday, [
+                ex("barbell-bench-press", sets: 4, repsMin: 6, repsMax: 8),
+                ex("dumbbell-shoulder-press", sets: 3, repsMin: 8, repsMax: 10)
+            ]),
+            day("Pull", weekday: .tuesday, [
+                ex("barbell-row", sets: 4, repsMin: 6, repsMax: 8),
+                ex("lat-pulldown", sets: 3, repsMin: 10, repsMax: 12)
+            ]),
+            day("Legs", weekday: .wednesday, [
+                ex("barbell-squat", sets: 4, repsMin: 6, repsMax: 8),
+                ex("romanian-deadlift", sets: 3, repsMin: 8, repsMax: 10)
+            ])
+        ]
+    }
+
+    // MARK: Workouts
+
+    static func workoutHistory(scenario: DemoScenario, program: TrainingProgram, days: Int) -> [WorkoutHistoryDetail] {
         let rand = seededRandom(seed(scenario, 1))
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         var out: [WorkoutHistoryDetail] = []
-        let names: [String]
-        let exercisePool: [(String, Double, Int)]
-        switch scenario {
-        case .maya:
-            names = ["Lower A", "Upper A", "Lower B", "Upper B"]
-            exercisePool = [("Back Squat", 165, 5), ("RDL", 175, 6), ("Hip Thrust", 225, 8), ("Bench Press", 115, 6), ("Row", 125, 8), ("Overhead Press", 75, 6), ("Lat Pulldown", 110, 10), ("Leg Press", 290, 10)]
-        case .priya:
-            names = ["Full Body A", "Full Body B", "Walking + Core"]
-            exercisePool = [("Goblet Squat", 35, 10), ("DB Row", 25, 10), ("Push-Up (Incline)", 0, 8), ("DB RDL", 40, 10), ("Plank", 0, 45), ("Hip Bridge", 0, 12)]
-        case .theo:
-            names = ["Bench Day", "Squat Day", "Deadlift Day", "OHP Day"]
-            exercisePool = [("Bench Press", 275, 3), ("Squat", 365, 3), ("Deadlift", 425, 1), ("Overhead Press", 175, 3), ("Pendlay Row", 225, 5), ("Front Squat", 245, 5)]
-        case .marcus:
-            names = ["Push", "Pull", "Legs", "Conditioning"]
-            exercisePool = [("Incline Bench", 185, 6), ("Weighted Pull-Up", 45, 6), ("Front Squat", 225, 5), ("RDL", 245, 6), ("Dip", 90, 8), ("Bike Intervals", 0, 30)]
-        case .ava:
-            names = ["Easy 6mi", "Tempo 4mi", "Long 14mi", "Intervals", "Strength Maint."]
-            exercisePool = [("Easy Run", 0, 60), ("Tempo Run", 0, 38), ("Long Run", 0, 110), ("Single Leg DL", 95, 8), ("Plank Walkout", 0, 10)]
-        case .shayla:
-            names = ["Upper A", "Lower A", "Upper B", "Lower B"]
-            exercisePool = [("Goblet Squat", 50, 8), ("DB Bench", 35, 10), ("Lat Pulldown", 90, 10), ("Hip Thrust", 165, 10), ("DB Curl", 20, 12), ("Tricep Pushdown", 60, 12)]
-        }
-        // Roughly 5 sessions/week → days * 5/7
-        let targetCount = Int(Double(days) * 5.0 / 7.0)
-        var dayOffset = 0
-        while out.count < targetCount && dayOffset < days {
+        let daysPerWeek = max(1, program.daysPerWeek)
+        let target = Int(Double(days) * Double(daysPerWeek) / 7.0)
+        var dayOffset = 1
+        var dayIdx = 0
+
+        while out.count < target && dayOffset < days {
             guard let date = cal.date(byAdding: .day, value: -dayOffset, to: today) else { break }
             dayOffset += 1
-            // Skip ~30% of days as rest
-            if rand() < 0.28 { continue }
-            let name = names[(dayOffset) % names.count]
-            let numExercises = 4 + Int(rand() * 4)
+            // Skip rare days (life happens)
+            if rand() < 0.08 { continue }
+            let dayPlan = program.days[dayIdx % program.days.count]
+            dayIdx += 1
             var exercises: [WorkoutHistoryExerciseDetail] = []
             var totalVolume = 0
-            for _ in 0..<numExercises {
-                let pick = exercisePool[Int(rand() * Double(exercisePool.count)) % exercisePool.count]
-                let setCount = 3 + Int(rand() * 2)
+            for pe in dayPlan.exercises {
+                let setCount = max(1, pe.targetSets + (rand() < 0.3 ? -1 : 0))
+                let baseWeight = baseLoadFor(scenario: scenario, exerciseName: pe.exerciseName)
+                let baseReps = (pe.targetRepsMin + pe.targetRepsMax) / 2
                 var sets: [WorkoutHistorySetDetail] = []
                 for s in 1...setCount {
-                    let w = max(0, pick.1 + (rand() - 0.5) * 10)
-                    let r = max(1, pick.2 + Int((rand() - 0.5) * 4))
-                    sets.append(WorkoutHistorySetDetail(setNumber: s, weight: round(w), reps: r))
-                    totalVolume += Int(w) * r
+                    let weightJitter = (rand() - 0.5) * max(5, baseWeight * 0.05)
+                    let weight = baseWeight > 0 ? max(0, round(baseWeight + weightJitter)) : 0
+                    let reps = max(1, baseReps + Int((rand() - 0.5) * 3))
+                    sets.append(WorkoutHistorySetDetail(setNumber: s, weight: weight, reps: reps))
+                    totalVolume += Int(weight) * reps
                 }
-                exercises.append(WorkoutHistoryExerciseDetail(exerciseName: pick.0, sets: sets))
+                exercises.append(WorkoutHistoryExerciseDetail(exerciseName: pe.exerciseName, sets: sets))
             }
             out.append(WorkoutHistoryDetail(
-                name: name,
+                name: dayPlan.name,
                 date: date,
                 durationMinutes: 45 + Int(rand() * 35),
                 totalVolume: totalVolume,
-                caloriesBurned: 220 + Int(rand() * 200),
+                caloriesBurned: 220 + Int(rand() * 220),
                 exercises: exercises
             ))
         }
         return out
     }
+
+    private static func baseLoadFor(scenario: DemoScenario, exerciseName: String) -> Double {
+        // Loads scaled to archetype. lbs.
+        switch scenario {
+        case .maya:
+            switch exerciseName {
+            case "Barbell Back Squat": return 175
+            case "Barbell Bench Press": return 115
+            case "Romanian Deadlift": return 185
+            case "Barbell Hip Thrust": return 245
+            case "Front Squat": return 135
+            case "Incline Dumbbell Press": return 35
+            case "Dumbbell Shoulder Press": return 30
+            case "Barbell Row": return 115
+            case "Single-Arm Dumbbell Row": return 40
+            case "Lat Pulldown": return 105
+            case "Leg Press": return 280
+            case "Dumbbell Romanian Deadlift": return 50
+            case "Walking Lunges": return 25
+            case "Lateral Raises", "Face Pulls", "Tricep Pushdown", "Dumbbell Curl": return 25
+            case "Standing Calf Raise", "Seated Leg Curl": return 90
+            default: return 0
+            }
+        case .priya:
+            switch exerciseName {
+            case "Goblet Squat": return 35
+            case "Single-Arm Dumbbell Row": return 25
+            case "Push-Ups": return 0
+            case "Plank": return 0
+            case "Dumbbell Romanian Deadlift": return 30
+            case "Lat Pulldown": return 60
+            case "Dumbbell Shoulder Press": return 15
+            case "Glute Bridge": return 0
+            case "Seated Cable Row": return 60
+            case "Incline Dumbbell Press": return 20
+            case "Dead Bug": return 0
+            default: return 0
+            }
+        case .theo:
+            switch exerciseName {
+            case "Barbell Bench Press": return 275
+            case "Incline Barbell Press": return 205
+            case "Barbell Row": return 225
+            case "Barbell Back Squat": return 365
+            case "Front Squat": return 275
+            case "Romanian Deadlift": return 315
+            case "Barbell Overhead Press": return 175
+            case "Dumbbell Shoulder Press": return 70
+            case "Pull-Ups": return 0
+            case "Barbell Deadlift": return 425
+            case "Lat Pulldown": return 200
+            case "Dumbbell Curl": return 40
+            case "Tricep Pushdown": return 70
+            case "Standing Calf Raise": return 180
+            case "Plank": return 0
+            default: return 0
+            }
+        case .marcus:
+            switch exerciseName {
+            case "Incline Barbell Press": return 185
+            case "Dumbbell Shoulder Press": return 60
+            case "Chest Dips": return 45
+            case "Tricep Pushdown": return 75
+            case "Lateral Raises": return 25
+            case "Pull-Ups": return 25 // weighted
+            case "Barbell Row": return 185
+            case "Seated Cable Row": return 160
+            case "Face Pulls": return 60
+            case "Dumbbell Curl": return 40
+            case "Front Squat": return 225
+            case "Romanian Deadlift": return 245
+            case "Walking Lunges": return 40
+            case "Seated Leg Curl": return 130
+            case "Standing Calf Raise": return 200
+            case "Rowing Machine", "Stationary Cycling": return 0
+            case "Kettlebell Swing": return 53
+            default: return 0
+            }
+        case .ava:
+            switch exerciseName {
+            case "Dumbbell Romanian Deadlift": return 80
+            case "Walking Lunges": return 25
+            case "Plank": return 0
+            case "Standing Calf Raise": return 90
+            case "Treadmill Run": return 0
+            default: return 0
+            }
+        case .shayla:
+            switch exerciseName {
+            case "Dumbbell Bench Press": return 35
+            case "Seated Cable Row": return 90
+            case "Lateral Raises": return 12
+            case "Dumbbell Curl": return 20
+            case "Tricep Pushdown": return 50
+            case "Barbell Hip Thrust": return 165
+            case "Goblet Squat": return 50
+            case "Dumbbell Romanian Deadlift": return 45
+            case "Walking Lunges": return 25
+            case "Incline Dumbbell Press": return 30
+            case "Lat Pulldown": return 85
+            case "Face Pulls": return 40
+            case "Hammer Curl": return 22
+            case "Leg Press": return 230
+            case "Seated Leg Curl": return 90
+            case "Standing Calf Raise": return 110
+            default: return 0
+            }
+        }
+    }
+
+    // MARK: PRs
 
     static func personalRecords(scenario: DemoScenario) -> [TrainPersonalRecord] {
         let cal = Calendar.current
@@ -596,46 +875,263 @@ nonisolated enum DemoDataGenerator {
         switch scenario {
         case .maya:
             return [
-                TrainPersonalRecord(exerciseName: "Back Squat", weight: 185, reps: 5, dateAchieved: d(12), isNew: true, previousBest: 175),
-                TrainPersonalRecord(exerciseName: "Hip Thrust", weight: 265, reps: 8, dateAchieved: d(28), isNew: false, previousBest: 245),
-                TrainPersonalRecord(exerciseName: "RDL", weight: 195, reps: 6, dateAchieved: d(45), isNew: false, previousBest: 185),
-                TrainPersonalRecord(exerciseName: "Bench Press", weight: 125, reps: 6, dateAchieved: d(64), isNew: false, previousBest: 120),
+                TrainPersonalRecord(exerciseName: "Barbell Back Squat", weight: 185, reps: 5, dateAchieved: d(12), isNew: true, previousBest: 175),
+                TrainPersonalRecord(exerciseName: "Barbell Hip Thrust", weight: 265, reps: 8, dateAchieved: d(28), isNew: false, previousBest: 245),
+                TrainPersonalRecord(exerciseName: "Romanian Deadlift", weight: 205, reps: 6, dateAchieved: d(45), isNew: false, previousBest: 185),
+                TrainPersonalRecord(exerciseName: "Barbell Bench Press", weight: 125, reps: 6, dateAchieved: d(64), isNew: false, previousBest: 120),
+                TrainPersonalRecord(exerciseName: "Front Squat", weight: 145, reps: 5, dateAchieved: d(78), isNew: false, previousBest: 135)
             ]
         case .priya:
             return [
                 TrainPersonalRecord(exerciseName: "Goblet Squat", weight: 45, reps: 12, dateAchieved: d(8), isNew: true, previousBest: 35),
-                TrainPersonalRecord(exerciseName: "DB Row", weight: 30, reps: 12, dateAchieved: d(22), isNew: false, previousBest: 25),
-                TrainPersonalRecord(exerciseName: "Plank (sec)", weight: 75, reps: 1, dateAchieved: d(35), isNew: false, previousBest: 60),
+                TrainPersonalRecord(exerciseName: "Single-Arm Dumbbell Row", weight: 30, reps: 12, dateAchieved: d(22), isNew: false, previousBest: 25),
+                TrainPersonalRecord(exerciseName: "Plank", weight: 0, reps: 75, dateAchieved: d(35), isNew: false, previousBest: 60),
+                TrainPersonalRecord(exerciseName: "Dumbbell Romanian Deadlift", weight: 35, reps: 10, dateAchieved: d(56), isNew: false, previousBest: 25)
             ]
         case .theo:
             return [
-                TrainPersonalRecord(exerciseName: "Deadlift", weight: 485, reps: 1, dateAchieved: d(31), isNew: false, previousBest: 475),
-                TrainPersonalRecord(exerciseName: "Back Squat", weight: 405, reps: 3, dateAchieved: d(48), isNew: false, previousBest: 395),
-                TrainPersonalRecord(exerciseName: "Bench Press", weight: 305, reps: 3, dateAchieved: d(62), isNew: false, previousBest: 295),
-                TrainPersonalRecord(exerciseName: "Overhead Press", weight: 195, reps: 3, dateAchieved: d(88), isNew: false, previousBest: 185),
+                TrainPersonalRecord(exerciseName: "Barbell Deadlift", weight: 485, reps: 1, dateAchieved: d(31), isNew: false, previousBest: 475),
+                TrainPersonalRecord(exerciseName: "Barbell Back Squat", weight: 405, reps: 3, dateAchieved: d(48), isNew: false, previousBest: 395),
+                TrainPersonalRecord(exerciseName: "Barbell Bench Press", weight: 305, reps: 3, dateAchieved: d(62), isNew: false, previousBest: 295),
+                TrainPersonalRecord(exerciseName: "Barbell Overhead Press", weight: 195, reps: 3, dateAchieved: d(88), isNew: false, previousBest: 185),
+                TrainPersonalRecord(exerciseName: "Front Squat", weight: 315, reps: 3, dateAchieved: d(104), isNew: false, previousBest: 305)
             ]
         case .marcus:
             return [
-                TrainPersonalRecord(exerciseName: "Weighted Pull-Up", weight: 70, reps: 5, dateAchieved: d(18), isNew: true, previousBest: 60),
-                TrainPersonalRecord(exerciseName: "Incline Bench", weight: 205, reps: 6, dateAchieved: d(35), isNew: false, previousBest: 195),
+                TrainPersonalRecord(exerciseName: "Pull-Ups", weight: 70, reps: 5, dateAchieved: d(18), isNew: true, previousBest: 60),
+                TrainPersonalRecord(exerciseName: "Incline Barbell Press", weight: 205, reps: 6, dateAchieved: d(35), isNew: false, previousBest: 195),
                 TrainPersonalRecord(exerciseName: "Front Squat", weight: 245, reps: 5, dateAchieved: d(52), isNew: false, previousBest: 235),
+                TrainPersonalRecord(exerciseName: "Romanian Deadlift", weight: 275, reps: 5, dateAchieved: d(70), isNew: false, previousBest: 265)
             ]
         case .ava:
             return [
-                TrainPersonalRecord(exerciseName: "Half Marathon", weight: 1, reps: 1, dateAchieved: d(21), isNew: true, previousBest: nil),
-                TrainPersonalRecord(exerciseName: "5K", weight: 1, reps: 1, dateAchieved: d(56), isNew: false, previousBest: nil),
-                TrainPersonalRecord(exerciseName: "10K", weight: 1, reps: 1, dateAchieved: d(90), isNew: false, previousBest: nil),
+                TrainPersonalRecord(exerciseName: "Half Marathon", weight: 13, reps: 1, dateAchieved: d(21), isNew: true, previousBest: nil),
+                TrainPersonalRecord(exerciseName: "5K", weight: 3, reps: 1, dateAchieved: d(56), isNew: false, previousBest: nil),
+                TrainPersonalRecord(exerciseName: "10K", weight: 6, reps: 1, dateAchieved: d(90), isNew: false, previousBest: nil),
+                TrainPersonalRecord(exerciseName: "Long Run", weight: 18, reps: 1, dateAchieved: d(35), isNew: false, previousBest: nil)
             ]
         case .shayla:
             return [
-                TrainPersonalRecord(exerciseName: "Hip Thrust", weight: 185, reps: 8, dateAchieved: d(14), isNew: true, previousBest: 165),
+                TrainPersonalRecord(exerciseName: "Barbell Hip Thrust", weight: 185, reps: 8, dateAchieved: d(14), isNew: true, previousBest: 165),
                 TrainPersonalRecord(exerciseName: "Goblet Squat", weight: 60, reps: 8, dateAchieved: d(34), isNew: false, previousBest: 50),
-                TrainPersonalRecord(exerciseName: "DB Bench", weight: 40, reps: 10, dateAchieved: d(55), isNew: false, previousBest: 35),
+                TrainPersonalRecord(exerciseName: "Dumbbell Bench Press", weight: 40, reps: 10, dateAchieved: d(55), isNew: false, previousBest: 35),
+                TrainPersonalRecord(exerciseName: "Lat Pulldown", weight: 100, reps: 10, dateAchieved: d(72), isNew: false, previousBest: 90)
             ]
         }
     }
 
-    static func bloodwork(scenario: DemoScenario) -> [BloodworkEntry] {
+    // MARK: Protocols
+
+    static func protocolStack(scenario: DemoScenario) -> [PeptideProtocol] {
+        let cal = Calendar.current
+        let today = Date()
+        let sites: [InjectionSite] = InjectionSite.allCases
+        func ts(daysAgo: Int) -> Date { cal.date(byAdding: .day, value: -daysAgo, to: today) ?? today }
+
+        switch scenario {
+        case .maya:
+            // No peptide protocol — Maya's story is sleep/recovery, not pharmacology.
+            return []
+
+        case .priya:
+            // Tirzepatide 5 mg weekly. Vial = 10 mg reconstituted with 2 mL diluent
+            // → 5 mg/mL, draw 1 mL per 5 mg dose. 18 weekly doses (titrated 2.5→5).
+            let compound = ProtocolCompound(
+                compoundName: "Tirzepatide", doseMcg: 5000, frequency: "Weekly",
+                injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 10
+            )
+            var logs: [DoseLogEntry] = []
+            // Weeks 0-3: titration at 2.5mg, then 5mg from week 4 onward.
+            for w in 0..<18 {
+                let d = w * 7 + 2 // dosed every Wed
+                let dose: Double = w < 4 ? 2500 : 5000
+                logs.append(DoseLogEntry(
+                    compoundName: "Tirzepatide", doseMcg: dose,
+                    timestamp: ts(daysAgo: d), injectionSite: sites[w % sites.count]
+                ))
+            }
+            var proto = PeptideProtocol(
+                name: "Tirzepatide Titration", goal: .weightLoss, compounds: [compound],
+                startDate: ts(daysAgo: 126), totalWeeks: 26, loadingWeeks: 4,
+                maintenanceWeeks: 18, taperingWeeks: 4, offCycleWeeks: nil,
+                isActive: true, doseLog: logs
+            )
+            proto.sideEffectLog = [
+                SideEffectEntry(timestamp: cal.date(byAdding: .hour, value: -4, to: today) ?? today, effect: "GI discomfort", severity: 3, notes: "After dinner, ~28h post-dose. Burrito night."),
+                SideEffectEntry(timestamp: cal.date(byAdding: .day, value: -8, to: today) ?? today, effect: "Mild nausea", severity: 2, notes: "Morning after dose."),
+                SideEffectEntry(timestamp: cal.date(byAdding: .day, value: -22, to: today) ?? today, effect: "Constipation", severity: 2, notes: "Resolved after fiber bump.")
+            ]
+            return [proto]
+
+        case .theo:
+            // BPC-157 250 mcg daily SC, TB-500 2.5 mg twice weekly.
+            // BPC vial: 5 mg / 2 mL → 2.5 mg/mL → 0.1 mL per 250 mcg dose.
+            // TB-500 vial: 10 mg / 2 mL → 5 mg/mL → 0.5 mL per 2.5 mg dose.
+            let bpc = ProtocolCompound(
+                compoundName: "BPC-157", doseMcg: 250, frequency: "Daily",
+                injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 5
+            )
+            let tb = ProtocolCompound(
+                compoundName: "TB-500", doseMcg: 2500, frequency: "Twice weekly",
+                injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 10
+            )
+            var logs: [DoseLogEntry] = []
+            for d in 0..<90 {
+                if d == 2 {
+                    logs.append(DoseLogEntry(
+                        compoundName: "BPC-157", doseMcg: 250,
+                        timestamp: ts(daysAgo: d), injectionSite: sites[d % sites.count],
+                        wasSkipped: true, skipReason: "Forgot — out of town"
+                    ))
+                    continue
+                }
+                logs.append(DoseLogEntry(
+                    compoundName: "BPC-157", doseMcg: 250,
+                    timestamp: ts(daysAgo: d), injectionSite: sites[d % sites.count]
+                ))
+            }
+            // TB-500 twice weekly: Mon + Thu (offsets 0/3/7/10/14/17/...)
+            for week in 0..<13 {
+                for offset in [0, 3] {
+                    let d = week * 7 + offset
+                    guard d < 90 else { continue }
+                    logs.append(DoseLogEntry(
+                        compoundName: "TB-500", doseMcg: 2500,
+                        timestamp: ts(daysAgo: d), injectionSite: sites[(d + 1) % sites.count]
+                    ))
+                }
+            }
+            let proto = PeptideProtocol(
+                name: "Tendon Recovery Stack", goal: .healing, compounds: [bpc, tb],
+                startDate: ts(daysAgo: 120), totalWeeks: 16, loadingWeeks: 2,
+                maintenanceWeeks: 12, taperingWeeks: 2, offCycleWeeks: 4,
+                isActive: true, doseLog: logs
+            )
+            return [proto]
+
+        case .marcus:
+            // Test Cyp 100 mg/wk IM (oil-based, no reconstitution; 200 mg/mL vial).
+            // Ipamorelin 300 mcg daily SC (5 mg vial / 2 mL → 2.5 mg/mL → 0.12 mL/dose).
+            let test = ProtocolCompound(
+                compoundName: "Testosterone Cypionate", doseMcg: 100_000, frequency: "Weekly",
+                injectionRoute: .intramuscular, reconstitutionVolume: nil, vialSizeMg: 2000 // 200mg/mL × 10mL
+            )
+            let ipa = ProtocolCompound(
+                compoundName: "Ipamorelin", doseMcg: 300, frequency: "Daily",
+                injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 5
+            )
+            var logs: [DoseLogEntry] = []
+            for d in 0..<120 {
+                logs.append(DoseLogEntry(
+                    compoundName: "Ipamorelin", doseMcg: 300,
+                    timestamp: ts(daysAgo: d), injectionSite: sites[d % sites.count]
+                ))
+                if d % 7 == 0 {
+                    logs.append(DoseLogEntry(
+                        compoundName: "Testosterone Cypionate", doseMcg: 100_000,
+                        timestamp: ts(daysAgo: d), injectionSite: sites[(d + 2) % sites.count]
+                    ))
+                }
+            }
+            let proto = PeptideProtocol(
+                name: "Optimizer Stack", goal: .general, compounds: [test, ipa],
+                startDate: ts(daysAgo: 160), totalWeeks: nil, loadingWeeks: nil,
+                maintenanceWeeks: nil, taperingWeeks: nil, offCycleWeeks: nil,
+                isActive: true, doseLog: logs
+            )
+            return [proto]
+
+        case .ava:
+            // Low-dose Ipamorelin 200 mcg daily for tendon recovery during marathon block.
+            let ipa = ProtocolCompound(
+                compoundName: "Ipamorelin", doseMcg: 200, frequency: "Daily",
+                injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 5
+            )
+            var logs: [DoseLogEntry] = []
+            for d in 0..<90 {
+                logs.append(DoseLogEntry(
+                    compoundName: "Ipamorelin", doseMcg: 200,
+                    timestamp: ts(daysAgo: d), injectionSite: sites[d % sites.count]
+                ))
+            }
+            let proto = PeptideProtocol(
+                name: "Endurance Recovery", goal: .healing, compounds: [ipa],
+                startDate: ts(daysAgo: 100), totalWeeks: 16, loadingWeeks: nil,
+                maintenanceWeeks: 14, taperingWeeks: 2, offCycleWeeks: 4,
+                isActive: true, doseLog: logs
+            )
+            return [proto]
+
+        case .shayla:
+            // Borrowed Marcus's TRT stack — Test Cyp at HALF dose (50mg/wk), no Ipamorelin yet.
+            // This makes "Marcus runs this at 100mg — start at 50mg for 2 weeks" literally consistent.
+            let test = ProtocolCompound(
+                compoundName: "Testosterone Cypionate", doseMcg: 50_000, frequency: "Weekly",
+                injectionRoute: .intramuscular, reconstitutionVolume: nil, vialSizeMg: 2000
+            )
+            var logs: [DoseLogEntry] = []
+            for w in 0..<6 {
+                let d = w * 7 + 2
+                logs.append(DoseLogEntry(
+                    compoundName: "Testosterone Cypionate", doseMcg: 50_000,
+                    timestamp: ts(daysAgo: d), injectionSite: sites[w % sites.count],
+                    notes: w == 0 ? "Borrowed from Marcus's protocol — half-dose start" : ""
+                ))
+            }
+            let proto = PeptideProtocol(
+                name: "Borrowed: Marcus's Stack (½ Dose)", goal: .weightLoss, compounds: [test],
+                startDate: ts(daysAgo: 42), totalWeeks: 14, loadingWeeks: 2,
+                maintenanceWeeks: 10, taperingWeeks: 2, offCycleWeeks: 4,
+                isActive: true, doseLog: logs
+            )
+            return [proto]
+        }
+    }
+
+    // MARK: Vials
+
+    static func vialInventory(for protocols: [PeptideProtocol]) -> [Vial] {
+        let cal = Calendar.current
+        let today = Date()
+        var out: [Vial] = []
+        for proto in protocols {
+            for c in proto.compounds {
+                let used = proto.doseLog
+                    .filter { $0.compoundName == c.compoundName && !$0.wasSkipped }
+                    .reduce(0.0) { $0 + $1.doseMcg }
+                let vialMg = c.vialSizeMg ?? 5
+                let vialsNeeded = max(1, Int((used / (vialMg * 1000)).rounded(.up)))
+                let currentUsage = used.truncatingRemainder(dividingBy: vialMg * 1000)
+                let bud = ReconHelper.defaultBUDDays(for: c.compoundName)
+                // Historical (depleted) vials
+                for i in 0..<max(0, vialsNeeded - 1) {
+                    let recon = cal.date(byAdding: .day, value: -(bud * (vialsNeeded - i)), to: today)
+                    out.append(Vial(
+                        compoundName: c.compoundName, vialSizeMg: vialMg,
+                        diluentMl: c.reconstitutionVolume, reconstitutedOn: recon,
+                        storage: .fridge, lotNumber: "LOT-\(c.compoundName.prefix(3))-\(100 + i)",
+                        vialNumber: "#\(i + 1)", expirationDate: cal.date(byAdding: .month, value: 18, to: recon ?? today),
+                        typicalDoseMcg: c.doseMcg, mcgUsed: vialMg * 1000, budDays: bud
+                    ))
+                }
+                // Active (current) vial
+                out.append(Vial(
+                    compoundName: c.compoundName, vialSizeMg: vialMg,
+                    diluentMl: c.reconstitutionVolume,
+                    reconstitutedOn: cal.date(byAdding: .day, value: -7, to: today),
+                    storage: .fridge, lotNumber: "LOT-\(c.compoundName.prefix(3))-\(100 + vialsNeeded)",
+                    vialNumber: "#\(vialsNeeded)",
+                    expirationDate: cal.date(byAdding: .month, value: 18, to: today),
+                    typicalDoseMcg: c.doseMcg, mcgUsed: currentUsage, budDays: bud
+                ))
+            }
+        }
+        return out
+    }
+
+    // MARK: Bloodwork
+
+    static func bloodworkPanels(scenario: DemoScenario) -> [BloodworkEntry] {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         func d(_ daysAgo: Int) -> Date { cal.date(byAdding: .day, value: -daysAgo, to: today) ?? today }
@@ -647,279 +1143,449 @@ nonisolated enum DemoDataGenerator {
         }
         switch scenario {
         case .marcus:
-            // Three panels showing ALT and LDL trending up.
             return [
                 panel([
                     (.alt, 68), (.ast, 42), (.ldl, 162), (.hdl, 48), (.totalCholesterol, 232), (.triglycerides, 145),
-                    (.testosteroneTotal, 612), (.igf1, 198), (.fastingGlucose, 92), (.a1c, 5.3), (.tsh, 1.9), (.creatinine, 1.1)
+                    (.testosteroneTotal, 612), (.igf1, 198), (.fastingGlucose, 92), (.a1c, 5.3),
+                    (.tsh, 1.9), (.creatinine, 1.1), (.bun, 16)
                 ], date: d(7), notes: "ALT up again. LDL creeping. Talk to provider before next stack."),
                 panel([
                     (.alt, 52), (.ast, 38), (.ldl, 138), (.hdl, 51), (.totalCholesterol, 210), (.triglycerides, 132),
-                    (.testosteroneTotal, 634), (.igf1, 210), (.fastingGlucose, 90), (.a1c, 5.2), (.tsh, 1.8), (.creatinine, 1.0)
+                    (.testosteroneTotal, 634), (.igf1, 210), (.fastingGlucose, 90), (.a1c, 5.2),
+                    (.tsh, 1.8), (.creatinine, 1.0)
                 ], date: d(70)),
                 panel([
                     (.alt, 38), (.ast, 28), (.ldl, 118), (.hdl, 55), (.totalCholesterol, 188), (.triglycerides, 118),
-                    (.testosteroneTotal, 648), (.igf1, 205), (.fastingGlucose, 88), (.a1c, 5.1), (.tsh, 1.7), (.creatinine, 1.0)
-                ], date: d(154)),
+                    (.testosteroneTotal, 648), (.igf1, 205), (.fastingGlucose, 88), (.a1c, 5.1),
+                    (.tsh, 1.7), (.creatinine, 1.0)
+                ], date: d(154))
             ]
-        case .shayla:
+        case .priya:
+            // GLP-1-relevant: a1c, glucose, insulin, lipids, ALT (GLP-1 can elevate transiently)
             return [
                 panel([
-                    (.alt, 32), (.ast, 24), (.ldl, 118), (.hdl, 62), (.totalCholesterol, 198), (.triglycerides, 94),
-                    (.testosteroneFree, 7.8), (.fastingGlucose, 88), (.a1c, 5.1), (.tsh, 2.1)
-                ], date: d(12)),
+                    (.a1c, 5.4), (.fastingGlucose, 95), (.fastingInsulin, 8.2), (.ldl, 108), (.hdl, 58),
+                    (.totalCholesterol, 184), (.triglycerides, 122), (.alt, 28), (.ast, 22), (.tsh, 2.1)
+                ], date: d(14), notes: "Down from baseline — Tirzepatide working."),
                 panel([
-                    (.alt, 28), (.ldl, 112), (.hdl, 64), (.fastingGlucose, 86), (.a1c, 5.0)
-                ], date: d(95)),
+                    (.a1c, 6.1), (.fastingGlucose, 118), (.fastingInsulin, 14.5), (.ldl, 132), (.hdl, 48),
+                    (.totalCholesterol, 218), (.triglycerides, 168), (.alt, 32), (.ast, 26), (.tsh, 2.0)
+                ], date: d(98), notes: "Pre-medication baseline.")
             ]
         case .theo:
             return [
                 panel([
-                    (.alt, 41), (.ast, 33), (.ldl, 108), (.hdl, 52), (.testosteroneTotal, 712), (.igf1, 268), (.creatinine, 1.2)
+                    (.alt, 41), (.ast, 33), (.ldl, 108), (.hdl, 52), (.totalCholesterol, 198), (.triglycerides, 110),
+                    (.testosteroneTotal, 712), (.igf1, 268), (.creatinine, 1.2), (.bun, 18)
                 ], date: d(18)),
                 panel([
-                    (.alt, 38), (.ldl, 102), (.hdl, 54), (.testosteroneTotal, 698), (.igf1, 242)
-                ], date: d(102)),
+                    (.alt, 38), (.ldl, 102), (.hdl, 54), (.testosteroneTotal, 698), (.igf1, 242),
+                    (.creatinine, 1.1)
+                ], date: d(102))
             ]
-        default:
+        case .ava:
+            // Endurance: monitor thyroid, hormones, iron-related (closest = creatinine/HDL), and lipids.
             return [
                 panel([
-                    (.alt, 24), (.ast, 22), (.ldl, 98), (.hdl, 58), (.fastingGlucose, 88), (.a1c, 5.0), (.tsh, 1.9)
-                ], date: d(45)),
+                    (.hdl, 72), (.ldl, 88), (.totalCholesterol, 168), (.triglycerides, 78),
+                    (.tsh, 1.6), (.t3, 3.1), (.t4, 1.2),
+                    (.testosteroneFree, 8.2), (.fastingGlucose, 84), (.a1c, 5.0),
+                    (.creatinine, 0.8), (.bun, 14)
+                ], date: d(28), notes: "Endurance panel — base block check-in."),
                 panel([
-                    (.alt, 22), (.ldl, 95), (.hdl, 60), (.fastingGlucose, 86), (.a1c, 5.0)
-                ], date: d(140)),
+                    (.hdl, 70), (.ldl, 90), (.totalCholesterol, 172), (.tsh, 1.5),
+                    (.creatinine, 0.9), (.a1c, 5.0)
+                ], date: d(120))
+            ]
+        case .maya:
+            return [
+                panel([
+                    (.testosteroneFree, 8.6), (.tsh, 2.0), (.fastingGlucose, 88), (.a1c, 5.0),
+                    (.ldl, 96), (.hdl, 62), (.totalCholesterol, 180), (.alt, 22), (.ast, 20)
+                ], date: d(35), notes: "Baseline panel — recomp tracking.")
+            ]
+        case .shayla:
+            return [
+                panel([
+                    (.alt, 32), (.ast, 24), (.ldl, 118), (.hdl, 62), (.totalCholesterol, 198),
+                    (.triglycerides, 94), (.testosteroneFree, 7.8), (.fastingGlucose, 88), (.a1c, 5.1), (.tsh, 2.1)
+                ], date: d(12), notes: "Pre-protocol baseline — slightly elevated LDL."),
+                panel([
+                    (.alt, 28), (.ldl, 112), (.hdl, 64), (.fastingGlucose, 86), (.a1c, 5.0)
+                ], date: d(95))
             ]
         }
     }
 
-    static func protocols(scenario: DemoScenario) -> [PeptideProtocol] {
-        let cal = Calendar.current
-        let today = Date()
-        func dose(_ name: String, mcg: Double, daysAgo: Int, site: InjectionSite = .leftAbdomen, skipped: Bool = false, reason: String? = nil) -> DoseLogEntry {
-            let ts = cal.date(byAdding: .day, value: -daysAgo, to: today) ?? today
-            return DoseLogEntry(compoundName: name, doseMcg: mcg, timestamp: ts, injectionSite: site, wasSkipped: skipped, skipReason: reason)
-        }
-        let sites: [InjectionSite] = InjectionSite.allCases
-
+    static func bloodworkInterpretation(scenario: DemoScenario, panels: [BloodworkEntry]) -> BloodworkInterpretation? {
         switch scenario {
-        case .priya:
-            let compound = ProtocolCompound(
-                compoundName: "Tirzepatide",
-                doseMcg: 5000,
-                frequency: "Weekly",
-                injectionRoute: .subcutaneous,
-                reconstitutionVolume: 2.0,
-                vialSizeMg: 10
-            )
-            var logs: [DoseLogEntry] = []
-            for w in 0..<18 {
-                let d = w * 7 + 1
-                logs.append(dose("Tirzepatide", mcg: 5000, daysAgo: d, site: sites[w % sites.count]))
-            }
-            var proto = PeptideProtocol(
-                name: "Tirzepatide Titration",
-                goal: .weightLoss,
-                compounds: [compound],
-                startDate: cal.date(byAdding: .day, value: -126, to: today) ?? today,
-                totalWeeks: 26,
-                loadingWeeks: 4,
-                maintenanceWeeks: 18,
-                taperingWeeks: 4,
-                offCycleWeeks: nil,
-                isActive: true,
-                doseLog: logs
-            )
-            proto.sideEffectLog = [SideEffectEntry(timestamp: cal.date(byAdding: .hour, value: -4, to: today) ?? today, effect: "GI discomfort", severity: 3, notes: "After dinner, 28h post-dose")]
-            return [proto]
-        case .theo:
-            let bpc = ProtocolCompound(compoundName: "BPC-157", doseMcg: 250, frequency: "Daily", injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 5)
-            let tb = ProtocolCompound(compoundName: "TB-500", doseMcg: 2500, frequency: "Twice weekly", injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 10)
-            var logs: [DoseLogEntry] = []
-            for d in 0..<90 {
-                if d == 2 { // Wednesday miss
-                    logs.append(dose("BPC-157", mcg: 250, daysAgo: d, skipped: true, reason: "Forgot — out of town"))
-                    continue
-                }
-                logs.append(dose("BPC-157", mcg: 250, daysAgo: d, site: sites[d % sites.count]))
-                if d % 3 == 0 {
-                    logs.append(dose("TB-500", mcg: 2500, daysAgo: d, site: sites[(d + 1) % sites.count]))
-                }
-            }
-            let proto = PeptideProtocol(
-                name: "Tendon Recovery Stack",
-                goal: .healing,
-                compounds: [bpc, tb],
-                startDate: cal.date(byAdding: .day, value: -120, to: today) ?? today,
-                totalWeeks: 16,
-                loadingWeeks: 2,
-                maintenanceWeeks: 12,
-                taperingWeeks: 2,
-                offCycleWeeks: 4,
-                isActive: true,
-                doseLog: logs
-            )
-            return [proto]
         case .marcus:
-            let test = ProtocolCompound(compoundName: "Test Cyp", doseMcg: 100000, frequency: "Weekly", injectionRoute: .intramuscular, reconstitutionVolume: 0, vialSizeMg: 200)
-            let ipa = ProtocolCompound(compoundName: "Ipamorelin", doseMcg: 300, frequency: "Daily", injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 5)
-            var logs: [DoseLogEntry] = []
-            for d in 0..<120 {
-                logs.append(dose("Ipamorelin", mcg: 300, daysAgo: d, site: sites[d % sites.count]))
-                if d % 7 == 0 {
-                    logs.append(dose("Test Cyp", mcg: 100000, daysAgo: d, site: sites[(d + 2) % sites.count]))
-                }
-            }
-            let proto = PeptideProtocol(
-                name: "Optimizer Stack",
-                goal: .general,
-                compounds: [test, ipa],
-                startDate: cal.date(byAdding: .day, value: -160, to: today) ?? today,
-                totalWeeks: nil,
-                isActive: true,
-                doseLog: logs
+            return BloodworkInterpretation(
+                headline: "ALT 38 → 52 → 68, LDL 118 → 138 → 162 across 3 panels",
+                summary: "Hepatic and lipid markers are trending the wrong way. Two compounds in the current stack are the most likely contributors — worth a provider conversation before the next draw.",
+                flags: [
+                    BloodworkFlag(biomarker: "ALT", value: "68 U/L", status: "high", interpretation: "Above range and rising panel-over-panel.", protocolContext: "Common with oral 17α-alkylated compounds or sustained TRT load."),
+                    BloodworkFlag(biomarker: "LDL", value: "162 mg/dL", status: "high", interpretation: "Up 44 mg/dL from baseline.", protocolContext: "Track lipid response to current TRT dose.")
+                ],
+                recheckRecommendationDays: 56,
+                recheckReason: "Re-test in 8 weeks after omega-3 + fiber + provider review.",
+                providerFlag: true,
+                generatedAt: Date()
             )
-            return [proto]
-        case .maya:
-            let ipa = ProtocolCompound(compoundName: "Ipamorelin", doseMcg: 300, frequency: "Daily", injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 5)
-            var logs: [DoseLogEntry] = []
-            for d in 0..<60 {
-                logs.append(dose("Ipamorelin", mcg: 300, daysAgo: d, site: sites[d % sites.count]))
-            }
-            let proto = PeptideProtocol(
-                name: "Recovery Support",
-                goal: .muscleGrowth,
-                compounds: [ipa],
-                startDate: cal.date(byAdding: .day, value: -75, to: today) ?? today,
-                totalWeeks: 12,
-                isActive: true,
-                doseLog: logs
+        case .priya:
+            return BloodworkInterpretation(
+                headline: "A1C 6.1 → 5.4, glucose 118 → 95 since starting Tirzepatide",
+                summary: "Metabolic markers responding well to medication. Mild ALT bump is within expected range; keep an eye on it.",
+                flags: [],
+                recheckRecommendationDays: 84,
+                recheckReason: "Next routine check in 12 weeks.",
+                providerFlag: false,
+                generatedAt: Date()
             )
-            return [proto]
-        case .ava:
-            let ipa = ProtocolCompound(compoundName: "Ipamorelin", doseMcg: 200, frequency: "Daily", injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 5)
-            var logs: [DoseLogEntry] = []
-            for d in 0..<90 {
-                logs.append(dose("Ipamorelin", mcg: 200, daysAgo: d, site: sites[d % sites.count]))
-            }
-            let proto = PeptideProtocol(
-                name: "Endurance Recovery",
-                goal: .healing,
-                compounds: [ipa],
-                startDate: cal.date(byAdding: .day, value: -100, to: today) ?? today,
-                totalWeeks: 16,
-                isActive: true,
-                doseLog: logs
-            )
-            return [proto]
-        case .shayla:
-            let comp = ProtocolCompound(compoundName: "Retatrutide", doseMcg: 2500, frequency: "Weekly", injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 10)
-            var logs: [DoseLogEntry] = []
-            for w in 0..<6 {
-                logs.append(dose("Retatrutide", mcg: 2500, daysAgo: w * 7 + 2, site: sites[w % sites.count]))
-            }
-            let proto = PeptideProtocol(
-                name: "Borrowed: Marcus's Cut (Adapted)",
-                goal: .weightLoss,
-                compounds: [comp],
-                startDate: cal.date(byAdding: .day, value: -45, to: today) ?? today,
-                totalWeeks: 14,
-                isActive: true,
-                doseLog: logs
-            )
-            return [proto]
+        default:
+            return nil
         }
     }
 
-    static func todayMeals(scenario: DemoScenario) -> [LoggedMeal] {
-        func food(_ name: String, cal: Int, p: Double, c: Double, f: Double) -> FoodItem {
-            FoodItem(name: name, calories: cal, protein: p, carbs: c, fat: f)
+    // MARK: Meals
+
+    private struct MealRecipe: Sendable {
+        let name: String
+        let cal: Int
+        let p: Double
+        let c: Double
+        let f: Double
+        let mealTime: MealTime
+    }
+
+    private static func mealPool(for scenario: DemoScenario) -> (breakfast: [MealRecipe], lunch: [MealRecipe], dinner: [MealRecipe], snacks: [MealRecipe], cheats: [MealRecipe]) {
+        switch scenario {
+        case .maya:
+            return (
+                [MealRecipe(name: "Greek yogurt + berries", cal: 280, p: 22, c: 30, f: 7, mealTime: .breakfast),
+                 MealRecipe(name: "3-egg omelet + spinach", cal: 320, p: 26, c: 4, f: 22, mealTime: .breakfast),
+                 MealRecipe(name: "Oats + whey + banana", cal: 420, p: 32, c: 60, f: 8, mealTime: .breakfast)],
+                [MealRecipe(name: "Chicken + rice bowl", cal: 540, p: 42, c: 65, f: 12, mealTime: .lunch),
+                 MealRecipe(name: "Turkey wrap + greens", cal: 480, p: 38, c: 45, f: 14, mealTime: .lunch),
+                 MealRecipe(name: "Salmon + sweet potato", cal: 560, p: 38, c: 50, f: 18, mealTime: .lunch)],
+                [MealRecipe(name: "Ground beef + rice", cal: 620, p: 45, c: 70, f: 18, mealTime: .dinner),
+                 MealRecipe(name: "Stir fry chicken + veg", cal: 520, p: 42, c: 55, f: 14, mealTime: .dinner)],
+                [MealRecipe(name: "Protein shake", cal: 180, p: 30, c: 6, f: 3, mealTime: .snacks),
+                 MealRecipe(name: "Cottage cheese + fruit", cal: 220, p: 24, c: 18, f: 5, mealTime: .snacks)],
+                [MealRecipe(name: "Pizza night", cal: 920, p: 38, c: 90, f: 38, mealTime: .dinner)]
+            )
+        case .priya:
+            return (
+                [MealRecipe(name: "Egg whites + toast", cal: 240, p: 28, c: 22, f: 4, mealTime: .breakfast),
+                 MealRecipe(name: "Greek yogurt + low-FODMAP granola", cal: 260, p: 24, c: 28, f: 6, mealTime: .breakfast),
+                 MealRecipe(name: "Oatmeal + protein", cal: 280, p: 22, c: 38, f: 5, mealTime: .breakfast)],
+                [MealRecipe(name: "Grilled chicken + white rice", cal: 380, p: 38, c: 50, f: 6, mealTime: .lunch),
+                 MealRecipe(name: "Tuna + rice cakes", cal: 320, p: 32, c: 40, f: 4, mealTime: .lunch),
+                 MealRecipe(name: "Cod + jasmine rice", cal: 360, p: 34, c: 45, f: 5, mealTime: .lunch)],
+                [MealRecipe(name: "Shrimp + rice bowl", cal: 420, p: 36, c: 55, f: 8, mealTime: .dinner),
+                 MealRecipe(name: "Chicken + roasted carrots", cal: 380, p: 38, c: 30, f: 10, mealTime: .dinner),
+                 MealRecipe(name: "Low-FODMAP stir fry", cal: 400, p: 32, c: 48, f: 8, mealTime: .dinner)],
+                [MealRecipe(name: "Rice cake + almond butter", cal: 180, p: 6, c: 22, f: 8, mealTime: .snacks),
+                 MealRecipe(name: "Boiled egg + cucumber", cal: 90, p: 7, c: 4, f: 5, mealTime: .snacks)],
+                [MealRecipe(name: "Restaurant burrito (off-plan)", cal: 880, p: 32, c: 95, f: 38, mealTime: .dinner)]
+            )
+        case .theo:
+            return (
+                [MealRecipe(name: "Oats + whey + banana", cal: 540, p: 42, c: 78, f: 8, mealTime: .breakfast),
+                 MealRecipe(name: "4-egg scramble + bagel", cal: 620, p: 38, c: 60, f: 24, mealTime: .breakfast)],
+                [MealRecipe(name: "Steak + sweet potato", cal: 720, p: 55, c: 75, f: 22, mealTime: .lunch),
+                 MealRecipe(name: "Chicken thigh + pasta", cal: 780, p: 52, c: 90, f: 18, mealTime: .lunch)],
+                [MealRecipe(name: "Ground beef chili + rice", cal: 820, p: 58, c: 85, f: 26, mealTime: .dinner),
+                 MealRecipe(name: "Salmon + potatoes", cal: 740, p: 48, c: 65, f: 28, mealTime: .dinner)],
+                [MealRecipe(name: "Pre-workout shake", cal: 260, p: 30, c: 30, f: 4, mealTime: .snacks),
+                 MealRecipe(name: "Whey + oats", cal: 320, p: 28, c: 42, f: 6, mealTime: .snacks)],
+                [MealRecipe(name: "Burger + fries (refeed)", cal: 1240, p: 52, c: 120, f: 56, mealTime: .dinner)]
+            )
+        case .marcus:
+            return (
+                [MealRecipe(name: "Salmon + greens + olive oil", cal: 520, p: 38, c: 14, f: 32, mealTime: .breakfast),
+                 MealRecipe(name: "Egg + avocado + sourdough", cal: 480, p: 26, c: 38, f: 24, mealTime: .breakfast)],
+                [MealRecipe(name: "Lentil + quinoa bowl", cal: 480, p: 24, c: 62, f: 14, mealTime: .lunch),
+                 MealRecipe(name: "Tuna salad + olive oil", cal: 440, p: 38, c: 18, f: 26, mealTime: .lunch)],
+                [MealRecipe(name: "Wild salmon + sweet potato", cal: 580, p: 42, c: 50, f: 22, mealTime: .dinner),
+                 MealRecipe(name: "Grass-fed steak + veg", cal: 620, p: 48, c: 18, f: 38, mealTime: .dinner)],
+                [MealRecipe(name: "Walnuts + apple", cal: 220, p: 6, c: 22, f: 14, mealTime: .snacks),
+                 MealRecipe(name: "Greek yogurt + chia", cal: 200, p: 18, c: 14, f: 8, mealTime: .snacks)],
+                [MealRecipe(name: "Date night pasta", cal: 880, p: 36, c: 110, f: 28, mealTime: .dinner)]
+            )
+        case .ava:
+            return (
+                [MealRecipe(name: "Oatmeal + peanut butter + banana", cal: 480, p: 18, c: 65, f: 18, mealTime: .breakfast),
+                 MealRecipe(name: "Pancakes + maple syrup", cal: 520, p: 14, c: 88, f: 12, mealTime: .breakfast),
+                 MealRecipe(name: "Toast + eggs + jam", cal: 420, p: 22, c: 50, f: 14, mealTime: .breakfast)],
+                [MealRecipe(name: "Pasta + chicken + tomato", cal: 620, p: 38, c: 78, f: 14, mealTime: .lunch),
+                 MealRecipe(name: "Rice + tofu + veggies", cal: 540, p: 24, c: 78, f: 12, mealTime: .lunch)],
+                [MealRecipe(name: "Spaghetti bolognese", cal: 720, p: 36, c: 92, f: 22, mealTime: .dinner),
+                 MealRecipe(name: "Sushi night", cal: 640, p: 32, c: 88, f: 14, mealTime: .dinner)],
+                [MealRecipe(name: "Banana + honey + toast", cal: 320, p: 8, c: 62, f: 6, mealTime: .snacks),
+                 MealRecipe(name: "Dates + almonds", cal: 240, p: 5, c: 40, f: 8, mealTime: .snacks)],
+                [MealRecipe(name: "Long-run pizza", cal: 980, p: 38, c: 115, f: 38, mealTime: .dinner)]
+            )
+        case .shayla:
+            return (
+                [MealRecipe(name: "Greek yogurt + granola", cal: 320, p: 22, c: 38, f: 8, mealTime: .breakfast),
+                 MealRecipe(name: "Protein pancakes", cal: 360, p: 28, c: 42, f: 8, mealTime: .breakfast)],
+                [MealRecipe(name: "Grilled chicken salad", cal: 380, p: 36, c: 18, f: 18, mealTime: .lunch),
+                 MealRecipe(name: "Turkey chili + rice", cal: 440, p: 34, c: 50, f: 10, mealTime: .lunch)],
+                [MealRecipe(name: "Lean beef + veggies", cal: 480, p: 42, c: 28, f: 22, mealTime: .dinner),
+                 MealRecipe(name: "Shrimp + zoodles", cal: 360, p: 38, c: 18, f: 14, mealTime: .dinner)],
+                [MealRecipe(name: "Cottage cheese + berries", cal: 180, p: 22, c: 14, f: 3, mealTime: .snacks),
+                 MealRecipe(name: "Rice cake + PB2", cal: 140, p: 6, c: 18, f: 3, mealTime: .snacks)],
+                [MealRecipe(name: "Dinner out (refeed)", cal: 820, p: 42, c: 75, f: 32, mealTime: .dinner)]
+            )
         }
+    }
+
+    private static func mealsForToday(scenario: DemoScenario) -> [LoggedMeal] {
+        let pool = mealPool(for: scenario)
         let now = Date()
         let cal = Calendar.current
         func at(_ h: Int) -> Date { cal.date(bySettingHour: h, minute: 0, second: 0, of: now) ?? now }
-        switch scenario {
-        case .maya:
-            return [
-                LoggedMeal(food: food("Greek yogurt + berries", cal: 280, p: 22, c: 30, f: 7), mealTime: .breakfast, timestamp: at(7)),
-                LoggedMeal(food: food("Chicken + rice bowl", cal: 540, p: 42, c: 65, f: 12), mealTime: .lunch, timestamp: at(12)),
-                LoggedMeal(food: food("Protein shake", cal: 180, p: 30, c: 6, f: 3), mealTime: .snacks, timestamp: at(15)),
-            ]
-        case .priya:
-            return [
-                LoggedMeal(food: food("Egg whites + toast", cal: 240, p: 28, c: 22, f: 4), mealTime: .breakfast, timestamp: at(8)),
-                LoggedMeal(food: food("White rice + grilled chicken", cal: 420, p: 38, c: 55, f: 6), mealTime: .lunch, timestamp: at(13)),
-            ]
-        case .theo:
-            return [
-                LoggedMeal(food: food("Oats + whey + banana", cal: 540, p: 42, c: 78, f: 8), mealTime: .breakfast, timestamp: at(7)),
-                LoggedMeal(food: food("Steak + sweet potato", cal: 720, p: 55, c: 75, f: 22), mealTime: .lunch, timestamp: at(12)),
-                LoggedMeal(food: food("Pre-workout shake", cal: 260, p: 30, c: 30, f: 4), mealTime: .snacks, timestamp: at(16)),
-            ]
-        case .marcus:
-            return [
-                LoggedMeal(food: food("Salmon + greens + olive oil", cal: 520, p: 38, c: 14, f: 32), mealTime: .breakfast, timestamp: at(7)),
-                LoggedMeal(food: food("Lentil + quinoa bowl", cal: 480, p: 24, c: 62, f: 14), mealTime: .lunch, timestamp: at(13)),
-                LoggedMeal(food: food("Walnuts + apple", cal: 220, p: 6, c: 22, f: 14), mealTime: .snacks, timestamp: at(15)),
-            ]
-        case .ava:
-            return [
-                LoggedMeal(food: food("Oatmeal + peanut butter", cal: 480, p: 18, c: 65, f: 18), mealTime: .breakfast, timestamp: at(6)),
-                LoggedMeal(food: food("Pasta + chicken + tomato", cal: 620, p: 38, c: 78, f: 14), mealTime: .lunch, timestamp: at(13)),
-                LoggedMeal(food: food("Banana + honey + toast", cal: 320, p: 8, c: 62, f: 6), mealTime: .snacks, timestamp: at(16)),
-            ]
-        case .shayla:
-            return [
-                LoggedMeal(food: food("Greek yogurt + granola", cal: 320, p: 22, c: 38, f: 8), mealTime: .breakfast, timestamp: at(8)),
-                LoggedMeal(food: food("Salad + grilled chicken", cal: 380, p: 36, c: 18, f: 18), mealTime: .lunch, timestamp: at(12)),
-            ]
-        }
+        return [
+            log(pool.breakfast[0], at: at(7)),
+            log(pool.lunch[0], at: at(12)),
+            log(pool.snacks[0], at: at(15))
+        ]
+    }
+
+    private static func log(_ r: MealRecipe, at date: Date) -> LoggedMeal {
+        let food = FoodItem(name: r.name, calories: r.cal, protein: r.p, carbs: r.c, fat: r.f)
+        return LoggedMeal(food: food, mealTime: r.mealTime, timestamp: date)
     }
 
     static func mealsByDay(scenario: DemoScenario, days: Int) -> [Date: [LoggedMeal]] {
+        let rand = seededRandom(seed(scenario, 7))
+        let pool = mealPool(for: scenario)
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         var out: [Date: [LoggedMeal]] = [:]
         for d in 0..<days {
             guard let date = cal.date(byAdding: .day, value: -d, to: today) else { continue }
-            // Reuse today template, vary calories ±10%
-            let base = todayMeals(scenario: scenario)
-            out[date] = base
+            let weekday = cal.component(.weekday, from: date)
+            let isWeekend = weekday == 1 || weekday == 7
+
+            let bf = pool.breakfast[Int(rand() * Double(pool.breakfast.count)) % pool.breakfast.count]
+            let ln = pool.lunch[Int(rand() * Double(pool.lunch.count)) % pool.lunch.count]
+            // Weekend ~25% chance of cheat-dinner
+            let dn: MealRecipe = (isWeekend && rand() < 0.25)
+                ? (pool.cheats.first ?? pool.dinner[0])
+                : pool.dinner[Int(rand() * Double(pool.dinner.count)) % pool.dinner.count]
+
+            var meals: [LoggedMeal] = [
+                log(bf, at: cal.date(bySettingHour: 7, minute: 0, second: 0, of: date) ?? date),
+                log(ln, at: cal.date(bySettingHour: 12, minute: 30, second: 0, of: date) ?? date),
+                log(dn, at: cal.date(bySettingHour: 19, minute: 0, second: 0, of: date) ?? date)
+            ]
+            if rand() < 0.6, let snack = pool.snacks.randomElement() {
+                meals.append(log(snack, at: cal.date(bySettingHour: 15, minute: 30, second: 0, of: date) ?? date))
+            }
+            out[date] = meals
         }
         return out
     }
 
-    static func activityLogs(scenario: DemoScenario) -> [ActivityLog] {
-        let persona = DemoPersonaLibrary.persona(for: scenario)
-        let streak = persona?.currentStreak ?? 14
+    // MARK: Muscle snapshots — derived from workouts so they're per-persona naturally.
+
+    static func muscleSnapshots(scenario: DemoScenario, workouts: [WorkoutHistoryDetail]) -> ([MuscleRecoveryItem], [WeeklyMuscleVolume]) {
+        let now = Date()
+        let cal = Calendar.current
+        let weekStart = cal.date(byAdding: .day, value: -7, to: now) ?? now
+
+        var lastWorked: [MuscleGroup: Date] = [:]
+        var weeklySets: [MuscleGroup: Int] = [:]
+        for entry in workouts {
+            for exercise in entry.exercises {
+                guard let ex = ExerciseLibrary.all.first(where: { $0.name == exercise.exerciseName }) else { continue }
+                if let prev = lastWorked[ex.primaryMuscle] {
+                    if entry.date > prev { lastWorked[ex.primaryMuscle] = entry.date }
+                } else {
+                    lastWorked[ex.primaryMuscle] = entry.date
+                }
+                if entry.date >= weekStart {
+                    weeklySets[ex.primaryMuscle, default: 0] += exercise.sets.count
+                }
+            }
+        }
+
+        // Persona-specific tracked muscles
+        let tracked: [MuscleGroup]
+        switch scenario {
+        case .maya, .shayla: tracked = [.chest, .back, .shoulders, .quadriceps, .hamstrings, .glutes, .biceps]
+        case .priya: tracked = [.chest, .back, .quadriceps, .glutes, .core]
+        case .theo, .marcus: tracked = [.chest, .back, .shoulders, .quadriceps, .hamstrings, .triceps, .biceps]
+        case .ava: tracked = [.quadriceps, .hamstrings, .glutes, .calves, .core]
+        }
+        let targets: [MuscleGroup: Int] = [
+            .chest: 16, .back: 18, .shoulders: 14, .quadriceps: 16,
+            .hamstrings: 12, .biceps: 10, .triceps: 10, .glutes: 12,
+            .calves: 8, .core: 8
+        ]
+
+        let recovery = tracked.map { m -> MuscleRecoveryItem in
+            let last = lastWorked[m]
+            let hoursSince = last.map { Int(now.timeIntervalSince($0) / 3600) } ?? 999
+            let status: MuscleRecoveryStatus
+            let hoursRemaining: Int
+            if hoursSince >= 72 { status = .recovered; hoursRemaining = 0 }
+            else if hoursSince >= 48 { status = .recovering; hoursRemaining = 72 - hoursSince }
+            else { status = .fatigued; hoursRemaining = 48 - hoursSince }
+            return MuscleRecoveryItem(muscle: m, status: status, lastWorked: last, hoursRemaining: hoursRemaining)
+        }
+
+        let volumes = tracked.map { m in
+            WeeklyMuscleVolume(muscle: m, setsCompleted: weeklySets[m] ?? 0, targetSets: targets[m] ?? 12)
+        }
+        return (recovery, volumes)
+    }
+
+    // MARK: Sleep + HRV/RHR
+
+    static func sleepBundle(scenario: DemoScenario, persona p: DemoPersona) -> ([ManualSleepLog], Double, Double?, Double?) {
+        let rand = seededRandom(seed(scenario, 11))
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        var logs: [ManualSleepLog] = []
+        let baseSleep = p.avgSleepHours
+
+        for i in 0..<90 {
+            guard let night = cal.date(byAdding: .day, value: -i, to: today) else { continue }
+            var hours = baseSleep + (rand() - 0.5) * 1.4
+            // Persona-specific anomalies for storytelling
+            if scenario == .maya && i == 0 { hours = 4.633 } // 4h 38m last night
+            if scenario == .shayla { hours = 6.0 + (rand() - 0.5) * 1.0 } // ~6.2h avg
+            hours = max(3.5, min(9.5, hours))
+            let quality = Int(min(10, max(2, (hours - 4.0) * 1.8 + (rand() - 0.5) * 2)))
+            logs.append(ManualSleepLog(night: night, hours: round(hours * 10) / 10, quality: quality))
+        }
+
+        // Today's snapshot
+        let todaySleep: Double
+        let todayHRV: Double?
+        let todayRHR: Double?
+        switch scenario {
+        case .maya:
+            todaySleep = 4.633
+            todayHRV = 32  // -18% from a ~39 baseline
+            todayRHR = 64
+        case .ava:
+            todaySleep = baseSleep
+            todayHRV = 58
+            todayRHR = 56 // baseline 48 + 8 elevation
+        case .priya:
+            todaySleep = baseSleep
+            todayHRV = 48
+            todayRHR = 62
+        case .marcus:
+            todaySleep = baseSleep
+            todayHRV = 52
+            todayRHR = 58
+        case .theo:
+            todaySleep = baseSleep
+            todayHRV = 46
+            todayRHR = 56
+        case .shayla:
+            todaySleep = 6.1
+            todayHRV = 38
+            todayRHR = 65
+        }
+        return (logs, todaySleep, todayHRV, todayRHR)
+    }
+
+    static func stepsForToday(scenario: DemoScenario, persona p: DemoPersona) -> Int {
+        // Scaled fraction of the daily average (mid-day-ish).
+        let hour = Calendar.current.component(.hour, from: Date())
+        let progress = min(1.0, max(0.1, Double(hour) / 22.0))
+        return Int(Double(p.avgStepsPerDay) * progress)
+    }
+
+    // MARK: Activity logs (streak)
+
+    static func activityLogs(scenario: DemoScenario, persona p: DemoPersona) -> [ActivityLog] {
         let cal = Calendar.current
         var logs: [ActivityLog] = []
-        for i in 0..<streak {
+        for i in 0..<max(1, p.currentStreak) {
             guard let date = cal.date(byAdding: .day, value: -i, to: Date()) else { continue }
             logs.append(ActivityLog(id: UUID(), date: date, type: i % 4 == 0 ? .pin : .workout))
         }
         return logs
     }
+}
 
-    static func muscleRecovery(scenario: DemoScenario) -> [MuscleRecoveryItem] {
-        let cal = Calendar.current
-        func ago(_ h: Int) -> Date { cal.date(byAdding: .hour, value: -h, to: Date()) ?? Date() }
-        return [
-            MuscleRecoveryItem(muscle: .chest, status: .recovered, lastWorked: ago(72), hoursRemaining: 0),
-            MuscleRecoveryItem(muscle: .back, status: .recovering, lastWorked: ago(36), hoursRemaining: 12),
-            MuscleRecoveryItem(muscle: .quadriceps, status: scenario == .maya ? .fatigued : .recovered, lastWorked: ago(20), hoursRemaining: 28),
-            MuscleRecoveryItem(muscle: .shoulders, status: .recovered, lastWorked: ago(96), hoursRemaining: 0),
-            MuscleRecoveryItem(muscle: .biceps, status: .recovering, lastWorked: ago(48), hoursRemaining: 24),
-        ]
-    }
+// MARK: - Coherence self-test
 
-    static func weeklyVolumes(scenario: DemoScenario) -> [WeeklyMuscleVolume] {
-        return [
-            WeeklyMuscleVolume(muscle: .chest, setsCompleted: 14, targetSets: 16),
-            WeeklyMuscleVolume(muscle: .back, setsCompleted: 18, targetSets: 18),
-            WeeklyMuscleVolume(muscle: .quadriceps, setsCompleted: 16, targetSets: 20),
-            WeeklyMuscleVolume(muscle: .shoulders, setsCompleted: 10, targetSets: 12),
-            WeeklyMuscleVolume(muscle: .biceps, setsCompleted: 12, targetSets: 12),
-        ]
+@MainActor
+enum DemoCoherenceCheck {
+    static func run(persona p: DemoPersona, bundle: DemoPersonaBundle) {
+        var issues: [String] = []
+
+        // 1. Protocol frequency vs dose log cadence
+        for proto in bundle.protocols {
+            for c in proto.compounds {
+                let logs = proto.doseLog.filter { $0.compoundName == c.compoundName && !$0.wasSkipped }
+                if logs.isEmpty {
+                    issues.append("\(c.compoundName): no dose log entries")
+                    continue
+                }
+                let perWeek = SupplyForecastService.dosesPerWeek(for: c.frequency)
+                let span = max(1.0, Double(Calendar.current.dateComponents([.day], from: proto.startDate, to: Date()).day ?? 1))
+                let actualPerWeek = Double(logs.count) / (span / 7.0)
+                if perWeek > 0 && abs(actualPerWeek - perWeek) / perWeek > 0.35 {
+                    issues.append("\(c.compoundName): freq says \(c.frequency) (~\(perWeek)/wk) but log shows \(String(format: "%.1f", actualPerWeek))/wk")
+                }
+            }
+        }
+
+        // 2. Active program present
+        if bundle.activeProgram.days.isEmpty {
+            issues.append("active program has no days")
+        }
+
+        // 3. Workout names map to program days
+        let programDayNames = Set(bundle.activeProgram.days.map { $0.name })
+        let workoutNames = Set(bundle.workouts.map { $0.name })
+        if !workoutNames.isSubset(of: programDayNames) {
+            let stray = workoutNames.subtracting(programDayNames)
+            if !stray.isEmpty {
+                issues.append("workouts with no matching program day: \(stray.prefix(3).joined(separator: ", "))")
+            }
+        }
+
+        // 4. Bloodwork archetype check
+        let panelCount = bundle.bloodwork.count
+        if panelCount == 0 {
+            issues.append("no bloodwork panels — every archetype should have at least one")
+        }
+
+        // 5. Sleep / HRV / RHR present
+        if bundle.sleepLogs.isEmpty {
+            issues.append("no sleep logs injected")
+        }
+
+        // 6. Brief generator produces non-empty body
+        let lines = MorningBriefService.shared.buildLines()
+        let body = MorningBriefService.shared.fallbackBody(from: lines)
+        if body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            issues.append("brief generator returned empty body")
+        }
+
+        // 7. Vials sane
+        if !bundle.protocols.isEmpty && bundle.vials.isEmpty {
+            issues.append("protocols present but no vials")
+        }
+        for v in bundle.vials where v.typicalDoseMcg > v.totalMcg {
+            issues.append("vial \(v.compoundName) #\(v.vialNumber): dose > vial capacity")
+        }
+
+        if issues.isEmpty {
+            print("[DemoMode] \(p.scenario.displayName) coherence ✅ — \(bundle.workouts.count) workouts, \(bundle.protocols.flatMap(\.doseLog).count) dose logs, \(bundle.sleepLogs.count) sleep nights, \(bundle.vials.count) vials, \(bundle.bloodwork.count) bw panels")
+        } else {
+            print("[DemoMode] \(p.scenario.displayName) coherence ⚠️ — \(issues.count) issue(s):")
+            for i in issues { print("  • \(i)") }
+        }
     }
 }

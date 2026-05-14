@@ -370,6 +370,10 @@ final class TrainViewModel {
     }
 
     func loadAllData() {
+        if DemoModeManager.shared.isActive {
+            print("[TrainVM] loadAllData skipped — demo mode active")
+            return
+        }
         loadSavedModes()
         loadSavedProgram()
         loadDataFromSupabase()
@@ -377,6 +381,10 @@ final class TrainViewModel {
     }
 
     func loadProgramsFromSupabase() {
+        if DemoModeManager.shared.isActive {
+            print("[TrainVM] loadProgramsFromSupabase skipped — demo mode active")
+            return
+        }
         // Coalesce concurrent calls — onAppear and the auth listener both invoke this.
         // Without this guard, two fetches race and the second sees the first's freshly
         // loaded program as "unsynced" (UUIDs are regenerated on each fetch), so it

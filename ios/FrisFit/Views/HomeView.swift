@@ -89,6 +89,18 @@ struct HomeView: View {
                 scrollOffset = newValue
             }
             .refreshable {
+                if let scenario = DemoModeManager.shared.activeScenario {
+                    // In demo mode pull-to-refresh just re-injects the persona
+                    // bundle so any stale state from screen navigation is reset.
+                    DemoDataInjector.injectInto(
+                        home: viewModel,
+                        train: trainViewModel,
+                        body: bodyGoalViewModel,
+                        nutrition: nutritionViewModel,
+                        scenario: scenario
+                    )
+                    return
+                }
                 await viewModel.refresh()
                 await energyBalanceViewModel.refresh()
             }
@@ -127,6 +139,7 @@ struct HomeView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .supabaseDataChanged)) { note in
+                if DemoModeManager.shared.isActive { return }
                 let source = (note.userInfo?["source"] as? String) ?? ""
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(400))
