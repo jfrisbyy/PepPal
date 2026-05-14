@@ -65,6 +65,9 @@ struct ContentView: View {
     @State private var profileTabBootstrap = ProfileViewModel()
     @State private var didBootstrapProfileTabAvatar: Bool = false
     @State private var screenshotMode = ScreenshotMode.shared
+    @State private var capturedScreenshotURL: URL? = nil
+    @State private var isCapturingScreenshot: Bool = false
+    @State private var showScreenshotShare: Bool = false
 
     var body: some View {
         let _ = print("APP_INIT: ContentView body evaluated, authState = \(authService.authState)")
@@ -162,6 +165,7 @@ struct ContentView: View {
             }
             .tint(PepTheme.teal)
             .simultaneousGesture(screenshotSwipeGesture, including: screenshotMode.hideChrome ? .all : .none)
+            .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
 
             if sessionManager.isSessionActive && !sessionManager.showActiveWorkout {
                 VStack {
@@ -178,6 +182,23 @@ struct ContentView: View {
 
             if selectedTab != .discover && selectedTab != .community && !screenshotMode.hideChrome {
                 ExpandableFABView(isExpanded: $fabExpanded, actions: fabActions)
+            }
+
+            if screenshotMode.hideChrome && !isCapturingScreenshot {
+                globalCaptureScreenshotButton
+                    .padding(.top, 6)
+                    .padding(.leading, 14)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .allowsHitTesting(true)
+                    .ignoresSafeArea(edges: .bottom)
+            }
+        }
+        .sheet(isPresented: $showScreenshotShare, onDismiss: {
+            capturedScreenshotURL = nil
+        }) {
+            if let url = capturedScreenshotURL {
+                ScreenshotShareSheet(url: url)
+                    .presentationDetents([.medium, .large])
             }
         }
         .onAppear {
@@ -388,6 +409,52 @@ struct ContentView: View {
             FABAction(icon: "pill.fill", label: "Log Dose", color: Color.pink, action: { showLogDose = true }),
             FABAction(icon: "drop.fill", label: "Log Bloodwork", color: .red, action: { showLogBloodwork = true }),
         ]
+    }
+
+    // MARK: - Global Screenshot Capture Button
+
+    /// Floating camera button shown on every screen while screenshot-mode
+    /// chrome is hidden. Captures the tallest scroll view on the current
+    /// screen as a single tall PNG and presents the share sheet.
+    private var globalCaptureScreenshotButton: some View {
+        Button {
+            performGlobalScreenshotCapture()
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(PepTheme.cardSurface)
+                    .frame(width: 36, height: 36)
+                    .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
+                    .shadow(color: .black.opacity(0.18), radius: 10, x: 0, y: 4)
+                if isCapturingScreenshot {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(PepTheme.violet)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isCapturingScreenshot)
+        .opacity(0.85)
+        .sensoryFeedback(.success, trigger: capturedScreenshotURL?.lastPathComponent ?? "")
+    }
+
+    private func performGlobalScreenshotCapture() {
+        guard !isCapturingScreenshot else { return }
+        isCapturingScreenshot = true
+        Task { @MainActor in
+            // Wait one tick so the capture button is removed from the
+            // hierarchy before we snapshot (it's gated on !isCapturingScreenshot).
+            try? await Task.sleep(for: .milliseconds(300))
+            let image = await HomeScreenshotCapturer.captureHomeScrollView()
+            if let image, let url = HomeScreenshotCapturer.writeTempPNG(image) {
+                capturedScreenshotURL = url
+                showScreenshotShare = true
+            }
+            isCapturingScreenshot = false
+        }
     }
 
     private func configureTabBarAppearance() {

@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct ProtocolDetailView: View {
     @State private var viewModel: ProtocolDetailViewModel
@@ -8,7 +9,11 @@ struct ProtocolDetailView: View {
     @State private var todaysPlanVM = TodaysPlanViewModel.shared
     @State private var editingBatchCompound: ProtocolCompound? = nil
     @State private var showTitrationBuilder: Bool = false
+    @State private var scrollOffset: CGFloat = 0
+    @State private var nowTick: Date = Date()
     @Environment(\.dismiss) private var dismiss
+
+    private let countdownTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
     init(protocolData: PeptideProtocol, initialCompoundName: String? = nil) {
         _viewModel = State(initialValue: ProtocolDetailViewModel(protocolData: protocolData))
@@ -82,63 +87,34 @@ struct ProtocolDetailView: View {
             .padding(.bottom, 80)
         }
         .scrollIndicators(.hidden)
+        .onScrollGeometryChange(for: CGFloat.self) { geo in
+            geo.contentOffset.y
+        } action: { _, newValue in
+            scrollOffset = newValue
+        }
         .appBackground()
-        .navigationTitle(viewModel.protocolData.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button { viewModel.showReconCalculator = true } label: {
-                        Label("Reconstitution Calculator", systemImage: "function")
-                    }
-
-                    Button { viewModel.showCostSheet = true } label: {
-                        Label("Cost Tracking", systemImage: "dollarsign.circle")
-                    }
-
-                    Button { viewModel.exportCSV() } label: {
-                        Label("Export CSV", systemImage: "square.and.arrow.up")
-                    }
-
-                    Menu {
-                        ForEach(viewModel.protocolData.compounds, id: \.compoundName) { compound in
-                            Picker(compound.compoundName, selection: Binding(
-                                get: { unitStore.effectiveUnit(for: compound.compoundName) },
-                                set: { unitStore.setUnit($0, for: compound.compoundName) }
-                            )) {
-                                Text("mcg").tag(CompoundUnit.mcg)
-                                Text("mg").tag(CompoundUnit.mg)
-                            }
-                        }
-                    } label: {
-                        Label("Display Units", systemImage: "ruler")
-                    }
-
-                    if viewModel.protocolData.isActive {
-                        Button {
-                            viewModel.showArchiveConfirm = true
-                        } label: {
-                            Label("Archive Protocol", systemImage: "archivebox")
-                        }
-                    } else {
-                        Button {
-                            viewModel.reactivateProtocol()
-                        } label: {
-                            Label("Reactivate Protocol", systemImage: "play.circle")
-                        }
-                    }
-
-                    Button(role: .destructive) {
-                        viewModel.showDeleteConfirm = true
-                    } label: {
-                        Label("Delete Protocol", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 17))
-                        .foregroundStyle(PepTheme.textSecondary)
-                }
-            }
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        .overlay(alignment: .topLeading) {
+            floatingBackButton
+                .padding(.top, 6)
+                .padding(.leading, 14)
+                .opacity(floatingChromeOpacity)
+                .scaleEffect(floatingChromeScale, anchor: .topLeading)
+                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: floatingChromeScale)
+                .animation(.easeOut(duration: 0.18), value: floatingChromeOpacity)
+        }
+        .overlay(alignment: .topTrailing) {
+            floatingMenuButton
+                .padding(.top, 6)
+                .padding(.trailing, 14)
+                .opacity(floatingChromeOpacity)
+                .scaleEffect(floatingChromeScale, anchor: .topTrailing)
+                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: floatingChromeScale)
+                .animation(.easeOut(duration: 0.18), value: floatingChromeOpacity)
+        }
+        .onReceive(countdownTimer) { date in
+            nowTick = date
         }
         .alert("Archive Protocol?", isPresented: $viewModel.showArchiveConfirm) {
             Button("Cancel", role: .cancel) {}
@@ -324,12 +300,12 @@ struct ProtocolDetailView: View {
             )
             .frame(height: 0.5)
 
-            HStack(alignment: .center, spacing: 14) {
-                adherenceRing
-                Spacer()
+            HStack(alignment: .center, spacing: 12) {
                 headerStat(label: "Phase", value: viewModel.protocolData.currentPhase.rawValue.uppercased())
                 headerDivider
-                headerStat(label: "Days Left", value: "\(viewModel.daysRemainingInPhase)", isNumeric: true)
+                headerStat(label: "Next Dose", value: nextDoseCountdownText, isNumeric: false, monospaced: true)
+                headerDivider
+                headerStat(label: "Logged", value: totalLoggedText, isNumeric: false, monospaced: true)
                 headerDivider
                 headerStat(label: "Compounds", value: "\(viewModel.protocolData.compounds.count)", isNumeric: true)
                 headerDivider
@@ -337,6 +313,139 @@ struct ProtocolDetailView: View {
             }
         }
         .padding(.vertical, 6)
+        .padding(.top, 40) // Leave room for floating back/menu buttons.
+    }
+
+    // MARK: - Floating Top Buttons
+
+    private var floatingBackButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(PepTheme.cardSurface)
+                    .frame(width: 36, height: 36)
+                    .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
+                    .shadow(color: .black.opacity(0.18), radius: 10, x: 0, y: 4)
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: false)
+    }
+
+    private var floatingMenuButton: some View {
+        Menu {
+            Button { viewModel.showReconCalculator = true } label: {
+                Label("Reconstitution Calculator", systemImage: "function")
+            }
+
+            Button { viewModel.showCostSheet = true } label: {
+                Label("Cost Tracking", systemImage: "dollarsign.circle")
+            }
+
+            Button { viewModel.exportCSV() } label: {
+                Label("Export CSV", systemImage: "square.and.arrow.up")
+            }
+
+            Menu {
+                ForEach(viewModel.protocolData.compounds, id: \.compoundName) { compound in
+                    Picker(compound.compoundName, selection: Binding(
+                        get: { unitStore.effectiveUnit(for: compound.compoundName) },
+                        set: { unitStore.setUnit($0, for: compound.compoundName) }
+                    )) {
+                        Text("mcg").tag(CompoundUnit.mcg)
+                        Text("mg").tag(CompoundUnit.mg)
+                    }
+                }
+            } label: {
+                Label("Display Units", systemImage: "ruler")
+            }
+
+            if viewModel.protocolData.isActive {
+                Button {
+                    viewModel.showArchiveConfirm = true
+                } label: {
+                    Label("Archive Protocol", systemImage: "archivebox")
+                }
+            } else {
+                Button {
+                    viewModel.reactivateProtocol()
+                } label: {
+                    Label("Reactivate Protocol", systemImage: "play.circle")
+                }
+            }
+
+            Button(role: .destructive) {
+                viewModel.showDeleteConfirm = true
+            } label: {
+                Label("Delete Protocol", systemImage: "trash")
+            }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(PepTheme.cardSurface)
+                    .frame(width: 36, height: 36)
+                    .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
+                    .shadow(color: .black.opacity(0.18), radius: 10, x: 0, y: 4)
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(PepTheme.textPrimary)
+            }
+        }
+    }
+
+    private var floatingChromeScale: CGFloat {
+        let progress = min(max(scrollOffset / 80, 0), 1)
+        return 1.0 - 0.10 * progress
+    }
+
+    private var floatingChromeOpacity: Double {
+        let progress = min(max(Double(scrollOffset) / 80, 0), 1)
+        return 1.0 - 0.35 * progress
+    }
+
+    // MARK: - Header Stat Helpers
+
+    /// Friendly countdown to the next dose (e.g. "in 3h 20m" / "Now" / "—").
+    private var nextDoseCountdownText: String {
+        _ = nowTick // re-evaluate on tick
+        guard let next = viewModel.smartNextDose ?? viewModel.protocolData.nextDose else { return "—" }
+        let cal = Calendar.current
+        let now = Date()
+        let today = cal.startOfDay(for: now)
+        let comps = cal.dateComponents([.hour, .minute], from: next.timeOfDay)
+        guard let scheduled = cal.date(bySettingHour: comps.hour ?? 8, minute: comps.minute ?? 0, second: 0, of: today) else {
+            return "—"
+        }
+        let target = scheduled < now ? scheduled.addingTimeInterval(86_400) : scheduled
+        let interval = target.timeIntervalSince(now)
+        if interval <= 60 { return "Now" }
+        let totalMinutes = Int(interval / 60)
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        if hours <= 0 { return "\(minutes)m" }
+        if hours >= 24 {
+            let days = hours / 24
+            return "\(days)d"
+        }
+        return "\(hours)h \(minutes)m"
+    }
+
+    /// Cumulative non-skipped dose total across the cycle, formatted in the
+    /// dominant compound's preferred unit.
+    private var totalLoggedText: String {
+        let logged = viewModel.protocolData.doseLog.filter { !$0.wasSkipped }
+        guard !logged.isEmpty else { return "0" }
+        // Group by compound, render the single biggest contributor's total in
+        // its own preferred unit so the header stays compact and meaningful.
+        let totals = Dictionary(grouping: logged, by: { $0.compoundName })
+            .mapValues { $0.reduce(0.0) { $0 + $1.doseMcg } }
+        guard let top = totals.max(by: { $0.value < $1.value }) else { return "0" }
+        return CompoundUnitHelper.displayDoseShort(top.value, for: top.key)
     }
 
     private var headerDivider: some View {
@@ -345,18 +454,20 @@ struct ProtocolDetailView: View {
             .frame(width: 0.5, height: 28)
     }
 
-    private func headerStat(label: String, value: String, isNumeric: Bool = false) -> some View {
+    private func headerStat(label: String, value: String, isNumeric: Bool = false, monospaced: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(value)
                 .font(
                     isNumeric
                         ? .system(.title3, design: .serif, weight: .semibold)
-                        : .system(size: 11, weight: .semibold)
+                        : (monospaced
+                           ? .system(size: 13, weight: .semibold, design: .monospaced)
+                           : .system(size: 11, weight: .semibold))
                 )
-                .tracking(isNumeric ? 0 : 1.4)
+                .tracking(isNumeric || monospaced ? 0 : 1.4)
                 .foregroundStyle(PepTheme.textPrimary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.6)
             Text(label.uppercased())
                 .font(.system(size: 9, weight: .semibold))
                 .tracking(1.2)

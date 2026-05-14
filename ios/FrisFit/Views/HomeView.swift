@@ -36,9 +36,6 @@ struct HomeView: View {
     @State private var isCalendarRevealExpanded: Bool = false
     @State private var scrollOffset: CGFloat = 0
     @State private var screenshotMode = ScreenshotMode.shared
-    @State private var capturedScreenshotURL: URL? = nil
-    @State private var isCapturingScreenshot: Bool = false
-    @State private var showScreenshotShare: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -121,22 +118,7 @@ struct HomeView: View {
                         .padding(.trailing, 14)
                 }
             }
-            .overlay(alignment: .topLeading) {
-                if screenshotMode.hideChrome && !isCapturingScreenshot {
-                    captureScreenshotButton
-                        .padding(.top, 6)
-                        .padding(.leading, 14)
-                }
-            }
-            .sheet(isPresented: $showScreenshotShare, onDismiss: {
-                capturedScreenshotURL = nil
-            }) {
-                if let url = capturedScreenshotURL {
-                    ScreenshotShareSheet(url: url)
-                        .presentationDetents([.medium, .large])
-                }
-            }
-            .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
+
             .onAppear { performHomeAppear() }
             .onReceive(NotificationCenter.default.publisher(for: .demoPersonaChanged)) { note in
                 if let scenario = note.object as? DemoScenario {
@@ -576,54 +558,6 @@ struct HomeView: View {
     }
 
 
-
-    // MARK: - Screenshot Capture Button
-
-    /// Small floating camera button shown only while screenshot-mode chrome is
-    /// hidden. Tapping renders the entire scrollable Home content into a
-    /// single tall PNG and presents a share sheet to save/AirDrop it.
-    private var captureScreenshotButton: some View {
-        Button {
-            performScreenshotCapture()
-        } label: {
-            ZStack {
-                Circle()
-                    .fill(PepTheme.cardSurface)
-                    .frame(width: 36, height: 36)
-                    .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
-                    .shadow(color: .black.opacity(0.18), radius: 10, x: 0, y: 4)
-                if isCapturingScreenshot {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(PepTheme.violet)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .disabled(isCapturingScreenshot)
-        .opacity(0.85)
-        .sensoryFeedback(.success, trigger: capturedScreenshotURL?.lastPathComponent ?? "")
-    }
-
-    private func performScreenshotCapture() {
-        guard !isCapturingScreenshot else { return }
-        isCapturingScreenshot = true
-        // Give SwiftUI time to remove the capture button from the
-        // hierarchy (it's gated on !isCapturingScreenshot) before we
-        // begin snapshotting the window, otherwise the camera icon
-        // appears in the first tile of the PNG.
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(300))
-            let image = await HomeScreenshotCapturer.captureHomeScrollView()
-            if let image, let url = HomeScreenshotCapturer.writeTempPNG(image) {
-                capturedScreenshotURL = url
-                showScreenshotShare = true
-            }
-            isCapturingScreenshot = false
-        }
-    }
 
     // MARK: - Floating Action Pill
 
