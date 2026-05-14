@@ -610,12 +610,13 @@ struct HomeView: View {
     private func performScreenshotCapture() {
         guard !isCapturingScreenshot else { return }
         isCapturingScreenshot = true
-        // Wait long enough for the capture button to disappear from the
-        // hierarchy before we start drawing the scroll view, otherwise it
-        // ends up in the rendered PNG.
+        // Give SwiftUI time to remove the capture button from the
+        // hierarchy (it's gated on !isCapturingScreenshot) before we
+        // begin snapshotting the window, otherwise the camera icon
+        // appears in the first tile of the PNG.
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(250))
-            let image = HomeScreenshotCapturer.captureHomeScrollView()
+            try? await Task.sleep(for: .milliseconds(300))
+            let image = await HomeScreenshotCapturer.captureHomeScrollView()
             if let image, let url = HomeScreenshotCapturer.writeTempPNG(image) {
                 capturedScreenshotURL = url
                 showScreenshotShare = true
