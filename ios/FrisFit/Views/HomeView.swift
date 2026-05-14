@@ -122,7 +122,7 @@ struct HomeView: View {
                 }
             }
             .overlay(alignment: .topLeading) {
-                if screenshotMode.hideChrome {
+                if screenshotMode.hideChrome && !isCapturingScreenshot {
                     captureScreenshotButton
                         .padding(.top, 6)
                         .padding(.leading, 14)
@@ -610,10 +610,11 @@ struct HomeView: View {
     private func performScreenshotCapture() {
         guard !isCapturingScreenshot else { return }
         isCapturingScreenshot = true
-        // Defer one runloop so the button's pressed state isn't captured into
-        // the image, then render off the main thread queue tick.
+        // Wait long enough for the capture button to disappear from the
+        // hierarchy before we start drawing the scroll view, otherwise it
+        // ends up in the rendered PNG.
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(120))
+            try? await Task.sleep(for: .milliseconds(250))
             let image = HomeScreenshotCapturer.captureHomeScrollView()
             if let image, let url = HomeScreenshotCapturer.writeTempPNG(image) {
                 capturedScreenshotURL = url

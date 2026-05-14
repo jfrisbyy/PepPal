@@ -31,7 +31,6 @@ struct FriendsStatsView<TopHeader: View>: View {
                 groupsSection
                     .padding(.horizontal)
 
-                header
 
                 if let recap = viewModel.weeklyRecap {
                     NavigationLink(value: recap.id) {

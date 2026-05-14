@@ -268,9 +268,12 @@ struct PlanBriefHeaderView: View {
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(PepTheme.violet.opacity(0.7))
                 }
-                Text(isHistorical ? (briefDateLabel ?? greeting) : greeting)
-                    .font(.system(size: 18, weight: .bold, design: .serif))
-                    .foregroundStyle(PepTheme.textPrimary)
+                if isHistorical, let label = briefDateLabel {
+                    Text(label)
+                        .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                        .tracking(1.6)
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
             }
             Spacer()
             if todaysPlanVM.isLoading || todaysPlanVM.isBackgroundRefreshing || todaysPlanVM.isLoadingHistorical {

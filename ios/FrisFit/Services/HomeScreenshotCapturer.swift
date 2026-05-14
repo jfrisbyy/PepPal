@@ -2,9 +2,9 @@ import UIKit
 import SwiftUI
 
 /// Walks the live UIKit hierarchy to find the Home screen's `UIScrollView`
-/// and renders its full `contentSize` into a single tall PNG. Used by the
-/// screenshot-mode debug capture button so we can produce one big marketing
-/// image at native resolution.
+/// and renders its full `contentSize` into a single tall PNG by scrolling
+/// through the content and stitching native-resolution viewport snapshots
+/// together. Used by the screenshot-mode debug capture button.
 @MainActor
 enum HomeScreenshotCapturer {
 
@@ -56,39 +56,57 @@ enum HomeScreenshotCapturer {
         for sub in view.subviews { collect(in: sub, found) }
     }
 
+    /// Tile-based capture: walk the scroll view from top to bottom one
+    /// viewport at a time, snapshot each viewport with `drawHierarchy`, and
+    /// composite into one tall image. This is reliable even for content
+    /// outside the on-screen frame, where naively expanding the scroll
+    /// view's frame produces a blank image.
     private static func render(scrollView: UIScrollView) -> UIImage? {
         let savedOffset = scrollView.contentOffset
-        let savedFrame = scrollView.frame
         let savedShowsV = scrollView.showsVerticalScrollIndicator
         let savedShowsH = scrollView.showsHorizontalScrollIndicator
-
         scrollView.showsVerticalScrollIndicator = false
         scrollView.showsHorizontalScrollIndicator = false
 
-        // Expand the scrollview's frame to its full content so every laid-out
-        // subview ends up inside the rendered region.
-        let contentSize = CGSize(
-            width: max(scrollView.contentSize.width, scrollView.bounds.width),
-            height: max(scrollView.contentSize.height, scrollView.bounds.height)
+        let viewport = scrollView.bounds.size
+        let totalSize = CGSize(
+            width: max(scrollView.contentSize.width, viewport.width),
+            height: max(scrollView.contentSize.height, viewport.height)
         )
-        scrollView.contentOffset = .zero
-        scrollView.frame = CGRect(origin: scrollView.frame.origin, size: contentSize)
-        scrollView.layoutIfNeeded()
+        guard totalSize.width > 0, totalSize.height > 0 else { return nil }
 
         let format = UIGraphicsImageRendererFormat.default()
         format.scale = UIScreen.main.scale
         format.opaque = false
-        let renderer = UIGraphicsImageRenderer(size: contentSize, format: format)
+        let renderer = UIGraphicsImageRenderer(size: totalSize, format: format)
 
         let image = renderer.image { ctx in
-            // Paint app background so areas behind transparent cards aren't pure black.
             UIColor(PepTheme.background).setFill()
-            ctx.fill(CGRect(origin: .zero, size: contentSize))
-            scrollView.drawHierarchy(in: CGRect(origin: .zero, size: contentSize), afterScreenUpdates: true)
+            ctx.fill(CGRect(origin: .zero, size: totalSize))
+
+            var y: CGFloat = 0
+            while y < totalSize.height {
+                let tileHeight = min(viewport.height, totalSize.height - y)
+                scrollView.contentOffset = CGPoint(x: 0, y: y)
+                scrollView.layoutIfNeeded()
+                // Let the run loop flush so any newly visible cells/lazy
+                // views finish laying out before the snapshot.
+                RunLoop.current.run(until: Date().addingTimeInterval(0.04))
+
+                let cg = ctx.cgContext
+                cg.saveGState()
+                cg.translateBy(x: 0, y: y)
+                // Clip to the tile so adjacent floating chrome (if any)
+                // doesn't bleed into neighboring tiles.
+                cg.clip(to: CGRect(x: 0, y: 0, width: totalSize.width, height: tileHeight))
+                scrollView.drawHierarchy(in: scrollView.bounds, afterScreenUpdates: true)
+                cg.restoreGState()
+
+                y += viewport.height
+            }
         }
 
         scrollView.contentOffset = savedOffset
-        scrollView.frame = savedFrame
         scrollView.showsVerticalScrollIndicator = savedShowsV
         scrollView.showsHorizontalScrollIndicator = savedShowsH
         return image
