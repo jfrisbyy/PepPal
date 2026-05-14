@@ -3,17 +3,15 @@ import SwiftUI
 
 /// Captures the Home screen's scrollable content as a single tall PNG.
 ///
-/// SwiftUI scroll content does not re-render its layers within a single
-/// runloop pass, so the classic "set contentOffset → drawHierarchy in a
-/// renderer block" pattern produces a blank image. Instead this walks the
-/// scroll view one viewport at a time, awaiting an actual frame between
-/// each step, and snapshots the window's rendered pixels for the area the
-/// scroll view occupies. The tiles are composited into one tall image.
+/// Strategy: temporarily expand the scroll view's frame to its full
+/// contentSize so every cell is laid out and rendered, then snapshot
+/// the scroll view itself with `afterScreenUpdates: true`. This is far
+/// more reliable than the window-tile approach for SwiftUI content,
+/// which uses compositing-server backed layers that often render black
+/// with `afterScreenUpdates: false`.
 @MainActor
 enum HomeScreenshotCapturer {
 
-    /// Async because we need real frame ticks between scroll steps for
-    /// SwiftUI to flush new content into the layer tree before we snapshot.
     static func captureHomeScrollView() async -> UIImage? {
         guard let scrollView = locateHomeScrollView() else { return nil }
         return await render(scrollView: scrollView)
@@ -35,9 +33,8 @@ enum HomeScreenshotCapturer {
 
     // MARK: - Locate
 
-    /// Pick the on-screen scroll view that owns the home content. We choose
-    /// the largest scrollable-area scroll view in the key window — Home's
-    /// vertical ScrollView is by far the tallest content.
+    /// Pick the on-screen scroll view that owns the home content — the
+    /// largest scrollable-area scroll view in the key window.
     private static func locateHomeScrollView() -> UIScrollView? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         let windows = scenes.flatMap { $0.windows }.filter { $0.isKeyWindow }
@@ -46,8 +43,6 @@ enum HomeScreenshotCapturer {
         var best: UIScrollView?
         var bestScore: CGFloat = 0
         collect(in: root) { sv in
-            // Only consider scroll views that are actually visible and
-            // currently scrollable (vertical content larger than viewport).
             guard sv.window != nil, sv.bounds.width > 0, sv.bounds.height > 0 else { return }
             let score = sv.contentSize.height
             if score > bestScore {
@@ -68,105 +63,82 @@ enum HomeScreenshotCapturer {
     private static func render(scrollView: UIScrollView) async -> UIImage? {
         guard let window = scrollView.window else { return nil }
 
+        // Save state
+        let savedFrame = scrollView.frame
         let savedOffset = scrollView.contentOffset
         let savedShowsV = scrollView.showsVerticalScrollIndicator
         let savedShowsH = scrollView.showsHorizontalScrollIndicator
+        let savedClipsSuper = scrollView.superview?.clipsToBounds ?? true
+        let savedClips = scrollView.clipsToBounds
+        let savedMasksToBounds = scrollView.superview?.layer.masksToBounds ?? true
+
         scrollView.showsVerticalScrollIndicator = false
         scrollView.showsHorizontalScrollIndicator = false
 
-        // Frame of the scroll view in window coordinates — this is the
-        // region we'll snapshot from the window per tile.
-        let scrollRectInWindow = scrollView.convert(scrollView.bounds, to: window)
+        // Make sure the scroll view starts at the top and has laid out
+        // every visible child before we expand it.
+        scrollView.setContentOffset(.zero, animated: false)
+        scrollView.layoutIfNeeded()
+        await waitForFrame()
 
-        // Total content extent, clamped to at least one viewport.
-        let viewport = scrollView.bounds.size
-        let totalHeight = max(scrollView.contentSize.height, viewport.height)
-        let totalWidth = max(scrollView.contentSize.width, viewport.width)
-        guard totalWidth > 0, totalHeight > 0 else { return nil }
+        let contentSize = scrollView.contentSize
+        guard contentSize.width > 0, contentSize.height > 0 else {
+            // Restore
+            scrollView.showsVerticalScrollIndicator = savedShowsV
+            scrollView.showsHorizontalScrollIndicator = savedShowsH
+            return nil
+        }
+
+        // Expand the scroll view's frame to its full content size so
+        // every section is laid out into the layer tree at the same time.
+        // SwiftUI's default ScrollView renders all children eagerly, so
+        // this works without lazy-stack tricks.
+        scrollView.superview?.clipsToBounds = false
+        scrollView.superview?.layer.masksToBounds = false
+        scrollView.clipsToBounds = false
+        scrollView.frame = CGRect(
+            x: savedFrame.minX,
+            y: savedFrame.minY,
+            width: contentSize.width,
+            height: contentSize.height
+        )
+        scrollView.layoutIfNeeded()
+        window.layoutIfNeeded()
+
+        // Let SwiftUI commit the expanded layout into the layer tree.
+        await waitForFrame()
+        await waitForFrame()
+        await waitForFrame()
 
         let scale = window.screen.scale
         let format = UIGraphicsImageRendererFormat()
         format.scale = scale
         format.opaque = true
 
-        let canvasSize = CGSize(width: totalWidth, height: totalHeight)
-        let renderer = UIGraphicsImageRenderer(size: canvasSize, format: format)
-
-        // Compute tile offsets up front.
-        var offsets: [CGFloat] = []
-        var y: CGFloat = 0
-        while y < totalHeight {
-            offsets.append(y)
-            y += viewport.height
+        let renderer = UIGraphicsImageRenderer(size: contentSize, format: format)
+        let image = renderer.image { ctx in
+            UIColor(PepTheme.background).setFill()
+            ctx.fill(CGRect(origin: .zero, size: contentSize))
+            // `afterScreenUpdates: true` forces a commit before drawing.
+            // This is what makes SwiftUI's compositing-server layers
+            // render correctly into the bitmap instead of returning black.
+            scrollView.drawHierarchy(
+                in: CGRect(origin: .zero, size: contentSize),
+                afterScreenUpdates: true
+            )
         }
 
-        // Snapshot each tile from the window after letting SwiftUI render.
-        var tiles: [(offset: CGFloat, image: UIImage)] = []
-        for off in offsets {
-            scrollView.setContentOffset(CGPoint(x: 0, y: off), animated: false)
-            scrollView.layoutIfNeeded()
-            window.layoutIfNeeded()
-
-            // Wait for two display links so SwiftUI flushes new content
-            // into the layer tree before we capture.
-            await waitForFrame()
-            await waitForFrame()
-
-            let tileFormat = UIGraphicsImageRendererFormat()
-            tileFormat.scale = scale
-            tileFormat.opaque = true
-            let tileRenderer = UIGraphicsImageRenderer(size: scrollRectInWindow.size, format: tileFormat)
-            let tile = tileRenderer.image { _ in
-                // Draw the window, translated so the scroll-view region
-                // lands at the origin of the tile.
-                let drawRect = CGRect(
-                    x: -scrollRectInWindow.origin.x,
-                    y: -scrollRectInWindow.origin.y,
-                    width: window.bounds.width,
-                    height: window.bounds.height
-                )
-                window.drawHierarchy(in: drawRect, afterScreenUpdates: false)
-            }
-            tiles.append((off, tile))
-        }
-
-        // Restore scroll state before compositing so the user sees their
-        // original position again.
+        // Restore
+        scrollView.frame = savedFrame
+        scrollView.clipsToBounds = savedClips
+        scrollView.superview?.clipsToBounds = savedClipsSuper
+        scrollView.superview?.layer.masksToBounds = savedMasksToBounds
+        scrollView.layoutIfNeeded()
         scrollView.setContentOffset(savedOffset, animated: false)
         scrollView.showsVerticalScrollIndicator = savedShowsV
         scrollView.showsHorizontalScrollIndicator = savedShowsH
 
-        // Composite tiles into the final tall canvas.
-        let final = renderer.image { ctx in
-            UIColor(PepTheme.background).setFill()
-            ctx.fill(CGRect(origin: .zero, size: canvasSize))
-            for tile in tiles {
-                let drawHeight = min(viewport.height, totalHeight - tile.offset)
-                let src = CGRect(
-                    x: 0,
-                    y: 0,
-                    width: scrollRectInWindow.width,
-                    height: drawHeight
-                )
-                let dst = CGRect(
-                    x: 0,
-                    y: tile.offset,
-                    width: scrollRectInWindow.width,
-                    height: drawHeight
-                )
-                if let cg = tile.image.cgImage?.cropping(to: CGRect(
-                    x: 0,
-                    y: 0,
-                    width: src.width * scale,
-                    height: src.height * scale
-                )) {
-                    UIImage(cgImage: cg, scale: scale, orientation: .up).draw(in: dst)
-                } else {
-                    tile.image.draw(in: dst)
-                }
-            }
-        }
-        return final
+        return image
     }
 
     /// Awaits the next CADisplayLink tick so SwiftUI has a chance to
