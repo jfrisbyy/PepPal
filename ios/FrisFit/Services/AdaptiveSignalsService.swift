@@ -182,8 +182,6 @@ final class AdaptiveSignalsService {
         lines.append(AdaptiveLine(id: "roughSleep.nutrition", domain: .nutrition,
             summary: "Protein floor \(proteinFloor)g · prioritize whole-food sources",
             kind: .proteinFloor(grams: proteinFloor)))
-        lines.append(AdaptiveLine(id: "roughSleep.sleep", domain: .sleep,
-            summary: "Wind down by 9:30pm tonight", kind: .windDown(hour: 21, minute: 30)))
         return Signal(kind: .roughSleep, trigger: trigger, recommendation: rec, priority: 80, lines: lines)
     }
 

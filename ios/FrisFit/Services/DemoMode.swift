@@ -174,7 +174,7 @@ nonisolated enum DemoModeProbe {
         switch scenario {
         case .maya:
             return """
-            Maya Chen, 32, hypertrophy block week 6, three years of training age. Running Upper/Lower Hypertrophy 4x/week (Lower A, Upper A, Lower B, Upper B). Recomp goal — currently 139.4 lb, target 138 lb, started at 142 lb. Calorie target 2,100, protein floor 145 g. Recent PR: back squat 185x5 twelve days ago, off a prior 175 lb best.
+            Maya Chen, 32, hypertrophy block week 6, three years of training age. Running Upper/Lower Hypertrophy 4x/week (Leg Day (Deadlift), Upper Body A, Leg Day (Squat), Upper Body B). Recomp goal — currently 139.4 lb, target 138 lb, started at 142 lb. Calorie target 2,100, protein floor 145 g. Recent PR: back squat 185x5 twelve days ago, off a prior 175 lb best.
             Cross-domain patterns: training adherence ~92% over the last four weeks, push days move clean, leg days slip when sleep dips under 6h. Hip thrust and RDL are her strongest lifts. Protein lands in the 130-150 g band most days; calories run within 10% of target 5 of 7 days.
             Peptide stack: low-dose Retatrutide 1 mg weekly (microdose for the last two recomp pounds, week 6 of 16) + GHK-Cu 1 mg daily under-the-skin (skin and recovery support during the lean phase, no GH stack). Sleep baseline ~7.1h; current night was 4h 38m (rough — HRV -18%, RHR +6). Recovery green most weeks except after low-sleep nights, which line up with regressions on squat speed-out.
             Voice: direct, lift-friend tone, lead with the number, never preachy. No emojis.
@@ -633,28 +633,28 @@ enum DemoDataGenerator {
     static func programs(for scenario: DemoScenario) -> (active: TrainingProgram, archived: TrainingProgram) {
         switch scenario {
         case .maya:
-            let lowerA = day("Lower A", weekday: .monday, [
+            let lowerA = day("Leg Day (Deadlift)", weekday: .monday, [
                 ex("barbell-squat", sets: 4, repsMin: 6, repsMax: 8),
                 ex("romanian-deadlift", sets: 3, repsMin: 8, repsMax: 10),
                 ex("hip-thrust", sets: 3, repsMin: 8, repsMax: 12),
                 ex("leg-press", sets: 3, repsMin: 10, repsMax: 12),
                 ex("standing-calf-raise", sets: 3, repsMin: 12, repsMax: 15)
             ])
-            let upperA = day("Upper A", weekday: .tuesday, [
+            let upperA = day("Upper Body A", weekday: .tuesday, [
                 ex("barbell-bench-press", sets: 4, repsMin: 6, repsMax: 8),
                 ex("barbell-row", sets: 4, repsMin: 6, repsMax: 8),
                 ex("dumbbell-shoulder-press", sets: 3, repsMin: 8, repsMax: 12),
                 ex("lat-pulldown", sets: 3, repsMin: 10, repsMax: 12),
                 ex("dumbbell-curl", sets: 3, repsMin: 10, repsMax: 12)
             ])
-            let lowerB = day("Lower B", weekday: .thursday, [
+            let lowerB = day("Leg Day (Squat)", weekday: .thursday, [
                 ex("hip-thrust", sets: 4, repsMin: 6, repsMax: 8),
                 ex("front-squat", sets: 3, repsMin: 6, repsMax: 8),
                 ex("dumbbell-rdl", sets: 3, repsMin: 8, repsMax: 10),
                 ex("walking-lunges", sets: 3, repsMin: 10, repsMax: 12),
                 ex("seated-leg-curl", sets: 3, repsMin: 10, repsMax: 12)
             ])
-            let upperB = day("Upper B", weekday: .friday, [
+            let upperB = day("Upper Body B", weekday: .friday, [
                 ex("incline-dumbbell-press", sets: 4, repsMin: 8, repsMax: 10),
                 ex("dumbbell-row", sets: 4, repsMin: 8, repsMax: 10),
                 ex("lateral-raises", sets: 3, repsMin: 12, repsMax: 15),
@@ -784,26 +784,26 @@ enum DemoDataGenerator {
             return (active, archived)
 
         case .shayla:
-            let upperA = day("Upper A", weekday: .monday, [
+            let upperA = day("Upper Body A", weekday: .monday, [
                 ex("dumbbell-bench-press", sets: 4, repsMin: 8, repsMax: 10),
                 ex("seated-cable-row", sets: 4, repsMin: 8, repsMax: 10),
                 ex("lateral-raises", sets: 3, repsMin: 12, repsMax: 15),
                 ex("dumbbell-curl", sets: 3, repsMin: 10, repsMax: 12),
                 ex("tricep-pushdown", sets: 3, repsMin: 12, repsMax: 15)
             ])
-            let lowerA = day("Lower A", weekday: .tuesday, [
+            let lowerA = day("Leg Day (Deadlift)", weekday: .tuesday, [
                 ex("hip-thrust", sets: 4, repsMin: 8, repsMax: 10),
                 ex("goblet-squat", sets: 3, repsMin: 10, repsMax: 12),
                 ex("dumbbell-rdl", sets: 3, repsMin: 8, repsMax: 10),
                 ex("walking-lunges", sets: 3, repsMin: 10, repsMax: 12)
             ])
-            let upperB = day("Upper B", weekday: .thursday, [
+            let upperB = day("Upper Body B", weekday: .thursday, [
                 ex("incline-dumbbell-press", sets: 4, repsMin: 8, repsMax: 10),
                 ex("lat-pulldown", sets: 4, repsMin: 10, repsMax: 12),
                 ex("face-pulls", sets: 3, repsMin: 12, repsMax: 15),
                 ex("hammer-curl", sets: 3, repsMin: 10, repsMax: 12)
             ])
-            let lowerB = day("Lower B", weekday: .friday, [
+            let lowerB = day("Leg Day (Squat)", weekday: .friday, [
                 ex("hip-thrust", sets: 3, repsMin: 10, repsMax: 12),
                 ex("leg-press", sets: 3, repsMin: 10, repsMax: 12),
                 ex("seated-leg-curl", sets: 3, repsMin: 12, repsMax: 15),

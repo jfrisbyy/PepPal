@@ -1,47 +1,46 @@
-# Add protocols to every demo persona + plain-English briefs
+# Rename "Lower B" to plain-English "Leg Day" + update Daily Brief headline
 
 ## What changes
 
-### Every persona gets an active protocol
+**1. New Daily Brief headline (Maya)**
 
-Right now Maya is the only persona with no peptide protocol. We'll give Maya a stack: **low-dose Retatrutide (1 mg weekly)** for her final cut pounds + **GHK-Cu (1 mg daily)** for skin and recovery support during the lean phase. Her existing rough-sleep story stays — the protocol just becomes part of her week.
+Replace:
 
-Final protocol roster across all 6 demo personas:
+> "4h 38m sleep + heart-rate variability down 18% — Lower B drops to half volume today."
 
-- **Maya** — Retatrutide 1 mg weekly + GHK-Cu 1 mg daily *(new)*
-- **Priya** — Tirzepatide 5 mg weekly *(unchanged)*
-- **Theo** — BPC-157 250 mcg twice daily + TB-500 2.5 mg weekly *(unchanged)*
-- **Marcus** — Testosterone Cypionate 100 mg weekly + Ipamorelin nightly *(unchanged)*
-- **Ava** — Ipamorelin nightly *(unchanged)*
-- **Shayla** — Borrowed Test Cyp at half-dose *(unchanged)*
+With:
 
-Maya's vial inventory, dose log history, weekly schedule and compound-level sparkline data will be filled in to match the new stack so every screen renders coherently.
+> "Recovery's tapping the brakes — Leg Day at half today."
 
-### Daily briefs rewritten in plain English
+Body copy below stays unchanged (still contains all the precise numbers, HRV, sleep, weights, etc.) — just swap any internal "Lower B" mentions to "Leg Day (Squat)" so the body reads consistently.
 
-Every persona's brief, modules, action items, and adaptive callouts get a pass to replace insider jargon with everyday language. Examples:
+**2. Rename workout days everywhere to plain English**
 
-- "low-FODMAP" → "skip the usual triggers — onion, garlic, beans, dairy"
-- "Z2 easy" → "easy, conversational pace"
-- "5/3/1 BBB" → "main lift then back-off volume sets"
-- "PPL" → "Push / Pull / Legs split"
-- "subq" → "under-the-skin injection"
-- "PK level ~62%" → "blood level around 62% of normal"
-- "RUQ discomfort" → "upper-right belly tenderness"
+Maya's Upper/Lower 4x/week split becomes:
 
-Biomarker abbreviations everyone sees on lab reports (HRV, RHR, ALT, LDL, AST, SHBG, E2) stay — they're added to the user's everyday vocabulary by the app itself, but we'll add a one-line context the first time each appears in a brief.
+- Lower A → **Leg Day (Deadlift)**
+- Lower B → **Leg Day (Squat)**
+- Upper A → **Upper Body A**
+- Upper B → **Upper Body B**
 
-### Maya's brief gets a new protocol module
+Why two variants for Leg Day: she trains legs twice a week, so we need to tell them apart. Anchoring each to its main lift ("Deadlift" / "Squat") is the clearest plain-English signal.
 
-Her opening summary and narrative will weave in the Retatrutide + GHK-Cu context so the protocol stack on her home screen matches the story: she's 6 weeks into a low-dose GLP-1 finish-cut paired with GHK-Cu for skin support, and last night's rough sleep is the adaptive trigger of the day.
+**3. Where the rename applies**
 
-### Verification
+- Maya's Daily Brief (headline, body, plan items, action chips)
+- Maya's demo program/training week
+- The generic Upper/Lower program template available to all users
+- Maya's persona system prompt (so the AI coach uses the same names)
 
-After the changes I'll run the build check and the demo-mode coherence verifier that already prints persona consistency (workouts, dose logs, vials, bloodwork) so we know every persona's protocol, briefs, and home modules all line up.
+**4. Action chip copy**
 
-### What stays the same
+"Accept half-volume Lower B" → "Accept half-volume Leg Day"  
+remove wind down at 9:30 since we already have wind down at 9:45
 
-- Persona names, ages, goals, scenarios, headlines remain
-- All five other personas' protocol stacks are unchanged
-- Screenshot debug mode, friends/community mock data, and adjustments engine are untouched
+## What stays the same
+
+- All numbers, percentages, weights, sets/reps
+- Every other section of the home screen (Active Protocol, Composition, Activity, Sleep, Nutrition, Water)
+- Other personas' briefs
+- Screenshot debug mode behavior
 

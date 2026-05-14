@@ -180,7 +180,7 @@ enum ProgramTemplateFactory {
     // MARK: - Upper/Lower
 
     private static func upperLowerDays() -> [ProgramDay] {
-        let upper1 = ProgramDay(name: "Upper A — Strength", exercises: [
+        let upper1 = ProgramDay(name: "Upper Body A — Strength", exercises: [
             ex("barbell-bench-press", sets: 4, repsMin: 5, repsMax: 6),
             exByName("Barbell Rows", sets: 4, repsMin: 5, repsMax: 6),
             exByName("Overhead Press", sets: 3, repsMin: 6, repsMax: 8),
@@ -190,7 +190,7 @@ enum ProgramTemplateFactory {
             exByName("Tricep Pushdowns", sets: 2, repsMin: 10, repsMax: 12),
         ].compactMap { $0 })
 
-        let lower1 = ProgramDay(name: "Lower A — Strength", exercises: [
+        let lower1 = ProgramDay(name: "Leg Day (Deadlift) — Strength", exercises: [
             exByName("Barbell Back Squat", sets: 4, repsMin: 5, repsMax: 6),
             exByName("Romanian Deadlift", sets: 3, repsMin: 6, repsMax: 8),
             exByName("Leg Press", sets: 3, repsMin: 8, repsMax: 10),
@@ -198,7 +198,7 @@ enum ProgramTemplateFactory {
             exByName("Calf Raises", sets: 4, repsMin: 12, repsMax: 15),
         ].compactMap { $0 })
 
-        let upper2 = ProgramDay(name: "Upper B — Hypertrophy", exercises: [
+        let upper2 = ProgramDay(name: "Upper Body B — Hypertrophy", exercises: [
             ex("dumbbell-bench-press", sets: 3, repsMin: 10, repsMax: 12),
             exByName("Seated Cable Rows", sets: 3, repsMin: 10, repsMax: 12),
             ex("incline-dumbbell-press", sets: 3, repsMin: 10, repsMax: 12),
@@ -208,7 +208,7 @@ enum ProgramTemplateFactory {
             exByName("Overhead Tricep Extension", sets: 3, repsMin: 10, repsMax: 12),
         ].compactMap { $0 })
 
-        let lower2 = ProgramDay(name: "Lower B — Hypertrophy", exercises: [
+        let lower2 = ProgramDay(name: "Leg Day (Squat) — Hypertrophy", exercises: [
             exByName("Deadlift", sets: 3, repsMin: 6, repsMax: 8),
             exByName("Bulgarian Split Squat", sets: 3, repsMin: 10, repsMax: 12),
             exByName("Leg Extensions", sets: 3, repsMin: 12, repsMax: 15),

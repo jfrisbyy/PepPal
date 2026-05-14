@@ -29,11 +29,11 @@ nonisolated enum DemoBriefLibrary {
     // MARK: - Maya · rough sleep → adaptive lift (now with Reta + GHK-Cu stack)
 
     private static let mayaBrief = TodaysPlanResponse(
-        summary: "Maya, you're 6 weeks into the recomp finish — low-dose Retatrutide 1mg weekly plus GHK-Cu daily for skin support — and last night was the roughest sleep of the cycle: 4h 38m, heart-rate variability down 18%, resting heart rate up 6. Today is Lower B on paper, but every time you've squatted under 6 hours of sleep this block the bar speed dropped and Thursday's upper day suffered. We're cutting working volume in half, keeping the same weight on the bar, and reflowing the missed sets into next week.",
+        summary: "Maya, you're 6 weeks into the recomp finish — low-dose Retatrutide 1mg weekly plus GHK-Cu daily for skin support — and last night was the roughest sleep of the cycle: 4h 38m, heart-rate variability down 18%, resting heart rate up 6. Today is Leg Day (Squat) on paper, but every time you've squatted under 6 hours of sleep this block the bar speed dropped and Thursday's upper day suffered. We're cutting working volume in half, keeping the same weight on the bar, and reflowing the missed sets into next week.",
         modules: [
             TodaysPlanModule(
                 type: "training",
-                title: "Lower B — half-volume mode",
+                title: "Leg Day (Squat) — half-volume mode",
                 content: "Back squat 3 sets of 5 at your working 185 lb instead of 5x5, then Romanian deadlift 3x6 and hip thrust 3x8. Same weight, half the damage. Your last three nights under 6h all bled into Thursday's pressing — protecting today protects the rest of the week."
             ),
             TodaysPlanModule(
@@ -53,19 +53,19 @@ nonisolated enum DemoBriefLibrary {
             )
         ],
         actionItems: [
-            PlanActionItem(title: "Accept half-volume Lower B", icon: "figure.strengthtraining.traditional", category: "Fitness", reason: "Heart-rate variability down 18% and 4h 38m sleep — half volume protects Thursday's upper day."),
+            PlanActionItem(title: "Accept half-volume Leg Day", icon: "figure.strengthtraining.traditional", category: "Fitness", reason: "Heart-rate variability down 18% and 4h 38m sleep — half volume protects Thursday's upper day."),
             PlanActionItem(title: "Front-load 40g protein at lunch", icon: "fork.knife", category: "Nutrition", reason: "Recovery debt is highest after short sleep; lunch is your best protein anchor."),
             PlanActionItem(title: "10-min mobility flow tonight", icon: "figure.cooldown", category: "Wellness", reason: "Light parasympathetic work on a low-recovery day; pairs with an earlier wind-down."),
             PlanActionItem(title: "Log tonight's GHK-Cu", icon: "syringe.fill", category: "Wellness", reason: "Daily compound — keep the streak clean through the cut.")
         ],
         narrative: BriefNarrative(
             greeting: "Morning, Maya.",
-            headline: "4h 38m sleep + heart-rate variability down 18% — Lower B drops to half volume today.",
-            body: "You slept 4h 38m vs your 7.1h baseline and heart-rate variability (HRV — the higher the better, a stand-in for how recovered you are) came back 18% under your average. Lower B is on the board, but your last three under-6h nights all spilled into Thursday's push day. We're keeping the bar weight at 185 working and cutting to 3 sets of 5 — something beats nothing here, and lifting heavy through this likely costs you Thursday. The Retatrutide + GHK-Cu stack is otherwise running clean — Monday's Reta is logged, GHK-Cu daily streak is at 95%. Accept the half-volume bundle in one tap; the missed sets reflow into next week.",
+            headline: "Recovery's tapping the brakes — Leg Day at half today.",
+            body: "You slept 4h 38m vs your 7.1h baseline and heart-rate variability (HRV — the higher the better, a stand-in for how recovered you are) came back 18% under your average. Leg Day (Squat) is on the board, but your last three under-6h nights all spilled into Thursday's push day. We're keeping the bar weight at 185 working and cutting to 3 sets of 5 — something beats nothing here, and lifting heavy through this likely costs you Thursday. The Retatrutide + GHK-Cu stack is otherwise running clean — Monday's Reta is logged, GHK-Cu daily streak is at 95%. Accept the half-volume bundle in one tap; the missed sets reflow into next week.",
             watchFor: "If bar speed feels off on the first working set, drop to 175 and stay at 3x5 — don't chase 185 today.",
             adaptiveCallout: AdaptiveCallout(
                 trigger: "Slept 4h 38m vs 7.1h avg · HRV -18% · RHR +6",
-                recommendation: "Half-volume Lower B today: 3x5 at 185 instead of 5x5. Missed sets reflow into next week."
+                recommendation: "Half-volume Leg Day today: 3x5 at 185 instead of 5x5. Missed sets reflow into next week."
             )
         )
     )
