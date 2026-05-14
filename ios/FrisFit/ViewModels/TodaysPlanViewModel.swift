@@ -207,12 +207,24 @@ final class TodaysPlanViewModel {
         Task { @MainActor [weak self] in
             guard let self else { return }
             guard self.planResponse == nil || !Calendar.current.isDateInToday(self.lastFetchDate ?? .distantPast) else { return }
+            // Demo mode might have been activated between scheduling this
+            // Task and now — re-check before the await so we don't blow away
+            // the persona brief with a Supabase fetch.
+            if DemoModeProbe.isActive { _ = self.applyDemoBriefIfActive(); return }
             if let latest = await BriefingCloudService.shared.fetchLatestBriefing(),
                Calendar.current.isDateInToday(latest.day) {
-                self.planResponse = latest.plan
-                self.lastFetchDate = Date()
+                // Re-check after the await — the persona may have been
+                // activated while the network request was in flight.
+                if DemoModeProbe.isActive {
+                    _ = self.applyDemoBriefIfActive()
+                } else {
+                    self.planResponse = latest.plan
+                    self.lastFetchDate = Date()
+                }
             }
-            await BriefingCloudService.shared.lockYesterdayIfNeeded()
+            if !DemoModeProbe.isActive {
+                await BriefingCloudService.shared.lockYesterdayIfNeeded()
+            }
         }
     }
 
@@ -587,6 +599,14 @@ final class TodaysPlanViewModel {
                 guard startUserId == nowUserId else {
                     self.isLoading = false
                     self.isBackgroundRefreshing = false
+                    return
+                }
+                // If a demo persona was activated while the AI call was in
+                // flight, drop the cloud/AI response and re-pin the hardcoded
+                // brief. Without this guard, Maya (or any demo persona) gets
+                // silently overwritten by a Supabase-backed brief that
+                // started generating before demo mode was switched on.
+                if self.applyDemoBriefIfActive() {
                     return
                 }
                 withAnimation(.easeInOut(duration: 0.3)) {
