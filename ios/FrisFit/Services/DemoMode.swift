@@ -225,6 +225,11 @@ enum DemoDataInjector {
         // Profile display
         ProfileService.shared.cachedDisplayName = p.scenario.fullName
 
+        // Baseline daily targets follow the persona so the brief prompt sees
+        // "1,500 kcal target / 130 g protein" etc. instead of leftover values
+        // from the previously-signed-in real account.
+        applyPersonaTargets(persona: p)
+
         // Insights data store
         let store = InsightsDataStore.shared
         store.update(
@@ -256,6 +261,10 @@ enum DemoDataInjector {
             BloodworkInterpretationService.shared.interpretation = nil
         }
 
+        // Persona name in the brief greeting follows the persona, not the
+        // signed-in account.
+        InsightsDataStore.shared.firstName = p.scenario.displayName
+
         // Vial inventory (drives compound detail vial math & supply line)
         VialInventoryStore.shared.vials = bundle.vials
 
@@ -279,6 +288,58 @@ enum DemoDataInjector {
 
         // Coherence self-test (printed once per activate)
         DemoCoherenceCheck.run(persona: p, bundle: bundle)
+    }
+
+    /// Push the persona's macro / water / step targets into the shared stores
+    /// the brief prompt and adaptive context block read from. This is the
+    /// difference between the brief saying "vs. your 2,200 kcal target" (the
+    /// old default that bled in from a real account) and "vs. your 1,500 kcal
+    /// target" (Priya's actual target).
+    private static func applyPersonaTargets(persona p: DemoPersona) {
+        // Macros — push through AdaptiveMacroStore so `NutritionViewModel.baselineTarget`
+        // reads the persona target instead of the hardcoded 2200/150/250/73 default.
+        let weightKg = p.weightTodayLbs / 2.2046
+        let goal: FitnessGoalType
+        switch p.goalType.lowercased() {
+        case "weight loss": goal = .weightLoss
+        case "cutting": goal = .cutting
+        case "recomp", "recovery + strength": goal = .recomp
+        case "endurance", "optimization": goal = .maintain
+        default: goal = .maintain
+        }
+        let activity: ActivityLevel
+        switch p.avgStepsPerDay {
+        case 0..<6000: activity = .sedentary
+        case 6000..<9000: activity = .light
+        case 9000..<12000: activity = .moderate
+        case 12000..<15000: activity = .active
+        default: activity = .athlete
+        }
+        let inputs = MacroGoalInputs(
+            weightKg: weightKg,
+            heightCm: p.heightCm,
+            ageYears: 32,
+            biologicalSex: (p.scenario == .theo || p.scenario == .marcus) ? "male" : "female",
+            activity: activity,
+            goal: goal,
+            trainingLoadBoost: 0
+        )
+        // Bypass `save()` because that recomputes; we want the persona's hand-tuned
+        // calorie/protein values to be the source of truth for the brief copy.
+        AdaptiveMacroStore.shared.inputs = inputs
+        AdaptiveMacroStore.shared.target = MacroTarget(
+            calories: p.macroCalories, protein: p.macroProtein,
+            carbs: p.macroCarbs, fat: p.macroFat
+        )
+        AdaptiveMacroStore.shared.isEnabled = true
+
+        // Water goal — scale with body weight (rough "30 ml/kg" rule of thumb).
+        let waterMl = max(1800, min(4000, Int(weightKg * 30)))
+        WaterViewModel.shared.setGoal(waterMl)
+
+        // Step goal — round the persona's daily average up to the nearest 1k.
+        let stepGoal = max(6000, ((p.avgStepsPerDay + 999) / 1000) * 1000)
+        UserDefaults.standard.set(stepGoal, forKey: "step_goal")
     }
 
     static func clearAll() {
@@ -976,12 +1037,17 @@ enum DemoDataGenerator {
                 injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 10
             )
             var logs: [DoseLogEntry] = []
+            // BPC-157 daily, but the last 3 days are skipped — that's the
+            // "missed dose" hero story. Last non-skipped dose is 3 days ago,
+            // which trips the daily-frequency `missedDose` signal (>=2d).
             for d in 0..<90 {
-                if d == 2 {
+                let isRecentMiss = d <= 2
+                if isRecentMiss {
                     logs.append(DoseLogEntry(
                         compoundName: "BPC-157", doseMcg: 250,
                         timestamp: ts(daysAgo: d), injectionSite: sites[d % sites.count],
-                        wasSkipped: true, skipReason: "Forgot — out of town"
+                        wasSkipped: true,
+                        skipReason: d == 2 ? "Forgot — out of town Wednesday" : (d == 1 ? "Travel day — no kit" : "Still rebuilding cadence")
                     ))
                     continue
                 }
@@ -1475,7 +1541,9 @@ enum DemoDataGenerator {
         case .ava:
             todaySleep = baseSleep
             todayHRV = 58
-            todayRHR = 56 // baseline 48 + 8 elevation
+            // Baseline RHR ~48; elevated +8 for 5 mornings → 71. Crosses the
+            // >70 threshold so `poorRecovery` fires reliably.
+            todayRHR = 71
         case .priya:
             todaySleep = baseSleep
             todayHRV = 48
@@ -1489,9 +1557,11 @@ enum DemoDataGenerator {
             todayHRV = 46
             todayRHR = 56
         case .shayla:
-            todaySleep = 6.1
-            todayHRV = 38
-            todayRHR = 65
+            // Sleep stays in the healthy range so `roughSleep` doesn't crowd
+            // out her hero story (borrowed protocol → safer dose).
+            todaySleep = 7.4
+            todayHRV = 52
+            todayRHR = 58
         }
         return (logs, todaySleep, todayHRV, todayRHR)
     }
@@ -1579,6 +1649,25 @@ enum DemoCoherenceCheck {
         }
         for v in bundle.vials where v.typicalDoseMcg > v.totalMcg {
             issues.append("vial \(v.compoundName) #\(v.vialNumber): dose > vial capacity")
+        }
+
+        // 8. Hero adaptive signal fires for this persona. Caught here so a
+        // future data tweak doesn't silently break the screenshot story.
+        let signals = AdaptiveSignalsService.shared.buildSignals(
+            activeProtocol: bundle.protocols.first(where: { $0.isActive }) ?? bundle.protocols.first
+        )
+        let firedKinds = Set(signals.map { $0.kind })
+        let expected: AdaptiveSignalsService.Signal.Kind?
+        switch p.scenario {
+        case .maya: expected = .roughSleep
+        case .priya: expected = .sideEffect
+        case .theo: expected = .missedDose
+        case .marcus: expected = .bloodworkShift
+        case .ava: expected = .poorRecovery
+        case .shayla: expected = .borrowedProtocol
+        }
+        if let expected, !firedKinds.contains(expected) {
+            issues.append("hero signal \(expected.rawValue) did not fire — fired: [\(firedKinds.map(\.rawValue).sorted().joined(separator: ", "))]")
         }
 
         if issues.isEmpty {

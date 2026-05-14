@@ -97,6 +97,32 @@ final class TodaysPlanViewModel {
         pendingDebouncedContext = nil
     }
 
+    /// Wipe the cached brief for the current user scope so the next refresh
+    /// rebuilds from scratch. Used when a demo persona is switched — the
+    /// previous persona's brief must not linger on screen or in the
+    /// per-user-scoped cache.
+    func resetForPersonaSwitch() {
+        planResponse = nil
+        historicalPlan = nil
+        historicalDate = nil
+        lastFetchDate = nil
+        errorMessage = nil
+        isBackgroundRefreshing = false
+        debounceTask?.cancel()
+        debounceTask = nil
+        pendingDebouncedContext = nil
+        // Clear scoped cache + window-done markers so the new persona's brief
+        // is regenerated immediately rather than treated as "already done for
+        // this window."
+        UserDefaults.standard.removeObject(forKey: cacheKey)
+        UserDefaults.standard.removeObject(forKey: cacheHashKey)
+        UserDefaults.standard.removeObject(forKey: cacheDateKey)
+        UserDefaults.standard.removeObject(forKey: memoKey)
+        UserDefaults.standard.removeObject(forKey: memoDateKey)
+        UserDefaults.standard.removeObject(forKey: windowsDoneKey)
+        UserDefaults.standard.removeObject(forKey: middayDoneKey)
+    }
+
     var hasPlan: Bool { planResponse != nil }
 
     var summary: String {

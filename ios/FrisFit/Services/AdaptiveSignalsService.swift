@@ -46,6 +46,7 @@ final class AdaptiveSignalsService {
             case bloodworkShift
             case poorRecovery
             case streakBreak
+            case borrowedProtocol
         }
     }
 
@@ -76,6 +77,7 @@ final class AdaptiveSignalsService {
         if let s = bloodworkShiftSignal() { out.append(s) }
         if let s = poorRecoverySignal() { out.append(s) }
         if let s = streakBreakSignal() { out.append(s) }
+        if let s = borrowedProtocolSignal(activeProtocol: activeProtocol) { out.append(s) }
         let sorted = Array(out.sorted { $0.priority > $1.priority }.prefix(3))
         todaysTopSignalDateKey = Self.todayKey()
         todaysTopSignal = sorted.first
@@ -329,6 +331,37 @@ final class AdaptiveSignalsService {
                 summary: "Wind down by 9:45pm tonight", kind: .windDown(hour: 21, minute: 45))
         ]
         return Signal(kind: .poorRecovery, trigger: trigger, recommendation: recommendation, priority: 65, lines: lines)
+    }
+
+    /// Fires when the active protocol carries a "borrowed from" marker (name
+    /// or a dose-log note). Source of truth for the Shayla demo persona; will
+    /// also fire for any real protocol the user explicitly borrows from a peer.
+    private func borrowedProtocolSignal(activeProtocol: PeptideProtocol?) -> Signal? {
+        guard let proto = activeProtocol else { return nil }
+        let nameMatch = proto.name.localizedCaseInsensitiveContains("borrowed")
+        let noteMatch = proto.doseLog.contains { ($0.notes ?? "").localizedCaseInsensitiveContains("borrow") }
+        guard nameMatch || noteMatch else { return nil }
+
+        let lead = proto.compounds.first
+        let doseStr: String
+        if let lead {
+            let mg = lead.doseMcg / 1000.0
+            doseStr = mg >= 1 ? String(format: "%.0f mg", mg) : String(format: "%.0f mcg", lead.doseMcg)
+        } else {
+            doseStr = "current dose"
+        }
+        let compoundLabel = lead?.compoundName ?? "the stack"
+        let trigger = "Borrowed protocol — \(compoundLabel) running at \(doseStr) (half of source)"
+        let recommendation = "Hold the conservative ramp for two more weeks. Re-check labs and recovery before you talk about matching the source dose — your data is the filter, not the screenshot."
+        let lines: [AdaptiveLine] = [
+            AdaptiveLine(id: "borrowed.dose", domain: .dose,
+                summary: "Hold half-dose for 2 more weeks before any bump",
+                kind: .doseHoldNoDoubleUp),
+            AdaptiveLine(id: "borrowed.info", domain: .info,
+                summary: "Re-check labs + recovery before matching source dose",
+                kind: .info)
+        ]
+        return Signal(kind: .borrowedProtocol, trigger: trigger, recommendation: recommendation, priority: 78, lines: lines)
     }
 
     private func streakBreakSignal() -> Signal? {

@@ -1,60 +1,27 @@
-# Make every demo persona internally consistent and let insights actually read the mock data
+# Make the Daily Brief actually narrate each demo persona's hero story
 
-## What's wrong today
+## Implementation checklist
 
-- Protocols and dose logs disagree with their own frequencies (Theo's TB-500 says "twice weekly" but logs every 3 days; Shayla "borrows Marcus's cut" but uses a compound Marcus doesn't run).
-- Persona bios contradict the data (Priya bio says 5.2 mg, protocol says 5 mg).
-- The runner gets bench-press exercises inside a "Long 14 mi" workout, and every persona shares the same chest/back/biceps weekly volume.
-- No persona has a real active program — only a string label that never reaches the app.
-- Every day in meal history is a copy-paste of today.
-- The daily brief is a hardcoded tagline; it never looks at the persona's weights, workouts, labs, sleep, or doses.
-- Sleep nights, HRV, resting heart rate, water, and steps don't exist as data anywhere — so "4h 38m last night" and "RHR +8 for 5 mornings" are just banner copy.
+- [x] **1. Wipe & regenerate the brief on persona switch** — clear `TodaysPlanViewModel` cache + planResponse, then force-refresh from `HomeView.onReceive(.demoPersonaChanged)`.
+- [x] **2. Tune persona mock data so hero signals fire**
+  - [x] Theo: stop logging BPC-157 for last 3 days so `missedDose` fires (isDaily → daysSince >= 2).
+  - [x] Ava: bump today's RHR to 71+ and inject a 5-morning elevated-RHR pattern so `poorRecovery` fires.
+  - [x] Shayla: raise sleep above 6.5h so `roughSleep` doesn't crowd out the borrowed-protocol signal.
+- [x] **3. Baseline targets follow persona** — push macro/water/step goals + first name into `NutritionViewModel`, `WaterViewModel`, `UserDefaults("step_goal")`, `InsightsDataStore.firstName`.
+- [x] **4. New `borrowedProtocol` adaptive signal** — fires on protocol notes/name marked "Borrowed"; emits a dose-domain accept/skip line.
+- [x] **5. Coherence self-test** — after persona load, verify the hero signal is present in the day's bundle.
 
-## What I'll change
+## Background
 
-**Protocols, dosages, frequencies — make them line up**
+The brief is built by `TodaysPlanService.assembleContext` + `AdaptiveSignalsService.buildSignals`. Signals → AdaptiveBundle → `AdaptiveAdjustmentService.ingest` → strip with accept/skip per line. Persona switch goes through `DemoModeManager.activate` → `DemoDataInjector.injectShared` (singletons) + HomeView's `.onReceive(.demoPersonaChanged)` → `injectInto` (view-models). Brief was not being refreshed after that injection.
 
-- Theo: TB-500 logged twice weekly to match its label; BPC-157 daily with the Wednesday miss preserved.
-- Shayla: borrowed protocol switches to the same compound family Marcus runs, started at half-dose with a 2-week taper note, so the "Marcus runs this at 5 mg, you start at 2.5 mg" story is literally true.
-- Priya: bio, compound, and dose log all say 5 mg Tirzepatide weekly with the realistic titration ramp (2.5 → 5 mg).
-- Marcus: Test Cyp 100 mg weekly + Ipamorelin 300 mcg daily kept, vial sizes/reconstitution made internally consistent so the math works on the compound detail screen.
-- Maya: Ipamorelin replaced with a recovery-tied protocol that connects to her "listening to recovery for the first time" arc.
-- Ava: low-dose Ipamorelin kept, but tied to her endurance-recovery story with realistic cycle length.
-- Vial inventory and supply forecasts populated to match each protocol so the supply line in the brief has real numbers.
+## What you'll see after this
 
-**Every persona gets a real active program**
+- Switch to **Maya** → "Slept 4.6h vs your 7.1h average — halving working sets on today's upper-body."
+- Switch to **Priya** → "GI discomfort 4h after yesterday's Tirzepatide — low-FODMAP, protein-forward 48h."
+- Switch to **Theo** → "BPC-157 missed 3 days running. Re-anchor tonight; Saturday's heavy pull stays with a soft cap."
+- Switch to **Marcus** → "ALT 38 → 52 → 68, LDL up 44. Hold steady through next recheck."
+- Switch to **Ava** → "RHR up 8 bpm for 5 mornings, sleep normal. Two-path day."
+- Switch to **Shayla** → "Marcus runs Test Cyp at 100 mg — your labs say 50 mg for two more weeks."
 
-- A proper program object (not just a name) is injected for each persona: weekly day pattern, current week, deload weeks, sample lift targets where it applies, or weekly mileage where it applies.
-- An archived prior block is included so the program history isn't empty.
-- Workout names are pulled from the program's day list, and exercises inside each workout match the day (runner's "Long 14 mi" contains a long run, lifter's "Lower A" contains squat/RDL/hip thrust, etc.).
-
-**Workout, meal, and recovery realism**
-
-- Workouts: 90–120 sessions across 180 days, named by program day, exercises consistent with that day, set/rep/weight scaled to archetype, ~5–6 PRs spread across the timeline.
-- Meals: 30 days of variance instead of the same three meals every day — breakfast/lunch/dinner pools per persona, weekend cheat meals, archetype-appropriate foods (low-FODMAP rotation for Priya around dose day, higher-carb long-run fuel for Ava, etc.).
-- Muscle recovery and weekly volumes: per-persona — Ava sees calves/hamstrings/hips with running mileage volumes, Theo sees posterior-chain-heavy lifter volumes, Priya sees beginner full-body, etc.
-- Bloodwork: persona-appropriate panels — Priya gets GLP-1-relevant markers, Ava gets ferritin/vit-D/iron, Maya gets a baseline hormone panel.
-
-**New signals so insights have something to say**
-
-- Sleep nights for the last 90 days (Maya's last night = 4h 38m to match her scenario; Ava normal; Shayla averaging ~6.2h to match her brief copy).
-- Resting heart rate + HRV daily series (Ava's RHR +8 bpm streak baked in for the last 5 mornings; Maya's HRV −18% today).
-- Daily steps and water for the last 90 days, scaled to each archetype.
-- Side-effect log already exists for Priya; extended with realistic timing so the nutrition pivot story checks out.
-
-**Daily brief that reflects the data**
-
-- The brief stops being a single hardcoded paragraph. Demo mode keeps each persona's headline as the hook, then the body lines are generated by the existing brief generator reading the (now real) injected data — recovery line from sleep/HRV, dose line from the protocol log, training line from today's program day and recovery state, nutrition line from macro target and recent intake, supply line from the vial inventory, bloodwork line where applicable.
-- If a line has nothing to say for a given persona it's dropped, so each persona's brief naturally focuses on its scenario.
-
-**One coherence check at the end**
-
-- A self-test pass that, for each persona, asserts: protocol frequency matches dose-log cadence, vial math is consistent, active program day count matches workout history naming, bloodwork panel matches archetype, sleep/HRV/RHR snapshot matches the persona's scenario, and the brief generator produces non-empty body lines.
-
-## What the user sees after the change
-
-- Tapping any of the six demo personas loads a coherent profile: bio matches protocol matches dose log matches vial math.
-- Every persona has an active program visible on the Train screen, with archived blocks behind it.
-- The daily brief reads like a synthesis of that persona's data, not a tagline — Maya's brief calls out her 4h 38m night and HRV drop, Ava's references the 5-morning RHR pattern, Marcus's quotes his actual ALT/LDL trend numbers from his real panels, Priya's swaps tonight's meal because of her real side-effect log, Theo's flags Saturday because of his real missed dose, Shayla's recommends 2.5 mg because Marcus's real protocol shows 5 mg.
-- Meal history, recovery, weekly volume, and bloodwork all look like they belong to that specific person, not a generic template.t user 
-
+All adaptive-strip lines remain accept/skip-capable (handled by existing `AdaptiveAdjustmentService`).

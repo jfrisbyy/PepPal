@@ -118,6 +118,10 @@ struct HomeView: View {
             .onAppear { performHomeAppear() }
             .onReceive(NotificationCenter.default.publisher(for: .demoPersonaChanged)) { note in
                 if let scenario = note.object as? DemoScenario {
+                    // Wipe the previous persona's brief immediately so it can't
+                    // bleed onto the new persona's home screen, then inject the
+                    // new data, then force-refresh against it.
+                    todaysPlanVM.resetForPersonaSwitch()
                     DemoDataInjector.injectInto(
                         home: viewModel,
                         train: trainViewModel,
@@ -125,6 +129,12 @@ struct HomeView: View {
                         nutrition: nutritionViewModel,
                         scenario: scenario
                     )
+                    Task { @MainActor in
+                        // Small delay so the injected view-model state is
+                        // observable before the context bundle is assembled.
+                        try? await Task.sleep(for: .milliseconds(150))
+                        triggerPlanFetch(forceRefresh: true)
+                    }
                 } else {
                     // Demo deactivated — trigger real data reloads.
                     Task { await bodyGoalViewModel.refresh() }
