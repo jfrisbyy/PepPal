@@ -17,19 +17,13 @@ struct DeveloperSettingsView: View {
                 .foregroundStyle(PepTheme.textSecondary)
                 .tracking(0.8)
 
-            Text("One button to create + fully populate the shared pool of fake personas in Supabase. Everything else is housekeeping.")
+            Text("Demo Mode is the single source of truth for screenshot-ready data. Pick one of six scenario personas to load every screen with bundled, deterministic data. No Supabase, no flakiness.")
                 .font(.caption)
                 .foregroundStyle(PepTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             VStack(spacing: 0) {
-                fakeAccountSwitcherRow
-                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
-                generatePersonasRow
-                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
-                removeRow
-                Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
-                wipeMyDataRow
+                demoModeRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
                 resetOnboardingRow
                 Divider().overlay(PepTheme.glassBorderTop).padding(.vertical, 6)
@@ -85,7 +79,44 @@ struct DeveloperSettingsView: View {
         }
     }
 
-    // MARK: - Fake persona rows
+    // MARK: - Demo Mode
+
+    private var demoModeRow: some View {
+        NavigationLink {
+            DemoModePickerView()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "theatermasks.fill")
+                    .font(.body)
+                    .foregroundStyle(PepTheme.teal)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text("Demo Mode")
+                            .font(.body)
+                            .foregroundStyle(PepTheme.textPrimary)
+                        if let s = DemoModeManager.shared.activeScenario {
+                            Text(s.displayName.uppercased())
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(s.accent, in: .capsule)
+                        }
+                    }
+                    Text("Six scenario personas with fully bundled data — dashboards, workouts, meals, protocols, labs, sleep, social.")
+                        .font(.caption)
+                        .foregroundStyle(PepTheme.textSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(PepTheme.textSecondary)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Legacy (unused, kept compiled out)
 
     private var fakeAccountSwitcherRow: some View {
         NavigationLink {
