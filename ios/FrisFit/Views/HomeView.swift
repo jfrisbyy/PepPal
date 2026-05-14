@@ -104,6 +104,23 @@ struct HomeView: View {
                     .padding(.trailing, 14)
             }
             .onAppear { performHomeAppear() }
+            .onReceive(NotificationCenter.default.publisher(for: .demoPersonaChanged)) { note in
+                if let scenario = note.object as? DemoScenario {
+                    DemoDataInjector.injectInto(
+                        home: viewModel,
+                        train: trainViewModel,
+                        body: bodyGoalViewModel,
+                        nutrition: nutritionViewModel,
+                        scenario: scenario
+                    )
+                } else {
+                    // Demo deactivated — trigger real data reloads.
+                    Task { await bodyGoalViewModel.refresh() }
+                    trainViewModel.loadDataFromSupabase(force: true)
+                    Task { await nutritionViewModel.loadFromSupabaseAsync(date: viewModel.selectedDate, force: true) }
+                    viewModel.loadProtocolsFromSupabase()
+                }
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active {
                     triggerPlanFetch()
@@ -881,6 +898,19 @@ struct HomeView: View {
 
 
     private func performHomeAppear() {
+        // Demo mode short-circuit — source everything from the bundled persona,
+        // do not let Supabase loads clobber it.
+        if let scenario = DemoModeManager.shared.activeScenario {
+            DemoDataInjector.injectInto(
+                home: viewModel,
+                train: trainViewModel,
+                body: bodyGoalViewModel,
+                nutrition: nutritionViewModel,
+                scenario: scenario
+            )
+            viewModel.isLoading = false
+            return
+        }
         viewModel.onAppear()
         nutritionViewModel.selectedDate = viewModel.selectedDate
         Task { await nutritionViewModel.loadFromSupabaseAsync(date: viewModel.selectedDate, force: true) }
@@ -901,6 +931,7 @@ struct HomeView: View {
     }
 
     private func syncInsightsStore() {
+        if DemoModeManager.shared.isActive { return }
         let store = InsightsDataStore.shared
         store.update(
             firstName: viewModel.userFirstName,

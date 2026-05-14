@@ -414,6 +414,10 @@ final class NutritionViewModel {
     }
 
     func loadFromSupabaseAsync(date: Date, force: Bool = false) async {
+        if DemoModeManager.shared.isActive {
+            print("[NutritionVM] loadFromSupabaseAsync skipped — demo mode active")
+            return
+        }
         guard AuthService.shared.authState == .signedIn else {
             print("[NutritionVM] loadFromSupabaseAsync skipped — user not signed in")
             return

@@ -1166,6 +1166,11 @@ final class HomeViewModel {
     }
 
     func loadProtocolsFromSupabase() {
+        if DemoModeManager.shared.isActive {
+            print("[HomeVM] loadProtocolsFromSupabase skipped — demo mode active")
+            protocolsLoaded = true
+            return
+        }
         guard AuthService.shared.authState == .signedIn else {
             Task {
                 try? await Task.sleep(for: .seconds(1))

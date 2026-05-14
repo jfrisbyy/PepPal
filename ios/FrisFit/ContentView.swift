@@ -227,10 +227,6 @@ struct ContentView: View {
                 .padding(.top, 8)
                 .padding(.trailing, 12)
         }
-        .overlay(alignment: .top) {
-            DemoModePill()
-                .padding(.top, 6)
-        }
         .onReceive(NotificationCenter.default.publisher(for: .medicalDisclaimerSynced)) { _ in
             if showMedicalDisclaimer {
                 withAnimation(.easeOut(duration: 0.25)) {

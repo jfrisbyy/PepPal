@@ -540,6 +540,10 @@ final class TrainViewModel {
     }
 
     func loadDataFromSupabase(force: Bool = false) {
+        if DemoModeManager.shared.isActive {
+            print("[TrainVM] loadDataFromSupabase skipped — demo mode active")
+            return
+        }
         guard AuthService.shared.authState == .signedIn else {
             print("[TrainVM] loadDataFromSupabase skipped — user not signed in")
             return

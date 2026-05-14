@@ -225,6 +225,76 @@ enum DemoDataInjector {
         StreakManager.shared.recalculateStreak()
     }
 
+    /// Apply persona data into the per-screen ViewModels that HomeView owns.
+    /// These VMs are @State-owned (not singletons), so they need a direct push
+    /// every time the persona changes or the home screen reappears.
+    static func injectInto(
+        home: HomeViewModel,
+        train: TrainViewModel,
+        body: BodyGoalViewModel,
+        nutrition: NutritionViewModel,
+        scenario: DemoScenario
+    ) {
+        guard let p = DemoPersonaLibrary.persona(for: scenario) else { return }
+        let protocols = DemoDataGenerator.protocols(scenario: scenario)
+        let workouts = DemoDataGenerator.workoutHistory(scenario: scenario, days: 180)
+        let prs = DemoDataGenerator.personalRecords(scenario: scenario)
+        let weights = DemoDataGenerator.weightSeries(startLbs: p.weightStartLbs, endLbs: p.weightTodayLbs, days: 180)
+        let muscleRec = DemoDataGenerator.muscleRecovery(scenario: scenario)
+        let weeklyVol = DemoDataGenerator.weeklyVolumes(scenario: scenario)
+        let mealsByDay = DemoDataGenerator.mealsByDay(scenario: scenario, days: 60)
+
+        // HomeViewModel — protocols
+        home.allProtocols = protocols
+        home.activeProtocol = protocols.first { $0.isActive } ?? protocols.first
+
+        // TrainViewModel — workouts + PRs + recovery + weekly volume
+        train.workoutHistory = workouts
+        train.personalRecords = prs
+
+        // BodyGoalViewModel — weights, target, starting, goal
+        body.weightEntries = weights.sorted { $0.date < $1.date }
+        body.targetWeight = p.weightTargetLbs
+        body.goalTargetWeightText = String(format: "%.1f", p.weightTargetLbs)
+        body.heightCm = p.heightCm
+        switch p.goalType.lowercased() {
+        case "weight loss": body.currentGoal = .weightLoss
+        case "cutting": body.currentGoal = .cutting
+        case "recovery + strength", "recomp": body.currentGoal = .recomp
+        case "optimization", "endurance": body.currentGoal = .maintain
+        default: body.currentGoal = .weightLoss
+        }
+        body.hasLoaded = true
+
+        // NutritionViewModel — meals by day
+        for (date, meals) in mealsByDay {
+            nutrition.mealsByDay[NutritionViewModel.dayKey(for: date)] = meals
+        }
+
+        // Insights store mirrors
+        InsightsDataStore.shared.update(
+            firstName: p.scenario.displayName,
+            activeProtocols: protocols,
+            workoutHistory: workouts,
+            todayMeals: DemoDataGenerator.todayMeals(scenario: scenario),
+            macroTarget: MacroTarget(calories: p.macroCalories, protein: p.macroProtein, carbs: p.macroCarbs, fat: p.macroFat),
+            weightEntries: body.weightEntries,
+            bodyMeasurements: [],
+            startingWeight: p.weightStartLbs,
+            targetWeight: p.weightTargetLbs,
+            bloodwork: DemoDataGenerator.bloodwork(scenario: scenario),
+            muscleRecovery: muscleRec,
+            weeklyVolumes: weeklyVol,
+            personalRecords: prs,
+            activeProgram: nil
+        )
+        ProfileService.shared.cachedDisplayName = p.scenario.fullName
+
+        // Streak
+        StreakManager.shared.activityLog = DemoDataGenerator.activityLogs(scenario: scenario)
+        StreakManager.shared.recalculateStreak()
+    }
+
     static func clearAll() {
         InsightsDataStore.shared.update(
             firstName: "",

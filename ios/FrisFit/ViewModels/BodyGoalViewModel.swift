@@ -112,6 +112,7 @@ final class BodyGoalViewModel {
 
     func loadData() {
         guard !hasLoaded else { return }
+        if DemoModeManager.shared.isActive { hasLoaded = true; return }
         hasLoaded = true
         isLoading = true
         Task {
@@ -121,10 +122,12 @@ final class BodyGoalViewModel {
     }
 
     func refresh() async {
+        if DemoModeManager.shared.isActive { return }
         await fetchAllData()
     }
 
     private func fetchAllData() async {
+        if DemoModeManager.shared.isActive { return }
         do {
             async let goalResult = BodyGoalsService.shared.fetchGoal()
             async let weightResult = BodyGoalsService.shared.fetchWeightLogs()
