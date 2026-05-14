@@ -121,6 +121,24 @@ struct ContentView: View {
         }
     }
 
+    private var screenshotSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 40)
+            .onEnded { value in
+                guard screenshotMode.hideChrome else { return }
+                let dx = value.translation.width
+                let dy = value.translation.height
+                guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
+                let tabs = AppTab.allCases
+                guard let idx = tabs.firstIndex(of: selectedTab) else { return }
+                let nextIdx: Int = dx < 0
+                    ? (idx + 1) % tabs.count
+                    : (idx - 1 + tabs.count) % tabs.count
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                    selectedTab = tabs[nextIdx]
+                }
+            }
+    }
+
     private var mainAppView: some View {
         ZStack(alignment: .bottomTrailing) {
             TabView(selection: $selectedTab) {
@@ -143,6 +161,7 @@ struct ContentView: View {
                 }
             }
             .tint(PepTheme.teal)
+            .simultaneousGesture(screenshotSwipeGesture, including: screenshotMode.hideChrome ? .all : .none)
 
             if sessionManager.isSessionActive && !sessionManager.showActiveWorkout {
                 VStack {
