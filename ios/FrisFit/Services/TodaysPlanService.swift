@@ -170,6 +170,12 @@ final class TodaysPlanService {
             content = try AIProxyClient.extractContent(data)
         } catch let AIProxyError.http(code, _) {
             throw TodaysPlanError.apiError(code)
+        } catch AIProxyError.notAuthenticated {
+            throw TodaysPlanError.notAuthenticated
+        } catch AIProxyError.notConfigured {
+            throw TodaysPlanError.notConfigured
+        } catch let urlErr as URLError {
+            throw TodaysPlanError.network(urlErr.code.rawValue)
         } catch {
             throw TodaysPlanError.invalidResponse
         }
@@ -278,6 +284,12 @@ final class TodaysPlanService {
             content = try AIProxyClient.extractContent(data)
         } catch let AIProxyError.http(code, _) {
             throw TodaysPlanError.apiError(code)
+        } catch AIProxyError.notAuthenticated {
+            throw TodaysPlanError.notAuthenticated
+        } catch AIProxyError.notConfigured {
+            throw TodaysPlanError.notConfigured
+        } catch let urlErr as URLError {
+            throw TodaysPlanError.network(urlErr.code.rawValue)
         } catch {
             throw TodaysPlanError.invalidResponse
         }
@@ -986,4 +998,7 @@ final class TodaysPlanService {
 nonisolated enum TodaysPlanError: Error, Sendable {
     case apiError(Int)
     case invalidResponse
+    case notAuthenticated
+    case notConfigured
+    case network(Int)
 }

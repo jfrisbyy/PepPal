@@ -485,13 +485,40 @@ final class TodaysPlanViewModel {
         errorMessage = nil
         Task { @MainActor [weak self] in
             guard let self else { return }
+            // Capture the user id we kicked off for so we can ignore the
+            // result if the user switched accounts mid-flight (avoids the
+            // "another persona's brief just appeared" race).
+            let startUserId = LocalStateResetCoordinator.currentUserId()?.lowercased()
             do {
-                let response = try await TodaysPlanService.shared.generatePlan(
-                    context: context,
-                    tier: tier,
-                    previousBrief: previousBrief,
-                    previousMemo: previousMemo
-                )
+                // Auth-error retry: switching accounts briefly leaves the
+                // Supabase session unavailable. Rather than surfacing the
+                // generic "malformed" error, retry once after a short delay.
+                var response: TodaysPlanResponse
+                do {
+                    response = try await TodaysPlanService.shared.generatePlan(
+                        context: context,
+                        tier: tier,
+                        previousBrief: previousBrief,
+                        previousMemo: previousMemo
+                    )
+                } catch TodaysPlanError.notAuthenticated {
+                    try await Task.sleep(for: .milliseconds(800))
+                    response = try await TodaysPlanService.shared.generatePlan(
+                        context: context,
+                        tier: tier,
+                        previousBrief: previousBrief,
+                        previousMemo: previousMemo
+                    )
+                }
+                // If the user switched accounts while the AI call was in
+                // flight, drop the response — it belongs to the previous
+                // persona's context.
+                let nowUserId = LocalStateResetCoordinator.currentUserId()?.lowercased()
+                guard startUserId == nowUserId else {
+                    self.isLoading = false
+                    self.isBackgroundRefreshing = false
+                    return
+                }
                 withAnimation(.easeInOut(duration: 0.3)) {
                     self.planResponse = response
                 }
@@ -526,6 +553,12 @@ final class TodaysPlanViewModel {
                 return "Brief refresh failed (\(code)). Tap retry."
             case .invalidResponse:
                 return "Brief response was malformed. Tap retry."
+            case .notAuthenticated:
+                return "Finishing sign-in\u{2026} tap retry in a moment."
+            case .notConfigured:
+                return "AI service isn\u{2019}t configured. Try again later."
+            case .network:
+                return "Network hiccup. Tap retry when you\u{2019}re back online."
             }
         }
         let ns = error as NSError
