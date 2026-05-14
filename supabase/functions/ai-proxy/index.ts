@@ -6,7 +6,7 @@
 //
 // Hardening + cost controls:
 //   - Per-user 30 req/min rate limit (rolling 1-minute window).
-//   - Per-user daily token budget (default 50_000 tokens/day, overridable
+//   - Per-user daily token budget (default 3_000_000 tokens/day, overridable
 //     per user via ai_usage_daily.daily_token_limit). Hard 429 over limit.
 //   - Model allow-list to prevent calling exotic / expensive models.
 //   - 8 MB request body cap (vision payloads).
@@ -33,7 +33,7 @@ const JSON_HEADERS = { ...CORS_HEADERS, "Content-Type": "application/json" };
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const MAX_REQUEST_BYTES = 8 * 1024 * 1024; // 8 MB (vision payloads)
 const RATE_LIMIT_PER_MIN = 30;
-const DEFAULT_DAILY_TOKEN_LIMIT = 600_000;
+const DEFAULT_DAILY_TOKEN_LIMIT = 3_000_000;
 
 // Anthropic prompt-caching threshold. Anthropic charges a 25% premium on the
 // initial cache write but reads cost ~10% of normal input tokens, so caching
