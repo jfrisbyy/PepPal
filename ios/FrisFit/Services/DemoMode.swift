@@ -1094,12 +1094,39 @@ enum DemoDataGenerator {
                 ))
             }
             let proto = PeptideProtocol(
-                name: "Recomp Finish + Skin Support", goal: .weightLoss, compounds: [reta, ghk],
+                name: "Reta Cycle 2 — Recomp Finish", goal: .weightLoss, compounds: [reta, ghk],
                 startDate: ts(daysAgo: 42), totalWeeks: 16, loadingWeeks: 2,
                 maintenanceWeeks: 12, taperingWeeks: 2, offCycleWeeks: 4,
                 isActive: true, doseLog: logs
             )
-            return [proto]
+
+            // Past cycle: Reta Cycle 1 — 12 weeks at the standard 1.5 mg/wk dose,
+            // completed ~5 months ago. Useful for side-by-side comparison.
+            var reta1Logs: [DoseLogEntry] = []
+            for w in 0..<12 {
+                let d = 7 * 12 + 7 * 5 + w * 7 // ~17 weeks back from start of cycle 1
+                reta1Logs.append(DoseLogEntry(
+                    compoundName: "Retatrutide", doseMcg: 1500,
+                    timestamp: ts(daysAgo: d), injectionSite: sites[w % sites.count]
+                ))
+            }
+            let reta1Past = PeptideProtocol(
+                name: "Reta Cycle 1 — Initial Cut", goal: .weightLoss,
+                compounds: [ProtocolCompound(
+                    compoundName: "Retatrutide", doseMcg: 1500, frequency: "Weekly",
+                    injectionRoute: .subcutaneous, reconstitutionVolume: 2.0, vialSizeMg: 10
+                )],
+                startDate: ts(daysAgo: 7 * 12 + 7 * 5 + 7 * 11),
+                totalWeeks: 12, loadingWeeks: 2, maintenanceWeeks: 8, taperingWeeks: 2,
+                offCycleWeeks: 6, isActive: false, doseLog: reta1Logs,
+                sideEffectLog: [
+                    SideEffectEntry(timestamp: ts(daysAgo: 7 * 12 + 7 * 5 + 7 * 10), effect: "Nausea", severity: 3, notes: "First week — settled after dose 2."),
+                    SideEffectEntry(timestamp: ts(daysAgo: 7 * 12 + 7 * 5 + 7 * 8), effect: "Fatigue", severity: 2, notes: "Mid-cut energy dip."),
+                    SideEffectEntry(timestamp: ts(daysAgo: 7 * 12 + 7 * 5 + 7 * 7), effect: "Mild headache", severity: 2, notes: ""),
+                    SideEffectEntry(timestamp: ts(daysAgo: 7 * 12 + 7 * 5 + 7 * 4), effect: "GI discomfort", severity: 2, notes: "Dose night.")
+                ]
+            )
+            return [proto, reta1Past]
 
         case .priya:
             // Tirzepatide 5 mg weekly. Vial = 10 mg reconstituted with 2 mL diluent
@@ -1207,12 +1234,34 @@ enum DemoDataGenerator {
                 }
             }
             let proto = PeptideProtocol(
-                name: "Optimizer Stack", goal: .general, compounds: [test, ipa],
+                name: "Optimizer Stack · Year 2", goal: .general, compounds: [test, ipa],
                 startDate: ts(daysAgo: 160), totalWeeks: nil, loadingWeeks: nil,
                 maintenanceWeeks: nil, taperingWeeks: nil, offCycleWeeks: nil,
                 isActive: true, doseLog: logs
             )
-            return [proto]
+
+            // Past cycle: 16-week initial TRT-only cycle (no Ipamorelin) from
+            // last year. Gives a clean compare point — same goal, simpler stack.
+            var prevLogs: [DoseLogEntry] = []
+            for w in 0..<16 {
+                let d = 7 * 16 + 7 * 28 + w * 7 // ~44 weeks back from start
+                prevLogs.append(DoseLogEntry(
+                    compoundName: "Testosterone Cypionate", doseMcg: 100_000,
+                    timestamp: ts(daysAgo: d), injectionSite: sites[w % sites.count]
+                ))
+            }
+            let prevProto = PeptideProtocol(
+                name: "Optimizer Stack · Year 1", goal: .general,
+                compounds: [ProtocolCompound(
+                    compoundName: "Testosterone Cypionate", doseMcg: 100_000, frequency: "Weekly",
+                    injectionRoute: .intramuscular, reconstitutionVolume: nil, vialSizeMg: 2000
+                )],
+                startDate: ts(daysAgo: 7 * 16 + 7 * 28 + 7 * 15),
+                totalWeeks: 16, loadingWeeks: nil, maintenanceWeeks: 16,
+                taperingWeeks: nil, offCycleWeeks: nil,
+                isActive: false, doseLog: prevLogs
+            )
+            return [proto, prevProto]
 
         case .ava:
             // Low-dose Ipamorelin 200 mcg daily for tendon recovery during marathon block.

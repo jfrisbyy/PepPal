@@ -6,6 +6,8 @@ final class ProtocolHistoryViewModel {
     var isLoading: Bool = true
     var errorMessage: String?
     var selectedFilter: ProtocolFilter = .all
+    var compareMode: Bool = false
+    var selectedForCompare: Set<UUID> = []
 
     enum ProtocolFilter: String, CaseIterable {
         case all = "All"
@@ -73,7 +75,7 @@ struct ProtocolHistoryView: View {
     private var historyBody: some View {
         ScrollView {
             VStack(spacing: 16) {
-                filterPicker
+                topBar
 
                 if viewModel.isLoading {
                     ProgressView()
@@ -83,20 +85,13 @@ struct ProtocolHistoryView: View {
                 } else {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.filteredProtocols) { proto in
-                            NavigationLink(value: proto) {
-                                ProtocolHistoryCard(proto: proto) {
-                                    Task { await viewModel.toggleActive(proto) }
-                                } onDelete: {
-                                    Task { await viewModel.deleteProtocol(proto) }
-                                }
-                            }
-                            .buttonStyle(.plain)
+                            cardRow(proto: proto)
                         }
                     }
                 }
             }
             .padding(.horizontal)
-            .padding(.bottom, 24)
+            .padding(.bottom, 100)
         }
         .scrollIndicators(.hidden)
         .appBackground()
@@ -106,6 +101,113 @@ struct ProtocolHistoryView: View {
         .refreshable { await viewModel.loadProtocols() }
         .navigationDestination(for: PeptideProtocol.self) { proto in
             ProtocolDetailView(protocolData: proto)
+        }
+        .navigationDestination(for: CompareCyclesPayload.self) { payload in
+            CycleComparisonView(cycles: payload.cycles)
+        }
+        .overlay(alignment: .bottom) {
+            compareCTA
+        }
+    }
+
+    @ViewBuilder
+    private func cardRow(proto: PeptideProtocol) -> some View {
+        if viewModel.compareMode {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                    if viewModel.selectedForCompare.contains(proto.id) {
+                        viewModel.selectedForCompare.remove(proto.id)
+                    } else {
+                        viewModel.selectedForCompare.insert(proto.id)
+                    }
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .strokeBorder(PepTheme.glassBorderTop, lineWidth: 1)
+                            .frame(width: 22, height: 22)
+                        if viewModel.selectedForCompare.contains(proto.id) {
+                            Circle()
+                                .fill(PepTheme.teal)
+                                .frame(width: 16, height: 16)
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .heavy))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    ProtocolHistoryCard(proto: proto) {
+                        Task { await viewModel.toggleActive(proto) }
+                    } onDelete: {
+                        Task { await viewModel.deleteProtocol(proto) }
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: viewModel.selectedForCompare.contains(proto.id))
+        } else {
+            NavigationLink(value: proto) {
+                ProtocolHistoryCard(proto: proto) {
+                    Task { await viewModel.toggleActive(proto) }
+                } onDelete: {
+                    Task { await viewModel.deleteProtocol(proto) }
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var topBar: some View {
+        HStack(alignment: .center, spacing: 10) {
+            filterPicker
+            Spacer(minLength: 4)
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    viewModel.compareMode.toggle()
+                    if !viewModel.compareMode { viewModel.selectedForCompare.removeAll() }
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: viewModel.compareMode ? "xmark" : "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 10, weight: .bold))
+                    Text(viewModel.compareMode ? "Cancel" : "Compare")
+                        .font(.system(.caption, weight: .bold))
+                }
+                .foregroundStyle(viewModel.compareMode ? PepTheme.textPrimary : .white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(viewModel.compareMode ? PepTheme.elevated : PepTheme.teal, in: .capsule)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var compareCTA: some View {
+        if viewModel.compareMode {
+            let selected = viewModel.protocols.filter { viewModel.selectedForCompare.contains($0.id) }
+            let enabled = selected.count >= 2
+            NavigationLink(value: CompareCyclesPayload(cycles: selected)) {
+                HStack(spacing: 8) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 13, weight: .bold))
+                    Text(enabled ? "Compare \(selected.count) cycles" : "Select at least 2 cycles")
+                        .font(.system(.subheadline, weight: .heavy))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    Capsule()
+                        .fill(enabled ? PepTheme.teal : PepTheme.textSecondary.opacity(0.45))
+                        .shadow(color: .black.opacity(0.25), radius: 14, x: 0, y: 6)
+                )
+            }
+            .disabled(!enabled)
+            .buttonStyle(.plain)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
@@ -331,6 +433,24 @@ private struct ProtocolHistoryCard: View {
                 .foregroundStyle(PepTheme.textSecondary)
                 .lineLimit(1)
         }
+    }
+}
+
+nonisolated struct CompareCyclesPayload: Hashable, Sendable {
+    let cycleIds: [UUID]
+    let cycles: [PeptideProtocol]
+
+    init(cycles: [PeptideProtocol]) {
+        self.cycles = cycles
+        self.cycleIds = cycles.map(\.id)
+    }
+
+    static func == (lhs: CompareCyclesPayload, rhs: CompareCyclesPayload) -> Bool {
+        lhs.cycleIds == rhs.cycleIds
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(cycleIds)
     }
 }
 

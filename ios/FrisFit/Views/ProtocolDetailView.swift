@@ -11,6 +11,8 @@ struct ProtocolDetailView: View {
     @State private var showTitrationBuilder: Bool = false
     @State private var scrollOffset: CGFloat = 0
     @State private var nowTick: Date = Date()
+    @State private var compareCyclesPayload: CompareCyclesPayload?
+    @State private var isLoadingCompare: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     private let countdownTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
@@ -213,6 +215,30 @@ struct ProtocolDetailView: View {
         .onAppear {
             viewModel.refreshFromSupabase()
         }
+        .navigationDestination(item: $compareCyclesPayload) { payload in
+            CycleComparisonView(cycles: payload.cycles)
+        }
+    }
+
+    /// Loads all protocols from the user's history (or demo bundle) and pushes
+    /// the comparison view pre-loaded with this cycle.
+    private func openCycleCompare() async {
+        guard !isLoadingCompare else { return }
+        isLoadingCompare = true
+        defer { isLoadingCompare = false }
+        let all = (try? await ProtocolService.shared.fetchProtocols()) ?? []
+        var combined = all
+        if !combined.contains(where: { $0.id == viewModel.protocolData.id }) {
+            combined.insert(viewModel.protocolData, at: 0)
+        }
+        let ordered: [PeptideProtocol] = {
+            // Current cycle first, then everything else by most-recent start.
+            let current = combined.first(where: { $0.id == viewModel.protocolData.id })
+            let others = combined.filter { $0.id != viewModel.protocolData.id }
+                .sorted { $0.startDate > $1.startDate }
+            return [current].compactMap { $0 } + others
+        }()
+        compareCyclesPayload = CompareCyclesPayload(cycles: ordered)
     }
 
     private var vialsSection: some View {
@@ -349,6 +375,10 @@ struct ProtocolDetailView: View {
 
             Button { viewModel.exportCSV() } label: {
                 Label("Export CSV", systemImage: "square.and.arrow.up")
+            }
+
+            Button { Task { await openCycleCompare() } } label: {
+                Label("Compare to past cycle", systemImage: "chart.line.uptrend.xyaxis")
             }
 
             Menu {

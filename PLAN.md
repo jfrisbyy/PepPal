@@ -1,44 +1,45 @@
-# Editorial Biomarkers view with richer demo bloodwork
+# Side-by-side cycle comparison with trend charts & protocol overlays
 
-## A new home for your lab story
+## What you'll be able to do
 
-Add a polished **Biomarkers** section that turns raw lab numbers into something you'd actually want to read — calm, editorial, and instantly scannable.
+- Pick two or more past/active cycles and see how they stack up against each other on a single beautiful, editorial trend chart.
+- Toggle between metrics — body weight, IGF-1 & other biomarkers, side effect frequency, sleep & HRV, strength/training volume, and cumulative dose.
+- See each cycle as its own colored line, with shaded phase bands (Loading, Maintenance, Tapering, Off) and small vertical markers wherever dose changed.
+- Flip the x-axis between **Cycle Week** (best for "is this cycle better than my last?") and **Calendar Date** (best for "what was happening in my life then?").
+- See a clean header summary per cycle — average dose, peak biomarker change, side-effect count, adherence — so the chart story is backed by hard numbers.
 
-### What you'll be able to do
+## How you'll get there
 
-- Open a dedicated **Biomarkers** screen from Home and Profile
-- See every tracked marker as its own tile with the latest value, status (low / normal / high), and a tiny trend line showing how it's moved over time
-- Tap any tile to drill into the full history chart and notes
-- Filter the grid by category — Hormones, Metabolic, Liver, Lipids, Thyroid, Kidney
-- See an "Out of range" pill at the top showing how many markers need attention
-- Still log new panels through the existing tracking screen — nothing removed
+- **From Protocol History:** new "Compare" mode in the top bar — tap to multi-select cycles, then a Compare button slides up.
+- **From a Protocol Detail page:** a "Compare to past cycle" button near the header opens the same view with this cycle pre-selected.
 
-### Design
+## What you'll see
 
-- **Editorial hero** at the top: large serif "Biomarkers" title, a one-line subtitle with the date of the latest draw ("Last draw · 7 days ago · 13 markers"), and a quiet status ribbon of dots showing in-range vs flagged
-- **Category chips** that scroll horizontally below the hero — selected chip uses the category's accent color
-- **Biomarker tiles** in a two-column grid, each card:
-  - Marker name in semibold, unit in muted small caps
-  - Big rounded value, color-coded by status (green / amber / red / blue)
-  - A whisper-thin sparkline of the last 3–6 panels in the marker's color
-  - Small delta vs. previous panel ("↑ 16 vs last")
-- **Glass cards** with subtle inner shadow, generous whitespace, and a thin colored top accent matching the category
-- Soft fade animations as tiles appear, gentle press feedback, and a haptic tap on drill-in
-- Empty state is editorial too — a single sentence and one "Add lab results" button
+**Cycle Comparison screen**
 
-### Richer demo data
+- A premium editorial header naming the cycles being compared (e.g. *"Reta Cycle 2 vs Cycle 1"*), each in its assigned color.
+- A horizontal metric selector (Weight · IGF-1 · Glucose · Side Effects · Sleep · HRV · Volume · Cumulative Dose) — feels like flipping through Apple Health tabs.
+- The hero trend chart, full width, with:
+  - One overlaid line per cycle in its color.
+  - Soft phase bands behind the lines (Loading = blue tint, Maintenance = teal, Tapering = amber, Off = gray).
+  - Small vertical tick markers at every dose change or phase transition.
+  - Tap-and-hold scrubber that shows each cycle's value at that point.
+- Below the chart, a row of comparison cards — one per cycle — with the headline stat for the selected metric (e.g. "+12% IGF-1 by week 8") and a one-line takeaway.
+- A bottom "Insights" strip that summarizes the comparison in plain English (e.g. *"This cycle is trending 8% better on IGF-1 with half the side-effect days."*).
+- Toggle pill at the top right: **Cycle Week ↔ Calendar Date**.
 
-- Each of the six demo personas gets at least three lab panels spanning the last ~6 months so trends actually tell a story
-- Maya: baseline → recomp check-in → recent panel showing IGF-1 and lipids moving with training
-- Theo: pre-injury → mid-rehab → recent recovery panel
-- Ava: pre-season → base block → mid-block, showing endurance-typical thyroid and HDL shifts
-- Shayla: pre-protocol baseline → 6-week check → recent panel showing the half-dose effect
-- Marcus and Priya keep their existing three-panel arcs (already strong)
+## Design feel
 
-### Screens
+- Dark editorial canvas, generous spacing, thin precise lines, rounded chart corners, subtle glass on the metric pills.
+- Each cycle gets a distinct, harmonious color from the existing teal/violet/blue/amber palette so overlays never look noisy.
+- Smooth spring animation when switching metrics — chart lines redraw in place.
+- Light haptic on metric switch and on scrubber tick crossings.
 
-- **Biomarkers (new)** — editorial hero, category chips, marker tile grid
-- **Marker detail** — existing detail view, reached by tapping any tile
-- **Bloodwork Tracking (unchanged)** — still where you log and review full panels by date, linked from the new view via a "Log a panel" button
-- **Home & Profile** — new entry point card/row that opens the Biomarkers screen
+## Demo data
+
+- Maya and the other demo accounts will get 2–3 realistic past cycles seeded with weight, IGF-1, glucose, sleep/HRV, training volume, side effects, and dose logs — so the comparison view tells a real story the first time it's opened.
+
+## Floating chrome
+
+- The existing Hide-Chrome and Screenshot floating buttons will continue to work on this new screen so it can be captured cleanly for marketing.
 
