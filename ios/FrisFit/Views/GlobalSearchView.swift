@@ -543,6 +543,8 @@ struct GlobalSearchView: View {
                         .padding(.horizontal, 16)
                 }
 
+                keepExploringSection
+
                 let grouped = Dictionary(grouping: vm.results, by: { $0.scope })
                 let orderedScopes: [GlobalSearchScope] = [.guides, .exercises, .foods, .compounds, .users, .circles, .posts]
 
@@ -752,6 +754,304 @@ struct GlobalSearchView: View {
         }
     }
 
+    // MARK: - Keep exploring (smart follow-ups)
+
+    /// One of these gets rendered for each follow-up suggestion that resolves to a real
+    /// thing the user can tap straight into.
+    private enum SmartEntity: Hashable {
+        case exercise(Exercise)
+        case food(FoodItem)
+        case compound(CompoundProfile)
+        case guide(GuideEntry)
+
+        // Custom Hashable/Equatable via stable key so we don't depend on every
+        // payload type conforming.
+        static func == (lhs: SmartEntity, rhs: SmartEntity) -> Bool {
+            lhs.key == rhs.key
+        }
+
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(key)
+        }
+
+        var key: String {
+            switch self {
+            case .exercise(let e): return "ex-\(e.id)"
+            case .food(let f): return "food-\(f.id.uuidString)"
+            case .compound(let c): return "cmp-\(c.id.uuidString)"
+            case .guide(let g): return "guide-\(g.id)"
+            }
+        }
+
+        var title: String {
+            switch self {
+            case .exercise(let e): return e.name
+            case .food(let f): return f.name
+            case .compound(let c): return c.name
+            case .guide(let g): return g.title
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .exercise(let e): return e.primaryMuscle.icon
+            case .food: return "fork.knife"
+            case .compound: return "pills.fill"
+            case .guide(let g): return g.icon
+            }
+        }
+
+        var tint: Color {
+            switch self {
+            case .exercise: return PepSection.training
+            case .food: return PepSection.nutrition
+            case .compound: return PepSection.compound
+            case .guide: return PepTheme.teal
+            }
+        }
+
+        var tag: String {
+            switch self {
+            case .exercise: return "EXERCISE"
+            case .food: return "FOOD"
+            case .compound: return "COMPOUND"
+            case .guide: return "GUIDE"
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .exercise(let e): return "\(e.primaryMuscle.rawValue) · \(e.equipment.rawValue)"
+            case .food(let f): return f.brand.isEmpty ? "\(f.calories) cal · \(f.servingSize)" : "\(f.brand) · \(f.calories) cal"
+            case .compound(let c): return c.peptideType
+            case .guide(let g): return g.subtitle
+            }
+        }
+    }
+
+    /// Show the section whenever Pep has answered with at least one follow-up, or when
+    /// follow-ups are still loading after an answer has landed.
+    private var shouldShowKeepExploring: Bool {
+        guard currentIntent != .lookup else { return false }
+        guard ask.lastError == nil else { return false }
+        return !ask.followUps.isEmpty || (ask.isLoading && !ask.answer.isEmpty)
+    }
+
+    @ViewBuilder
+    private var keepExploringSection: some View {
+        if shouldShowKeepExploring {
+            let resolved = resolveFollowUps(ask.followUps)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundStyle(PepTheme.teal)
+                    Text("KEEP EXPLORING")
+                        .font(.system(size: 11, weight: .heavy, design: .serif))
+                        .tracking(0.9)
+                        .foregroundStyle(PepTheme.textPrimary)
+                }
+                .padding(.horizontal, 16)
+
+                if !resolved.entities.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(Array(resolved.entities.enumerated()), id: \.element.key) { idx, entity in
+                            Button {
+                                handleSmartEntityTap(entity)
+                            } label: {
+                                smartEntityRow(entity)
+                            }
+                            .buttonStyle(.plain)
+                            .sensoryFeedback(.impact(weight: .light), trigger: entity.key)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .top)),
+                                removal: .opacity
+                            ))
+                            if idx < resolved.entities.count - 1 {
+                                Divider().padding(.leading, 60)
+                            }
+                        }
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(PepTheme.cardSurface)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                    )
+                    .padding(.horizontal, 16)
+                }
+
+                if !resolved.chips.isEmpty {
+                    FlowLayout(spacing: 8) {
+                        ForEach(resolved.chips, id: \.self) { chip in
+                            Button {
+                                vm.query = chip
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "magnifyingglass")
+                                        .font(.system(size: 10, weight: .heavy))
+                                        .foregroundStyle(PepTheme.teal)
+                                    Text(chip)
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(PepTheme.textPrimary)
+                                        .lineLimit(1)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Capsule().fill(PepTheme.cardSurface))
+                                .overlay(
+                                    Capsule().strokeBorder(PepTheme.teal.opacity(0.4), lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .sensoryFeedback(.selection, trigger: vm.query)
+                            .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+
+                if ask.isLoading && resolved.entities.isEmpty && resolved.chips.isEmpty {
+                    HStack(spacing: 8) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            Capsule()
+                                .fill(PepTheme.cardSurface)
+                                .frame(width: 110, height: 32)
+                                .overlay(
+                                    Capsule().strokeBorder(PepTheme.separatorColor, lineWidth: 0.5)
+                                )
+                                .overlay(ShimmerLine().padding(.horizontal, 10))
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+            }
+            .transition(.opacity.combined(with: .move(edge: .top)))
+        }
+    }
+
+    private func smartEntityRow(_ entity: SmartEntity) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(entity.tint.opacity(0.14))
+                Image(systemName: entity.icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(entity.tint)
+            }
+            .frame(width: 36, height: 36)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(entity.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                        .lineLimit(1)
+                    Text(entity.tag)
+                        .font(.system(size: 9, weight: .heavy))
+                        .tracking(0.4)
+                        .foregroundStyle(entity.tint)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Capsule().fill(entity.tint.opacity(0.12)))
+                }
+                Text(entity.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(PepTheme.textSecondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(PepTheme.textTertiary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .contentShape(Rectangle())
+    }
+
+    private func handleSmartEntityTap(_ entity: SmartEntity) {
+        switch entity {
+        case .exercise(let e): handleTap(.exercise(e))
+        case .food(let f): handleTap(.food(f))
+        case .compound(let c): handleTap(.compound(c))
+        case .guide(let g): handleTap(.guide(g))
+        }
+    }
+
+    /// Resolve raw follow-up strings into entity cards (when they map cleanly onto a
+    /// library item the user can open directly) and free-form chips (when they don't).
+    /// Dedupes against anything already showing in the main results list.
+    private func resolveFollowUps(_ raw: [String]) -> (entities: [SmartEntity], chips: [String]) {
+        var entities: [SmartEntity] = []
+        var chips: [String] = []
+        var seenEntityKeys = Set<String>()
+        let existingResultTitles: Set<String> = Set(vm.results.map { $0.title.lowercased() })
+
+        for raw in raw {
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let lower = trimmed.lowercased()
+
+            var matched: SmartEntity? = nil
+
+            // Compound: prefer exact-name match, then substring.
+            if matched == nil,
+               let c = CompoundDatabase.all.first(where: { $0.name.lowercased() == lower })
+                    ?? CompoundDatabase.all.first(where: { lower.contains($0.name.lowercased()) && $0.name.count >= 3 }) {
+                matched = .compound(c)
+            }
+
+            // Guide: keyword/title contains.
+            if matched == nil,
+               let g = GuideLibrary.all.first(where: { entry in
+                   entry.rankableStrings.contains(where: { phrase in
+                       let p = phrase.lowercased()
+                       guard p.count >= 4 else { return false }
+                       return lower.contains(p) || p.contains(lower)
+                   })
+               }) {
+                matched = .guide(g)
+            }
+
+            // Exercise: exact or word-boundary contains.
+            if matched == nil,
+               let ex = ExerciseLibrary.all.first(where: { $0.name.lowercased() == lower })
+                    ?? ExerciseLibrary.all.first(where: { lower.contains($0.name.lowercased()) && $0.name.count >= 5 }) {
+                matched = .exercise(ex)
+            }
+
+            // Food: only count if the food name is a substantial chunk of the query.
+            if matched == nil,
+               let f = FoodDatabase.allFoods.prefix(800).first(where: { food in
+                   let n = food.name.lowercased()
+                   guard n.count >= 6 else { return false }
+                   return n == lower || lower.contains(n)
+               }) {
+                matched = .food(f)
+            }
+
+            if let entity = matched, entities.count < 3 {
+                if !seenEntityKeys.contains(entity.key),
+                   !existingResultTitles.contains(entity.title.lowercased()) {
+                    entities.append(entity)
+                    seenEntityKeys.insert(entity.key)
+                    continue
+                }
+            }
+
+            if chips.count < 4,
+               !chips.contains(where: { $0.lowercased() == lower }),
+               !existingResultTitles.contains(lower) {
+                chips.append(trimmed)
+            }
+        }
+
+        return (entities, chips)
+    }
+
     // MARK: - AI Card
 
     private var shouldShowAskCard: Bool {
@@ -850,11 +1150,22 @@ struct GlobalSearchView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
                 }
-                noResults
+                keepExploringSection
+                if !pepHasAnswered {
+                    noResults
+                }
             }
             .animation(.spring(response: 0.32, dampingFraction: 0.85), value: shouldShowAskCard)
+            .animation(.spring(response: 0.32, dampingFraction: 0.85), value: ask.followUps)
+            .animation(.easeOut(duration: 0.2), value: ask.answer.isEmpty)
         }
         .scrollDismissesKeyboard(.interactively)
+    }
+
+    /// True once Pep has produced a real answer for the current query. Used to hide
+    /// the "No results for…" empty state so the screen never feels like a dead end.
+    private var pepHasAnswered: Bool {
+        !ask.answer.isEmpty
     }
 
     private var noResults: some View {

@@ -273,6 +273,9 @@ enum QueryClassifier {
 final class AskEptiAnswerStore {
     var query: String = ""
     var answer: String = ""
+    /// Short follow-up search suggestions Pep recommends after answering. Used to power the
+    /// "Keep exploring" section instead of a dead-end "no results" banner.
+    var followUps: [String] = []
     var isLoading: Bool = false
     var lastError: String?
 
@@ -291,6 +294,7 @@ final class AskEptiAnswerStore {
         task?.cancel()
         query = trimmed
         answer = ""
+        followUps = []
         lastError = nil
         isLoading = true
 
@@ -322,9 +326,14 @@ final class AskEptiAnswerStore {
             let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 25)
             if Task.isCancelled { return }
             let raw = (try? AIProxyClient.extractContent(data)) ?? ""
-            let cleaned = clean(raw)
+            let parsed = parse(raw)
             await MainActor.run {
-                self.answer = cleaned
+                self.answer = parsed.answer
+                if !parsed.followUps.isEmpty {
+                    self.followUps = parsed.followUps
+                } else {
+                    self.followUps = self.localFallbackFollowUps(answer: parsed.answer, query: prompt)
+                }
                 self.isLoading = false
             }
         } catch {
@@ -341,6 +350,7 @@ final class AskEptiAnswerStore {
         task = nil
         query = ""
         answer = ""
+        followUps = []
         isLoading = false
         lastError = nil
     }
@@ -358,9 +368,23 @@ final class AskEptiAnswerStore {
 
     private nonisolated func systemPrompt(userContext: String, compoundContext: String) -> String {
         return """
-        You are Pep, the AI coach inside EPTI (a fitness, nutrition, and peptide protocol app). The user just typed a question into the global search bar — give them a short, direct, personalized answer.
+        You are Pep, the AI coach inside EPTI (a fitness, nutrition, and peptide protocol app). The user just typed a question into the global search bar — give them a short, direct, personalized answer, then suggest 3 follow-up things they could search next.
 
-        RULES:
+        RESPONSE FORMAT (mandatory, exactly two sections):
+        ANSWER:
+        <2 to 4 sentence answer here, lowercase conversational tone, plain text only, no markdown, no greetings>
+        FOLLOWUPS:
+        - <short follow-up search query, 2-6 words>
+        - <short follow-up search query, 2-6 words>
+        - <short follow-up search query, 2-6 words>
+
+        FOLLOWUP RULES:
+        - Each follow-up must be a natural thing the user might want to look up next, directly related to the answer (e.g. a specific compound, exercise, recipe idea, technique, side effect topic).
+        - Prefer concrete nouns from EPTI's libraries when relevant (a compound name, an exercise name, a guide topic).
+        - Title Case. Keep them short and tappable, like a search chip.
+        - No questions, no punctuation at the end. No numbering. Just the phrase.
+
+        ANSWER RULES:
         - 2 to 4 sentences total. No filler. No greetings.
         - Plain text only — no markdown, no asterisks, no headers, no bullets.
         - Lowercase, conversational, like a knowledgeable training partner.
@@ -373,6 +397,96 @@ final class AskEptiAnswerStore {
 
         \(userContext)
         """
+    }
+
+    /// Splits a structured "ANSWER: ... FOLLOWUPS: - ..." response into its two parts.
+    /// Falls back gracefully if the model returned plain text without sections.
+    private nonisolated func parse(_ raw: String) -> (answer: String, followUps: [String]) {
+        let cleaned = clean(raw)
+        let lower = cleaned.lowercased()
+
+        // Find the FOLLOWUPS marker (model may write "FOLLOWUPS:", "Follow-ups:", "Follow ups:").
+        let markers = ["followups:", "follow-ups:", "follow ups:", "follow up:"]
+        var splitRange: Range<String.Index>? = nil
+        for m in markers {
+            if let r = lower.range(of: m) {
+                splitRange = r
+                break
+            }
+        }
+        guard let split = splitRange else {
+            return (cleaned, [])
+        }
+
+        let answerStart = cleaned[..<split.lowerBound]
+        let followsRaw = cleaned[split.upperBound...]
+
+        // Strip an optional leading "ANSWER:" label.
+        var answer = String(answerStart)
+        if let answerLabel = answer.lowercased().range(of: "answer:") {
+            answer = String(answer[answerLabel.upperBound...])
+        }
+        answer = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let lines = followsRaw.split(whereSeparator: { $0.isNewline })
+        var followUps: [String] = []
+        for line in lines {
+            var t = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Strip bullet/number prefixes.
+            t = t.replacingOccurrences(of: #"^[\-\*•·]\s*"#, with: "", options: .regularExpression)
+            t = t.replacingOccurrences(of: #"^\d+[\.\)]\s*"#, with: "", options: .regularExpression)
+            // Drop trailing punctuation.
+            t = t.trimmingCharacters(in: CharacterSet(charactersIn: " .,;:?!"))
+            guard !t.isEmpty, t.count <= 60 else { continue }
+            // Avoid duplicates (case-insensitive).
+            if followUps.contains(where: { $0.lowercased() == t.lowercased() }) { continue }
+            followUps.append(t)
+            if followUps.count >= 4 { break }
+        }
+        return (answer.isEmpty ? cleaned : answer, followUps)
+    }
+
+    /// Local fallback when the model didn't return parseable follow-ups. Tries to find
+    /// concrete library nouns mentioned in the answer; otherwise emits topical defaults
+    /// based on which domain the answer is about.
+    private func localFallbackFollowUps(answer: String, query: String) -> [String] {
+        let text = (answer + " " + query).lowercased()
+        var found: [String] = []
+
+        for c in CompoundDatabase.all {
+            let n = c.name.lowercased()
+            guard n.count >= 4 else { continue }
+            if text.contains(n), !found.contains(c.name) {
+                found.append(c.name)
+                if found.count >= 3 { break }
+            }
+        }
+        if found.count < 3 {
+            for f in FoodDatabase.allFoods.prefix(400) {
+                let n = f.name.lowercased()
+                guard n.count >= 5 else { continue }
+                if text.contains(n), !found.contains(f.name) {
+                    found.append(f.name)
+                    if found.count >= 3 { break }
+                }
+            }
+        }
+        if !found.isEmpty { return found }
+
+        // Topical defaults.
+        if text.contains("food") || text.contains("eat") || text.contains("diet") || text.contains("meal") || text.contains("recipe") || text.contains("nutrition") {
+            return ["High protein recipes", "Meal prep ideas", "Foods to avoid"]
+        }
+        if text.contains("workout") || text.contains("training") || text.contains("exercise") || text.contains("lift") || text.contains("muscle") {
+            return ["Best chest exercises", "Pull day workout", "Mobility routine"]
+        }
+        if text.contains("peptide") || text.contains("dose") || text.contains("inject") || text.contains("vial") {
+            return ["How to reconstitute", "Injection technique", "Storage & handling"]
+        }
+        if text.contains("sleep") || text.contains("recovery") || text.contains("hrv") {
+            return ["Sleep optimization", "Recovery protocols", "Magnesium glycinate"]
+        }
+        return ["High protein recipes", "Best back exercises", "How to reconstitute"]
     }
 
     private nonisolated func clean(_ s: String) -> String {

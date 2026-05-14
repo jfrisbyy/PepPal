@@ -1,23 +1,33 @@
-# Make Maya's peptide chart show a continuous, accurate level curve
+# Smarter search: contextual follow-ups instead of "No results"
 
-**The issue**
+When Pep answers an open-ended question, the awkward "No results for…" banner gets replaced by a curated set of smart, relevant follow-ups derived from what Pep just said.
 
-Maya's stack mixes two very different peptides:
-- **Retatrutide** — half-life ~6 days, dosed weekly. Should look like a smooth rolling wave that builds over weeks.
-- **GHK-Cu** — half-life under an hour, dosed daily. Each dose spikes and clears in a few hours.
+### What the user will see
 
-Right now the chart samples the curve at evenly spaced intervals (~every 1¾ hours on the 7-day view). For Retatrutide that's fine, but for GHK-Cu each spike is briefer than the sample spacing, so the curve only catches the tip of each spike at random — producing the "bunch of disconnected dots" you saw. The line also visually breaks at the "Now" marker because past and future are drawn as two separate series.
+- After Pep finishes answering, a new **"Keep exploring"** section appears directly under the answer card.
+- This section contains two layers:
+  1. **Direct entity cards** — up to 3 small, tappable cards for real things in the app (a specific food, exercise, compound, or guide) that relate to the answer. Tapping opens that detail page.
+  2. **Follow-up search chips** — 3–4 short, tappable suggestions like "Healthy high-protein recipes", "Foods that ease GI side effects", "Lean bulk meal ideas". Tapping runs that text as a new search.
+- The "No results for…" empty state is fully hidden whenever Pep has produced an answer — so the screen never feels like a dead end.
+- Loading shimmer is shown briefly while suggestions are being generated, matching the existing Pep card style.
 
-**What I'll fix**
+### How it picks the suggestions
 
-- **Add dense sampling around every logged dose**, so fast peptides like GHK-Cu show the actual rise-and-fall shape after each injection instead of being missed by the regular sample grid. Slow peptides like Retatrutide stay perfectly smooth.
-- **Stitch the past and projected-future line into one continuous curve** so it doesn't visually break at the "Now" line. The future portion stays dotted to indicate projection; the past stays solid — they just meet cleanly at "Now."
-- **Keep the dose dots** sitting exactly on the curve at each injection time, with the line passing through them rather than floating beside them.
-- **Apply this everywhere the chart appears**: protocol detail hero chart, compound detail page chart, and the small inline sparkline on protocol cards — so every persona's chart (Maya, Theo's BPC-157/TB-500, Marcus's Ipamorelin, etc.) reads as a real pharmacokinetic curve.
+- Pep is asked, in the same call as the answer, to return 3 short follow-up queries tailored to the user's question and personal context.
+- Those queries are then run through the app's libraries (foods, exercises, compounds, guides). Strong matches become direct entity cards; the rest stay as search chips.
+- If Pep fails or returns nothing usable, the app falls back to local keyword extraction from the answer text so something relevant always appears.
 
-**Result for Maya specifically**
+### Visual style
 
-- **Retatrutide** — a smooth wave that climbs across her 6 weekly doses and settles into a steady ~1.8–2 mg circulating level, with the dotted projection trailing forward from today.
-- **GHK-Cu** — a daily sawtooth that clearly spikes up after each morning dose and clears by evening, with two visible gaps where she skipped doses while traveling. You'll be able to scrub across any moment and see exactly how much was in her body.
+- Section title in small uppercase serif ("KEEP EXPLORING") to match the existing Pep card aesthetic.
+- Chips: soft pill shape, teal accent border, magnifying-glass icon on the left.
+- Entity cards: compact horizontal row with the item's icon, name, and a tiny tag (Food / Exercise / Compound / Guide) in the section's accent color.
+- Subtle stagger-in animation as suggestions appear.
+- Light haptic on tap.
 
-No copy or layout changes — just the chart itself becoming accurate and properly connected.
+### Edge cases
+
+- If Pep errors out → no smart-links section, the existing error/no-results behavior is preserved.
+- If the query is a plain lookup (e.g. "creatine") with real results → unchanged behavior.
+- Results are deduplicated against anything already showing in the main results list above.
+
