@@ -162,6 +162,9 @@ final class BriefingCloudService {
         trigger: String,
         windowKey: String?
     ) async {
+        // Demo mode briefs are scratch — never persist them to the real
+        // user's row or they will leak across personas / sessions.
+        if DemoModeProbe.isActive { return }
         guard let userId = await currentUserId() else { return }
         do {
             let payload = try AnyCodableJSON(plan)
@@ -188,6 +191,7 @@ final class BriefingCloudService {
     /// Fetch a saved briefing for the given date (e.g. when the user picks a
     /// past day in the calendar). Returns nil if nothing was generated that day.
     func fetchBriefing(for date: Date) async -> TodaysPlanResponse? {
+        if DemoModeProbe.isActive { return nil }
         guard let userId = await currentUserId() else { return nil }
         do {
             let rows: [AIDailyBriefingFetchRow] = try await supabase
@@ -208,6 +212,9 @@ final class BriefingCloudService {
 
     /// Hydrate the most recent saved briefing on cold start.
     func fetchLatestBriefing() async -> (plan: TodaysPlanResponse, day: Date, hash: String?)? {
+        // Don't bleed the real account's cloud brief onto a demo persona's
+        // home screen on cold start.
+        if DemoModeProbe.isActive { return nil }
         guard let userId = await currentUserId() else { return nil }
         do {
             let rows: [AIDailyBriefingFetchRow] = try await supabase
@@ -232,6 +239,7 @@ final class BriefingCloudService {
     /// Marks yesterday's briefing as the locked "final" version for history.
     /// Safe to call on every cold start; no-op if already final.
     func lockYesterdayIfNeeded() async {
+        if DemoModeProbe.isActive { return }
         guard let userId = await currentUserId() else { return }
         guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date()) else { return }
         struct UpdateOnly: Encodable { let is_final: Bool }

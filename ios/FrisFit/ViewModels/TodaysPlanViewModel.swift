@@ -535,6 +535,20 @@ final class TodaysPlanViewModel {
                         previousBrief: previousBrief,
                         previousMemo: previousMemo
                     )
+                } catch TodaysPlanError.invalidResponse {
+                    // Most common cause of a malformed response is a
+                    // truncated JSON when the prompt + previous brief +
+                    // pattern memo run dense personas (Theo, Marcus) past
+                    // the output ceiling. Retry once with no previous
+                    // brief and no memo so the model has the full output
+                    // budget for fresh JSON.
+                    try await Task.sleep(for: .milliseconds(300))
+                    response = try await TodaysPlanService.shared.generatePlan(
+                        context: context,
+                        tier: .deep,
+                        previousBrief: nil,
+                        previousMemo: nil
+                    )
                 }
                 // If the user switched accounts while the AI call was in
                 // flight, drop the response — it belongs to the previous

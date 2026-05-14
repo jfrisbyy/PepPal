@@ -78,6 +78,17 @@ nonisolated final class LongTermMemoryService: @unchecked Sendable {
     /// Fetch the user's memo + events. Cheap to call; uses a 60s in-memory
     /// cache so the deep + fast paths can call it freely.
     func fetch(forceReload: Bool = false) async -> LongTermMemorySnapshot {
+        // Demo mode: never read the signed-in user's real Supabase memo.
+        // Return the persona-seeded memo instead so the brief is anchored
+        // to the mock identity, not the real account behind it.
+        if let scenario = DemoModeProbe.activeScenario {
+            return LongTermMemorySnapshot(
+                memo: DemoModeProbe.profileMemo(for: scenario),
+                events: [],
+                lastUpdatedAt: Date(),
+                lastUpdatedByModel: "demo-seed"
+            )
+        }
         guard let uid = await currentUserId() else { return .empty }
         if !forceReload, let c = cache, c.uid == uid, Date().timeIntervalSince(c.fetchedAt) < cacheTTL {
             return c.snapshot
@@ -111,6 +122,8 @@ nonisolated final class LongTermMemoryService: @unchecked Sendable {
     /// Persist a freshly-rewritten memo. Pushes the prior memo into the
     /// version history (capped) and stamps `last_updated_*`.
     func saveMemo(_ newMemo: String, model: String) async {
+        // Never persist demo-derived memos to the real user's row.
+        if DemoModeProbe.isActive { return }
         guard let uid = await currentUserId() else { return }
         let trimmed = String(newMemo.prefix(Self.memoCharCap))
         let prior = await fetch()
@@ -160,6 +173,7 @@ nonisolated final class LongTermMemoryService: @unchecked Sendable {
         source: String? = nil,
         at date: Date = Date()
     ) async {
+        if DemoModeProbe.isActive { return }
         guard let uid = await currentUserId() else { return }
         let snapshot = await fetch(forceReload: true)
         let atString = Self.iso.string(from: date)

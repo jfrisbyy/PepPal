@@ -151,6 +151,70 @@ extension Notification.Name {
     static let demoPersonaChanged = Notification.Name("demoPersonaChanged")
 }
 
+// MARK: - Demo mode probes (safe to call from nonisolated contexts)
+
+/// Lightweight, nonisolated read of the active demo scenario. Backed by the
+/// same UserDefaults key the `DemoModeManager` writes on activate/deactivate,
+/// so this stays correct without hopping to the main actor.
+nonisolated enum DemoModeProbe {
+    private static let storageKey = "demoMode.activeScenario"
+
+    static var activeScenario: DemoScenario? {
+        guard let raw = UserDefaults.standard.string(forKey: storageKey) else { return nil }
+        return DemoScenario(rawValue: raw)
+    }
+
+    static var isActive: Bool { activeScenario != nil }
+
+    /// Hand-tuned profile memo per persona so the deep brief has the right
+    /// long-term anchor instead of falling back to the signed-in user's
+    /// real Supabase memo. Mirrors the shape of `LongTermMemoryService`
+    /// memos so the prompt reads the same.
+    static func profileMemo(for scenario: DemoScenario) -> String {
+        switch scenario {
+        case .maya:
+            return """
+            Maya Chen, 32, hypertrophy block week 6, three years of training age. Running Upper/Lower Hypertrophy 4x/week (Lower A, Upper A, Lower B, Upper B). Recomp goal — currently 139.4 lb, target 138 lb, started at 142 lb. Calorie target 2,100, protein floor 145 g. Recent PR: back squat 185x5 twelve days ago, off a prior 175 lb best.
+            Cross-domain patterns: training adherence ~92% over the last four weeks, push days move clean, leg days slip when sleep dips under 6h. Hip thrust and RDL are her strongest lifts. Protein lands in the 130-150 g band most days; calories run within 10% of target 5 of 7 days.
+            No active peptide protocol. Sleep baseline ~7.1h; current night was 4h 38m (rough — HRV -18%, RHR +6). Recovery green most weeks except after low-sleep nights, which line up with regressions on squat speed-out.
+            Voice: direct, lift-friend tone, lead with the number, never preachy. No emojis.
+            """
+        case .priya:
+            return """
+            Priya Patel, 34, six weeks into Tirzepatide 5 mg weekly (GLP-1 weight loss). Started at 198 lb, currently 174.8 lb, target 158 lb — averaging -0.9 lb/week, on the conservative side of ideal. Active program: Full Body Beginner 3x/week. Calorie target 1,500, protein 130 g (muscle preservation floor on Tirz). Logs GI discomfort within 24h of dose day fairly consistently.
+            Cross-domain patterns: appetite suppressed for ~48h post-injection so calories often land at 1,100-1,250 on dose day +1; rebounds Wednesday-Thursday. Protein adherence ~70% of days hitting the 130 g floor — biggest miss is dose-day evenings. Sleep ~7.4h, RHR stable in the low 60s.
+            Recent labs unremarkable. No bloodwork shifts flagged.
+            Voice: warm, supportive but specific, frame side effects matter-of-factly, no diet-culture language. No emojis.
+            """
+        case .theo:
+            return """
+            Theo Walker, 35, powerlifter rebuilding from a partial supraspinatus strain. Running 5/3/1 BBB four days a week (Bench, Squat, OHP, Deadlift). Bodyweight 201.2 lb, target 205 lb (slow lean gain). Peptide stack: BPC-157 250 mcg sub-q twice daily + TB-500 weekly — tendon recovery only, no GH stack.
+            Cross-domain patterns: deadlift and squat back to ~90% of pre-injury maxes (squat 365 working, pull 425 last top single). Pressing still down ~10% — bench 275 working when fresh. Misses Wednesday BPC-157 occasionally; tendon flare-ups historically follow within 48h. Calorie target 3,000, protein 200 g — hits both 5-6 days/week.
+            Sleep ~7.6h. HRV stable mid-40s. No bloodwork concerns; last panel within range.
+            Voice: direct, peer-coach tone, talk in working sets and percentages, never alarmist about minor regressions. No emojis.
+            """
+        case .marcus:
+            return """
+            Marcus Reed, 41, health optimizer. TRT — Testosterone Cypionate 100 mg/wk for ~14 months — plus low-dose Ipamorelin nightly for sleep/recovery. Active program: Optimizer PPL four days/week. 188.6 lb, target 190 lb (lean recomp). Calorie target 2,600, protein 180 g — disciplined, almost always on target.
+            Cross-domain patterns: bloodwork trend is the headline — ALT moved 38 → 52 → 68 across the last three panels, LDL creeping into the 130s. Last panel ~75 days ago, due for a recheck. Sleep ~7.8h, HRV mid-50s, RHR sub-60. Trains consistently — adherence ~95% over 12 weeks.
+            Voice: analytical, biomarker-fluent, give him the receipts. Frame liver/lipid drift as worth bringing up with his provider, not as alarm. No emojis.
+            """
+        case .ava:
+            return """
+            Ava Lindqvist, 29, marathon base block 2 (week 8 of 16). Five sessions/week — easy, tempo, intervals, long run, plus one strength maintenance day. 131.4 lb, target 130 lb. Calorie target 2,400, protein 120 g, carbs 330 g. Low-dose Ipamorelin nightly for tendon recovery only.
+            Cross-domain patterns: RHR up +8 bpm across the last 5 mornings with sleep unchanged at ~7.9h — classic overtraining vs illness fork pattern. HRV holding mid-50s, not crashed yet. Mileage held steady week-over-week; interval session Thursday was the hardest of the block.
+            Voice: calm, endurance-coach tone, talk in mileage and HR zones, surface the fork (overtraining vs illness) without picking for her. No emojis.
+            """
+        case .shayla:
+            return """
+            Shayla Brooks, 27, year 2 of training. Running Upper/Lower 4x/week. 149.8 lb, target 145 lb — cutting. Calorie target 1,800, protein 140 g. Borrowed Marcus's TRT-style stack but reading it at half-dose for her context — Test Cyp 50 mg/wk would be the start, not 100.
+            Cross-domain patterns: lifts progressing — hip thrust 165 working, cable row 90, incline DB press 30. Sleep averages ~6.4h (lower than ideal), HRV 50s, RHR upper 50s. Calorie adherence ~75%, weekends drift +400 cal.
+            Voice: curious-friend tone, never lecture her about borrowing a protocol — show the math instead. Make safety the side door, not the headline. No emojis.
+            """
+        }
+    }
+}
+
 // MARK: - Data injector
 
 @MainActor

@@ -256,7 +256,7 @@ final class TodaysPlanService {
             userPrompt = Self.deepUserPrompt(longTermSection: longTermSection, contextString: contextString)
             // p95 plan output ~900 tokens; 1400 leaves buffer for the new
             // patternsMemo on outlier days.
-            maxTokens = 1400
+            maxTokens = 1800
         case .fast:
             systemPrompt = systemPromptWithMemory() + "\n\n" + Self.fastUpdateAddendum
             userPrompt = Self.fastUserPrompt(
@@ -265,7 +265,7 @@ final class TodaysPlanService {
                 previousBrief: previousBrief,
                 contextString: contextString
             )
-            maxTokens = 1200
+            maxTokens = 1600
         }
 
         let body: [String: Any] = [
@@ -321,7 +321,7 @@ final class TodaysPlanService {
         // Evening-only: the memo updater is the most expensive sub-call and
         // the morning deep run hasn't yet seen today's full activity, so we
         // only rewrite the durable memo after the evening Sonnet pass.
-        if resolvedTier == .deep {
+        if resolvedTier == .deep && !DemoModeProbe.isActive {
             let hour = Calendar.current.component(.hour, from: Date())
             let isEvening = (17..<22).contains(hour)
             if isEvening {
@@ -620,6 +620,11 @@ final class TodaysPlanService {
 
         if !activeProtos.isEmpty {
             var knowledge = ""
+            // For multi-compound stacks, only attach full side-effect /
+            // watch-out knowledge to the FIRST compound to keep the prompt
+            // budget reasonable. Secondary compounds still get their dose,
+            // PK level and phase — that's the part the brief actually narrates.
+            var compoundsEmittedFullDetail = 0
             for proto in activeProtos {
                 let daysSinceStart = max(1, Calendar.current.dateComponents([.day], from: proto.startDate, to: now).day ?? 1)
                 knowledge += "\n--- Protocol: \(proto.name) (\(proto.goal.rawValue)) ---\n"
@@ -650,13 +655,18 @@ final class TodaysPlanService {
                     if let profile = CompoundDatabase.all.first(where: {
                         $0.name.lowercased() == compound.compoundName.lowercased()
                     }) {
-                        if !profile.subtitle.isEmpty { knowledge += "  Type: \(profile.subtitle)\n" }
-                        if !profile.sideEffects.isEmpty {
-                            knowledge += "  Expected side effects: \(profile.sideEffects.prefix(4).joined(separator: ", "))\n"
+                        let isFirst = compoundsEmittedFullDetail == 0
+                        if isFirst, !profile.subtitle.isEmpty {
+                            knowledge += "  Type: \(profile.subtitle)\n"
                         }
-                        if !profile.watchOut.isEmpty {
+                        if !profile.sideEffects.isEmpty {
+                            let cap = isFirst ? 4 : 2
+                            knowledge += "  Expected side effects: \(profile.sideEffects.prefix(cap).joined(separator: ", "))\n"
+                        }
+                        if isFirst, !profile.watchOut.isEmpty {
                             knowledge += "  Watch out: \(profile.watchOut)\n"
                         }
+                        compoundsEmittedFullDetail += 1
                     }
                 }
                 if !proto.supplements.isEmpty {

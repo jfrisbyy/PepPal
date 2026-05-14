@@ -49,6 +49,12 @@ final class HomeViewModel {
     private var loadedRanges: Set<String> = []
 
     var userFirstName: String {
+        // Demo personas always win — the brief greeting should read
+        // "Maya" / "Theo" / etc. even if the underlying signed-in account
+        // has a different display name cached.
+        if let scenario = DemoModeProbe.activeScenario {
+            return scenario.displayName
+        }
         if AuthService.shared.authState == .signedIn,
            let name = ProfileService.shared.cachedDisplayName, !name.isEmpty {
             return name.components(separatedBy: " ").first ?? name
