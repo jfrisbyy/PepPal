@@ -1346,46 +1346,87 @@ enum DemoDataGenerator {
                 ], date: d(98), notes: "Pre-medication baseline.")
             ]
         case .theo:
+            // 3 panels — pre-injury → mid-rehab → recent recovery. Inflammation
+            // (ALT/AST) recedes, creatinine normalizes as training load returns.
             return [
+                panel([
+                    (.alt, 34), (.ast, 28), (.ldl, 102), (.hdl, 56), (.totalCholesterol, 192), (.triglycerides, 102),
+                    (.testosteroneTotal, 728), (.igf1, 282), (.creatinine, 1.1), (.bun, 17),
+                    (.fastingGlucose, 88), (.a1c, 5.1)
+                ], date: d(14), notes: "Recovery panel — tendons holding, training load returning."),
                 panel([
                     (.alt, 41), (.ast, 33), (.ldl, 108), (.hdl, 52), (.totalCholesterol, 198), (.triglycerides, 110),
                     (.testosteroneTotal, 712), (.igf1, 268), (.creatinine, 1.2), (.bun, 18)
-                ], date: d(18)),
+                ], date: d(90), notes: "Mid-rehab — BPC-157 + TB-500 stack working."),
                 panel([
-                    (.alt, 38), (.ldl, 102), (.hdl, 54), (.testosteroneTotal, 698), (.igf1, 242),
-                    (.creatinine, 1.1)
-                ], date: d(102))
+                    (.alt, 46), (.ast, 38), (.ldl, 114), (.hdl, 50), (.totalCholesterol, 204), (.triglycerides, 124),
+                    (.testosteroneTotal, 684), (.igf1, 248), (.creatinine, 1.3), (.bun, 19)
+                ], date: d(178), notes: "Pre-injury baseline — full conjugate volume.")
             ]
         case .ava:
             // Endurance: monitor thyroid, hormones, iron-related (closest = creatinine/HDL), and lipids.
+            // 3 panels over ~6 months — base block adaptation arc:
+            // HDL rising with mileage, TSH dipping (endurance load), T3/T4 stable,
+            // free-T trending mildly low (REDS watch), lipids excellent throughout.
             return [
+                panel([
+                    (.hdl, 76), (.ldl, 84), (.totalCholesterol, 164), (.triglycerides, 72),
+                    (.tsh, 1.4), (.t3, 3.0), (.t4, 1.2),
+                    (.testosteroneFree, 7.6), (.fastingGlucose, 82), (.a1c, 4.9),
+                    (.creatinine, 0.9), (.bun, 15)
+                ], date: d(10), notes: "Mid-block — peak mileage week. HDL pushing higher, free-T watching."),
                 panel([
                     (.hdl, 72), (.ldl, 88), (.totalCholesterol, 168), (.triglycerides, 78),
                     (.tsh, 1.6), (.t3, 3.1), (.t4, 1.2),
                     (.testosteroneFree, 8.2), (.fastingGlucose, 84), (.a1c, 5.0),
                     (.creatinine, 0.8), (.bun, 14)
-                ], date: d(28), notes: "Endurance panel — base block check-in."),
+                ], date: d(70), notes: "Base block check-in — adaptation underway."),
                 panel([
-                    (.hdl, 70), (.ldl, 90), (.totalCholesterol, 172), (.tsh, 1.5),
-                    (.creatinine, 0.9), (.a1c, 5.0)
-                ], date: d(120))
+                    (.hdl, 68), (.ldl, 92), (.totalCholesterol, 174), (.triglycerides, 88),
+                    (.tsh, 1.8), (.t3, 3.2), (.t4, 1.3),
+                    (.testosteroneFree, 9.1), (.fastingGlucose, 86), (.a1c, 5.0),
+                    (.creatinine, 0.8), (.bun, 14)
+                ], date: d(168), notes: "Pre-season baseline before marathon block.")
             ]
         case .maya:
+            // 3 panels — baseline → 3 months in → recent. IGF-1 trends up modestly
+            // with hypertrophy work, lipids improve, body composition shifting.
             return [
                 panel([
-                    (.testosteroneFree, 8.6), (.tsh, 2.0), (.fastingGlucose, 88), (.a1c, 5.0),
-                    (.ldl, 96), (.hdl, 62), (.totalCholesterol, 180), (.alt, 22), (.ast, 20)
-                ], date: d(35), notes: "Baseline panel — recomp tracking.")
+                    (.igf1, 228), (.testosteroneFree, 9.4), (.tsh, 1.9), (.fastingGlucose, 86), (.a1c, 4.9),
+                    (.ldl, 88), (.hdl, 66), (.totalCholesterol, 174), (.triglycerides, 82),
+                    (.alt, 20), (.ast, 19), (.creatinine, 0.9), (.bun, 13)
+                ], date: d(14), notes: "Recent panel — IGF-1 trending up with the hypertrophy block."),
+                panel([
+                    (.igf1, 212), (.testosteroneFree, 8.9), (.tsh, 2.0), (.fastingGlucose, 87), (.a1c, 5.0),
+                    (.ldl, 92), (.hdl, 64), (.totalCholesterol, 178), (.triglycerides, 88),
+                    (.alt, 21), (.ast, 19)
+                ], date: d(96), notes: "Recomp check-in — three months in."),
+                panel([
+                    (.igf1, 198), (.testosteroneFree, 8.6), (.tsh, 2.0), (.fastingGlucose, 88), (.a1c, 5.0),
+                    (.ldl, 96), (.hdl, 62), (.totalCholesterol, 180), (.triglycerides, 92),
+                    (.alt, 22), (.ast, 20), (.creatinine, 0.9), (.bun, 13)
+                ], date: d(184), notes: "Baseline panel — start of recomp tracking.")
             ]
         case .shayla:
+            // 3 panels — pre-protocol → 6-week check → recent. Half-dose stack is
+            // moving lipids favorably without taxing the liver.
             return [
                 panel([
-                    (.alt, 32), (.ast, 24), (.ldl, 118), (.hdl, 62), (.totalCholesterol, 198),
-                    (.triglycerides, 94), (.testosteroneFree, 7.8), (.fastingGlucose, 88), (.a1c, 5.1), (.tsh, 2.1)
-                ], date: d(12), notes: "Pre-protocol baseline — slightly elevated LDL."),
+                    (.alt, 24), (.ast, 22), (.ldl, 104), (.hdl, 68), (.totalCholesterol, 188),
+                    (.triglycerides, 86), (.testosteroneFree, 8.4), (.fastingGlucose, 84), (.a1c, 5.0),
+                    (.tsh, 1.9), (.creatinine, 0.8), (.bun, 13)
+                ], date: d(8), notes: "12-week check — half-dose stack working without liver stress."),
                 panel([
-                    (.alt, 28), (.ldl, 112), (.hdl, 64), (.fastingGlucose, 86), (.a1c, 5.0)
-                ], date: d(95))
+                    (.alt, 28), (.ast, 23), (.ldl, 112), (.hdl, 64), (.totalCholesterol, 192),
+                    (.triglycerides, 90), (.testosteroneFree, 8.0), (.fastingGlucose, 86), (.a1c, 5.0),
+                    (.tsh, 2.0)
+                ], date: d(54), notes: "6-week check — small ALT bump, monitoring."),
+                panel([
+                    (.alt, 32), (.ast, 24), (.ldl, 118), (.hdl, 62), (.totalCholesterol, 198),
+                    (.triglycerides, 94), (.testosteroneFree, 7.8), (.fastingGlucose, 88), (.a1c, 5.1),
+                    (.tsh, 2.1), (.creatinine, 0.8), (.bun, 14)
+                ], date: d(112), notes: "Pre-protocol baseline — slightly elevated LDL.")
             ]
         }
     }

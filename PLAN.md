@@ -1,33 +1,44 @@
-# Smarter search: contextual follow-ups instead of "No results"
+# Editorial Biomarkers view with richer demo bloodwork
 
-When Pep answers an open-ended question, the awkward "No results for…" banner gets replaced by a curated set of smart, relevant follow-ups derived from what Pep just said.
+## A new home for your lab story
 
-### What the user will see
+Add a polished **Biomarkers** section that turns raw lab numbers into something you'd actually want to read — calm, editorial, and instantly scannable.
 
-- After Pep finishes answering, a new **"Keep exploring"** section appears directly under the answer card.
-- This section contains two layers:
-  1. **Direct entity cards** — up to 3 small, tappable cards for real things in the app (a specific food, exercise, compound, or guide) that relate to the answer. Tapping opens that detail page.
-  2. **Follow-up search chips** — 3–4 short, tappable suggestions like "Healthy high-protein recipes", "Foods that ease GI side effects", "Lean bulk meal ideas". Tapping runs that text as a new search.
-- The "No results for…" empty state is fully hidden whenever Pep has produced an answer — so the screen never feels like a dead end.
-- Loading shimmer is shown briefly while suggestions are being generated, matching the existing Pep card style.
+### What you'll be able to do
 
-### How it picks the suggestions
+- Open a dedicated **Biomarkers** screen from Home and Profile
+- See every tracked marker as its own tile with the latest value, status (low / normal / high), and a tiny trend line showing how it's moved over time
+- Tap any tile to drill into the full history chart and notes
+- Filter the grid by category — Hormones, Metabolic, Liver, Lipids, Thyroid, Kidney
+- See an "Out of range" pill at the top showing how many markers need attention
+- Still log new panels through the existing tracking screen — nothing removed
 
-- Pep is asked, in the same call as the answer, to return 3 short follow-up queries tailored to the user's question and personal context.
-- Those queries are then run through the app's libraries (foods, exercises, compounds, guides). Strong matches become direct entity cards; the rest stay as search chips.
-- If Pep fails or returns nothing usable, the app falls back to local keyword extraction from the answer text so something relevant always appears.
+### Design
 
-### Visual style
+- **Editorial hero** at the top: large serif "Biomarkers" title, a one-line subtitle with the date of the latest draw ("Last draw · 7 days ago · 13 markers"), and a quiet status ribbon of dots showing in-range vs flagged
+- **Category chips** that scroll horizontally below the hero — selected chip uses the category's accent color
+- **Biomarker tiles** in a two-column grid, each card:
+  - Marker name in semibold, unit in muted small caps
+  - Big rounded value, color-coded by status (green / amber / red / blue)
+  - A whisper-thin sparkline of the last 3–6 panels in the marker's color
+  - Small delta vs. previous panel ("↑ 16 vs last")
+- **Glass cards** with subtle inner shadow, generous whitespace, and a thin colored top accent matching the category
+- Soft fade animations as tiles appear, gentle press feedback, and a haptic tap on drill-in
+- Empty state is editorial too — a single sentence and one "Add lab results" button
 
-- Section title in small uppercase serif ("KEEP EXPLORING") to match the existing Pep card aesthetic.
-- Chips: soft pill shape, teal accent border, magnifying-glass icon on the left.
-- Entity cards: compact horizontal row with the item's icon, name, and a tiny tag (Food / Exercise / Compound / Guide) in the section's accent color.
-- Subtle stagger-in animation as suggestions appear.
-- Light haptic on tap.
+### Richer demo data
 
-### Edge cases
+- Each of the six demo personas gets at least three lab panels spanning the last ~6 months so trends actually tell a story
+- Maya: baseline → recomp check-in → recent panel showing IGF-1 and lipids moving with training
+- Theo: pre-injury → mid-rehab → recent recovery panel
+- Ava: pre-season → base block → mid-block, showing endurance-typical thyroid and HDL shifts
+- Shayla: pre-protocol baseline → 6-week check → recent panel showing the half-dose effect
+- Marcus and Priya keep their existing three-panel arcs (already strong)
 
-- If Pep errors out → no smart-links section, the existing error/no-results behavior is preserved.
-- If the query is a plain lookup (e.g. "creatine") with real results → unchanged behavior.
-- Results are deduplicated against anything already showing in the main results list above.
+### Screens
+
+- **Biomarkers (new)** — editorial hero, category chips, marker tile grid
+- **Marker detail** — existing detail view, reached by tapping any tile
+- **Bloodwork Tracking (unchanged)** — still where you log and review full panels by date, linked from the new view via a "Log a panel" button
+- **Home & Profile** — new entry point card/row that opens the Biomarkers screen
 

@@ -84,6 +84,8 @@ struct ProfileView: View {
                     UserProfileView(user: user, viewModel: viewModel)
                 case .bloodwork:
                     BloodworkTrackingView()
+                case .biomarkers:
+                    BiomarkersOverviewView()
                 case .progressPhotos:
                     ProgressPhotosView()
                 case .protocolHistory:
@@ -301,8 +303,13 @@ struct ProfileView: View {
                 .padding(.horizontal, 4)
                 .padding(.bottom, 6)
 
+            NavigationLink(value: ProfileDestination.biomarkers) {
+                ProfileMenuRow(icon: "waveform.path.ecg", title: "Biomarkers", subtitle: "Your lab story — every marker, status, and trend")
+            }
+            .buttonStyle(.scale)
+
             NavigationLink(value: ProfileDestination.bloodwork) {
-                ProfileMenuRow(icon: "drop.fill", title: "Bloodwork Tracking", subtitle: "Log and track your lab results over time")
+                ProfileMenuRow(icon: "drop.fill", title: "Bloodwork Tracking", subtitle: "Log full lab panels by date")
             }
             .buttonStyle(.scale)
 
@@ -389,6 +396,7 @@ enum ProfileDestination: Hashable {
     case historyDetail(WorkoutHistoryDetail)
     case userProfile(SocialUser)
     case bloodwork
+    case biomarkers
     case progressPhotos
     case protocolHistory
     case biomarkerTrends
