@@ -76,45 +76,32 @@ struct BiomarkersOverviewView: View {
         }.count
     }
 
+    /// When true, renders without ScrollView/toolbar/background so the view can
+    /// be embedded inside another scrollable page (e.g. the Body detail tab).
+    var embedded: Bool = false
+    var showsHero: Bool = true
+
     var body: some View {
-        ScrollView {
-            if entries.isEmpty {
-                emptyState
-                    .padding(.top, 80)
+        Group {
+            if embedded {
+                contentBody
             } else {
-                VStack(alignment: .leading, spacing: 20) {
-                    hero
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-
-                    if visibleCategories.count > 1 {
-                        categoryStrip
-                    }
-
-                    statusRibbon
-                        .padding(.horizontal, 20)
-
-                    grid
-                        .padding(.horizontal, 16)
-
-                    footer
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
+                ScrollView {
+                    contentBody
                 }
-                .padding(.bottom, 32)
-            }
-        }
-        .scrollIndicators(.hidden)
-        .appBackground()
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    BloodworkTrackingView()
-                } label: {
-                    Image(systemName: "plus")
-                        .foregroundStyle(PepTheme.teal)
+                .scrollIndicators(.hidden)
+                .appBackground()
+                .navigationTitle("")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        NavigationLink {
+                            BloodworkTrackingView()
+                        } label: {
+                            Image(systemName: "plus")
+                                .foregroundStyle(PepTheme.teal)
+                        }
+                    }
                 }
             }
         }
@@ -125,6 +112,68 @@ struct BiomarkersOverviewView: View {
             }
             withAnimation(.easeOut(duration: 0.45)) { appeared = true }
         }
+    }
+
+    @ViewBuilder
+    private var contentBody: some View {
+        if entries.isEmpty {
+            emptyState
+                .padding(.top, embedded ? 24 : 80)
+                .padding(.horizontal, embedded ? 4 : 0)
+        } else {
+            VStack(alignment: .leading, spacing: 20) {
+                if showsHero {
+                    hero
+                        .padding(.horizontal, embedded ? 4 : 20)
+                        .padding(.top, 8)
+                }
+
+                if embedded {
+                    addPanelPill
+                        .padding(.horizontal, embedded ? 4 : 20)
+                }
+
+                if visibleCategories.count > 1 {
+                    categoryStrip
+                }
+
+                statusRibbon
+                    .padding(.horizontal, embedded ? 4 : 20)
+
+                grid
+                    .padding(.horizontal, embedded ? 0 : 16)
+
+                footer
+                    .padding(.horizontal, embedded ? 4 : 20)
+                    .padding(.top, 8)
+            }
+            .padding(.bottom, embedded ? 8 : 32)
+        }
+    }
+
+    private var addPanelPill: some View {
+        NavigationLink {
+            BloodworkTrackingView()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Log a panel")
+                    .font(.system(.subheadline, weight: .semibold))
+                Spacer()
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 12, weight: .bold))
+            }
+            .foregroundStyle(PepTheme.teal)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(PepTheme.teal.opacity(0.10), in: .rect(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(PepTheme.teal.opacity(0.25), lineWidth: 0.6)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Hero
@@ -226,7 +275,7 @@ struct BiomarkersOverviewView: View {
             }
             .padding(.vertical, 2)
         }
-        .contentMargins(.horizontal, 20)
+        .contentMargins(.horizontal, embedded ? 4 : 20)
     }
 
     private func chip(label: String, color: Color, isOn: Bool, action: @escaping () -> Void) -> some View {

@@ -3,6 +3,7 @@ import PhotosUI
 
 struct BodyGoalDetailView: View {
     @Bindable var viewModel: BodyGoalViewModel
+    @Environment(\.dismiss) private var dismiss
     @State private var todaysPlanVM = TodaysPlanViewModel.shared
     @State private var expanded: ExpandedSection? = .trends
     @State private var photosVM = ProgressPhotosViewModel()
@@ -15,35 +16,57 @@ struct BodyGoalDetailView: View {
     @State private var pendingOrientation: String = "Front"
     @State private var pendingNote: String = ""
     @State private var selectedGoalDraft: FitnessGoalType = .weightLoss
+    @State private var activeTab: BodyTab = .composition
+    @State private var weightVisibleCount: Int = 10
+    @State private var measurementVisibleCount: Int = 10
 
     enum ExpandedSection: String {
         case logWeight, changeGoal, measurements, trends, photos
+    }
+
+    enum BodyTab: String, CaseIterable, Identifiable {
+        case composition, biomarkers
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .composition: return "Composition"
+            case .biomarkers: return "Biomarkers"
+            }
+        }
+        var icon: String {
+            switch self {
+            case .composition: return "figure.stand"
+            case .biomarkers: return "drop.fill"
+            }
+        }
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 editorialMasthead
-                goalHeader
                 statTriptych
-                EditorialInsightSection(
-                    eyebrow: "BODY · INSIGHT",
-                    title: "Today's Read",
-                    content: todaysPlanVM.moduleContent(for: "body"),
-                    accent: viewModel.currentGoal.color,
-                    isRefreshing: todaysPlanVM.isBackgroundRefreshing || (todaysPlanVM.isLoading && todaysPlanVM.moduleContent(for: "body") == nil),
-                    lastUpdated: todaysPlanVM.lastFetchDate
-                )
-                actionStack
+                tabSwitcher
+
+                if activeTab == .composition {
+                    compositionContent
+                        .transition(.opacity.combined(with: .move(edge: .leading)))
+                } else {
+                    BiomarkersOverviewView(embedded: true, showsHero: false)
+                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                }
             }
             .padding(.horizontal)
-            .padding(.top, 8)
+            .padding(.top, 56)
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
         .appBackground()
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        .overlay(alignment: .topLeading) {
+            floatingBackButton
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .refreshable {
             await viewModel.refresh()
             await photosVM.loadPhotos()
@@ -73,6 +96,7 @@ struct BodyGoalDetailView: View {
                 if let image { pendingImage = image }
             }
         }
+        .animation(.spring(response: 0.42, dampingFraction: 0.85), value: activeTab)
         .onChange(of: pickerItem) { _, newValue in
             guard let item = newValue else { return }
             Task {
@@ -81,6 +105,91 @@ struct BodyGoalDetailView: View {
                     pendingImage = image
                 }
             }
+        }
+    }
+
+    // MARK: - Floating Back Button
+
+    private var floatingBackButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .frame(width: 40, height: 40)
+                .background(.ultraThinMaterial, in: .circle)
+                .overlay(
+                    Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6)
+                )
+                .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.scale)
+        .sensoryFeedback(.impact(weight: .light), trigger: false)
+        .padding(.leading, 16)
+        .padding(.top, 4)
+        .frame(minWidth: 44, minHeight: 44, alignment: .center)
+    }
+
+    // MARK: - Tab Switcher
+
+    private var tabSwitcher: some View {
+        HStack(spacing: 6) {
+            ForEach(BodyTab.allCases) { tab in
+                tabPill(tab)
+            }
+        }
+        .padding(4)
+        .background(PepTheme.elevated.opacity(0.5), in: .rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+        )
+    }
+
+    private func tabPill(_ tab: BodyTab) -> some View {
+        let isActive = activeTab == tab
+        return Button {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.85)) {
+                activeTab = tab
+            }
+        } label: {
+            HStack(spacing: 7) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 11, weight: .bold))
+                Text(tab.title.uppercased())
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
+            }
+            .foregroundStyle(isActive ? PepTheme.invertedText : PepTheme.textSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background {
+                if isActive {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(viewModel.currentGoal.color)
+                        .shadow(color: viewModel.currentGoal.color.opacity(0.35), radius: 6, x: 0, y: 3)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: isActive)
+    }
+
+    // MARK: - Composition Tab Content
+
+    private var compositionContent: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            goalHeader
+            EditorialInsightSection(
+                eyebrow: "BODY · INSIGHT",
+                title: "Today's Read",
+                content: todaysPlanVM.moduleContent(for: "body"),
+                accent: viewModel.currentGoal.color,
+                isRefreshing: todaysPlanVM.isBackgroundRefreshing || (todaysPlanVM.isLoading && todaysPlanVM.moduleContent(for: "body") == nil),
+                lastUpdated: todaysPlanVM.lastFetchDate
+            )
+            actionStack
         }
     }
 
@@ -325,16 +434,28 @@ struct BodyGoalDetailView: View {
             if !viewModel.measurements.isEmpty {
                 Divider().background(PepTheme.shimmerHighlight)
 
-                Text("HISTORY  \u{00B7}  \(viewModel.measurements.count)")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.8)
-                    .foregroundStyle(PepTheme.textSecondary)
+                let total = viewModel.measurements.count
+                let visible = min(measurementVisibleCount, total)
+                HStack {
+                    Text("HISTORY  \u{00B7}  \(total)")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.8)
+                        .foregroundStyle(PepTheme.textSecondary)
+                    Spacer()
+                    if total > 10 {
+                        Text("SHOWING \(visible)/\(total)")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.4)
+                            .foregroundStyle(PepTheme.textSecondary.opacity(0.7))
+                    }
+                }
 
                 if viewModel.measurements.count >= 2 {
                     measurementComparisonCard
                 }
 
-                ForEach(viewModel.measurements.reversed()) { m in
+                let reversed = Array(viewModel.measurements.reversed())
+                ForEach(reversed.prefix(visible)) { m in
                     measurementCard(m)
                         .contextMenu {
                             if m.supabaseId != nil {
@@ -346,8 +467,50 @@ struct BodyGoalDetailView: View {
                             }
                         }
                 }
+
+                if total > 10 {
+                    showMorePill(
+                        accent: PepTheme.amber,
+                        visible: visible,
+                        total: total
+                    ) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            if visible >= total {
+                                measurementVisibleCount = 10
+                            } else {
+                                measurementVisibleCount = min(visible + 10, total)
+                            }
+                        }
+                    }
+                }
             }
         }
+    }
+
+    // MARK: - Show More Pill
+
+    private func showMorePill(accent: Color, visible: Int, total: Int, action: @escaping () -> Void) -> some View {
+        let isExpanded = visible >= total
+        let remaining = total - visible
+        let nextBatch = min(10, remaining)
+        return Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 11, weight: .bold))
+                Text(isExpanded ? "Show less" : "Show \(nextBatch) more")
+                    .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                    .tracking(1.2)
+            }
+            .foregroundStyle(accent)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .background(accent.opacity(0.10), in: .capsule)
+            .overlay(
+                Capsule().strokeBorder(accent.opacity(0.25), lineWidth: 0.6)
+            )
+        }
+        .buttonStyle(.scale)
+        .sensoryFeedback(.selection, trigger: visible)
     }
 
     private func inlineMeasurementField(_ label: String, value: Binding<String>, icon: String) -> some View {
@@ -544,7 +707,9 @@ struct BodyGoalDetailView: View {
                     .tracking(1.8)
                     .foregroundStyle(PepTheme.textSecondary)
                 Spacer()
-                Text("\(viewModel.weightEntries.count) ENTRIES")
+                let total = viewModel.weightEntries.count
+                let visible = min(weightVisibleCount, total)
+                Text(total > 10 ? "\(visible)/\(total) ENTRIES" : "\(total) ENTRIES")
                     .font(.system(size: 9, weight: .heavy, design: .monospaced))
                     .tracking(1.8)
                     .foregroundStyle(PepTheme.textSecondary)
@@ -557,8 +722,27 @@ struct BodyGoalDetailView: View {
                     message: "Log your first weigh-in to start tracking your progress."
                 )
             } else {
-                ForEach(viewModel.weightEntries.reversed()) { entry in
+                let total = viewModel.weightEntries.count
+                let visible = min(weightVisibleCount, total)
+                let reversed = Array(viewModel.weightEntries.reversed())
+                ForEach(reversed.prefix(visible)) { entry in
                     weightEntryRow(entry)
+                }
+                if total > 10 {
+                    showMorePill(
+                        accent: PepTheme.violet,
+                        visible: visible,
+                        total: total
+                    ) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            if visible >= total {
+                                weightVisibleCount = 10
+                            } else {
+                                weightVisibleCount = min(visible + 10, total)
+                            }
+                        }
+                    }
+                    .padding(.top, 4)
                 }
             }
         }
