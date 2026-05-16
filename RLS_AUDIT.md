@@ -7,6 +7,8 @@ as a checklist when adding new tables or policies. The SQL lives in:
   (catalog-driven enable-RLS loop + generic owner_* backstop)
 - `supabase/migrations/20260518000000_rls_storage_abuse_hardening.sql`
   (explicit cross-user policies + storage bucket lockdown + ai_usage_daily)
+- `supabase/migrations/20260605000000_ai_call_log.sql`
+  (per-call attribution telemetry table + service-role-only writes)
 
 ## Legend
 
@@ -45,7 +47,6 @@ as a checklist when adding new tables or policies. The SQL lives in:
 | `friend_activity_events` | self or follower | self only | ✅ |
 | `friend_stat_snapshots` | self or follower (when sharing on) | self only | ✅ |
 | `stat_sharing_prefs` | self or follower | self only | ✅ |
-
 ## Per-user data tables (backstop is correct)
 
 These tables hold data that should never cross user boundaries; the
@@ -60,6 +61,18 @@ generic `auth.uid() = user_id` backstop is the right policy:
 `recovery_milestones`, `progress_photos`, `device_tokens`,
 `conversation_mutes`, `client_errors`, `ai_usage_daily` (read-only client),
 plus any new `user_id`-keyed table picked up by the catalog loop.
+
+## Service-role-only tables (no client access)
+
+These tables are written by edge functions using the service-role client
+and have all anon/authenticated grants revoked. Clients cannot read or
+write them directly; analysis happens server-side or via dashboard:
+
+- `ai_call_log` — per-call attribution telemetry written by `ai-proxy`
+  on cache hit, upstream success, and upstream non-2xx. Structured
+  metadata only (no prompt or response content). See `Logging hygiene`
+  below for the exact column set. Auto-purged at 90 days via
+  `ai_call_log_purge_old(90)`.
 
 ## Storage buckets
 
@@ -77,7 +90,7 @@ plus any new `user_id`-keyed table picked up by the catalog loop.
 
 | Function | JWT required at entrypoint? | Notes |
 |---|---|---|
-| `ai-proxy` | ✅ yes | + 30 req/min, + 50k tokens/day, + model allow-list, + 8MB cap |
+| `ai-proxy` | ✅ yes | + 30 req/min, + 50k tokens/day, + model allow-list, + 8MB cap, + ai_call_log telemetry |
 | `super-action` | ✅ yes (in `requireUser` before action switch) | per-action checks layered on top |
 
 ## Abuse / cost controls
@@ -88,14 +101,28 @@ plus any new `user_id`-keyed table picked up by the catalog loop.
   RPC after each successful upstream call.
 - Clients can read their own usage from `ai_usage_daily` (RLS allows
   owner select; insert/update/delete are revoked from `authenticated`).
+- `ai-proxy` writes a per-call attribution row to `public.ai_call_log`
+  on a best-effort basis at three sites only: cache hit, upstream
+  success, and upstream non-2xx. Inserts use the service-role client;
+  RLS is enabled on the table and all anon/authenticated grants are
+  revoked, so only the edge function can write or read rows. A logging
+  failure never blocks the user-facing request (every call site is
+  wrapped in try/catch that swallows errors).
 
 ## Logging hygiene
 
 - `ai-proxy`:
-  - Successful calls: **nothing logged**.
+  - Successful calls: **nothing logged to stderr**.
   - Upstream non-2xx: `{ event, status, model, user (sha-256 prefix), error (≤512 chars) }`.
   - Fetch failure: `{ event, model, user (sha-256 prefix), error (≤256 chars) }`.
   - **Never** logs request body, response body, prompts, completions, or JWTs.
+  - `ai_call_log` rows (written best-effort on cache hit, upstream success,
+    and upstream non-2xx) contain only structured metadata:
+    `{ user_id, prompt_id, model, status, cache_hit, prompt_tokens,
+    completion_tokens, cost_usd, latency_ms, error_code }`. No prompt text,
+    response text, or other request/response bodies are ever written to
+    this table. The `ai_call_log` insert is in addition to — not a
+    replacement for — the existing stderr error logs above.
 - Sentry (`CrashReportingService`):
   - `sendDefaultPii = false`.
   - Outgoing events are run through `scrubString` to redact JWTs and bearer tokens.
@@ -113,3 +140,6 @@ plus any new `user_id`-keyed table picked up by the catalog loop.
    and `client_errors` shows the row.
 5. Burn 50,001 tokens with a test user → confirm `ai-proxy` returns
    `daily_budget_exceeded` with `retry_after_seconds`.
+6. `select count(*), min(created_at), max(created_at) from public.ai_call_log;`
+   → confirm rows are being written (`prompt_id = 'unknown'` is expected
+   until Rork wires the `X-Epti-Prompt-Id` header into iOS call sites).
