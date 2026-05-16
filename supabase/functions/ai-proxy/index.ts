@@ -26,7 +26,7 @@
 //   failure we log only { status, model, userIdHash, errorBodySnippet }.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-import { extractPromptId, logAiCall } from "./_call_log.ts";
+import { extractPromptId, logAiCall, resolveModel, resolveCacheTtl } from "./_call_log.ts";
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -277,8 +277,14 @@ Deno.serve(async (req) => {
   }
 
   const model = typeof body.model === "string" ? body.model : "";
-  if (!model || !ALLOWED_MODELS.has(model)) {
-    return json(400, { error: "model_not_allowed", model });
+
+  // PR 1: Server-side model routing. Caller-supplied body.model is a
+  // fallback; routing map keyed by prompt_id has final say so we keep
+  // judgment-heavy surfaces on Sonnet and bulk surfaces on Haiku.
+  const routedModel = resolveModel(promptId, model);
+  body.model = routedModel;
+  if (!routedModel || !ALLOWED_MODELS.has(routedModel)) {
+    return json(400, { error: "model_not_allowed", model: routedModel });
   }
   if (!Array.isArray(body.messages)) {
     return json(400, { error: "missing_messages" });
@@ -288,8 +294,11 @@ Deno.serve(async (req) => {
   // Strip cache directives BEFORE forwarding — OpenRouter would 400.
   const rawCacheKey = typeof body.cache_key === "string" ? body.cache_key : "";
   const rawTTL = Number(body.cache_ttl_seconds);
-  const cacheTTL = Number.isFinite(rawTTL) && rawTTL > 0
-    ? Math.min(Math.floor(rawTTL), MAX_RESPONSE_CACHE_TTL)
+  // PR 1: Allow per-surface server-side TTL overrides when caller did
+  // not supply one. Caller-supplied TTL still wins (and is clamped).
+  const overrideTTL = resolveCacheTtl(promptId, Number.isFinite(rawTTL) && rawTTL > 0 ? rawTTL : undefined);
+  const cacheTTL = overrideTTL !== undefined
+    ? Math.min(Math.floor(overrideTTL), MAX_RESPONSE_CACHE_TTL)
     : DEFAULT_RESPONSE_CACHE_TTL;
   delete body.cache_key;
   delete body.cache_ttl_seconds;
@@ -312,7 +321,7 @@ Deno.serve(async (req) => {
           await logAiCall(admin, {
             userId,
             promptId,
-            model,
+            model: routedModel,
             status: 200,
             cacheHit: true,
             promptTokens: 0,
@@ -388,7 +397,7 @@ Deno.serve(async (req) => {
             .from("ai_response_cache")
             .upsert({
               key_hash: cacheKeyHash,
-              model,
+              model: routedModel,
               response_body: text,
               content_type: upstreamContentType,
               expires_at: expiresAt,
@@ -404,7 +413,7 @@ Deno.serve(async (req) => {
         await logAiCall(admin, {
           userId,
           promptId,
-          model,
+          model: routedModel,
           status: upstream.status,
           cacheHit: false,
           promptTokens,
@@ -422,7 +431,7 @@ Deno.serve(async (req) => {
       console.error(JSON.stringify({
         event: "ai_proxy_upstream_error",
         status: upstream.status,
-        model,
+        model: routedModel,
         user: userHash,
         error: snippet,
       }));
@@ -432,7 +441,7 @@ Deno.serve(async (req) => {
         await logAiCall(admin, {
           userId,
           promptId,
-          model,
+          model: routedModel,
           status: upstream.status,
           cacheHit: false,
           promptTokens: 0,
@@ -456,7 +465,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error(JSON.stringify({
       event: "ai_proxy_fetch_failed",
-      model,
+      model: routedModel,
       user: userHash,
       error: String(err).slice(0, 256),
     }));
