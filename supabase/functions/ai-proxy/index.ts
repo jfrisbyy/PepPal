@@ -26,7 +26,7 @@
 //   failure we log only { status, model, userIdHash, errorBodySnippet }.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-import { extractPromptId, logAiCall, resolveModel, resolveCacheTtl } from "./_call_log.ts";
+import {   extractPromptId,   logAiCall,   resolveModel,   resolveCacheTtl,   DEDUPE_ENABLED,   resolveDedupeTtl,   hashInputs,   lookupInsightsCache,   writeInsightsCache, } from "./_call_log.ts";
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -345,6 +345,51 @@ Deno.serve(async (req) => {
     }
   }
 
+  // ---- PR 3: Persistent insights cache (per (user, prompt_id, inputs)) 
+  // ----------------------------------------------------------------
+  // For surfaces in DEDUPE_ENABLED we hash the routed-model + canonical
+  // body and short-circuit on a non-expired hit. Caller-driven cache_key
+  // path above still wins when it produces a hit, so this is purely
+  // additive. A lookup failure never blocks the request.
+  let dedupeInputsHash: string | null = null;
+  if (DEDUPE_ENABLED.has(promptId)) {
+    try {
+      dedupeInputsHash = await hashInputs(promptId, routedModel, body);
+      const hit = await lookupInsightsCache(admin, {
+        userId,
+        promptId,
+        inputsHash: dedupeInputsHash,
+      });
+      if (hit) {
+        try {
+          await logAiCall(admin, {
+            userId,
+            promptId,
+            model: hit.model,
+            status: 200,
+            cacheHit: true,
+            promptTokens: 0,
+            completionTokens: 0,
+            latencyMs: Date.now() - startedAt,
+          });
+        } catch (_) {
+          // swallow
+        }
+        return new Response(hit.responseBody, {
+          status: 200,
+          headers: {
+            ...CORS_HEADERS,
+            "Content-Type": "application/json",
+            "X-AIProxy-Cache": "HIT",
+            "X-AIProxy-Insights-Cache": "HIT",
+          },
+        });
+      }
+    } catch (_) {
+      // Dedupe lookup must never block the request; fall through.
+    }
+  }
+
   // ---- Anthropic prompt caching --------------------------------
   applyAnthropicPromptCache(body);
 
@@ -387,6 +432,27 @@ Deno.serve(async (req) => {
         }
       } catch (_) {
         // Token usage is non-critical; don't fail the request.
+      }
+
+      // PR 3: persist successful insights-cache row when applicable.
+      // Best-effort: a write failure must never affect the response we
+      // already give the caller. Skipped if we did not compute a hash
+      // for this request (i.e. surface not in DEDUPE_ENABLED).
+      if (dedupeInputsHash) {
+        try {
+          await writeInsightsCache(admin, {
+            userId,
+            promptId,
+            inputsHash: dedupeInputsHash,
+            model: routedModel,
+            responseBody: text,
+            promptTokens,
+            completionTokens,
+            ttlSeconds: resolveDedupeTtl(promptId),
+          });
+        } catch (_) {
+          // swallow
+        }
       }
 
       // Persist successful response to cache (best-effort).
