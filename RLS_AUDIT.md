@@ -9,6 +9,8 @@ as a checklist when adding new tables or policies. The SQL lives in:
   (explicit cross-user policies + storage bucket lockdown + ai_usage_daily)
 - `supabase/migrations/20260605000000_ai_call_log.sql`
   (per-call attribution telemetry table + service-role-only writes)
+- `supabase/migrations/20260516000000_ai_insights_cache.sql`
+  (persistent insights cache for prompt-id-keyed dedupe; PR 3)
 
 ## Legend
 
@@ -73,6 +75,14 @@ write them directly; analysis happens server-side or via dashboard:
   metadata only (no prompt or response content). See `Logging hygiene`
   below for the exact column set. Auto-purged at 90 days via
   `ai_call_log_purge_old(90)`.
+- `ai_insights_cache` — persistent dedupe cache for AI proxy responses,
+  keyed on `(user_id, prompt_id, inputs_hash)`. The proxy hashes the
+  routed-model + canonical request body and short-circuits non-expired
+  hits without forwarding to OpenRouter. PR 3 target: ~30–50% Sonnet
+  spend cut on `insights_agent`. Per-surface TTL via `DEDUPE_TTL_OVERRIDES`
+  in `ai-proxy/_call_log.ts`; default 1h. Owners (auth.uid) can `select`
+  their own rows for debugging; service-role writes via the edge function.
+  Purge expired rows with `ai_insights_cache_purge_expired()`.
 
 ## Storage buckets
 
