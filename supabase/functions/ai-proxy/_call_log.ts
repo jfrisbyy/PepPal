@@ -137,3 +137,152 @@ export function resolveCacheTtl(promptId: string, callerTtl: number | undefined)
   if (typeof callerTtl === "number" && callerTtl > 0) return callerTtl;
   return CACHE_TTL_OVERRIDES[promptId];
 }
+// ============================================================
+// PR 3: Persistent insights cache (per (user, prompt_id, inputs_hash))
+//
+// Unlike CACHE_TTL_OVERRIDES + ai_response_cache, which require the
+// caller to opt-in by sending a cache_key header, this layer is
+// prompt_id-driven and zero-config for the client. The ai-proxy
+// hashes the post-routing request body itself and short-circuits
+// repeat invocations whose inputs have not changed. Target: Sonnet
+// 4.6 spend on insights_agent invocations (~76% of total AI cost).
+// ============================================================
+
+// Which prompt_ids participate. Add cautiously: deterministic,
+// inputs-fully-captured-in-body surfaces only. Chat / narrative /
+// any prompt that mixes in server-side timestamps must stay out.
+export const DEDUPE_ENABLED: Set<string> = new Set([
+  "insights_agent",
+]);
+
+// Per-surface TTL (seconds) for the persistent insights cache.
+// Falls back to DEDUPE_DEFAULT_TTL when a surface is in DEDUPE_ENABLED
+// but absent from this map. We default the insights agent to 1h so a
+// user logging a new meal sees a fresh investigation within the hour.
+export const DEDUPE_DEFAULT_TTL = 3600; // 1h
+export const DEDUPE_TTL_OVERRIDES: Record<string, number> = {
+  insights_agent: 3600, // 1h
+};
+
+export function resolveDedupeTtl(promptId: string): number {
+  return DEDUPE_TTL_OVERRIDES[promptId] ?? DEDUPE_DEFAULT_TTL;
+}
+
+// Canonicalize a request body for stable hashing. Sorts object keys
+// at every level so { a: 1, b: 2 } and { b: 2, a: 1 } hash equal.
+// Arrays preserve order (message order matters). Drops a few known
+// non-deterministic fields the caller might include (e.g. `stream`,
+// `cache_key`, `cache_ttl_seconds`) — those are transport-level
+// hints, not part of the semantic input.
+const NON_SEMANTIC_KEYS = new Set([
+  "stream",
+  "cache_key",
+  "cache_ttl_seconds",
+  "user", // OpenAI-style user id passthrough
+  "metadata",
+]);
+
+export function canonicalizeBody(body: unknown): string {
+  const seen = new WeakSet<object>();
+  const walk = (v: unknown): unknown => {
+    if (v === null || typeof v !== "object") return v;
+    if (seen.has(v as object)) return null;
+    seen.add(v as object);
+    if (Array.isArray(v)) return v.map(walk);
+    const obj = v as Record<string, unknown>;
+    const keys = Object.keys(obj).filter((k) => !NON_SEMANTIC_KEYS.has(k)).sort();
+    const out: Record<string, unknown> = {};
+    for (const k of keys) out[k] = walk(obj[k]);
+    return out;
+  };
+  return JSON.stringify(walk(body));
+}
+
+// SHA-256 of a string -> lowercase hex. Used to fingerprint the
+// canonicalized request body. Web Crypto is available in Deno.
+export async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  const bytes = new Uint8Array(digest);
+  let out = "";
+  for (const b of bytes) out += b.toString(16).padStart(2, "0");
+  return out;
+}
+
+// Compose the full inputs hash for an insights-cache lookup. The hash
+// includes the *routed* model so a routing change automatically busts
+// the cache for that surface.
+export async function hashInputs(
+  promptId: string,
+  routedModel: string,
+  body: unknown,
+): Promise<string> {
+  const canonical = canonicalizeBody(body);
+  return await sha256Hex(promptId + "|" + routedModel + "|" + canonical);
+}
+
+// Look up a non-expired cached response. Returns the raw response body
+// string (already-JSON) the proxy can stream back verbatim, plus the
+// model that produced it (for accurate cache-hit telemetry). Returns
+// null on miss / error — a lookup failure must never block the request.
+// deno-lint-ignore no-explicit-any
+export async function lookupInsightsCache(admin: any, params: {
+  userId: string;
+  promptId: string;
+  inputsHash: string;
+}): Promise<{ responseBody: string; model: string } | null> {
+  try {
+    const { data } = await admin
+      .from("ai_insights_cache")
+      .select("response_body, model")
+      .eq("user_id", params.userId)
+      .eq("prompt_id", params.promptId)
+      .eq("inputs_hash", params.inputsHash)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    if (!data) return null;
+    const body = data.response_body;
+    const responseBody = typeof body === "string" ? body : JSON.stringify(body);
+    return { responseBody, model: data.model };
+  } catch (_) {
+    return null;
+  }
+}
+
+// Upsert a successful response into the cache. Best-effort: a write
+// failure must never affect the response the caller already gets.
+// deno-lint-ignore no-explicit-any
+export async function writeInsightsCache(admin: any, params: {
+  userId: string;
+  promptId: string;
+  inputsHash: string;
+  model: string;
+  responseBody: string;
+  promptTokens: number;
+  completionTokens: number;
+  ttlSeconds: number;
+}): Promise<void> {
+  try {
+    const expiresAt = new Date(Date.now() + params.ttlSeconds * 1000).toISOString();
+    // Try to store the body as parsed jsonb. If it is not valid JSON we
+    // fall back to a string-typed jsonb value, which the lookup path
+    // also handles.
+    let parsed: unknown;
+    try { parsed = JSON.parse(params.responseBody); }
+    catch (_) { parsed = params.responseBody; }
+    await admin
+      .from("ai_insights_cache")
+      .upsert({
+        user_id: params.userId,
+        prompt_id: params.promptId,
+        inputs_hash: params.inputsHash,
+        model: params.model,
+        response_body: parsed,
+        prompt_tokens: params.promptTokens,
+        completion_tokens: params.completionTokens,
+        expires_at: expiresAt,
+      }, { onConflict: "user_id,prompt_id,inputs_hash" });
+  } catch (_) {
+    // swallow
+  }
+}
