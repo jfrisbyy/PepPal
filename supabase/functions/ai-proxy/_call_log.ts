@@ -85,3 +85,55 @@ export async function logAiCall(
   });
 }
 
+// =====================================================================
+// PR 1: Model routing + server-side cache TTL overrides
+// =====================================================================
+// Surface-to-model routing keyed by prompt_id (from X-Epti-Prompt-Id).
+// Sonnet for high-judgment / user-facing reasoning; Haiku for bulk and
+// deterministic structured tasks. Caller-supplied body.model is treated
+// as a fallback only - server has final say on routing per surface.
+export const MODEL_ROUTING: Record<string, string> = {
+  // High-judgment surfaces -> Sonnet 4.6
+  bloodwork_interp:    "anthropic/claude-sonnet-4.6",
+  ai_program:          "anthropic/claude-sonnet-4.6",
+  peptide_chat:        "anthropic/claude-sonnet-4.6",
+  journey_narrative:   "anthropic/claude-sonnet-4.6",
+  story_mode:          "anthropic/claude-sonnet-4.6",
+  finn_chat:           "anthropic/claude-sonnet-4.6",
+  // Bulk / structured / cacheable -> Haiku 4.5
+  daily_brief:         "anthropic/claude-haiku-4.5",
+  insights_agent:      "anthropic/claude-haiku-4.5",
+  vial_label_scan:     "anthropic/claude-haiku-4.5",
+  vial_integrity:      "anthropic/claude-haiku-4.5",
+  lab_parse:           "anthropic/claude-haiku-4.5",
+  nutrition_ai:        "anthropic/claude-haiku-4.5",
+  add_vial_flow:       "anthropic/claude-haiku-4.5",
+  global_search_extras:"anthropic/claude-haiku-4.5",
+};
+
+// Server-side response_cache TTL overrides per prompt_id, in seconds.
+// Only applied when caller does not pass cache_ttl_seconds in the body.
+// Surfaces not listed here get the global DEFAULT_RESPONSE_CACHE_TTL.
+export const CACHE_TTL_OVERRIDES: Record<string, number> = {
+  daily_brief:      1800,     // 30 min
+  vial_integrity:   604800,   // 7 days
+  vial_label_scan:  2592000,  // 30 days
+  lab_parse:        2592000,  // 30 days
+  nutrition_ai:     86400,    // 24h
+  insights_agent:   3600,     // 1h
+  // chat / program / narrative surfaces intentionally absent -> no server cache
+};
+
+// Resolve the model that should actually be used for this call.
+// Routing map wins; caller-supplied model is fallback only.
+export function resolveModel(promptId: string, requestedModel: string): string {
+  return MODEL_ROUTING[promptId] || requestedModel;
+}
+
+// Resolve the response-cache TTL (seconds). Caller wins if they passed one.
+// Returns undefined when neither caller nor override applies, so the caller
+// can fall back to the global default.
+export function resolveCacheTtl(promptId: string, callerTtl: number | undefined): number | undefined {
+  if (typeof callerTtl === "number" && callerTtl > 0) return callerTtl;
+  return CACHE_TTL_OVERRIDES[promptId];
+}
