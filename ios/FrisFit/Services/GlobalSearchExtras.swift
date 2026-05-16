@@ -323,7 +323,7 @@ final class AskEptiAnswerStore {
         ]
 
         do {
-            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 25)
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 25, promptId: "global_search_extras")
             if Task.isCancelled { return }
             let raw = (try? AIProxyClient.extractContent(data)) ?? ""
             let parsed = parse(raw)

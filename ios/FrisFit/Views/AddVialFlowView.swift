@@ -1828,7 +1828,8 @@ struct AddVialFlowView: View {
             systemPrompt: system,
             userPrompt: user,
             maxTokens: 600,
-            temperature: 0.4
+            temperature: 0.4,
+            promptId: "add_vial_flow"
         )
         let cleaned = OpenRouterClient.extractJSON(raw)
         guard let data = cleaned.data(using: .utf8) else {

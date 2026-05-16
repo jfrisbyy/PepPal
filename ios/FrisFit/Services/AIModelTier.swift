@@ -30,7 +30,8 @@ nonisolated final class OpenRouterClient: Sendable {
         userPrompt: String,
         maxTokens: Int = 900,
         temperature: Double = 0.5,
-        timeout: TimeInterval = 30
+        timeout: TimeInterval = 30,
+        promptId: String? = nil
     ) async throws -> String {
         let messages: [[String: Any]] = [
             ["role": "system", "content": systemPrompt],
@@ -41,7 +42,8 @@ nonisolated final class OpenRouterClient: Sendable {
             messages: messages,
             maxTokens: maxTokens,
             temperature: temperature,
-            timeout: timeout
+            timeout: timeout,
+            promptId: promptId
         )
     }
 
@@ -50,7 +52,8 @@ nonisolated final class OpenRouterClient: Sendable {
         messages: [[String: Any]],
         maxTokens: Int = 900,
         temperature: Double = 0.5,
-        timeout: TimeInterval = 30
+        timeout: TimeInterval = 30,
+        promptId: String? = nil
     ) async throws -> String {
         let body: [String: Any] = [
             "model": tier.modelID,
@@ -59,7 +62,7 @@ nonisolated final class OpenRouterClient: Sendable {
             "temperature": temperature
         ]
         do {
-            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: timeout)
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: timeout, promptId: promptId)
             return try AIProxyClient.extractContent(data)
         } catch let AIProxyError.http(code, _) {
             throw OpenRouterError.apiError(code)

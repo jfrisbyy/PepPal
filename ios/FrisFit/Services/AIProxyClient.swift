@@ -19,7 +19,8 @@ enum AIProxyClient {
     /// auth, rate limits, and a model allow-list.
     static func postChatCompletion(
         body: [String: Any],
-        timeout: TimeInterval = 30
+        timeout: TimeInterval = 30,
+        promptId: String? = nil
     ) async throws -> Data {
         let baseURL = Config.EXPO_PUBLIC_SUPABASE_URL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !baseURL.isEmpty,
@@ -36,6 +37,12 @@ enum AIProxyClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        // Surface-based model routing: the ai-proxy edge function reads this
+        // header to pick the right model tier and cache TTL. Values must match
+        // ^[a-z0-9_]{1,64}$; anything malformed falls through to "unknown".
+        if let promptId, !promptId.isEmpty {
+            request.setValue(promptId, forHTTPHeaderField: "X-Epti-Prompt-Id")
+        }
         // Supabase functions require the anon key as the apikey header.
         let anonKey = Config.EXPO_PUBLIC_SUPABASE_ANON_KEY
         if !anonKey.isEmpty {

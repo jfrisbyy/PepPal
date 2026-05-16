@@ -176,7 +176,7 @@ final class NutritionAIService {
         }
 
         do {
-            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 15)
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 15, promptId: "nutrition_ai")
             return try AIProxyClient.extractContent(data)
         } catch let AIProxyError.http(code, _) {
             if (code == 429 || (code >= 500 && code < 600)) && !isRetry {

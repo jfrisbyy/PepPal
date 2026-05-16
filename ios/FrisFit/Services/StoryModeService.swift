@@ -294,7 +294,8 @@ final class StoryModeService {
                 userPrompt: userPrompt,
                 maxTokens: 800,
                 temperature: 0.65,
-                timeout: 18
+                timeout: 18,
+                promptId: "story_mode"
             )
             let cleaned = OpenRouterClient.extractJSON(raw)
             if let data = cleaned.data(using: .utf8),

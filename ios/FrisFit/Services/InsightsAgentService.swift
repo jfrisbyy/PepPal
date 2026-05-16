@@ -147,7 +147,7 @@ final class InsightsAgentService {
 
         let respData: Data
         do {
-            respData = try await AIProxyClient.postChatCompletion(body: body, timeout: 45)
+            respData = try await AIProxyClient.postChatCompletion(body: body, timeout: 45, promptId: "insights_agent")
         } catch let AIProxyError.http(code, _) {
             throw InsightsAgentError.apiError(code)
         } catch AIProxyError.notConfigured, AIProxyError.notAuthenticated {

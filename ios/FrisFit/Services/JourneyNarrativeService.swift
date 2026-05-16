@@ -51,7 +51,8 @@ enum JourneyNarrativeService {
                 userPrompt: user,
                 maxTokens: 80,
                 temperature: 0.7,
-                timeout: 12
+                timeout: 12,
+                promptId: "journey_narrative"
             )
             let cleaned = raw
                 .trimmingCharacters(in: .whitespacesAndNewlines)

@@ -247,7 +247,7 @@ final class PeptideAIChatViewModel {
         ]
 
         do {
-            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 45)
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 45, promptId: "peptide_chat")
             let responseText = extractText(from: data)
 
             conversationHistory.append(["role": "assistant", "content": responseText])

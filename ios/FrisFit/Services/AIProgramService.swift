@@ -146,7 +146,7 @@ final class AIProgramService {
         ]
 
         do {
-            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30)
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30, promptId: "ai_program")
             return try AIProxyClient.extractContent(data)
         } catch let AIProxyError.http(code, _) {
             throw AIProgramError.apiError(code)

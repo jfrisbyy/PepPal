@@ -76,7 +76,7 @@ final class LabParsingService {
         ]
 
         do {
-            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30)
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30, promptId: "lab_parse")
             return try AIProxyClient.extractContent(data)
         } catch let AIProxyError.http(code, _) {
             if (code == 429 || code >= 500) && !isRetry {

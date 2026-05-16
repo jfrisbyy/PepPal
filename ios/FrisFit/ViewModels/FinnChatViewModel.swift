@@ -484,7 +484,7 @@ final class PepChatViewModel {
         ]
 
         do {
-            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 45)
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 45, promptId: "finn_chat")
             let responseText = extractTextFromResponse(data)
 
             conversationHistory.append(["role": "assistant", "content": responseText])

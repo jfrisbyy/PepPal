@@ -166,7 +166,7 @@ final class TodaysPlanService {
 
         let content: String
         do {
-            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30)
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30, promptId: "daily_brief")
             content = try AIProxyClient.extractContent(data)
         } catch let AIProxyError.http(code, _) {
             throw TodaysPlanError.apiError(code)
@@ -280,7 +280,7 @@ final class TodaysPlanService {
 
         let content: String
         do {
-            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30)
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 30, promptId: "daily_brief")
             content = try AIProxyClient.extractContent(data)
         } catch let AIProxyError.http(code, _) {
             throw TodaysPlanError.apiError(code)
@@ -406,7 +406,7 @@ final class TodaysPlanService {
             "temperature": 0.4
         ]
         do {
-            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 45)
+            let data = try await AIProxyClient.postChatCompletion(body: body, timeout: 45, promptId: "daily_brief")
             let content = try AIProxyClient.extractContent(data)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             guard !content.isEmpty else { return }

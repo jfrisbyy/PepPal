@@ -94,7 +94,8 @@ final class BloodworkInterpretationService {
                 userPrompt: user,
                 maxTokens: 700,
                 temperature: 0.3,
-                timeout: 35
+                timeout: 35,
+                promptId: "bloodwork_interp"
             )
             let clean = OpenRouterClient.extractJSON(raw)
             let data = clean.data(using: .utf8) ?? Data()
