@@ -51,6 +51,12 @@ export interface AiCallLogParams {
   completionTokens: number;
   latencyMs: number;
   errorCode?: string | null;
+  // PR 3 (Tier 2): registry version of the system prompt actually used
+  // for this call. Null when the prompt was not served from the registry
+  // (either prompt_id not in REGISTRY_AUTHORITATIVE_PROMPTS, or the
+  // registry lookup failed / was a no-op). Lets us partition cost and
+  // latency by prompt version once we start iterating server-side.
+  promptVersion?: number | null;
 }
 
 // `admin` is a service-role Supabase client. We accept it via a structural
@@ -82,6 +88,7 @@ export async function logAiCall(
     cost_usd: costUsd,
     latency_ms: params.latencyMs,
     error_code: params.errorCode ?? null,
+    prompt_version: params.promptVersion ?? null,
   });
 }
 
@@ -284,5 +291,58 @@ export async function writeInsightsCache(admin: any, params: {
       }, { onConflict: "user_id,prompt_id,inputs_hash" });
   } catch (_) {
     // swallow
+  }
+}
+
+// =====================================================================
+// PR 3 (Tier 2): Registry-as-truth for system prompts
+// =====================================================================
+// We are migrating ownership of system prompt text from the iOS client to
+// the public.prompt_templates table. The allowlist below names the
+// surfaces that have been (a) byte-equality verified against iOS runtime
+// output and (b) cleaned of Swift-isms in the cleanup migration
+// (20260517120000_normalize_prompt_templates.sql, SHA f4f0cbc).
+//
+// For these surfaces the ai-proxy will look up the active template from
+// the registry and replace body.messages[0].content with it BEFORE
+// forwarding to OpenRouter — but only when messages[0] is a system
+// message AND its current content matches the registry byte-for-byte.
+// That guard makes this swap a provable no-op at runtime: if iOS ever
+// sends a different system prompt for an allowlisted surface, we leave
+// the body alone and log the call with promptVersion = null so we can
+// catch drift in telemetry.
+//
+// PR 3 minimum scope: only the system_template is swapped. The
+// prompt_templates.model column is intentionally NOT consulted yet;
+// resolveModel() above keeps using the hardcoded MODEL_ROUTING map.
+export const REGISTRY_AUTHORITATIVE_PROMPTS: Set<string> = new Set([
+  "lab_parse",
+  "nutrition_ai",
+  "bloodwork_interp",
+  "journey_narrative",
+  "story_mode",
+]);
+
+// Look up the active system template for a prompt_id. Returns null on
+// miss / error — a lookup failure must never block the request. The
+// caller is expected to fall back to the iOS-supplied system prompt
+// when this returns null.
+// deno-lint-ignore no-explicit-any
+export async function resolvePromptTemplate(admin: any, promptId: string): Promise<
+  { template: string; version: number } | null
+> {
+  try {
+    const { data } = await admin
+      .from("prompt_templates")
+      .select("system_template, version")
+      .eq("prompt_id", promptId)
+      .eq("active", true)
+      .maybeSingle();
+    if (!data || typeof data.system_template !== "string") return null;
+    const version = Number(data.version);
+    if (!Number.isFinite(version)) return null;
+    return { template: data.system_template, version };
+  } catch (_) {
+    return null;
   }
 }
