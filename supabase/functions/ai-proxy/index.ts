@@ -27,6 +27,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import {   extractPromptId,   logAiCall,   resolveModel,   resolveCacheTtl,   DEDUPE_ENABLED,   resolveDedupeTtl,   hashInputs,   lookupInsightsCache,   writeInsightsCache,   REGISTRY_AUTHORITATIVE_PROMPTS,   resolvePromptTemplate, } from "./_call_log.ts";
+import { TEMPLATES_WITH_CONTEXT, fetchUserContextBlock, injectContextIntoBody } from "./_user_context.ts";
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -307,6 +308,12 @@ Deno.serve(async (req) => {
   // bytes do not match): leave body untouched, leave promptVersion
   // null. Never block the request on this code path.
   let promptVersion: number | null = null;
+  // PR 6 (Tier 2): context attribution for telemetry. Populated only if
+  // the prompt_id is in TEMPLATES_WITH_CONTEXT and rebuild_user_context
+  // succeeds. Stays null otherwise (and on cache hits, since those bypass
+  // injection by design).
+  let contextGeneratedAt: string | null = null;
+  let contextAgeSeconds: number | null = null;
   if (REGISTRY_AUTHORITATIVE_PROMPTS.has(promptId)) {
     const messages = body.messages as unknown[];
     const first = messages.length > 0 ? messages[0] : null;
@@ -442,6 +449,27 @@ Deno.serve(async (req) => {
     }
   }
 
+  // ---- PR 6 (Tier 2): user_context injection ------------------
+  // For whitelisted prompt_ids, call rebuild_user_context and prepend
+  // the formatted summary block to the system message. Best-effort:
+  // any failure leaves the body untouched and the request proceeds
+  // with the original prompt (context is enhancement, not precondition).
+  // We inject AFTER cache lookups (cache hits bypass this entirely) and
+  // BEFORE applyAnthropicPromptCache so the context block participates in
+  // the Anthropic prompt cache for repeat calls by the same user.
+  if (TEMPLATES_WITH_CONTEXT.has(promptId)) {
+    try {
+      const ctx = await fetchUserContextBlock(admin, userId);
+      if (ctx) {
+        injectContextIntoBody(body, ctx.block);
+        contextGeneratedAt = ctx.generatedAt;
+        contextAgeSeconds = ctx.ageSeconds;
+      }
+    } catch (_) {
+      // Context fetch must never block the call.
+    }
+  }
+
   // ---- Anthropic prompt caching --------------------------------
   applyAnthropicPromptCache(body);
 
@@ -538,6 +566,8 @@ Deno.serve(async (req) => {
           completionTokens,
           latencyMs: Date.now() - startedAt,
           promptVersion,
+          contextGeneratedAt,
+          contextAgeSeconds,
         });
       } catch (_) {
         // swallow
@@ -568,6 +598,8 @@ Deno.serve(async (req) => {
           latencyMs: Date.now() - startedAt,
           errorCode: `upstream_${upstream.status}`,
           promptVersion,
+          contextGeneratedAt,
+          contextAgeSeconds,
         });
       } catch (_) {
         // swallow
