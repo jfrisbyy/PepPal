@@ -57,6 +57,12 @@ export interface AiCallLogParams {
   // registry lookup failed / was a no-op). Lets us partition cost and
   // latency by prompt version once we start iterating server-side.
   promptVersion?: number | null;
+  // PR 6 (Tier 2): context attribution. Populated only when ai-proxy
+  // injected user_context into the system prompt for this call. NULL
+  // when the prompt_id is not in TEMPLATES_WITH_CONTEXT, when the
+  // rebuild RPC errored, or when the call was a cache hit.
+  contextGeneratedAt?: string | null;
+  contextAgeSeconds?: number | null;
 }
 
 // `admin` is a service-role Supabase client. We accept it via a structural
@@ -89,6 +95,8 @@ export async function logAiCall(
     latency_ms: params.latencyMs,
     error_code: params.errorCode ?? null,
     prompt_version: params.promptVersion ?? null,
+    context_generated_at: params.contextGeneratedAt ?? null,
+    context_age_seconds: params.contextAgeSeconds ?? null,
   });
 }
 
