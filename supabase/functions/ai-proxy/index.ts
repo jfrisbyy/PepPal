@@ -26,7 +26,7 @@
 //   failure we log only { status, model, userIdHash, errorBodySnippet }.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-import {   extractPromptId,   logAiCall,   resolveModel,   resolveCacheTtl,   DEDUPE_ENABLED,   resolveDedupeTtl,   hashInputs,   lookupInsightsCache,   writeInsightsCache, } from "./_call_log.ts";
+import {   extractPromptId,   logAiCall,   resolveModel,   resolveCacheTtl,   DEDUPE_ENABLED,   resolveDedupeTtl,   hashInputs,   lookupInsightsCache,   writeInsightsCache,   REGISTRY_AUTHORITATIVE_PROMPTS,   resolvePromptTemplate, } from "./_call_log.ts";
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -290,6 +290,56 @@ Deno.serve(async (req) => {
     return json(400, { error: "missing_messages" });
   }
 
+  // ---- PR 3 (Tier 2): Registry-as-truth swap for allowlisted prompts ----
+  // For surfaces in REGISTRY_AUTHORITATIVE_PROMPTS, look up the active
+  // system template from the registry and replace messages[0].content
+  // with it BEFORE Anthropic prompt-cache transformation. The swap is
+  // gated on byte-equality with what iOS sent so it is a provable
+  // no-op at runtime: if iOS ever ships a different system prompt for
+  // an allowlisted surface we leave the body alone and record
+  // promptVersion = null so drift is visible in telemetry.
+  //
+  // Why messages[0] specifically: every iOS service in the allowlist
+  // builds its request with the system message at index 0 followed by
+  // a user message. We do not scan / rewrite later messages.
+  //
+  // Failure modes (registry miss, lookup error, content not a string,
+  // bytes do not match): leave body untouched, leave promptVersion
+  // null. Never block the request on this code path.
+  let promptVersion: number | null = null;
+  if (REGISTRY_AUTHORITATIVE_PROMPTS.has(promptId)) {
+    const messages = body.messages as unknown[];
+    const first = messages.length > 0 ? messages[0] : null;
+    if (
+      first && typeof first === "object" &&
+      (first as Record<string, unknown>).role === "system" &&
+      typeof (first as Record<string, unknown>).content === "string"
+    ) {
+      const currentContent = (first as Record<string, unknown>).content as string;
+      const resolved = await resolvePromptTemplate(admin, promptId);
+      if (resolved && resolved.template === currentContent) {
+        // Bytes match — swap is a no-op but lets us attribute the call
+        // to a registry version. The swap itself does not mutate the
+        // string but we assign it explicitly so future versions that
+        // intentionally diverge will flow through this same path.
+        (first as Record<string, unknown>).content = resolved.template;
+        promptVersion = resolved.version;
+      } else if (resolved) {
+        // Drift detected: registry has a row but bytes differ from what
+        // iOS sent. Log a structured event (no prompt content) and fall
+        // through with promptVersion = null so the request still goes
+        // out unchanged.
+        console.error(JSON.stringify({
+          event: "ai_proxy_registry_drift",
+          prompt_id: promptId,
+          ios_len: currentContent.length,
+          registry_len: resolved.template.length,
+          registry_version: resolved.version,
+        }));
+      }
+    }
+  }
+
   // ---- Response cache (opt-in via cache_key) -------------------
   // Strip cache directives BEFORE forwarding — OpenRouter would 400.
   const rawCacheKey = typeof body.cache_key === "string" ? body.cache_key : "";
@@ -327,6 +377,7 @@ Deno.serve(async (req) => {
             promptTokens: 0,
             completionTokens: 0,
             latencyMs: Date.now() - startedAt,
+            promptVersion,
           });
         } catch (_) {
           // swallow
@@ -371,6 +422,7 @@ Deno.serve(async (req) => {
             promptTokens: 0,
             completionTokens: 0,
             latencyMs: Date.now() - startedAt,
+            promptVersion,
           });
         } catch (_) {
           // swallow
@@ -485,6 +537,7 @@ Deno.serve(async (req) => {
           promptTokens,
           completionTokens,
           latencyMs: Date.now() - startedAt,
+          promptVersion,
         });
       } catch (_) {
         // swallow
@@ -514,6 +567,7 @@ Deno.serve(async (req) => {
           completionTokens: 0,
           latencyMs: Date.now() - startedAt,
           errorCode: `upstream_${upstream.status}`,
+          promptVersion,
         });
       } catch (_) {
         // swallow
