@@ -16,6 +16,9 @@
 -- All writes are gated behind SECURITY DEFINER RPCs callable only by the
 -- service_role JWT. Clients can read their own rows (RLS) or call the read
 -- RPCs; clients cannot write directly.
+--
+-- FK NOTE: ai_call_log.id is uuid (verified via information_schema). Both
+-- user_context.source_event_id and user_signals.source_call_id are typed uuid.
 
 BEGIN;
 
@@ -26,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.user_context (
   user_id           uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   context_version   integer NOT NULL DEFAULT 1,
   generated_at      timestamptz NOT NULL DEFAULT now(),
-  source_event_id   bigint NULL,
+  source_event_id   uuid NULL,
   protocol_summary  jsonb NOT NULL DEFAULT '{}'::jsonb,
   metrics_summary   jsonb NOT NULL DEFAULT '{}'::jsonb,
   bloodwork_summary jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -78,9 +81,6 @@ CREATE POLICY user_context_owner_select
   TO authenticated
   USING (user_id = auth.uid());
 
--- Explicitly: no INSERT/UPDATE/DELETE policy is created. All writes must come
--- through SECURITY DEFINER RPCs (below) which the service_role calls.
-
 -- =========================================================================
 -- Table: public.user_signals
 -- =========================================================================
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS public.user_signals (
   severity        smallint NULL,
   occurred_at     timestamptz NOT NULL DEFAULT now(),
   created_at      timestamptz NOT NULL DEFAULT now(),
-  source_call_id  bigint NULL REFERENCES public.ai_call_log(id) ON DELETE SET NULL,
+  source_call_id  uuid NULL REFERENCES public.ai_call_log(id) ON DELETE SET NULL,
   CONSTRAINT user_signals_severity_range CHECK (severity IS NULL OR (severity BETWEEN 1 AND 5))
 );
 
@@ -129,7 +129,7 @@ CREATE OR REPLACE FUNCTION public.upsert_user_context(
   p_metrics          jsonb DEFAULT '{}'::jsonb,
   p_bloodwork        jsonb DEFAULT '{}'::jsonb,
   p_nutrition        jsonb DEFAULT '{}'::jsonb,
-  p_source_event_id  bigint DEFAULT NULL,
+  p_source_event_id  uuid DEFAULT NULL,
   p_ttl_seconds      integer DEFAULT 86400
 )
 RETURNS public.user_context
@@ -140,7 +140,6 @@ AS $fn$
 DECLARE
   v_row public.user_context;
 BEGIN
-  -- service_role only
   IF current_setting('request.jwt.claim.role', true) IS DISTINCT FROM 'service_role' THEN
     RAISE EXCEPTION 'upsert_user_context: service_role required';
   END IF;
@@ -176,8 +175,8 @@ BEGIN
 END;
 $fn$;
 
-REVOKE ALL ON FUNCTION public.upsert_user_context(uuid, jsonb, jsonb, jsonb, jsonb, bigint, integer) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.upsert_user_context(uuid, jsonb, jsonb, jsonb, jsonb, bigint, integer) TO service_role;
+REVOKE ALL ON FUNCTION public.upsert_user_context(uuid, jsonb, jsonb, jsonb, jsonb, uuid, integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.upsert_user_context(uuid, jsonb, jsonb, jsonb, jsonb, uuid, integer) TO service_role;
 
 -- =========================================================================
 -- RPC: get_user_context (owner-readable via RLS)
@@ -206,7 +205,7 @@ CREATE OR REPLACE FUNCTION public.append_user_signal(
   p_payload        jsonb DEFAULT '{}'::jsonb,
   p_severity       smallint DEFAULT NULL,
   p_occurred_at    timestamptz DEFAULT NULL,
-  p_source_call_id bigint DEFAULT NULL
+  p_source_call_id uuid DEFAULT NULL
 )
 RETURNS bigint
 LANGUAGE plpgsql
@@ -242,8 +241,8 @@ BEGIN
 END;
 $fn$;
 
-REVOKE ALL ON FUNCTION public.append_user_signal(uuid, text, text, jsonb, smallint, timestamptz, bigint) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.append_user_signal(uuid, text, text, jsonb, smallint, timestamptz, bigint) TO service_role;
+REVOKE ALL ON FUNCTION public.append_user_signal(uuid, text, text, jsonb, smallint, timestamptz, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.append_user_signal(uuid, text, text, jsonb, smallint, timestamptz, uuid) TO service_role;
 
 -- =========================================================================
 -- RPC: get_recent_user_signals (owner-readable via RLS)
