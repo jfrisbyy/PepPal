@@ -112,6 +112,10 @@ struct ContentView: View {
 
     private var mainAppView: some View {
         ZStack(alignment: .bottomTrailing) {
+            AppBackground(accent: selectedDomain.accent)
+                .ignoresSafeArea()
+                .animation(.easeInOut(duration: 0.45), value: selectedDomain)
+
             VStack(spacing: 0) {
                 if !screenshotMode.hideChrome {
                     topStrip

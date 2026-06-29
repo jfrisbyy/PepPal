@@ -28,7 +28,6 @@ struct StackRootView: View {
                 .padding(.bottom, 80)
             }
             .scrollIndicators(.hidden)
-            .appBackground(accent: PepTheme.tealDeep)
             .navigationTitle("")
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showProtocolWizard) {

@@ -94,7 +94,6 @@ struct BriefView: View {
                 await viewModel.refresh()
                 await energyBalanceViewModel.refresh()
             }
-            .appBackground(accent: PepTheme.teal)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {

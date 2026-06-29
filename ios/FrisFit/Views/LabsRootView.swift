@@ -40,7 +40,6 @@ struct LabsRootView: View {
                 .padding(.bottom, 80)
             }
             .scrollIndicators(.hidden)
-            .appBackground(accent: PepTheme.blue)
             .navigationTitle("")
             .toolbar(.hidden, for: .navigationBar)
             .onAppear {

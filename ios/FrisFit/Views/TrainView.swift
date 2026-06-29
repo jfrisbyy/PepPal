@@ -71,7 +71,6 @@ struct TrainView: View {
                     .padding(.trailing, 16)
                     .padding(.top, 8)
             }
-            .appBackground(accent: PepTheme.coral)
             .navigationTitle("")
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $viewModel.showModeSelectorSheet) {

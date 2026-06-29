@@ -52,7 +52,6 @@ struct SocialView: View {
                     composeButton
                 }
             }
-            .appBackground(accent: PepTheme.violet)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
