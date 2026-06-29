@@ -9,42 +9,8 @@ final class WorkoutState {
     var workoutName: String = ""
 }
 
-nonisolated enum AppTab: Int, CaseIterable {
-    case home, train, community, discover, profile
-
-    var title: String {
-        switch self {
-        case .home: "Home"
-        case .train: "Train"
-        case .community: "Community"
-        case .discover: "Discover"
-        case .profile: "Profile"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .home: "house"
-        case .train: "figure.run"
-        case .community: "person.2"
-        case .discover: "magnifyingglass"
-        case .profile: "person.crop.circle"
-        }
-    }
-
-    var activeIcon: String {
-        switch self {
-        case .home: "house.fill"
-        case .train: "figure.run"
-        case .community: "person.2.fill"
-        case .discover: "magnifyingglass"
-        case .profile: "person.crop.circle.fill"
-        }
-    }
-}
-
 struct ContentView: View {
-    @State private var selectedTab: AppTab = .home
+    @State private var selectedDomain: AppDomain = .brief
     @State private var showNutrition: Bool = false
     @State private var showCreatePost: Bool = false
     @State private var showLogDose: Bool = false
@@ -52,7 +18,6 @@ struct ContentView: View {
     @State private var fabExpanded: Bool = false
     @State private var socialViewModel = SocialViewModel()
     @State private var showActiveWorkoutWarning: Bool = false
-    @State private var previousTab: AppTab = .home
     @State private var workoutState = WorkoutState.shared
     @State private var sessionManager = WorkoutSessionManager.shared
     @State private var authService = AuthService.shared
@@ -68,6 +33,10 @@ struct ContentView: View {
     @State private var capturedScreenshotURL: URL? = nil
     @State private var isCapturingScreenshot: Bool = false
     @State private var showScreenshotShare: Bool = false
+    @State private var showGlobalSearch: Bool = false
+    @State private var showNotificationCenter: Bool = false
+    @State private var showProfile: Bool = false
+    @State private var notifStore = SmartNotificationStore.shared
 
     var body: some View {
         let _ = print("APP_INIT: ContentView body evaluated, authState = \(authService.authState)")
@@ -107,9 +76,6 @@ struct ContentView: View {
                     showOnboarding = true
                 }
                 .task(id: (try? authService.currentUserId()) ?? "") {
-                    // Reconcile onboarding state with Supabase profile so pre-onboarding
-                    // accounts (and cross-device sign-ins) are routed through the flow
-                    // even if the local completed flag is missing/stale.
                     guard !didReconcileOnboarding else { return }
                     didReconcileOnboarding = true
                     let mustOnboard = await OnboardingManager.reconcileCompletionAfterSignIn()
@@ -124,58 +90,22 @@ struct ContentView: View {
         }
     }
 
-    private var screenshotSwipeGesture: some Gesture {
-        DragGesture(minimumDistance: 40)
-            .onEnded { value in
-                guard screenshotMode.hideChrome else { return }
-                let dx = value.translation.width
-                let dy = value.translation.height
-                guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
-                let tabs = AppTab.allCases
-                guard let idx = tabs.firstIndex(of: selectedTab) else { return }
-                let nextIdx: Int = dx < 0
-                    ? (idx + 1) % tabs.count
-                    : (idx - 1 + tabs.count) % tabs.count
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                    selectedTab = tabs[nextIdx]
-                }
-            }
-    }
-
     private var mainAppView: some View {
         ZStack(alignment: .bottomTrailing) {
-            TabView(selection: $selectedTab) {
-                Tab("Home", systemImage: selectedTab == .home ? AppTab.home.activeIcon : AppTab.home.icon, value: .home) {
-                    HomeView()
-                        .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
+            VStack(spacing: 0) {
+                if !screenshotMode.hideChrome {
+                    topStrip
+                    DomainBubbleRail(selection: $selectedDomain)
+                        .padding(.bottom, 8)
                 }
-                Tab("Train", systemImage: selectedTab == .train ? AppTab.train.activeIcon : AppTab.train.icon, value: .train) {
-                    TrainView()
-                        .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
-                }
-                Tab("Community", systemImage: selectedTab == .community ? AppTab.community.activeIcon : AppTab.community.icon, value: .community) {
-                    SocialView()
-                        .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
-                }
-                Tab("Discover", systemImage: selectedTab == .discover ? AppTab.discover.activeIcon : AppTab.discover.icon, value: .discover) {
-                    DiscoverView()
-                        .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
-                }
-                Tab(value: AppTab.profile) {
-                    ProfileView()
-                        .toolbar(screenshotMode.hideChrome ? .hidden : .visible, for: .tabBar)
-                } label: {
-                    profileTabLabel
-                }
+                domainPager
             }
-            .tint(PepTheme.teal)
-            .simultaneousGesture(screenshotSwipeGesture, including: screenshotMode.hideChrome ? .all : .none)
 
             if sessionManager.isSessionActive && !sessionManager.showActiveWorkout {
                 VStack {
                     Spacer()
                     activeWorkoutBanner
-                        .padding(.bottom, 50)
+                        .padding(.bottom, 24)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -184,7 +114,7 @@ struct ContentView: View {
                 workoutIndicatorBar
             }
 
-            if selectedTab != .discover && selectedTab != .community && !screenshotMode.hideChrome {
+            if selectedDomain != .social && !screenshotMode.hideChrome {
                 ExpandableFABView(isExpanded: $fabExpanded, actions: fabActions)
             }
 
@@ -206,10 +136,9 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            configureTabBarAppearance()
+            configureNavBarAppearance()
         }
-        .onChange(of: selectedTab) { oldValue, newValue in
-            previousTab = oldValue
+        .onChange(of: selectedDomain) { _, _ in
             if fabExpanded {
                 withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                     fabExpanded = false
@@ -217,13 +146,13 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .switchToHomeTab)) { _ in
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                selectedTab = .home
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.85)) {
+                selectedDomain = .brief
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .switchToCommunityTab)) { _ in
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                selectedTab = .community
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.85)) {
+                selectedDomain = .social
             }
         }
         .sheet(isPresented: $showNutrition) {
@@ -242,6 +171,15 @@ struct ContentView: View {
                 BloodworkTrackingView()
             }
         }
+        .sheet(isPresented: $showGlobalSearch) {
+            GlobalSearchView()
+        }
+        .sheet(isPresented: $showNotificationCenter) {
+            SmartNotificationCenterView()
+        }
+        .sheet(isPresented: $showProfile) {
+            ProfileView()
+        }
         .fullScreenCover(isPresented: $sessionManager.showActiveWorkout) {
             if let vm = sessionManager.activeViewModel {
                 ActiveWorkoutView(viewModel: vm)
@@ -256,8 +194,8 @@ struct ContentView: View {
             }
             Button("End & Start New", role: .destructive) {
                 sessionManager.endSession()
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                    selectedTab = .train
+                withAnimation(.spring(response: 0.36, dampingFraction: 0.85)) {
+                    selectedDomain = .train
                 }
             }
         } message: {
@@ -280,17 +218,11 @@ struct ContentView: View {
             }
         }
         .task(id: (try? authService.currentUserId()) ?? "") {
-            // Kick off a profile fetch once per signed-in session so the
-            // Profile tab can render the user's avatar before they ever
-            // visit the Profile tab itself.
             if !didBootstrapProfileTabAvatar {
                 didBootstrapProfileTabAvatar = true
                 Task { await profileTabBootstrap.loadProfile() }
             }
             print("APP_INIT: mainAppView .task started")
-            // The disclaimer flag is per-user now — re-evaluate whenever the
-            // signed-in user id changes so a switched account doesn't see
-            // the prior account's accepted state.
             showMedicalDisclaimer = !MedicalDisclaimerManager.hasAccepted
             didSyncDisclaimer = true
             await MedicalDisclaimerManager.syncFromRemote()
@@ -309,19 +241,145 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder
-    private var profileTabLabel: some View {
-        let isSelected = selectedTab == .profile
-        if let image = isSelected ? profileTabAvatar.selectedIcon : profileTabAvatar.icon {
-            Label {
-                Text("Profile")
-            } icon: {
-                Image(uiImage: image)
-                    .renderingMode(.original)
-            }
-        } else {
-            Label("Profile", systemImage: isSelected ? AppTab.profile.activeIcon : AppTab.profile.icon)
+    // MARK: - Domain Pager
+
+    private var domainPager: some View {
+        TabView(selection: $selectedDomain) {
+            BriefView()
+                .tag(AppDomain.brief)
+            TrainView()
+                .tag(AppDomain.train)
+            NutritionView(showsBackButton: false)
+                .tag(AppDomain.fuel)
+            StackRootView()
+                .tag(AppDomain.stack)
+            LabsRootView()
+                .tag(AppDomain.labs)
+            SocialView()
+                .tag(AppDomain.social)
         }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .ignoresSafeArea(.container, edges: .bottom)
+        .animation(.spring(response: 0.36, dampingFraction: 0.85), value: selectedDomain)
+    }
+
+    // MARK: - Top Strip
+
+    private var topStrip: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Text(dateLine)
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(PepTheme.textTertiary)
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            readinessChip
+            topStripIconButton(systemName: "magnifyingglass") { showGlobalSearch = true }
+            notificationsButton
+            avatarButton
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 6)
+        .padding(.bottom, 10)
+    }
+
+    private var dateLine: String {
+        let f = DateFormatter()
+        f.dateFormat = "EEE · MMM d"
+        return f.string(from: Date()).uppercased()
+    }
+
+    private var readinessChip: some View {
+        let score = HealthKitService.shared.recoveryScore
+        return HStack(spacing: 5) {
+            Circle()
+                .fill(PepTheme.teal)
+                .frame(width: 7, height: 7)
+                .shadow(color: PepTheme.teal.opacity(0.6), radius: 3)
+            Text(score.map { "\($0)" } ?? "—")
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(PepTheme.textPrimary)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 32)
+        .background(
+            Capsule()
+                .fill(PepTheme.cardSurface)
+                .overlay(Capsule().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
+        )
+    }
+
+    private func topStripIconButton(systemName: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(PepTheme.textPrimary)
+                .frame(width: 32, height: 32)
+                .background(
+                    Circle()
+                        .fill(PepTheme.cardSurface)
+                        .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
+                )
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var notificationsButton: some View {
+        Button {
+            showNotificationCenter = true
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: notifStore.unreadCount > 0 ? "bell.badge.fill" : "bell")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(notifStore.unreadCount > 0 ? PepTheme.teal : PepTheme.textPrimary)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(PepTheme.cardSurface)
+                            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
+                    )
+                    .symbolEffect(.bounce, value: notifStore.unreadCount)
+                if notifStore.unreadCount > 0 {
+                    Circle()
+                        .fill(PepTheme.coral)
+                        .frame(width: 7, height: 7)
+                        .overlay(Circle().strokeBorder(PepTheme.cardSurface, lineWidth: 1))
+                        .offset(x: -3, y: 3)
+                }
+            }
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: showNotificationCenter)
+    }
+
+    private var avatarButton: some View {
+        Button {
+            showProfile = true
+        } label: {
+            Group {
+                if let image = profileTabAvatar.icon {
+                    Image(uiImage: image)
+                        .renderingMode(.original)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Image(systemName: "person.crop.circle")
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+            }
+            .frame(width: 32, height: 32)
+            .clipShape(Circle())
+            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: showProfile)
     }
 
     private var activeWorkoutBanner: some View {
@@ -391,7 +449,6 @@ struct ContentView: View {
                 }
             }
             .frame(height: 2.5)
-            .offset(y: -49)
         }
         .allowsHitTesting(false)
         .ignoresSafeArea()
@@ -404,8 +461,8 @@ struct ContentView: View {
                 if sessionManager.isSessionActive {
                     showActiveWorkoutWarning = true
                 } else {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                        selectedTab = .train
+                    withAnimation(.spring(response: 0.36, dampingFraction: 0.85)) {
+                        selectedDomain = .train
                     }
                 }
             }),
@@ -417,9 +474,6 @@ struct ContentView: View {
 
     // MARK: - Global Screenshot Capture Button
 
-    /// Floating camera button shown on every screen while screenshot-mode
-    /// chrome is hidden. Captures the tallest scroll view on the current
-    /// screen as a single tall PNG and presents the share sheet.
     private var globalCaptureScreenshotButton: some View {
         Button {
             performGlobalScreenshotCapture()
@@ -449,8 +503,6 @@ struct ContentView: View {
         guard !isCapturingScreenshot else { return }
         isCapturingScreenshot = true
         Task { @MainActor in
-            // Wait one tick so the capture button is removed from the
-            // hierarchy before we snapshot (it's gated on !isCapturingScreenshot).
             try? await Task.sleep(for: .milliseconds(300))
             let image = await HomeScreenshotCapturer.captureHomeScrollView()
             if let image, let url = HomeScreenshotCapturer.writeTempPNG(image) {
@@ -461,31 +513,7 @@ struct ContentView: View {
         }
     }
 
-    private func configureTabBarAppearance() {
-        let appearance = UITabBarAppearance()
-        appearance.configureWithTransparentBackground()
-        appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
-        appearance.backgroundColor = UIColor(PepTheme.cardSurface).withAlphaComponent(0.55)
-        appearance.shadowColor = UIColor(PepTheme.separatorColor)
-
-        let normalColor = UIColor(PepTheme.textSecondary).withAlphaComponent(0.55)
-        let normalAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: normalColor,
-            .font: UIFont.systemFont(ofSize: 10, weight: .medium)
-        ]
-        let selectedAttributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: UIColor(PepTheme.teal),
-            .font: UIFont.systemFont(ofSize: 10, weight: .semibold)
-        ]
-
-        appearance.stackedLayoutAppearance.normal.iconColor = normalColor
-        appearance.stackedLayoutAppearance.normal.titleTextAttributes = normalAttributes
-        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(PepTheme.teal)
-        appearance.stackedLayoutAppearance.selected.titleTextAttributes = selectedAttributes
-
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
-
+    private func configureNavBarAppearance() {
         // Large nav titles use the display serif for an editorial feel.
         let nav = UINavigationBarAppearance()
         nav.configureWithTransparentBackground()

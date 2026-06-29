@@ -29,6 +29,10 @@ struct TrainView: View {
     @State private var showRoutineEditor: Bool = false
     @State private var routineStore = RoutineStore.shared
     @State private var scrollOffset: CGFloat = 0
+    @State private var energyBalanceViewModel = EnergyBalanceViewModel()
+    @State private var showStepDetail: Bool = false
+    @State private var showLogActivity: Bool = false
+    @State private var showActivity: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -137,7 +141,9 @@ struct TrainView: View {
             .onAppear {
                 viewModel.loadAllData()
                 homeViewModel.loadProtocolsFromSupabase()
+                homeViewModel.onAppear()
                 bodyGoalViewModel.loadData()
+                energyBalanceViewModel.loadData()
                 if isLoading {
                     Task {
                         try? await Task.sleep(for: .milliseconds(500))
@@ -217,12 +223,48 @@ struct TrainView: View {
             todayHero
             weeklyStripSection
             progressTilesSection
+            activitySection
             SportCoachCard(sport: .main, accent: PepTheme.teal)
             libraryRow
             historySection
         }
         .padding(.horizontal)
         .padding(.bottom, 24)
+        .navigationDestination(isPresented: $showActivity) {
+            ActivityView(viewModel: energyBalanceViewModel)
+        }
+        .sheet(isPresented: $showLogActivity) {
+            LogActivitySheet()
+                .presentationDetents([.large])
+        }
+        .onChange(of: showActivity) { _, isShowing in
+            if !isShowing {
+                Task { await energyBalanceViewModel.refresh() }
+            }
+        }
+    }
+
+    // MARK: - Activity (relocated from Home)
+
+    private var activitySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Text("Activity")
+                    .font(.system(size: 17, weight: .semibold, design: .serif))
+                    .foregroundStyle(PepTheme.textPrimary)
+                Spacer()
+            }
+            StepsModuleCardView(
+                healthKit: homeViewModel.healthKit,
+                stepsCalories: energyBalanceViewModel.stepsCalories,
+                showStepDetail: $showStepDetail
+            )
+            DailyActivityCard(
+                viewModel: energyBalanceViewModel,
+                onLogActivity: { showLogActivity = true },
+                onTapActivity: { showActivity = true }
+            )
+        }
     }
 
     // MARK: - Today Hero (unified)

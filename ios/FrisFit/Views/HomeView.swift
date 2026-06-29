@@ -1,7 +1,11 @@
 import SwiftUI
 import HealthKit
 
-struct HomeView: View {
+nonisolated enum RecapPeriod: Hashable {
+    case week, month
+}
+
+struct BriefView: View {
     @State private var viewModel = HomeViewModel()
     @State private var appeared: Bool = false
     @State private var showProtocolWizard: Bool = false
@@ -33,6 +37,8 @@ struct HomeView: View {
     @State private var showStreakInfo: Bool = false
     @State private var showNotificationCenter: Bool = false
     @State private var notifStore = SmartNotificationStore.shared
+    @State private var showRecaps: Bool = false
+    @State private var recapsPeriod: RecapPeriod = .week
     @State private var isCalendarRevealExpanded: Bool = false
     @State private var scrollOffset: CGFloat = 0
     @State private var screenshotMode = ScreenshotMode.shared
@@ -353,79 +359,13 @@ struct HomeView: View {
                             showPepChatFromBrief = true
                         }
                     )
-                    ProtocolSectionView(
-                        viewModel: viewModel,
-                        todaysPlanVM: todaysPlanVM,
-                        showProtocolWizard: $showProtocolWizard
-                    )
                 }
             }
             .padding(.bottom, 40)
 
-            // 02 — Composition
-            CollapsibleEditorialSection(eyebrow: "02 \u{2014} Composition", storageKey: "composition") {
-                VStack(spacing: 16) {
-                    BodyGoalSectionView(viewModel: bodyGoalViewModel)
-                }
-            }
-            .padding(.bottom, 40)
-
-            // 03 — Energy & Movement
-            CollapsibleEditorialSection(eyebrow: "03 \u{2014} Activity", storageKey: "activity") {
-                VStack(spacing: 16) {
-                    StepsModuleCardView(healthKit: viewModel.healthKit, stepsCalories: energyBalanceViewModel.stepsCalories, showStepDetail: $showStepDetail)
-                    DailyActivityCard(viewModel: energyBalanceViewModel, onLogActivity: {
-                        showLogActivity = true
-                    }, onTapActivity: {
-                        showActivity = true
-                    })
-                    HomeTrainingCard(
-                        viewModel: viewModel,
-                        trainViewModel: trainViewModel,
-                        showProgramCreation: $showProgramCreation,
-                        onStartWorkout: { startWorkoutFromHome() }
-                    )
-                    HomeSleepCard(healthKit: viewModel.healthKit)
-                    DailyNutritionCard(viewModel: energyBalanceViewModel, onLogMeal: {
-                        let hour = Calendar.current.component(.hour, from: Date())
-                        if hour < 10 { logMealTime = .breakfast }
-                        else if hour < 14 { logMealTime = .lunch }
-                        else if hour < 17 { logMealTime = .snacks }
-                        else { logMealTime = .dinner }
-                        showLogMeal = true
-                    }, onTapNutrition: {
-                        showNutrition = true
-                    })
-                    HomeWaterCard()
-                }
-            }
-            .padding(.bottom, 40)
-            .navigationDestination(isPresented: $showNutrition) {
-                NutritionView()
-            }
-            .navigationDestination(isPresented: $showActivity) {
-                ActivityView(viewModel: energyBalanceViewModel)
-            }
-            .onChange(of: showNutrition) { _, isShowing in
-                if !isShowing {
-                    Task { await energyBalanceViewModel.refresh() }
-                }
-            }
-            .onChange(of: showActivity) { _, isShowing in
-                if !isShowing {
-                    Task { await energyBalanceViewModel.refresh() }
-                }
-            }
-
-            // 04 — Apple Health
-            if viewModel.healthKit.isAuthorized {
-                CollapsibleEditorialSection(eyebrow: "04 \u{2014} Apple Health", storageKey: "appleHealth") {
-                    VStack(spacing: 14) {
-                        HomeAppleHealthSection(healthKit: viewModel.healthKit)
-                    }
-                }
+            // 02 — Recaps
+            recapsRow
                 .padding(.bottom, 40)
-            }
 
         }
         .monospacedDigit()
@@ -454,6 +394,75 @@ struct HomeView: View {
         .sheet(isPresented: $showStreakInfo) {
             StreakInfoSheet()
                 .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showRecaps) {
+            recapsSheet
+        }
+    }
+
+    // MARK: - Recaps (weekly / monthly summaries)
+
+    private var recapsRow: some View {
+        Button {
+            showRecaps = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "calendar.badge.clock")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(PepTheme.teal)
+                    .frame(width: 34, height: 34)
+                    .background(PepTheme.teal.opacity(0.12))
+                    .clipShape(Circle())
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Recaps")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(PepTheme.textPrimary)
+                    Text("Weekly & monthly summaries")
+                        .font(.system(size: 11))
+                        .foregroundStyle(PepTheme.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(PepTheme.textSecondary)
+            }
+            .padding(12)
+            .background(PepTheme.cardSurface)
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var recapsSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    Picker("Period", selection: $recapsPeriod) {
+                        Text("Week").tag(RecapPeriod.week)
+                        Text("Month").tag(RecapPeriod.month)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+
+                    switch recapsPeriod {
+                    case .week:
+                        WeeklySummaryView(summary: viewModel.weeklySummary, bodyGoalViewModel: bodyGoalViewModel, selectedWeekStart: viewModel.selectedWeekStart, weekSchedule: viewModel.weekSchedule(), programName: viewModel.activeProgram?.name)
+                            .padding(.horizontal)
+                    case .month:
+                        MonthlySummaryView(summary: viewModel.monthlySummary, bodyGoalViewModel: bodyGoalViewModel, selectedMonthDate: viewModel.selectedMonthDate, programSummary: viewModel.monthProgramSummary())
+                            .padding(.horizontal)
+                    }
+                }
+                .padding(.vertical, 16)
+            }
+            .scrollIndicators(.hidden)
+            .appBackground()
+            .navigationTitle("Recaps")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 
@@ -564,82 +573,42 @@ struct HomeView: View {
     /// Unified floating pill in the top-right corner: search · bell · streak.
     /// Fades and shrinks slightly while the user scrolls so it never blocks text.
     private var floatingActionPill: some View {
-        HStack(spacing: 0) {
-            Button {
-                showGlobalSearch = true
-            } label: {
-                Image(systemName: "magnifyingglass")
+        Button {
+            showStreakInfo = true
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: streakIconName)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(PepTheme.textPrimary)
-                    .frame(width: 36, height: 36)
-                    .contentShape(Rectangle())
+                    .foregroundStyle(streakIconStyle)
+                    .symbolEffect(.pulse, options: .repeating, isActive: viewModel.streakManager.streakState == .active)
+                Text("\(viewModel.quickStats.streakDays)")
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .foregroundStyle(viewModel.streakManager.streakState == .broken ? PepTheme.textSecondary : PepTheme.textPrimary)
             }
-            .buttonStyle(.plain)
-            .sensoryFeedback(.selection, trigger: showGlobalSearch)
-
-            pillDivider
-
-            Button {
-                showNotificationCenter = true
-            } label: {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: notifStore.unreadCount > 0 ? "bell.badge.fill" : "bell")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(notifStore.unreadCount > 0 ? PepTheme.teal : PepTheme.textPrimary)
-                        .frame(width: 36, height: 36)
-                        .symbolEffect(.bounce, value: notifStore.unreadCount)
-                    if notifStore.unreadCount > 0 {
-                        Circle()
-                            .fill(PepTheme.coral)
-                            .frame(width: 7, height: 7)
-                            .overlay(Circle().strokeBorder(PepTheme.cardSurface, lineWidth: 1))
-                            .offset(x: -8, y: 8)
-                    }
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .sensoryFeedback(.selection, trigger: showNotificationCenter)
-
-            pillDivider
-
-            Button {
-                showStreakInfo = true
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: streakIconName)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(streakIconStyle)
-                        .symbolEffect(.pulse, options: .repeating, isActive: viewModel.streakManager.streakState == .active)
-                    Text("\(viewModel.quickStats.streakDays)")
-                        .font(.system(.subheadline, design: .rounded, weight: .bold))
-                        .foregroundStyle(viewModel.streakManager.streakState == .broken ? PepTheme.textSecondary : PepTheme.textPrimary)
-                }
-                .padding(.horizontal, 12)
-                .frame(height: 36)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .sensoryFeedback(.selection, trigger: showStreakInfo)
-        }
-        .background(
-            Capsule()
-                .fill(PepTheme.cardSurface)
-                .overlay(
-                    Capsule().strokeBorder(
-                        viewModel.streakManager.streakState == .paused
-                            ? PepTheme.amber.opacity(0.6)
-                            : PepTheme.glassBorderTop,
-                        lineWidth: 0.6
+            .padding(.horizontal, 12)
+            .frame(height: 36)
+            .contentShape(Rectangle())
+            .background(
+                Capsule()
+                    .fill(PepTheme.cardSurface)
+                    .overlay(
+                        Capsule().strokeBorder(
+                            viewModel.streakManager.streakState == .paused
+                                ? PepTheme.amber.opacity(0.6)
+                                : PepTheme.glassBorderTop,
+                            lineWidth: 0.6
+                        )
                     )
-                )
-                .shadow(color: .black.opacity(0.18), radius: 12, x: 0, y: 6)
-        )
-        .clipShape(.capsule)
+                    .shadow(color: .black.opacity(0.18), radius: 12, x: 0, y: 6)
+            )
+            .clipShape(.capsule)
+        }
+        .buttonStyle(.plain)
         .scaleEffect(pillScale, anchor: .topTrailing)
         .opacity(pillOpacity)
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: pillScale)
         .animation(.easeOut(duration: 0.18), value: pillOpacity)
+        .sensoryFeedback(.selection, trigger: showStreakInfo)
     }
 
     private var pillDivider: some View {

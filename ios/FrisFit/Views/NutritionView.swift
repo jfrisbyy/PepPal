@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NutritionView: View {
+    var showsBackButton: Bool = true
     @State private var viewModel = NutritionViewModel.shared
     @State private var todaysPlanVM = TodaysPlanViewModel.shared
     @State private var showMealLogMethod: Bool = false
@@ -36,7 +37,9 @@ struct NutritionView: View {
         .appBackground()
         .navigationTitle("Nutrition")
         .floatingTopBar {
-            FloatingNavButton(systemImage: "chevron.left") { dismiss() }
+            if showsBackButton {
+                FloatingNavButton(systemImage: "chevron.left") { dismiss() }
+            }
         } trailing: {
             Menu {
                 Button {
