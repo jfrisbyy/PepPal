@@ -51,18 +51,6 @@ struct BriefView: View {
                         .padding(.top, 56)
                         .transition(.opacity)
                 } else {
-                    EditorialHeader(
-                        eyebrow: editorialEyebrow,
-                        title: editorialGreeting,
-                        isRevealExpanded: $isCalendarRevealExpanded
-                    ) {
-                        EditorialCalendarReveal(
-                            viewModel: viewModel,
-                            isExpanded: $isCalendarRevealExpanded
-                        )
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom, 6)
                     Group {
                         switch viewModel.selectedTimePeriod {
                         case .daily:

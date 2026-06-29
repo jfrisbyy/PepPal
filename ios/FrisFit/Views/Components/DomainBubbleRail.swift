@@ -66,21 +66,22 @@ struct DomainBubbleRail: View {
         } label: {
             ZStack {
                 Circle()
-                    .fill(isActive ? domain.accent : PepTheme.cardSurface.opacity(0.6))
-                    .frame(width: 40, height: 40)
+                    .fill(isActive ? AnyShapeStyle(domain.accent) : AnyShapeStyle(.ultraThinMaterial))
+                    .frame(width: 38, height: 38)
                     .overlay(
                         Circle().strokeBorder(
-                            isActive ? Color.clear : PepTheme.glassBorderTop.opacity(0.6),
+                            isActive ? Color.clear : PepTheme.glassBorderTop.opacity(0.3),
                             lineWidth: 0.5
                         )
                     )
+                    .glassBubble(isActive: isActive)
                     .shadow(
-                        color: isActive ? domain.accent.opacity(0.35) : .clear,
-                        radius: isActive ? 8 : 0,
-                        y: isActive ? 2 : 0
+                        color: isActive ? domain.accent.opacity(0.22) : .clear,
+                        radius: isActive ? 6 : 0,
+                        y: isActive ? 1 : 0
                     )
                 Image(systemName: domain.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(isActive ? PepTheme.invertedText : PepTheme.textTertiary)
             }
             .frame(maxWidth: .infinity)
@@ -89,5 +90,24 @@ struct DomainBubbleRail: View {
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: isActive)
+    }
+}
+
+/// iOS 26 liquid-glass for inactive bubbles; the active one keeps its solid
+/// accent fill. Falls back to the plain material background on older iOS.
+private struct GlassBubble: ViewModifier {
+    let isActive: Bool
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *), !isActive {
+            content.glassEffect(.regular, in: .circle)
+        } else {
+            content
+        }
+    }
+}
+
+private extension View {
+    func glassBubble(isActive: Bool) -> some View {
+        modifier(GlassBubble(isActive: isActive))
     }
 }

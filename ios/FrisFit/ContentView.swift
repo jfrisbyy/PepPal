@@ -1,6 +1,25 @@
 import SwiftUI
 import HealthKit
 
+/// Applies iOS 26 liquid-glass to chrome elements, falling back to the
+/// plain translucent material (already set as the background) on older iOS.
+private struct GlassChrome<S: Shape>: ViewModifier {
+    let shape: S
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(.regular, in: shape)
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    func glassChrome<S: Shape>(in shape: S) -> some View {
+        modifier(GlassChrome(shape: shape))
+    }
+}
+
 @Observable
 final class WorkoutState {
     static let shared = WorkoutState()
@@ -34,6 +53,7 @@ struct ContentView: View {
     @State private var isCapturingScreenshot: Bool = false
     @State private var showScreenshotShare: Bool = false
     @State private var showGlobalSearch: Bool = false
+    @State private var showDiscover: Bool = false
     @State private var showNotificationCenter: Bool = false
     @State private var showProfile: Bool = false
     @State private var notifStore = SmartNotificationStore.shared
@@ -174,6 +194,9 @@ struct ContentView: View {
         .sheet(isPresented: $showGlobalSearch) {
             GlobalSearchView()
         }
+        .sheet(isPresented: $showDiscover) {
+            DiscoverView()
+        }
         .sheet(isPresented: $showNotificationCenter) {
             SmartNotificationCenterView()
         }
@@ -279,6 +302,7 @@ struct ContentView: View {
 
             readinessChip
             topStripIconButton(systemName: "magnifyingglass") { showGlobalSearch = true }
+            topStripIconButton(systemName: "sparkle.magnifyingglass") { showDiscover = true }
             notificationsButton
             avatarButton
         }
@@ -309,9 +333,10 @@ struct ContentView: View {
         .frame(height: 30)
         .background(
             Capsule()
-                .fill(PepTheme.cardSurface.opacity(0.6))
-                .overlay(Capsule().strokeBorder(PepTheme.glassBorderTop.opacity(0.6), lineWidth: 0.5))
+                .fill(.ultraThinMaterial)
+                .overlay(Capsule().strokeBorder(PepTheme.glassBorderTop.opacity(0.35), lineWidth: 0.5))
         )
+        .glassChrome(in: .capsule)
     }
 
     private func topStripIconButton(systemName: String, action: @escaping () -> Void) -> some View {
@@ -322,9 +347,10 @@ struct ContentView: View {
                 .frame(width: 30, height: 30)
                 .background(
                     Circle()
-                        .fill(PepTheme.cardSurface.opacity(0.6))
-                        .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.6), lineWidth: 0.5))
+                        .fill(.ultraThinMaterial)
+                        .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.35), lineWidth: 0.5))
                 )
+                .glassChrome(in: .circle)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -341,9 +367,10 @@ struct ContentView: View {
                     .frame(width: 30, height: 30)
                     .background(
                         Circle()
-                            .fill(PepTheme.cardSurface.opacity(0.6))
-                            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.6), lineWidth: 0.5))
+                            .fill(.ultraThinMaterial)
+                            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.35), lineWidth: 0.5))
                     )
+                    .glassChrome(in: .circle)
                     .symbolEffect(.bounce, value: notifStore.unreadCount)
                 if notifStore.unreadCount > 0 {
                     Circle()
@@ -378,7 +405,7 @@ struct ContentView: View {
             }
             .frame(width: 30, height: 30)
             .clipShape(Circle())
-            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.6), lineWidth: 0.5))
+            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.35), lineWidth: 0.5))
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
