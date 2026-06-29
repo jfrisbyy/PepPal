@@ -51,11 +51,6 @@ struct BriefView: View {
                         .padding(.top, 56)
                         .transition(.opacity)
                 } else {
-                    EptiLogoMark(size: 38)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 18)
-                        .padding(.top, 12)
-                        .padding(.bottom, 8)
                     EditorialHeader(
                         eyebrow: editorialEyebrow,
                         title: editorialGreeting,

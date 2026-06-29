@@ -11,12 +11,6 @@ struct LabsRootView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
-                    EptiLogoMark(size: 38)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 18)
-                        .padding(.top, 12)
-                        .padding(.bottom, 8)
-
                     CollapsibleEditorialSection(eyebrow: "01 \u{2014} Composition", storageKey: "labsComposition") {
                         VStack(spacing: 16) {
                             BodyGoalSectionView(viewModel: bodyGoalViewModel)

@@ -54,7 +54,7 @@ struct DomainBubbleRail: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 10)
     }
 
     private func bubble(_ domain: AppDomain) -> some View {
@@ -64,32 +64,28 @@ struct DomainBubbleRail: View {
                 selection = domain
             }
         } label: {
-            VStack(spacing: 5) {
-                ZStack {
-                    Circle()
-                        .fill(isActive ? domain.accent : PepTheme.cardSurface)
-                        .frame(width: 46, height: 46)
-                        .overlay(
-                            Circle().strokeBorder(
-                                isActive ? Color.clear : PepTheme.glassBorderTop,
-                                lineWidth: 0.6
-                            )
+            ZStack {
+                Circle()
+                    .fill(isActive ? domain.accent : PepTheme.cardSurface.opacity(0.6))
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Circle().strokeBorder(
+                            isActive ? Color.clear : PepTheme.glassBorderTop.opacity(0.6),
+                            lineWidth: 0.5
                         )
-                        .shadow(
-                            color: isActive ? domain.accent.opacity(0.45) : .clear,
-                            radius: isActive ? 10 : 0,
-                            y: isActive ? 3 : 0
-                        )
-                    Image(systemName: domain.icon)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(isActive ? PepTheme.invertedText : PepTheme.textTertiary)
-                }
-                Text(domain.title)
-                    .font(.system(size: 10, weight: isActive ? .semibold : .medium))
-                    .foregroundStyle(isActive ? domain.accent : PepTheme.textTertiary)
+                    )
+                    .shadow(
+                        color: isActive ? domain.accent.opacity(0.35) : .clear,
+                        radius: isActive ? 8 : 0,
+                        y: isActive ? 2 : 0
+                    )
+                Image(systemName: domain.icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(isActive ? PepTheme.invertedText : PepTheme.textTertiary)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
+            .accessibilityLabel(domain.title)
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: isActive)

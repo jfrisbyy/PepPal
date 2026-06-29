@@ -267,10 +267,13 @@ struct ContentView: View {
 
     private var topStrip: some View {
         HStack(alignment: .center, spacing: 10) {
-            Text(dateLine)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundStyle(PepTheme.textTertiary)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 2) {
+                EptiLogoMark(size: 24)
+                Text(dateLine)
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(PepTheme.textTertiary)
+                    .lineLimit(1)
+            }
 
             Spacer(minLength: 8)
 
@@ -281,7 +284,7 @@ struct ContentView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 6)
-        .padding(.bottom, 10)
+        .padding(.bottom, 8)
     }
 
     private var dateLine: String {
@@ -295,19 +298,19 @@ struct ContentView: View {
         return HStack(spacing: 5) {
             Circle()
                 .fill(PepTheme.teal)
-                .frame(width: 7, height: 7)
-                .shadow(color: PepTheme.teal.opacity(0.6), radius: 3)
+                .frame(width: 6, height: 6)
+                .shadow(color: PepTheme.teal.opacity(0.5), radius: 3)
             Text(score.map { "\($0)" } ?? "—")
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundStyle(PepTheme.textPrimary)
                 .monospacedDigit()
         }
         .padding(.horizontal, 10)
-        .frame(height: 32)
+        .frame(height: 30)
         .background(
             Capsule()
-                .fill(PepTheme.cardSurface)
-                .overlay(Capsule().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
+                .fill(PepTheme.cardSurface.opacity(0.6))
+                .overlay(Capsule().strokeBorder(PepTheme.glassBorderTop.opacity(0.6), lineWidth: 0.5))
         )
     }
 
@@ -316,11 +319,11 @@ struct ContentView: View {
             Image(systemName: systemName)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(PepTheme.textPrimary)
-                .frame(width: 32, height: 32)
+                .frame(width: 30, height: 30)
                 .background(
                     Circle()
-                        .fill(PepTheme.cardSurface)
-                        .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
+                        .fill(PepTheme.cardSurface.opacity(0.6))
+                        .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.6), lineWidth: 0.5))
                 )
                 .contentShape(Circle())
         }
@@ -335,11 +338,11 @@ struct ContentView: View {
                 Image(systemName: notifStore.unreadCount > 0 ? "bell.badge.fill" : "bell")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(notifStore.unreadCount > 0 ? PepTheme.teal : PepTheme.textPrimary)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 30, height: 30)
                     .background(
                         Circle()
-                            .fill(PepTheme.cardSurface)
-                            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
+                            .fill(PepTheme.cardSurface.opacity(0.6))
+                            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.6), lineWidth: 0.5))
                     )
                     .symbolEffect(.bounce, value: notifStore.unreadCount)
                 if notifStore.unreadCount > 0 {
@@ -373,9 +376,9 @@ struct ContentView: View {
                         .foregroundStyle(PepTheme.textSecondary)
                 }
             }
-            .frame(width: 32, height: 32)
+            .frame(width: 30, height: 30)
             .clipShape(Circle())
-            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop, lineWidth: 0.6))
+            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.6), lineWidth: 0.5))
             .contentShape(Circle())
         }
         .buttonStyle(.plain)

@@ -14,12 +14,6 @@ struct StackRootView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
-                    EptiLogoMark(size: 38)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 18)
-                        .padding(.top, 12)
-                        .padding(.bottom, 8)
-
                     CollapsibleEditorialSection(eyebrow: "01 \u{2014} Protocols", storageKey: "stackProtocols") {
                         ProtocolSectionView(
                             viewModel: viewModel,

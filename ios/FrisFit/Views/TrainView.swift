@@ -43,12 +43,6 @@ struct TrainView: View {
                         .transition(.opacity)
                 } else {
                     VStack(spacing: 0) {
-                        EptiLogoMark(size: 38)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 18)
-                            .padding(.top, 12)
-                            .padding(.bottom, 8)
-
                         if viewModel.availableModes.count > 1 {
                             modeTabBar
                                 .padding(.horizontal)
