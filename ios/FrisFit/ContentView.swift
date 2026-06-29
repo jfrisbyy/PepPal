@@ -333,10 +333,9 @@ struct ContentView: View {
         .frame(height: 30)
         .background(
             Capsule()
-                .fill(.ultraThinMaterial)
-                .overlay(Capsule().strokeBorder(PepTheme.glassBorderTop.opacity(0.35), lineWidth: 0.5))
+                .fill(PepTheme.cardSurface.opacity(0.35))
+                .overlay(Capsule().strokeBorder(PepTheme.glassBorderTop.opacity(0.18), lineWidth: 0.5))
         )
-        .glassChrome(in: .capsule)
     }
 
     private func topStripIconButton(systemName: String, action: @escaping () -> Void) -> some View {
@@ -347,10 +346,9 @@ struct ContentView: View {
                 .frame(width: 30, height: 30)
                 .background(
                     Circle()
-                        .fill(.ultraThinMaterial)
-                        .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.35), lineWidth: 0.5))
+                        .fill(PepTheme.cardSurface.opacity(0.35))
+                        .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.18), lineWidth: 0.5))
                 )
-                .glassChrome(in: .circle)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -367,10 +365,9 @@ struct ContentView: View {
                     .frame(width: 30, height: 30)
                     .background(
                         Circle()
-                            .fill(.ultraThinMaterial)
-                            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.35), lineWidth: 0.5))
+                            .fill(PepTheme.cardSurface.opacity(0.35))
+                            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.18), lineWidth: 0.5))
                     )
-                    .glassChrome(in: .circle)
                     .symbolEffect(.bounce, value: notifStore.unreadCount)
                 if notifStore.unreadCount > 0 {
                     Circle()
@@ -405,7 +402,7 @@ struct ContentView: View {
             }
             .frame(width: 30, height: 30)
             .clipShape(Circle())
-            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.35), lineWidth: 0.5))
+            .overlay(Circle().strokeBorder(PepTheme.glassBorderTop.opacity(0.18), lineWidth: 0.5))
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
