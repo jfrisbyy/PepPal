@@ -22,7 +22,7 @@ struct SocialView: View {
     @Namespace private var communityPickerNS
 
     var body: some View {
-        NavigationStack {
+        Group {
             ZStack(alignment: .bottomTrailing) {
                 Group {
                     if viewModel.communityMode == .feed {

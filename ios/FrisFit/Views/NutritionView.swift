@@ -36,6 +36,7 @@ struct NutritionView: View {
         .scrollIndicators(.hidden)
         .appBackground()
         .navigationTitle("Nutrition")
+        .toolbar(.hidden, for: .navigationBar)
         .floatingTopBar {
             if showsBackButton {
                 FloatingNavButton(systemImage: "chevron.left") { dismiss() }

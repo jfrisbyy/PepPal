@@ -44,10 +44,13 @@ struct BriefView: View {
     @State private var screenshotMode = ScreenshotMode.shared
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                if viewModel.isLoading {
-                    SkeletonHomeView()
+        briefScroll
+    }
+
+    private var briefScroll: some View {
+        ScrollView {
+            if viewModel.isLoading {
+                SkeletonHomeView()
                         .padding(.top, 56)
                         .transition(.opacity)
                 } else {
@@ -109,31 +112,7 @@ struct BriefView: View {
 
             .onAppear { performHomeAppear() }
             .onReceive(NotificationCenter.default.publisher(for: .demoPersonaChanged)) { note in
-                if let scenario = note.object as? DemoScenario {
-                    // Wipe the previous persona's brief immediately so it can't
-                    // bleed onto the new persona's home screen, then inject the
-                    // new data, then force-refresh against it.
-                    todaysPlanVM.resetForPersonaSwitch()
-                    DemoDataInjector.injectInto(
-                        home: viewModel,
-                        train: trainViewModel,
-                        body: bodyGoalViewModel,
-                        nutrition: nutritionViewModel,
-                        scenario: scenario
-                    )
-                    Task { @MainActor in
-                        // Small delay so the injected view-model state is
-                        // observable before the context bundle is assembled.
-                        try? await Task.sleep(for: .milliseconds(150))
-                        triggerPlanFetch(forceRefresh: true)
-                    }
-                } else {
-                    // Demo deactivated — trigger real data reloads.
-                    Task { await bodyGoalViewModel.refresh() }
-                    trainViewModel.loadDataFromSupabase(force: true)
-                    Task { await nutritionViewModel.loadFromSupabaseAsync(date: viewModel.selectedDate, force: true) }
-                    viewModel.loadProtocolsFromSupabase()
-                }
+                handleDemoPersonaChanged(note)
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active {
@@ -141,66 +120,10 @@ struct BriefView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .supabaseDataChanged)) { note in
-                if DemoModeManager.shared.isActive { return }
-                let source = (note.userInfo?["source"] as? String) ?? ""
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(400))
-                    await energyBalanceViewModel.refresh()
-                    trainViewModel.loadAllData()
-                    // Protocol deletion needs an immediate brief regen so the
-                    // removed compound disappears from copy without waiting on
-                    // the 30s log debounce.
-                    if source == "protocol_archive" || source == "protocol_reactivate" {
-                        let localIdString = note.userInfo?["protocol_local_id"] as? String
-                        let sid = note.userInfo?["protocol_supabase_id"] as? String
-                        let proto: PeptideProtocol? = {
-                            if let s = localIdString, let id = UUID(uuidString: s) {
-                                return viewModel.allProtocols.first { $0.id == id }
-                            }
-                            if let s = sid, !s.isEmpty {
-                                return viewModel.allProtocols.first { $0.supabaseId == s }
-                            }
-                            return nil
-                        }()
-                        if let proto = proto {
-                            if source == "protocol_archive" {
-                                viewModel.archiveProtocolFromHome(proto)
-                            } else {
-                                viewModel.reactivateProtocolFromHome(proto)
-                            }
-                        }
-                        viewModel.loadProtocolsFromSupabase()
-                        triggerPlanFetch(forceRefresh: true)
-                    } else if source == "protocol_delete" {
-                        // Drop the deleted protocol from in-memory caches
-                        // immediately so it disappears from Home / brief
-                        // without waiting for a refetch.
-                        if let localIdString = note.userInfo?["protocol_local_id"] as? String,
-                           let localId = UUID(uuidString: localIdString),
-                           let proto = viewModel.allProtocols.first(where: { $0.id == localId }) {
-                            viewModel.deleteProtocolFromHome(proto)
-                        } else if let sid = note.userInfo?["protocol_supabase_id"] as? String,
-                                  let proto = viewModel.allProtocols.first(where: { $0.supabaseId == sid }) {
-                            viewModel.deleteProtocolFromHome(proto)
-                        }
-                        viewModel.loadProtocolsFromSupabase()
-                        triggerPlanFetch(forceRefresh: true)
-                    } else {
-                        handleDataChange(source: source)
-                    }
-                    viewModel.refreshAIDeckIfNeeded()
-                }
+                handleSupabaseDataChange(note)
             }
             .onReceive(NotificationCenter.default.publisher(for: .protocolShouldDeleteByCompound)) { note in
-                guard let compound = note.userInfo?["compoundName"] as? String,
-                      !compound.isEmpty else { return }
-                let matches = viewModel.allProtocols.filter { proto in
-                    proto.compounds.contains { $0.compoundName.caseInsensitiveCompare(compound) == .orderedSame }
-                        || proto.name.localizedCaseInsensitiveContains(compound)
-                }
-                for proto in matches {
-                    viewModel.deleteProtocolFromHome(proto)
-                }
+                handleProtocolDeleteByCompound(note)
             }
             .onReceive(NotificationCenter.default.publisher(for: .linkedTaskQuickAction)) { note in
                 guard let label = note.userInfo?["action"] as? String else { return }
@@ -275,6 +198,99 @@ struct BriefView: View {
             .onAppear {
                 todaysPlanVM.loadHistoricalBriefing(for: viewModel.selectedDate)
             }
+    }
+
+    private func handleDemoPersonaChanged(_ note: Notification) {
+        if let scenario = note.object as? DemoScenario {
+            // Wipe the previous persona's brief immediately so it can't
+            // bleed onto the new persona's home screen, then inject the
+            // new data, then force-refresh against it.
+            todaysPlanVM.resetForPersonaSwitch()
+            DemoDataInjector.injectInto(
+                home: viewModel,
+                train: trainViewModel,
+                body: bodyGoalViewModel,
+                nutrition: nutritionViewModel,
+                scenario: scenario
+            )
+            Task { @MainActor in
+                // Small delay so the injected view-model state is
+                // observable before the context bundle is assembled.
+                try? await Task.sleep(for: .milliseconds(150))
+                triggerPlanFetch(forceRefresh: true)
+            }
+        } else {
+            // Demo deactivated — trigger real data reloads.
+            Task { await bodyGoalViewModel.refresh() }
+            trainViewModel.loadDataFromSupabase(force: true)
+            Task { await nutritionViewModel.loadFromSupabaseAsync(date: viewModel.selectedDate, force: true) }
+            viewModel.loadProtocolsFromSupabase()
+        }
+    }
+
+    private func handleProtocolDeleteByCompound(_ note: Notification) {
+        guard let compound = note.userInfo?["compoundName"] as? String,
+              !compound.isEmpty else { return }
+        let matches = viewModel.allProtocols.filter { proto in
+            proto.compounds.contains { $0.compoundName.caseInsensitiveCompare(compound) == .orderedSame }
+                || proto.name.localizedCaseInsensitiveContains(compound)
+        }
+        for proto in matches {
+            viewModel.deleteProtocolFromHome(proto)
+        }
+    }
+
+    // MARK: - Supabase change handling
+
+    private func handleSupabaseDataChange(_ note: Notification) {
+        if DemoModeManager.shared.isActive { return }
+        let source = (note.userInfo?["source"] as? String) ?? ""
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            await energyBalanceViewModel.refresh()
+            trainViewModel.loadAllData()
+            // Protocol deletion needs an immediate brief regen so the
+            // removed compound disappears from copy without waiting on
+            // the 30s log debounce.
+            if source == "protocol_archive" || source == "protocol_reactivate" {
+                let localIdString = note.userInfo?["protocol_local_id"] as? String
+                let sid = note.userInfo?["protocol_supabase_id"] as? String
+                let proto: PeptideProtocol? = {
+                    if let s = localIdString, let id = UUID(uuidString: s) {
+                        return viewModel.allProtocols.first { $0.id == id }
+                    }
+                    if let s = sid, !s.isEmpty {
+                        return viewModel.allProtocols.first { $0.supabaseId == s }
+                    }
+                    return nil
+                }()
+                if let proto = proto {
+                    if source == "protocol_archive" {
+                        viewModel.archiveProtocolFromHome(proto)
+                    } else {
+                        viewModel.reactivateProtocolFromHome(proto)
+                    }
+                }
+                viewModel.loadProtocolsFromSupabase()
+                triggerPlanFetch(forceRefresh: true)
+            } else if source == "protocol_delete" {
+                // Drop the deleted protocol from in-memory caches
+                // immediately so it disappears from Home / brief
+                // without waiting for a refetch.
+                if let localIdString = note.userInfo?["protocol_local_id"] as? String,
+                   let localId = UUID(uuidString: localIdString),
+                   let proto = viewModel.allProtocols.first(where: { $0.id == localId }) {
+                    viewModel.deleteProtocolFromHome(proto)
+                } else if let sid = note.userInfo?["protocol_supabase_id"] as? String,
+                          let proto = viewModel.allProtocols.first(where: { $0.supabaseId == sid }) {
+                    viewModel.deleteProtocolFromHome(proto)
+                }
+                viewModel.loadProtocolsFromSupabase()
+                triggerPlanFetch(forceRefresh: true)
+            } else {
+                handleDataChange(source: source)
+            }
+            viewModel.refreshAIDeckIfNeeded()
         }
     }
 

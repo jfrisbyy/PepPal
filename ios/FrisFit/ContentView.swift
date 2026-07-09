@@ -271,23 +271,25 @@ struct ContentView: View {
     // MARK: - Domain Pager
 
     private var domainPager: some View {
-        TabView(selection: $selectedDomain) {
-            BriefView()
-                .tag(AppDomain.brief)
-            TrainView()
-                .tag(AppDomain.train)
-            NutritionView(showsBackButton: false)
-                .tag(AppDomain.fuel)
-            StackRootView()
-                .tag(AppDomain.stack)
-            LabsRootView()
-                .tag(AppDomain.labs)
-            SocialView()
-                .tag(AppDomain.social)
+        NavigationStack {
+            TabView(selection: $selectedDomain) {
+                BriefView()
+                    .tag(AppDomain.brief)
+                TrainView()
+                    .tag(AppDomain.train)
+                NutritionView(showsBackButton: false)
+                    .tag(AppDomain.fuel)
+                StackRootView()
+                    .tag(AppDomain.stack)
+                LabsRootView()
+                    .tag(AppDomain.labs)
+                SocialView()
+                    .tag(AppDomain.social)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .ignoresSafeArea(.container, edges: .bottom)
+            .animation(.spring(response: 0.36, dampingFraction: 0.85), value: selectedDomain)
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .ignoresSafeArea(.container, edges: .bottom)
-        .animation(.spring(response: 0.36, dampingFraction: 0.85), value: selectedDomain)
     }
 
     // MARK: - Top Strip
@@ -548,8 +550,8 @@ struct ContentView: View {
         // Large nav titles use the display serif for an editorial feel.
         let nav = UINavigationBarAppearance()
         nav.configureWithTransparentBackground()
-        nav.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
-        nav.backgroundColor = UIColor(PepTheme.background).withAlphaComponent(0.6)
+        nav.backgroundEffect = nil
+        nav.backgroundColor = .clear
         nav.shadowColor = .clear
         let titleColor = UIColor(PepTheme.textPrimary)
         nav.titleTextAttributes = [

@@ -35,7 +35,7 @@ struct TrainView: View {
     @State private var showActivity: Bool = false
 
     var body: some View {
-        NavigationStack {
+        Group {
             ScrollView {
                 if isLoading {
                     SkeletonTrainView()

@@ -8,7 +8,7 @@ struct LabsRootView: View {
     @State private var didLoad: Bool = false
 
     var body: some View {
-        NavigationStack {
+        Group {
             ScrollView {
                 VStack(spacing: 0) {
                     CollapsibleEditorialSection(eyebrow: "01 \u{2014} Composition", storageKey: "labsComposition") {
