@@ -30,6 +30,7 @@ final class WorkoutState {
 
 struct ContentView: View {
     @State private var selectedDomain: AppDomain = .brief
+    @State private var scrolledDomain: AppDomain? = .brief
     @State private var showNutrition: Bool = false
     @State private var showCreatePost: Bool = false
     @State private var showLogDose: Bool = false
@@ -270,30 +271,51 @@ struct ContentView: View {
 
     // MARK: - Domain Pager
 
+    /// Horizontal paging container. A plain SwiftUI `ScrollView` draws no
+    /// background of its own (unlike the old `.page` `TabView`, which is a
+    /// `UIPageViewController` that paints an opaque page surface), so the single
+    /// root `AppBackground` shows through it continuously — no seam under the rail.
     private var domainPager: some View {
         NavigationStack {
-            TabView(selection: $selectedDomain) {
-                BriefView()
-                    .tag(AppDomain.brief)
-                TrainView()
-                    .tag(AppDomain.train)
-                NutritionView(showsBackButton: false)
-                    .tag(AppDomain.fuel)
-                StackRootView()
-                    .tag(AppDomain.stack)
-                LabsRootView()
-                    .tag(AppDomain.labs)
-                SocialView()
-                    .tag(AppDomain.social)
+            GeometryReader { geo in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        ForEach(AppDomain.allCases) { domain in
+                            domainPage(for: domain)
+                                .frame(width: geo.size.width, height: geo.size.height)
+                                .id(domain)
+                        }
+                    }
+                    .scrollTargetLayout()
+                }
+                .scrollTargetBehavior(.paging)
+                .scrollPosition(id: $scrolledDomain, anchor: .center)
+                .scrollIndicators(.hidden)
+                .ignoresSafeArea(.container, edges: .bottom)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .scrollContentBackground(.hidden)
-            .background(Color.clear)
-            .ignoresSafeArea(.container, edges: .bottom)
-            .animation(.spring(response: 0.36, dampingFraction: 0.85), value: selectedDomain)
         }
-        .scrollContentBackground(.hidden)
-        .background(Color.clear)
+        .onChange(of: selectedDomain) { _, newValue in
+            guard scrolledDomain != newValue else { return }
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                scrolledDomain = newValue
+            }
+        }
+        .onChange(of: scrolledDomain) { _, newValue in
+            guard let newValue, selectedDomain != newValue else { return }
+            selectedDomain = newValue
+        }
+    }
+
+    @ViewBuilder
+    private func domainPage(for domain: AppDomain) -> some View {
+        switch domain {
+        case .brief: BriefView()
+        case .train: TrainView()
+        case .fuel: NutritionView(showsBackButton: false)
+        case .stack: StackRootView()
+        case .labs: LabsRootView()
+        case .social: SocialView()
+        }
     }
 
     // MARK: - Top Strip

@@ -34,7 +34,13 @@ struct NutritionView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .appBackground()
+        .background {
+            // When embedded as a domain page the shared root canvas provides the
+            // background; only paint our own aurora when shown standalone (sheet).
+            if showsBackButton {
+                AppBackground()
+            }
+        }
         .navigationTitle("Nutrition")
         .toolbar(.hidden, for: .navigationBar)
         .floatingTopBar {
