@@ -287,9 +287,13 @@ struct ContentView: View {
                     .tag(AppDomain.social)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
+            .scrollContentBackground(.hidden)
+            .background(Color.clear)
             .ignoresSafeArea(.container, edges: .bottom)
             .animation(.spring(response: 0.36, dampingFraction: 0.85), value: selectedDomain)
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.clear)
     }
 
     // MARK: - Top Strip
