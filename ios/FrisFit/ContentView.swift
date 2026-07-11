@@ -112,6 +112,7 @@ struct ContentView: View {
     }
 
     private var mainAppView: some View {
+        NavigationStack {
         ZStack(alignment: .bottomTrailing) {
             AppBackground(accent: selectedDomain.accent)
                 .ignoresSafeArea()
@@ -267,6 +268,13 @@ struct ContentView: View {
                 print("APP_INIT: HealthKit NOT available on this device")
             }
         }
+        // Hide the root nav bar so the hoisted NavigationStack contributes no
+        // chrome — its only job is to give the pager pages a single navigation
+        // context and, crucially, to let the full-screen aurora (an opaque
+        // sibling drawn on top of the stack's white systemBackground) cover
+        // that white surface end-to-end so there's no seam under the rail.
+        .toolbar(.hidden, for: .navigationBar)
+        }
     }
 
     // MARK: - Domain Pager
@@ -276,8 +284,7 @@ struct ContentView: View {
     /// `UIPageViewController` that paints an opaque page surface), so the single
     /// root `AppBackground` shows through it continuously — no seam under the rail.
     private var domainPager: some View {
-        NavigationStack {
-            GeometryReader { geo in
+        GeometryReader { geo in
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 0) {
                         ForEach(AppDomain.allCases) { domain in
@@ -293,7 +300,6 @@ struct ContentView: View {
                 .scrollIndicators(.hidden)
                 .ignoresSafeArea(.container, edges: .bottom)
             }
-        }
         .onChange(of: selectedDomain) { _, newValue in
             guard scrolledDomain != newValue else { return }
             withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
